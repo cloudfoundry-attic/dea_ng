@@ -48,18 +48,29 @@ class VCAP::Dea::WardenEnv
     @client.ping
   end
 
+  def get_stats
+    return nil unless @linked
+    handle = fetch_handle
+    client = EM::Warden::FiberAwareClient.new(@@warden_socket_path)
+    client.connect
+    info = client.info(handle)
+    client.disconnect(false) #em will re-use connection
+    stats =  info['stats']
+    {:mem_usage_B => stats['mem_usage_B'], :disk_usage_B => stats['disk_usage_B']}
+  end
+
   def ping
     @client.ping
   end
 
   def build_mounts_list(mounts)
     mount_list = []
-    mounts.each { |path| mount_list.push([path, path, {"mode" => 'ro'}])}
+    mounts.each { |src, dst, mode| mount_list.push([src, dst, {"mode" => mode}])}
     mount_list
   end
 
   def alloc_network_port
-    @client.net(fetch_handle, 'in')
+    @client.net(fetch_handle, 'in')["host_port"]
   end
 
   def bind_container(container_info)
@@ -121,7 +132,8 @@ class VCAP::Dea::WardenEnv
     result = @client.run(handle, cmd)
     end_time = Time.now
     total_time = end_time - start_time
-    @logger.debug("run #{cmd}:took (#{total_time}) returned: #{result.to_s}")
+    #XXX log different for now.
+    #@logger.debug("run #{cmd}:took (#{total_time}) returned: #{result.to_s}")
     result
   end
 

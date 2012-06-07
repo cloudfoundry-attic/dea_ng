@@ -11,6 +11,8 @@ class VCAP::Dea::Config < VCAP::Config
       :base_dir              => String,     # where all dea stuff lives
       :pid_filename          => String,     # where our pid file lives.
       :reset_at_startup      => VCAP::JsonSchema::BoolSchema.new, #blow away saved state at startup.
+      #XXX make this optionally nil, but still in schema:local_route           => String,
+      :file_viewer_port      => Integer,
       :resources => {
         :node_limits => {
           :max_memory => Integer,
@@ -29,7 +31,9 @@ class VCAP::Dea::Config < VCAP::Config
         optional(:syslog)   => String,      # Name to associate with syslog messages (should start with 'vcap.')
       },
 
+     #XXX add support for mounts: to schema
      :runtimes => VCAP::JsonSchema::HashSchema.new,
+     :mount_runtimes => VCAP::JsonSchema::BoolSchema.new, #should we mount the runtime?
     }
   end
 
@@ -39,7 +43,35 @@ class VCAP::Dea::Config < VCAP::Config
       config = super(*args)
       normalize_config(config)
       validate_runtimes(config[:runtimes])
+      parse_mounts(config)
       config
+    end
+
+    #XXX add support to config parser for checking sequences.
+    def parse_mounts(config)
+      mounts = config[:mounts]
+      new_mounts = []
+      valid_modes = ['ro','rw']
+      return if mounts.nil? || mounts.empty?
+      mounts.each do |line|
+        puts "line: #{line}"
+        src_path, dst_path, mode = line.split(',').map {|s| s.strip}
+
+        unless Dir.exist?(src_path)
+          puts "Directory #{src_path} in mount line #{line} does not exists!."
+          exit 1
+        end
+        unless dst_path
+          puts "invalid mount line: #{line}. valid syntax is src_path, dst_path, mode"
+          exit 1
+        end
+        unless valid_modes.include? mode
+          puts "invalid mount line: #{line}. mode must be either ro or rw"
+          exit 1
+        end
+        new_mounts.push([src_path, dst_path, mode])
+      end
+      config[:mounts] = new_mounts unless new_mounts.empty?
     end
 
     def validate_runtimes(runtimes)

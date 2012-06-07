@@ -1,3 +1,5 @@
+$LOAD_PATH.unshift(File.join(File.dirname(__FILE__), 'dea'))
+
 require 'vcap/common'
 require 'vcap/logging'
 require 'vcap/component'
@@ -31,16 +33,15 @@ module VCAP
 
       def start_server!
         VCAP::Logging.setup_from_config(config[:logging])
-        @logger = VCAP::Logging.logger('dea')
+        @logger = VCAP::Logging.logger('dea_ng')
         @logger.info "Starting VCAP DEA version #{VCAP::Dea::VERSION}, pid: #{Process.pid}."
         sub_dirs = %w[tmp droplets db instances]
         base_dir = @config[:base_dir]
         setup_pidfile
         setup_directories(base_dir, sub_dirs)
         clean_directories(sub_dirs) if @config[:reset_at_startup]
-        params = { :resources => config[:resources],
-                   :runtimes => config[:runtimes],
-                   :directories => @directories }
+        params = @config.dup
+        params[:directories] = @directories
         nats_uri = @config[:nats_uri]
         @logger.info "Using #{nats_uri}."
         handler = VCAP::Dea::Handler.new(params, @logger)
@@ -51,10 +52,11 @@ module VCAP
 
         ['TERM', 'INT', 'QUIT'].each { |s| trap(s) { @server.shutdown() } }
         trap('USR2') { @server.evacuate_apps_then_quit() }
+        trap('USR1') { @logger.error("Got SIGUSR1 - don't know what that means, SIGUSR2 to evactuate apps, SIGINT to shutdown.")}
         at_exit { clean_directories(%w[tmp]) } #prevent storage leaks.
-
         EventMachine.run {
           @server.start
+          handler.start_file_viewer
         }
       end
 
@@ -87,10 +89,14 @@ module VCAP
         }
       end
 
+      def add_directory(base_dir, name)
+        @directories[name] = File.join(base_dir, name)
+      end
+
       def setup_directories(base_dir, sub_dirs)
         @directories = Hash.new
         sub_dirs.each {|name|
-          @directories[name] = File.join(base_dir, name)
+          add_directory(base_dir, name)
         }
         @directories.each { |name, path|
           unless Dir.exists?(path)

@@ -1,33 +1,34 @@
 ###Features:
-
+-update warden, handle new 'net in' semantics.
 -fix up dea status handler
 
 -look at how stopped app state gets cleaned up.
 
--look at how to add crashed app monitoring.
-
--look into how we do stats monitoring, implement monitoring, finish varz support.
-
--add resource usage monitoring for memory and disk.
-
--setup dea file serving using nginx.
-  -figure out authentication story.
-  -create simple nginx conf.
-  -test stand-alone.
-  -move into container.
-  -test in container.
-  -figure out how to package with gem.
+-finish varz support.
 
 -should we sanity check how much memory/disk we advertise?
 
+-add high water mark check for disk usage based on total disk on the machine.
+
+
 ###Bugz:
 
+-make sure we can't leak instance dirs (looks possible).
+
 -apps can be left in a stopped state...
+
+-get support for non-ruby runtimes working.
+
+-apps can get stuck between STARTING and RUNNING if stuff blocks in warden
+under load (demonstrate by running app with many instances > 8).
+
+-get_stats can get called on a bad handle.
+
+
 
 ###Cleanup:
 
 -attend to all XXX
-
 
 ###Testing:
 
