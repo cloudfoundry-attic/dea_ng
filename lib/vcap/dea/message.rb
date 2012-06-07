@@ -25,7 +25,6 @@ class VCAP::Dea::Message
   end
 
   def respond(subj, details)
-    #XXX more verbose debug message to show what message this is in response to.
     @subject = subj
     @details = details
     send

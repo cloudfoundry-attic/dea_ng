@@ -59,7 +59,7 @@ class VCAP::Dea::EnvBuilder
   def runtime_env(runtime_name)
     env = []
     if runtime_name && runtime = @runtimes[runtime_name]
-      if re = runtime['environment']
+      if re = runtime[:environment]
         re.each { |k,v| env << "#{k}=#{v}"}
       end
     end

@@ -1,15 +1,33 @@
 ---
+# Base directory for dea, application directories, dea temp files, etc. are all relative to this.
 base_dir: /var/vcap.local/dea2
+
+#the pid file, created at startup, used for job managment.
 pid_filename: /var/vcap/sys/run/dea2.pid
+
+#where the NATS message bus is located
 nats_uri: nats://localhost:4222/
+
+# Local_route is the IP address of a well known server on your network, it
+# is used to choose the right ip address (think of hosts that have multiple nics
+# and IP addresses assigned to them) of the host running the DEA. Default
+# value of nil, should work in most cases.
+local_route:
+
+#where the server that provides access to application home directories (log files, etc.) lives.
+file_viewer_port: 12345
+
 logging:
   level: debug
 
 #helpful for development
 reset_at_startup: true
 
+#where we expect the warden to live
 warden_socket_path: /tmp/warden.sock
 
+#resource limits - node limits indicate limits for this dea node.
+#app quotas are limits imposed on a per-application basis.
 resources:
   node_limits:
     max_memory: 4096
@@ -18,6 +36,17 @@ resources:
   default_app_quota:
     mem_quota: 512
     disk_quota: 256
+
+#use this to specify mount points that will always be included in the container.
+#useful, for example, if you want to just put all your runtimes under one common
+#tree.
+#mounts:
+#  - /tmp, /tmp/outside-tmp, ro
+#  - /var/vcap, /var/vcap, ro
+
+#allow disabling of mounting runtimes, can be used in combination with mounts
+#to provide an alternate means of supplying runtimes.
+mount_runtimes: true
 
 # This is where the execution agent determines its available runtimes.
 # version flags are assumed to be '-v' unless noted below.

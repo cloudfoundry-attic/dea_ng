@@ -1,5 +1,6 @@
 require 'em-http'
 require 'tempfile'
+require 'errors'
 
 module VCAP
   module Dea
@@ -31,9 +32,10 @@ module VCAP::Dea::HttpUtil
           nil
         end
       end
-    rescue
+    rescue => e
       tmpfile.unlink if tmpfile
-      raise
+      raise VCAP::Dea::HttpDownLoadError, "error while downloading uri #{uri}"
+      raise e
     end
 
   end

@@ -1,33 +1,35 @@
 ###Features:
+-audit resource tracking, make sure code is sound.
 
 -fix up dea status handler
 
 -look at how stopped app state gets cleaned up.
 
--look at how to add crashed app monitoring.
-
--look into how we do stats monitoring, implement monitoring, finish varz support.
-
--add resource usage monitoring for memory and disk.
-
--setup dea file serving using nginx.
-  -figure out authentication story.
-  -create simple nginx conf.
-  -test stand-alone.
-  -move into container.
-  -test in container.
-  -figure out how to package with gem.
+-finish varz support.
 
 -should we sanity check how much memory/disk we advertise?
 
-###Bugz:
+-add high water mark check for disk usage based on total disk on the machine.
 
--apps can be left in a stopped state...
+###Bugz:
+-make sure usage stats, and vmc crashes works...exercise application info features.
+
+-bound number of redundant crashed instances we keep around.
+
+-for some reason health manager keeps trying to restart crashed apps.
+
+-apps can get stuck between STARTING and RUNNING if stuff blocks in warden
+under load (demonstrate by running app with many instances > 8).
+
+-get_stats can get called on a bad handle.
+
+-exercise update feature, make sure its working and happ.
+
 
 ###Cleanup:
+-make use of logid consistent.
 
 -attend to all XXX
-
 
 ###Testing:
 
@@ -46,10 +48,7 @@
 
 ###Structure:
 
-  -refactor handler to ease unit testing.
+  -refactor handler to ease unit testing (i.e. make instances a class)
 
   -add types to all untyped exceptions.
 
-###Packaging/Deployment:
-  -add gem spec
-  -get dea2 bosh packaging.

@@ -22,19 +22,18 @@ class VCAP::Dea::Server
   ADVERTISE_INTERVAL   = 5
   WARDEN_PING_INTERVAL = 5
   VARZ_UPDATE_INTERVAL = 1
-  CRASHED_APPS_CLEANUP_INTERVAL = 10 #XXX increase this for production.
+  CRASHED_APPS_CLEANUP_INTERVAL = 30
+  RESOURCE_USAGE_UPDATE_INTERVAL = 5
 
   attr_accessor :handler
 
   def initialize(nats_uri, handler, logger = nil)
+    @logger   = logger || Logger.new(STDOUT)
     @nats_uri = nats_uri
     @handler  = handler
     @routes   = {}
     @sids     = []
-    @logger   = logger || Logger.new(STDOUT)
     @shutting_down = false
-    @local_ip = '127.0.0.1' #XXX should be VCAP.local_ip(config['local_route'])
-    @file_viewer_port = 999 #XXX should be config['filer_port']
     @logger.debug("server initialized.")
   end
 
@@ -52,7 +51,7 @@ class VCAP::Dea::Server
     msg = VCAP::Dea::Message.new(@nats)
     @logger.info('Starting shutdown..')
     Fiber.new { @handler.shutdown(msg) }.resume
-    EM.add_timer(0.25) do  #allow messages time to get out XXX crank this down
+    NATS.flush do
       NATS.stop { EM.stop }
       @logger.info('Shutdown complete..')
       exit
@@ -60,20 +59,20 @@ class VCAP::Dea::Server
   end
 
   def ping_warden
-    Fiber.new {
+    Fiber.new do
       begin
         VCAP::Dea::WardenEnv.ping
       rescue => e
         @logger.error "Warden unreachable, shutting down:#{e.message}"
         shutdown
       end
-      @logger.debug "warden ping - succeeded."
-    }.resume
+    end.resume
   end
 
   #XXX - minor - refactor these two to remove duplication.
   def send_heartbeat
     return if @shutting_down
+    @logger.debug("heartbeating...")
     msg = @handler.get_heartbeat
     if msg
       msg = VCAP::Dea::Message.new(@nats, 'dea.heartbeat', :details => msg)
@@ -91,8 +90,7 @@ class VCAP::Dea::Server
   end
 
   def send_hello
-    hello_msg = {:id => @handler.uuid, :ip => @local_ip, :port => @file_viewer_port,
-                 :version => VCAP::Dea::VERSION }
+    hello_msg = @handler.get_hello
     msg = VCAP::Dea::Message.new(@nats, 'dea.start',
                                  :details => hello_msg)
     msg.send
@@ -113,19 +111,21 @@ class VCAP::Dea::Server
 
   def register_component
     VCAP::Component.register(:type => 'DEA',
-                           :host => @local_ip,
+                           :host => @handler.local_ip,
                            :index => '0', #XXX fixme
                            :config => {}, #XXX fixme
                            :port => 9999, #XXX fixme
                            :user => 'foo', #XXX fixme
                            :password => 'foo') #XXX fixme
     @uuid = VCAP::Component.uuid
-    @handler.set_uuid(@uuid)
+    @handler.uuid = @uuid
   end
 
   def resume_detached_containers
-    Fiber.new { @handler.restore_snapshot }.resume
-    Fiber.new { @handler.resume_detached_containers }.resume
+    Fiber.new {
+      @handler.restore_snapshot
+      @handler.resume_detached_containers
+    }.resume
   end
 
   def update_varz
@@ -135,7 +135,7 @@ class VCAP::Dea::Server
 
   def start
     @logger.info("connecting to nats: #{@nats_uri}")
-    @nats = NATS.connect(:uri => @nats_uri) do
+    @nats = NATS.start(:uri => @nats_uri) do
       register_component
       setup_error_handling
       resume_detached_containers
@@ -155,7 +155,9 @@ class VCAP::Dea::Server
     EM.add_periodic_timer(ADVERTISE_INTERVAL)   { send_advertise }
     EM.add_periodic_timer(HEARTBEAT_INTERVAL)   { send_heartbeat }
     EM.add_periodic_timer(VARZ_UPDATE_INTERVAL) { update_varz    }
-    EM.add_periodic_timer(CRASHED_APPS_CLEANUP_INTERVAL) { Fiber.new { @handler.remove_expired_crashed_apps }.resume }
+    EM.add_periodic_timer(RESOURCE_USAGE_UPDATE_INTERVAL) { Fiber.new { @handler.update_cached_resource_usage}.resume }
+    EM.add_periodic_timer(RESOURCE_USAGE_UPDATE_INTERVAL) { Fiber.new { @handler.update_total_resource_usage}.resume }
+    EM.add_periodic_timer(CRASHED_APPS_CLEANUP_INTERVAL)  { Fiber.new { @handler.remove_expired_crashed_apps }.resume }
   end
 
   def setup_subscriptions
