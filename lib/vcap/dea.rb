@@ -1,3 +1,5 @@
+$LOAD_PATH.unshift(File.join(File.dirname(__FILE__), 'dea'))
+
 require 'vcap/common'
 require 'vcap/logging'
 require 'vcap/component'
