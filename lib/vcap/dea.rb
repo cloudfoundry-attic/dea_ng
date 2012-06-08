@@ -89,10 +89,22 @@ module VCAP
         }
       end
 
+      def add_directory(base_dir, name)
+        @directories[name] = File.join(base_dir, name)
+      end
+
+      def setup_nginx_dir(base_dir)
+        unless Dir.exists? File.join base_dir, 'nginx'
+          @logger.error "nginx not setup, run rake setup"
+          exit 1
+        end
+        add_directory(base_dir, 'nginx')
+      end
+
       def setup_directories(base_dir, sub_dirs)
         @directories = Hash.new
         sub_dirs.each {|name|
-          @directories[name] = File.join(base_dir, name)
+          add_directory(base_dir, name)
         }
         @directories.each { |name, path|
           unless Dir.exists?(path)
@@ -100,6 +112,7 @@ module VCAP
             FileUtils.mkdir_p(path)
           end
         }
+        setup_nginx_dir(base_dir)
       end
 
       def setup_pidfile

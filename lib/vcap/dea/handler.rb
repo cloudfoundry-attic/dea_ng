@@ -237,8 +237,12 @@ class VCAP::Dea::Handler
   end
 
   def setup_network_ports(warden_env, instance, debug, console)
-    http_port = warden_env.alloc_network_port
-    instance[:port] = http_port
+    app_port = warden_env.alloc_network_port
+    instance[:port] = app_port
+
+    nginx_port = warden_env.alloc_network_port
+    instance[:nginx_port] = nginx_port
+    instance[:nginx_auth] = [VCAP.secure_uuid, VCAP.secure_uuid]
 
     if debug
       debug_port = warden_env.alloc_network_port
@@ -332,7 +336,9 @@ class VCAP::Dea::Handler
       runtime_path = @runtimes[runtime][:executable]
       runtime_dir = File.dirname(File.dirname(runtime_path))
 
-      mounts = [droplet_dir, runtime_dir]
+      nginx_dir = @directories['nginx']
+
+      mounts = [droplet_dir, runtime_dir, nginx_dir]
       warden_env = VCAP::Dea::WardenEnv.new(@logger)
       warden_env.create_container(mounts, resources)
       setup_network_ports(warden_env, instance, debug, console)
@@ -343,6 +349,10 @@ class VCAP::Dea::Handler
 
       status, out, err = warden_env.run("cp -r #{droplet_dir}/* .")
       raise VCAP::Dea::HandlerError, "Failed to copy droplet bits:#{out}:#{err}" unless status == 0
+
+      nginx_cmd = "./run_nginx.sh #{instance[:nginx_port]} #{instance[:nginx_auth].join(" ")}"
+      status, out, err = warden_env.run("mkdir -p /tmp/nginx ; cd #{nginx_dir}; #{nginx_cmd}")
+      raise VCAP::Dea::HandlerError, "Failed to start nginx server:#{out}:#{err}" unless status == 0
 
       #XXX FIXME
       #XXX sed lets us delimit our pattern with any charecter, we use @ to avoid frobbing path names
@@ -356,6 +366,7 @@ class VCAP::Dea::Handler
       #XXX think about the order of this and potential failures
       set_instance_state(instance, :RUNNING)
       add_instance(instance)
+      #XXX add environment string.
       warden_env.spawn("./startup.ready -p #{instance[:port]}")
       attach_container(instance, warden_env)
       result = warden_env.link
@@ -580,9 +591,9 @@ class VCAP::Dea::Handler
         :index => instance[:instance_index],
         :state => instance[:state],
         :state_timestamp => instance[:state_timestamp],
-        #XXX :file_uri => "http://#{@local_ip}:#{@file_viewer_port}/droplets/",
-        #XXX :credentials => @file_auth,
-        #XXX :staged => instance[:staged],
+        :file_uri => "http://#{@local_ip}:#{instance[:nginx_port]}",
+        :credentials => instance[:nginx_auth],
+        :staged => '',
         :debug_ip => instance[:debug_ip],
         :debug_port => instance[:debug_port],
         :console_ip => instance[:console_ip],
