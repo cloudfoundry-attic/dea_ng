@@ -10,14 +10,6 @@
 
 -add resource usage monitoring for memory and disk.
 
--setup dea file serving using nginx.
-  -figure out authentication story.
-  -create simple nginx conf.
-  -test stand-alone.
-  -move into container.
-  -test in container.
-  -figure out how to package with gem.
-
 -should we sanity check how much memory/disk we advertise?
 
 ###Bugz:
