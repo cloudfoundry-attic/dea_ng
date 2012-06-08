@@ -94,7 +94,7 @@ class VCAP::Dea::Handler
     heartbeat
   end
 
-  def handle_hm_start
+  def handle_hm_start(msg)
     msg.respond('dea.heartbeat', get_heartbeat)
   end
 
@@ -345,7 +345,6 @@ class VCAP::Dea::Handler
 
       env_builder = VCAP::Dea::EnvBuilder.new(@runtimes, @local_ip, @logger)
       new_env = env_builder.setup_instance_env(instance, app_env, services)
-      @logger.debug("new_env #{new_env}")
 
       status, out, err = warden_env.run("cp -r #{droplet_dir}/* .")
       raise VCAP::Dea::HandlerError, "Failed to copy droplet bits:#{out}:#{err}" unless status == 0
@@ -366,8 +365,7 @@ class VCAP::Dea::Handler
       #XXX think about the order of this and potential failures
       set_instance_state(instance, :RUNNING)
       add_instance(instance)
-      #XXX add environment string.
-      warden_env.spawn("./startup.ready -p #{instance[:port]}")
+      warden_env.spawn("env -i #{env_str} ./startup.ready -p #{instance[:port]}")
       attach_container(instance, warden_env)
       result = warden_env.link
       app_exit_handler(instance, result)
