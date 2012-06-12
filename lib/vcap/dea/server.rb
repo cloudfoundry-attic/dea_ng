@@ -67,7 +67,6 @@ class VCAP::Dea::Server
         @logger.error "Warden unreachable, shutting down:#{e.message}"
         shutdown
       end
-      @logger.debug "warden ping - succeeded."
     }.resume
   end
 
