@@ -352,7 +352,6 @@ class VCAP::Dea::Handler
           :runtime => runtime,
           :framework => framework,
           :start => Time.now,
-          :state_timestamp => Time.now.to_i,
           :log_id => "(name=%s app_id=%s instance=%s index=%s)" % [name, droplet_id, instance_id, instance_index],
         }
 
