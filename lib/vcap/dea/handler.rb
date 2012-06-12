@@ -272,10 +272,6 @@ class VCAP::Dea::Handler
     app_port = warden_env.alloc_network_port
     instance[:port] = app_port
 
-    nginx_port = warden_env.alloc_network_port
-    instance[:nginx_port] = nginx_port
-    instance[:nginx_auth] = [VCAP.secure_uuid, VCAP.secure_uuid]
-
     if debug
       debug_port = warden_env.alloc_network_port
       instance[:debug_ip] = @local_ip
@@ -367,7 +363,6 @@ class VCAP::Dea::Handler
       runtime_path = @runtimes[runtime][:executable]
       runtime_dir = File.dirname(File.dirname(runtime_path))
 
-      #XXX remove nginx_dir = @directories['nginx']
 
       mounts = [droplet_dir, runtime_dir]
       warden_env = VCAP::Dea::WardenEnv.new(@logger)
@@ -379,11 +374,6 @@ class VCAP::Dea::Handler
 
       status, out, err = warden_env.run("tar xzf #{droplet_dir}/droplet.tgz")
       raise VCAP::Dea::HandlerError, "Failed to extract droplet bits:#{out}:#{err}" unless status == 0
-
-      #XXX this is broken with new warden uid model -- remove.
-      #nginx_cmd = "./run_nginx.sh #{instance[:nginx_port]} #{instance[:nginx_auth].join(" ")}"
-      #status, out, err = warden_env.run("mkdir -p /tmp/nginx ; cd #{nginx_dir}; #{nginx_cmd}")
-      #raise VCAP::Dea::HandlerError, "Failed to start nginx server:#{out}:#{err}" unless status == 0
 
       #XXX FIXME
       #XXX sed lets us delimit our pattern with any charecter, we use @ to avoid frobbing path names
@@ -622,8 +612,8 @@ class VCAP::Dea::Handler
         :index => instance[:instance_index],
         :state => instance[:state],
         :state_timestamp => instance[:state_timestamp],
-        :file_uri => "http://#{@local_ip}:#{instance[:nginx_port]}",
-        :credentials => instance[:nginx_auth],
+        #XXX fix when new file server stuff working :file_uri => "http://#{@local_ip}:#{instance[:nginx_port]}",
+        #XXX see above. :credentials => instance[:nginx_auth],
         :staged => '',
         :debug_ip => instance[:debug_ip],
         :debug_port => instance[:debug_port],
