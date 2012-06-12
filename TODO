@@ -1,5 +1,5 @@
 ###Features:
-
+-update warden, handle new 'net in' semantics.
 -fix up dea status handler
 
 -look at how stopped app state gets cleaned up.
