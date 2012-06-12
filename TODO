@@ -6,15 +6,25 @@
 
 -look at how to add crashed app monitoring.
 
--look into how we do stats monitoring, implement monitoring, finish varz support.
-
--add resource usage monitoring for memory and disk.
+-finish varz support.
 
 -should we sanity check how much memory/disk we advertise?
+
+-add high water mark check for disk usage based on total disk on the machine.
+
+-figure out how to run thin as the the single web server to handle file
+ requests.
+
 
 ###Bugz:
 
 -apps can be left in a stopped state...
+
+-nginx stuff is in a broken state and needs to be removed as we are going
+back to a single web server instance model.
+
+-get support for non-ruby runtimes working.
+
 
 ###Cleanup:
 
