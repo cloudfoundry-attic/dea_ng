@@ -8,4 +8,8 @@ module VCAP::Dea::Convert
   def bytes_to_MB(bytes)
     (bytes / (1024*1024)).to_i
   end
+
+  def bytes_to_GB(bytes)
+    (bytes / (1024*1024*1024)).to_i
+  end
 end

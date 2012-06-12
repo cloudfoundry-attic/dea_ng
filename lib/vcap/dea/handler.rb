@@ -50,6 +50,7 @@ class VCAP::Dea::Handler
 
     @app_cache = VCAP::Dea::AppCache.new(@directories, @logger)
     @snapshot = VCAP::Dea::Snapshot.new(@directories['db'], @logger)
+    @memory_in_use = 0
   end
 
   def set_uuid(uuid)
@@ -59,7 +60,7 @@ class VCAP::Dea::Handler
   def fetch_and_update_varz
     @varz[:apps_max_memory] = @resource_tracker.max[:memory]
     @varz[:apps_reserved_memory] = @resource_tracker.reserved[:memory]
-    @varz[:apps_used_memory] = 000 #XXX fill me in
+    @varz[:apps_used_memory] = @memory_in_use
     @varz[:num_apps] = @resource_tracker.reserved[:instances]
     @varz
   end
@@ -138,7 +139,7 @@ class VCAP::Dea::Handler
 
     status_msg[:max_memory] = @resource_tracker.max[:memory]
     status_msg[:reserved_memory] = @resource_tracker.reserved[:memory]
-    status_msg[:used_memory] = 0 #XXX fill me in once we track usage dynamically
+    status_msg[:used_memory] = @memory_in_use
     status_msg[:num_clients] = @resource_tracker.reserved[:instances]
 
     msg.reply(status_msg)
@@ -198,10 +199,34 @@ class VCAP::Dea::Handler
     @logger.debug("added droplet/index: #{droplet_id}: #{instance[:instance_index]} to droplet list.")
   end
 
-    { :time => Time.now, :cpu => 0, :mem => 100, :disk => 100 }
+  #XXX this could be expensive with lots of containers, fire these off concurrently.
+  def update_cached_resource_usage
+    @droplets.each_value do |instances|
+      instances.each_value do |instance|
+        Fiber.new { update_instance_usage(instance) }.resume
+      end
+    end
+  end
+
+  def update_total_resource_usage
+    total = 0
+    @droplets.each_value do |instances|
+      instances.each_value do |instance|
+        total += instance[:cached_usage][:mem]
+      end
+    end
+    @memory_in_use = total
+  end
+
   def update_instance_usage(instance)
-    #XXX fetch status from warden_env and update.
-    cur_usage = { :time => Time.now, :cpu => 10, :mem => 100, :disk => 100 }
+    #XXX get cpu and disk stats working pending wardens upport
+    cur_usage = { :time => Time.now, :cpu => 0, :mem => 0, :disk => 0 }
+    warden_env = instance[:warden_env]
+    if warden_env
+      stats = warden_env.get_stats
+      cur_usage[:mem] = bytes_to_GB(stats[:mem_usage_B]) #XXX double check units on this.
+      cur_usage[:disk] = stats[:disk_usage_B]
+    end
     instance[:cached_usage] = cur_usage
   end
 
@@ -373,8 +398,8 @@ class VCAP::Dea::Handler
       set_instance_state(instance, :RUNNING)
       add_instance(instance)
       warden_env.spawn("env -i #{env_str} ./startup.ready -p #{instance[:port]}")
-      update_instance_usage(instance)
       attach_container(instance, warden_env)
+      update_instance_usage(instance)
       result = warden_env.link
       app_exit_handler(instance, result)
     rescue => e

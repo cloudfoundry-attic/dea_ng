@@ -48,6 +48,16 @@ class VCAP::Dea::WardenEnv
     @client.ping
   end
 
+  def get_stats
+    handle = fetch_handle
+    client = EM::Warden::FiberAwareClient.new(@@warden_socket_path)
+    client.connect
+    info = client.info(handle)
+    client.disconnect(false) #em will re-use connection
+    stats =  info['stats']
+    {:mem_usage_B => stats['mem_usage_B'], :disk_usage_B => stats['disk_usage_B']}
+  end
+
   def ping
     @client.ping
   end
