@@ -198,6 +198,13 @@ class VCAP::Dea::Handler
     @logger.debug("added droplet/index: #{droplet_id}: #{instance[:instance_index]} to droplet list.")
   end
 
+    { :time => Time.now, :cpu => 0, :mem => 100, :disk => 100 }
+  def update_instance_usage(instance)
+    #XXX fetch status from warden_env and update.
+    cur_usage = { :time => Time.now, :cpu => 10, :mem => 100, :disk => 100 }
+    instance[:cached_usage] = cur_usage
+  end
+
   def set_instance_state(instance, new_state)
     valid_states = [:RUNNING, :CRASHED, :DELETED].freeze
     raise VCAP::Dea::HandlerError, "invalid state #{new_state}" unless valid_states.include? new_state
@@ -329,16 +336,15 @@ class VCAP::Dea::Handler
         }
 
       #check if bits already in cache, if not download them.
-      existing_droplet = @app_cache.has_droplet?(sha1)
-      @app_cache.download_droplet(bits_uri, sha1) unless existing_droplet
+      @app_cache.download_droplet(bits_uri, sha1) unless @app_cache.has_droplet?(sha1)
       droplet_dir = @app_cache.droplet_dir(sha1)
 
       runtime_path = @runtimes[runtime][:executable]
       runtime_dir = File.dirname(File.dirname(runtime_path))
 
-      nginx_dir = @directories['nginx']
+      #XXX remove nginx_dir = @directories['nginx']
 
-      mounts = [droplet_dir, runtime_dir, nginx_dir]
+      mounts = [droplet_dir, runtime_dir]
       warden_env = VCAP::Dea::WardenEnv.new(@logger)
       warden_env.create_container(mounts, resources)
       setup_network_ports(warden_env, instance, debug, console)
@@ -346,12 +352,13 @@ class VCAP::Dea::Handler
       env_builder = VCAP::Dea::EnvBuilder.new(@runtimes, @local_ip, @logger)
       new_env = env_builder.setup_instance_env(instance, app_env, services)
 
-      status, out, err = warden_env.run("cp -r #{droplet_dir}/* .")
-      raise VCAP::Dea::HandlerError, "Failed to copy droplet bits:#{out}:#{err}" unless status == 0
+      status, out, err = warden_env.run("tar xzf #{droplet_dir}/droplet.tgz")
+      raise VCAP::Dea::HandlerError, "Failed to extract droplet bits:#{out}:#{err}" unless status == 0
 
-      nginx_cmd = "./run_nginx.sh #{instance[:nginx_port]} #{instance[:nginx_auth].join(" ")}"
-      status, out, err = warden_env.run("mkdir -p /tmp/nginx ; cd #{nginx_dir}; #{nginx_cmd}")
-      raise VCAP::Dea::HandlerError, "Failed to start nginx server:#{out}:#{err}" unless status == 0
+      #XXX this is broken with new warden uid model -- remove.
+      #nginx_cmd = "./run_nginx.sh #{instance[:nginx_port]} #{instance[:nginx_auth].join(" ")}"
+      #status, out, err = warden_env.run("mkdir -p /tmp/nginx ; cd #{nginx_dir}; #{nginx_cmd}")
+      #raise VCAP::Dea::HandlerError, "Failed to start nginx server:#{out}:#{err}" unless status == 0
 
       #XXX FIXME
       #XXX sed lets us delimit our pattern with any charecter, we use @ to avoid frobbing path names
@@ -366,6 +373,7 @@ class VCAP::Dea::Handler
       set_instance_state(instance, :RUNNING)
       add_instance(instance)
       warden_env.spawn("env -i #{env_str} ./startup.ready -p #{instance[:port]}")
+      update_instance_usage(instance)
       attach_container(instance, warden_env)
       result = warden_env.link
       app_exit_handler(instance, result)
@@ -374,7 +382,6 @@ class VCAP::Dea::Handler
       @logger.error e.backtrace.join("\n")
       #XXX delete instance
       #XXX try to use remove_and_clean_up_instance here. and get rid of the !existing droplet stuff.
-      @app_cache.purge_droplet!(sha1) if @app_cache.has_droplet?(sha1) and !existing_droplet
       @resource_tracker.release(resources) if resources
       warden_env.destroy! if warden_env
       raise e
@@ -435,6 +442,7 @@ class VCAP::Dea::Handler
     container_info = instance[:warden_container_info]
     warden_env.bind_container(container_info)
     attach_container(instance, warden_env)
+    update_instance_usage(instance)
     begin
       result = warden_env.link
     rescue VCAP::Dea::WardenError => e
@@ -609,7 +617,7 @@ class VCAP::Dea::Handler
           #XXX deprecated :fds_quota => instance[:fds_quota],
           :cores => @num_cores
         }
-        #XXX fix me up response[:stats][:usage] = @usage[instance[:pid]].last if @usage[instance[:pid]]
+        response[:stats][:usage] = instance[:cached_usage]
       end
       msg.reply(response)
     end
