@@ -35,10 +35,10 @@ module VCAP::Dea
       logger = @logger
       fork do
         @file_viewer_server = Thin::Server.new(@local_ip, @file_viewer_port, :signals => false) do
-          #Thin::Logging.silent = true
-          #use Rack::Auth::Basic do |username, password|
-           #[username, password] == auth
-          #end
+          Thin::Logging.silent = true
+          use Rack::Auth::Basic do |username, password|
+           [username, password] == auth
+          end
           map '/droplets' do
             run VCAP::Dea::Directory.new(root_dir)
           end
@@ -52,11 +52,17 @@ module VCAP::Dea
   class FileServer < Rack::File
     # based on Rack::File, just add the NOFOLLOW flag
     def each
-      File.open(@path, File::RDONLY | File::NOFOLLOW) { |file|
-        while part = file.read(8192)
+      F.open(@path, File::RDONLY | File::NOFOLLOW | File::BINARY) do |file|
+        file.seek(@range.begin)
+        remaining_len = @range.end-@range.begin+1
+        while remaining_len > 0
+          part = file.read([8192, remaining_len].min)
+          break unless part
+          remaining_len -= part.length
+
           yield part
         end
-      }
+      end
     end
   end
 
@@ -81,20 +87,15 @@ module VCAP::Dea
       @path_info = Rack::Utils.unescape(env['PATH_INFO'])
       @path = F.expand_path(F.join(@root, @path_info))
 
-      puts "got path #{@path}"
       if not File.exists? @path
         return entity_not_found
       end
 
       resolve_symlink
       if forbidden = check_forbidden
-        result = forbidden
-        puts "forbiden!"
-        result
+        forbidden
       else
-        list = list_path
-        puts "list #{list}"
-        list
+        list_path
       end
     end
 
