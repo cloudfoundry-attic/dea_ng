@@ -28,7 +28,7 @@ class VCAP::Dea::Handler
   include VCAP::Dea::FiberAwareHelpers
   include VCAP::Dea::Convert
 
-  attr_reader :uuid
+  attr_reader :uuid, :local_ip
 
   def initialize(params, logger = nil)
     @logger             = logger || Logger.new(STDOUT)
@@ -54,6 +54,7 @@ class VCAP::Dea::Handler
     @app_cache = VCAP::Dea::AppCache.new(@directories, @logger)
     @snapshot = VCAP::Dea::Snapshot.new(@directories['db'], @logger)
     @file_viewer = VCAP::Dea::FileViewer.new(@directories['instances'], @logger)
+    @hello_message = {:id => @uuid, :ip => @local_ip, :port => @file_viewer.port, :version => VCAP::Dea::VERSION }.freeze
     @memory_in_use = 0
   end
 
@@ -79,6 +80,10 @@ class VCAP::Dea::Handler
             :available_memory => @resource_tracker.available[:memory],
             :runtimes => @runtimes.keys}
     msg
+  end
+
+  def get_hello
+    @hello_message
   end
 
   def generate_heartbeat(instance)
@@ -139,12 +144,7 @@ class VCAP::Dea::Handler
   end
 
   def handle_status(msg)
-    status_msg = {:id  => @uuid,
-                  :ip => @local_ip,
-                  :version => VCAP::Dea::VERSION,
-                  :port => 0, #XXX this is just a place holder, not meaningful in DEA2
-    }
-
+    status_msg = @hello_message.dup
     status_msg[:max_memory] = @resource_tracker.max[:memory]
     status_msg[:reserved_memory] = @resource_tracker.reserved[:memory]
     status_msg[:used_memory] = @memory_in_use

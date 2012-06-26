@@ -28,14 +28,12 @@ class VCAP::Dea::Server
   attr_accessor :handler
 
   def initialize(nats_uri, handler, logger = nil)
+    @logger   = logger || Logger.new(STDOUT)
     @nats_uri = nats_uri
     @handler  = handler
     @routes   = {}
     @sids     = []
-    @logger   = logger || Logger.new(STDOUT)
     @shutting_down = false
-    @local_ip = '127.0.0.1' #XXX should be VCAP.local_ip(config['local_route'])
-    @file_viewer_port = 999 #XXX should be config['filer_port']
     @logger.debug("server initialized.")
   end
 
@@ -91,8 +89,7 @@ class VCAP::Dea::Server
   end
 
   def send_hello
-    hello_msg = {:id => @handler.uuid, :ip => @local_ip, :port => @file_viewer_port,
-                 :version => VCAP::Dea::VERSION }
+    hello_msg = @handler.get_hello
     msg = VCAP::Dea::Message.new(@nats, 'dea.start',
                                  :details => hello_msg)
     msg.send
@@ -113,7 +110,7 @@ class VCAP::Dea::Server
 
   def register_component
     VCAP::Component.register(:type => 'DEA',
-                           :host => @local_ip,
+                           :host => @handler.local_ip,
                            :index => '0', #XXX fixme
                            :config => {}, #XXX fixme
                            :port => 9999, #XXX fixme
