@@ -231,8 +231,10 @@ class VCAP::Dea::Handler
     warden_env = instance[:warden_env]
     if warden_env
       stats = warden_env.get_stats
-      cur_usage[:mem] = bytes_to_GB(stats[:mem_usage_B]) #XXX double check units on this.
-      cur_usage[:disk] = stats[:disk_usage_B]  #XXX not yet implemented in warden.
+      if stats
+        cur_usage[:mem] = bytes_to_GB(stats[:mem_usage_B]) #XXX double check units on this.
+        cur_usage[:disk] = stats[:disk_usage_B]  #XXX not yet implemented in warden.
+      end
     end
     instance[:cached_usage] = cur_usage
   end

@@ -49,6 +49,7 @@ class VCAP::Dea::WardenEnv
   end
 
   def get_stats
+    return nil unless @linked
     handle = fetch_handle
     client = EM::Warden::FiberAwareClient.new(@@warden_socket_path)
     client.connect
