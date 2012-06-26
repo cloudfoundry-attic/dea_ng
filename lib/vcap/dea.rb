@@ -11,6 +11,7 @@ require 'vcap/dea/config'
 require 'vcap/dea/version'
 require 'vcap/dea/warden_env'
 require 'vcap/dea/em_fiber_wrap'
+require 'vcap/dea/debug_formatter'
 
 module VCAP
   module Dea
@@ -34,15 +35,16 @@ module VCAP
       def start_server!
         VCAP::Logging.setup_from_config(config[:logging])
         @logger = VCAP::Logging.logger('dea')
+        #XXX@logger = Logger.new(STDOUT)
+        #XXX@logger.formatter = DebugFormatter.new
         @logger.info "Starting VCAP DEA version #{VCAP::Dea::VERSION}, pid: #{Process.pid}."
         sub_dirs = %w[tmp droplets db instances]
         base_dir = @config[:base_dir]
         setup_pidfile
         setup_directories(base_dir, sub_dirs)
         clean_directories(sub_dirs) if @config[:reset_at_startup]
-        params = { :resources => config[:resources],
-                   :runtimes => config[:runtimes],
-                   :directories => @directories }
+        params = @config.dup
+        params[:directories] = @directories
         nats_uri = @config[:nats_uri]
         @logger.info "Using #{nats_uri}."
         handler = VCAP::Dea::Handler.new(params, @logger)

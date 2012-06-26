@@ -33,7 +33,7 @@ class VCAP::Dea::Handler
   def initialize(params, logger = nil)
     @logger             = logger || Logger.new(STDOUT)
     @uuid               = nil
-    @local_ip           = VCAP.local_ip
+    @local_ip           = VCAP.local_ip(params[:local_route])
     @num_cores          = VCAP.num_cores
     @logger.info "Local ip: #{@local_ip}."
     @logger.info "Using #{@num_cores} cores."
@@ -42,6 +42,7 @@ class VCAP::Dea::Handler
     @logger.info "Supported runtimes: #{@runtimes.keys}."
     @varz = {}
     @droplets = {}
+    @file_viewer_port = params[:file_viewer_port]
     limits = params[:resources][:node_limits]
     init_resources = {:memory => limits[:max_memory],
                       :disk => limits[:max_disk],
@@ -52,7 +53,7 @@ class VCAP::Dea::Handler
 
     @app_cache = VCAP::Dea::AppCache.new(@directories, @logger)
     @snapshot = VCAP::Dea::Snapshot.new(@directories['db'], @logger)
-    @file_viewer = VCAP::Dea::FileViewer.new(@directories['instances'], @logger)
+    @file_viewer = VCAP::Dea::FileViewer.new(@local_ip, @file_viewer_port, @directories['instances'], @logger)
     @hello_message = {:id => @uuid, :ip => @local_ip, :port => @file_viewer.port, :version => VCAP::Dea::VERSION }.freeze
     @memory_in_use = 0
   end
@@ -208,9 +209,11 @@ class VCAP::Dea::Handler
 
   #XXX this could be expensive with lots of containers, fire these off concurrently.
   def update_cached_resource_usage
-    @droplets.each_value do |instances|
+    droplets = @droplets.dup #since we can call yield inside our itterator, use a copy to avoid
+                             #conflicting with insertions into the hash.
+    droplets.each_value do |instances|
       instances.each_value do |instance|
-        Fiber.new { update_instance_usage(instance) }.resume
+        update_instance_usage(instance)
       end
     end
   end
@@ -333,7 +336,7 @@ class VCAP::Dea::Handler
 
 
   def start_instance(msg)
-    @logger.debug("DEA received start message: #{msg.details}")
+    #XXX @logger.debug("DEA received start message: #{msg.details}")
 
     instance_id = VCAP.secure_uuid
 
@@ -358,7 +361,7 @@ class VCAP::Dea::Handler
 
     if droplet_id_index_in_use?(droplet_id, instance_index)
       @logger.warn("got start request for existing id:#{droplet_id} index:#{instance_index}")
-      raise VCAP::Dea::HandlerError, "duplicate start request"
+#XXX -- something fucked here      raise VCAP::Dea::HandlerError, "duplicate start request"
     end
 
     unless @runtimes[runtime]
@@ -391,9 +394,10 @@ class VCAP::Dea::Handler
           :log_id => "(name=%s app_id=%s instance=%s index=%s)" % [name, droplet_id, instance_id, instance_index],
         }
 
-      add_instance(instance)
+      update_instance_usage(instance)
       set_instance_state(instance, :STARTING) #:STARTING state exists so we know that the associated droplet.tgz is
                                               #in use and doesn't get removed out from under us.
+      add_instance(instance) #this is now live, needs to be in a consistent state from here on out.
 
       #check if bits already in cache, if not download them.
       @app_cache.download_droplet(bits_uri, sha1) unless @app_cache.has_droplet?(sha1)
@@ -413,8 +417,11 @@ class VCAP::Dea::Handler
       warden_env.create_container(mounts, resources)
       setup_network_ports(warden_env, instance, debug, console)
 
+      @logger.debug("warden setup complete for: #{instance_index}")
+
       env_builder = VCAP::Dea::EnvBuilder.new(@runtimes, @local_ip, @logger)
       new_env = env_builder.setup_instance_env(instance, app_env, services)
+
 
       status, out, err = warden_env.run("tar xzf #{droplet_dir}/droplet.tgz")
       raise VCAP::Dea::HandlerError, "Failed to extract droplet bits:#{out}:#{err}" unless status == 0
@@ -426,21 +433,24 @@ class VCAP::Dea::Handler
       warden_env.run("sed s@%VCAP_LOCAL_RUNTIME%@#{runtime_path}@ < startup > startup.ready; chmod u+x startup.ready")
       env_str = new_env.join(" ")
 
+      @logger.debug("app setup complete for: #{instance_index}")
+
       #add to instance list and let it rip.
 
       #XXX think about the order of this and potential failures
       #XXX potential refactor for more sharing with resume_instance
       set_instance_state(instance, :RUNNING)
       warden_env.spawn("env -i #{env_str} ./startup.ready -p #{instance[:port]}")
+      @logger.debug("spawned: #{instance_index}")
       attach_container(instance, warden_env)
       update_instance_usage(instance)
+      @logger.debug("about to link: #{instance_index}")
       result = warden_env.link
       app_exit_handler(instance, result)
     rescue => e
       @logger.error "error while provisioning instance #{instance_id}:#{e.message}"
       @logger.error e.backtrace.join("\n")
       remove_and_clean_up_instance(instance)
-      raise e
     end
   end
 
@@ -459,7 +469,8 @@ class VCAP::Dea::Handler
   CRASHED_EXPIRATION_TIME = 10 #XXX make this longer for production
 
   def remove_expired_crashed_apps
-    @droplets.each_value do |instances|
+    droplets = @droplets.dup  #avoid conflicting with new insertions
+    droplets.each_value do |instances|
       instances.each_value do |instance|
         if instance[:state] == :CRASHED && (Time.now.to_i - instance[:state_timestamp]) > CRASHED_EXPIRATION_TIME
             @logger.debug("Crashed instance: #{instance[:instance_id]} has expired.")

@@ -20,10 +20,10 @@ module VCAP::Dea
   class FileViewer
     attr_reader :auth_info, :ip, :port
 
-    def initialize(root_dir, logger = nil)
+    def initialize(ip, port, root_dir, logger = nil)
       @logger = logger || VCAP::Logging.logger('dea/files')
-      @ip = VCAP.local_ip
-      @port = VCAP.grab_ephemeral_port
+      @ip = ip
+      @port = port
       #XXX maybe refactor this, see also below.
       #XXX@uri = "http://#{@ip}:#{@port}/instances/",
       @root_dir = root_dir

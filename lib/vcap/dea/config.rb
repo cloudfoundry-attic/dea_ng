@@ -11,6 +11,8 @@ class VCAP::Dea::Config < VCAP::Config
       :base_dir              => String,     # where all dea stuff lives
       :pid_filename          => String,     # where our pid file lives.
       :reset_at_startup      => VCAP::JsonSchema::BoolSchema.new, #blow away saved state at startup.
+      :local_route           => String,
+      :file_viewer_port      => Integer,
       :resources => {
         :node_limits => {
           :max_memory => Integer,

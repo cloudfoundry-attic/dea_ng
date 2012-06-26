@@ -1,7 +1,22 @@
 ---
+# Base directory for dea, application directories, dea temp files, etc. are all relative to this.
 base_dir: /var/vcap.local/dea2
+
+#the pid file, created at startup, used for job managment.
 pid_filename: /var/vcap/sys/run/dea2.pid
+
+#where the NATS message bus is located
 nats_uri: nats://localhost:4222/
+
+# Local_route is the IP address of a well known server on your network, it
+# is used to choose the right ip address (think of hosts that have multiple nics
+# and IP addresses assigned to them) of the host running the DEA. Default
+# value of nil, should work in most cases.
+local_route: 127.0.0.1
+
+#where the server that provides access to application home directories (log files, etc.) lives.
+file_viewer_port: 12345
+
 logging:
   level: debug
 
