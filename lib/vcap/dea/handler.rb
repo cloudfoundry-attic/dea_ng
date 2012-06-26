@@ -238,7 +238,7 @@ class VCAP::Dea::Handler
   end
 
   def set_instance_state(instance, new_state)
-    valid_states = [:RUNNING, :CRASHED, :DELETED].freeze
+    valid_states = [:STARTING, :RUNNING, :CRASHED, :DELETED].freeze
     raise VCAP::Dea::HandlerError, "invalid state #{new_state}" unless valid_states.include? new_state
     instance[:state] = new_state
     instance[:state_timestamp] = Time.now.to_i
@@ -389,6 +389,10 @@ class VCAP::Dea::Handler
           :log_id => "(name=%s app_id=%s instance=%s index=%s)" % [name, droplet_id, instance_id, instance_index],
         }
 
+      add_instance(instance)
+      set_instance_state(instance, :STARTING) #:STARTING state exists so we know that the associated droplet.tgz is
+                                              #in use and doesn't get removed out from under us.
+
       #check if bits already in cache, if not download them.
       @app_cache.download_droplet(bits_uri, sha1) unless @app_cache.has_droplet?(sha1)
       droplet_dir = @app_cache.droplet_dir(sha1)
@@ -425,7 +429,6 @@ class VCAP::Dea::Handler
       #XXX think about the order of this and potential failures
       #XXX potential refactor for more sharing with resume_instance
       set_instance_state(instance, :RUNNING)
-      add_instance(instance)
       warden_env.spawn("env -i #{env_str} ./startup.ready -p #{instance[:port]}")
       attach_container(instance, warden_env)
       update_instance_usage(instance)
