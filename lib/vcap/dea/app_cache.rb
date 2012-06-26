@@ -57,7 +57,7 @@ class VCAP::Dea::AppCache
 
     droplet_dir = File.join(@directories['droplets'], sha1)
     droplet_path = File.join(droplet_dir, 'droplet.tgz')
-    Dir.mkdir(droplet_dir)
+    FileUtils.mkdir_p(droplet_dir)
     File.rename(droplet_tgz_path, droplet_path)
     File.chmod(0744, droplet_path)
 
