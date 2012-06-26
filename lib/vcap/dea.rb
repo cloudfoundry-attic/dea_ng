@@ -35,7 +35,7 @@ module VCAP
         VCAP::Logging.setup_from_config(config[:logging])
         @logger = VCAP::Logging.logger('dea')
         @logger.info "Starting VCAP DEA version #{VCAP::Dea::VERSION}, pid: #{Process.pid}."
-        sub_dirs = %w[tmp droplets db]
+        sub_dirs = %w[tmp droplets db instances]
         base_dir = @config[:base_dir]
         setup_pidfile
         setup_directories(base_dir, sub_dirs)
@@ -53,6 +53,7 @@ module VCAP
 
         ['TERM', 'INT', 'QUIT'].each { |s| trap(s) { @server.shutdown() } }
         trap('USR2') { @server.evacuate_apps_then_quit() }
+        trap('USR1') { @logger.error("Got SIGUSR1 - don't know what that means, SIGUSR2 to evactuate apps, SIGINT to shutdown.")}
         at_exit { clean_directories(%w[tmp]) } #prevent storage leaks.
         EventMachine.run {
           @server.start
