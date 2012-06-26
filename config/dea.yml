@@ -23,8 +23,11 @@ logging:
 #helpful for development
 reset_at_startup: true
 
+#where we expect the warden to live
 warden_socket_path: /tmp/warden.sock
 
+#resource limits - node limits indicate limits for this dea node.
+#app quotas are limits imposed on a per-application basis.
 resources:
   node_limits:
     max_memory: 4096
