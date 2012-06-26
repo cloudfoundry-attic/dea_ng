@@ -152,8 +152,8 @@ class VCAP::Dea::Server
     EM.add_periodic_timer(ADVERTISE_INTERVAL)   { send_advertise }
     EM.add_periodic_timer(HEARTBEAT_INTERVAL)   { send_heartbeat }
     EM.add_periodic_timer(VARZ_UPDATE_INTERVAL) { update_varz    }
-    EM.add_periodic_timer(RESOURCE_USAGE_UPDATE_INTERVAL) { @handler.update_cached_resource_usage }
-    EM.add_periodic_timer(RESOURCE_USAGE_UPDATE_INTERVAL) { @handler.update_total_resource_usage }
+    EM.add_periodic_timer(RESOURCE_USAGE_UPDATE_INTERVAL) { Fiber.new { @handler.update_cached_resource_usage}.resume }
+    EM.add_periodic_timer(RESOURCE_USAGE_UPDATE_INTERVAL) { Fiber.new { @handler.update_total_resource_usage}.resume }
     EM.add_periodic_timer(CRASHED_APPS_CLEANUP_INTERVAL)  { Fiber.new { @handler.remove_expired_crashed_apps }.resume }
   end
 
