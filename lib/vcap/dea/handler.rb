@@ -34,7 +34,6 @@ class VCAP::Dea::Handler
     @logger             = logger || Logger.new(STDOUT)
     @uuid               = nil
     @local_ip           = VCAP.local_ip
-    @file_viewer_port   = '6698'
     @num_cores          = VCAP.num_cores
     @logger.info "Local ip: #{@local_ip}."
     @logger.info "Using #{@num_cores} cores."
@@ -185,7 +184,7 @@ class VCAP::Dea::Handler
     droplet_id = instance[:droplet_id]
     instance_id = instance[:instance_id]
     instances = lookup_instances(droplet_id)
-    if instances.empty?
+    if instances == nil || instances.empty?
       @logger.warn("couldn't delete #{droplet_id}:#{instance_id}, instance not found.")
       return
     end
@@ -233,7 +232,7 @@ class VCAP::Dea::Handler
     if warden_env
       stats = warden_env.get_stats
       cur_usage[:mem] = bytes_to_GB(stats[:mem_usage_B]) #XXX double check units on this.
-      cur_usage[:disk] = stats[:disk_usage_B]
+      cur_usage[:disk] = stats[:disk_usage_B]  #XXX not yet implemented in warden.
     end
     instance[:cached_usage] = cur_usage
   end
@@ -259,10 +258,17 @@ class VCAP::Dea::Handler
     instance[:warden_container_info] = warden_env.get_container_info
   end
 
-  def release_container(instance)
-    env = instance[:warden_env]
-    @logger.error "no container attached to instance #{instance[:instance_id]}, couldn't free."
-    env.destroy!
+  def container_attached?(instance)
+    instance.has_key?(:warden_env) && instance[:warden_env] != nil
+  end
+
+  def destroy_container(instance)
+    if not container_attached?(instance)
+      @logger.error "no container attached to instance #{instance[:instance_id]}, couldn't free."
+    else
+      env = instance[:warden_env]
+      env.destroy!
+    end
   end
 
   def export_mem_quota(instance)
@@ -307,8 +313,22 @@ class VCAP::Dea::Handler
     instance_dir = File.join(base_dir, instance[:instance_id])
     FileUtils.mkdir(instance_dir)
     File.chmod(01777, instance_dir)
-    instance_dir
+    instance[:instance_dir] = instance_dir
   end
+
+  def valid_instance_dir?(instance)
+    instance.has_key?(:instance_dir) && instance[:instance_dir] && Dir.exists?(instance[:instance_dir])
+  end
+
+  def free_instance_dir(instance)
+    if valid_instance_dir?(instance)
+      instance_dir = instance[:instance_dir]
+      FileUtils.rm_rf instance_dir, :secure => true
+    else
+      @logger.error("Free instance dir failed")
+    end
+  end
+
 
   def start_instance(msg)
     @logger.debug("DEA received start message: #{msg.details}")
@@ -403,6 +423,7 @@ class VCAP::Dea::Handler
       #add to instance list and let it rip.
 
       #XXX think about the order of this and potential failures
+      #XXX potential refactor for more sharing with resume_instance
       set_instance_state(instance, :RUNNING)
       add_instance(instance)
       warden_env.spawn("env -i #{env_str} ./startup.ready -p #{instance[:port]}")
@@ -425,8 +446,8 @@ class VCAP::Dea::Handler
     if status != nil && instance[:state] == :RUNNING
       set_instance_state(instance, :CRASHED)
       set_exit_reason(instance, :CRASHED)
+      destroy_container(instance)
     end
-    #XXX stash log files.
     #XXX check status code, deal with app startup failure.
   end
 
@@ -468,21 +489,25 @@ class VCAP::Dea::Handler
 
   def resume_instance(instance)
     @logger.info("trying to resume instance #{instance[:instance_id]}")
-    warden_env = VCAP::Dea::WardenEnv.new(@logger)
-    container_info = instance[:warden_container_info]
-    warden_env.bind_container(container_info)
-    attach_container(instance, warden_env)
-    update_instance_usage(instance)
     begin
-      result = warden_env.link
-    rescue VCAP::Dea::WardenError => e
-      @logger.warn("failed to resume instance #{instance[:instance_id]}:#{e.message}, cleaning up...")
+      warden_env = VCAP::Dea::WardenEnv.new(@logger)
+      container_info = instance[:warden_container_info]
+      warden_env.bind_container(container_info)
+      attach_container(instance, warden_env)
+      update_instance_usage(instance)
+      begin
+        result = warden_env.link
+      rescue VCAP::Dea::WardenError => e
+        @logger.warn("failed to resume instance #{instance[:instance_id]}:#{e.message}, cleaning up...")
+        remove_and_clean_up_instance(instance)
+        return
+      end
+      app_exit_handler(instance, result)
+    rescue => e
+      @logger.error "error while resuming instance #{instance_id}:#{e.message}"
+      @logger.error e.backtrace.join("\n")
       remove_and_clean_up_instance(instance)
-      return
     end
-    app_exit_handler(instance, result)
-    #XXX add some exception handling here since this won't get caught by
-    #XXX the normal event dispatch handler.
   end
 
   def handle_stop(msg)
@@ -527,7 +552,8 @@ class VCAP::Dea::Handler
   def remove_and_clean_up_instance(instance)
     @logger.debug("removing and cleaning up: #{instance[:instance_id]}")
     @resource_tracker.release(instance[:resources])
-    release_container(instance)
+    destroy_container(instance) if container_attached?(instance)
+    free_instance_dir(instance)
     delete_instance(instance)
     remove_unused_droplets
   end
@@ -680,8 +706,13 @@ class VCAP::Dea::Handler
           set_instance_state(instance, instance[:state].to_sym)
           instance[:resources] = convert_keys_to_symbols(instance[:resources])
           instance[:warden_container_info] = convert_keys_to_symbols(instance[:warden_container_info])
+          instance[:warden_env] = nil
           instance[:exit_reason] = instance[:exit_reason].to_sym if instance[:exit_reason]
           instance[:start] = Time.parse(instance[:start]) if instance[:start]
+
+          unless valid_instance_dir?(instance)
+            raise VCAP::Dea::HandlerError, "invalid instance dir: #{instance[:instance_dir]}."
+          end
 
           unless @resource_tracker.reserve(instance[:resources])
             raise VCAP::Dea::HandlerError, "Failed to provision resources #{request}."
