@@ -54,9 +54,9 @@ module VCAP
         ['TERM', 'INT', 'QUIT'].each { |s| trap(s) { @server.shutdown() } }
         trap('USR2') { @server.evacuate_apps_then_quit() }
         at_exit { clean_directories(%w[tmp]) } #prevent storage leaks.
-
         EventMachine.run {
           @server.start
+          handler.start_file_viewer
         }
       end
 

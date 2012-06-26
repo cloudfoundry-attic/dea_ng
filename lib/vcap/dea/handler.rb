@@ -19,6 +19,7 @@ require 'vcap/dea/env_builder'
 
 require 'vcap/dea/app_cache'
 require 'vcap/dea/warden_env'
+require 'vcap/dea/file_viewer'
 
 module VCAP module Dea end end
 
@@ -32,6 +33,7 @@ class VCAP::Dea::Handler
     @logger             = logger || Logger.new(STDOUT)
     @uuid               = nil
     @local_ip           = VCAP.local_ip
+    @file_viewer_port   = '6698'
     @num_cores          = VCAP.num_cores
     @logger.info "Local ip: #{@local_ip}."
     @logger.info "Using #{@num_cores} cores."
@@ -63,6 +65,11 @@ class VCAP::Dea::Handler
     @varz[:apps_used_memory] = @memory_in_use
     @varz[:num_apps] = @resource_tracker.reserved[:instances]
     @varz
+  end
+
+  def start_file_viewer
+    @file_viewer = VCAP::Dea::FileViewer.new(@local_ip, @file_viewer_port, '/tmp', @logger)
+    @file_viewer.start
   end
 
   def get_advertise
@@ -253,10 +260,7 @@ class VCAP::Dea::Handler
 
   def release_container(instance)
     env = instance[:warden_env]
-    unless env
-      @logger.error "no container attached to instance #{instance[:instance_id]}"
-      raise VCAP::Dea::HandlerError, "no container attached to instance, couldn't free"
-    end
+    @logger.error "no container attached to instance #{instance[:instance_id]}, couldn't free."
     env.destroy!
   end
 
@@ -394,10 +398,7 @@ class VCAP::Dea::Handler
     rescue => e
       @logger.error "error while provisioning instance #{instance_id}:#{e.message}"
       @logger.error e.backtrace.join("\n")
-      #XXX delete instance
-      #XXX try to use remove_and_clean_up_instance here. and get rid of the !existing droplet stuff.
-      @resource_tracker.release(resources) if resources
-      warden_env.destroy! if warden_env
+      remove_and_clean_up_instance(instance)
       raise e
     end
   end
