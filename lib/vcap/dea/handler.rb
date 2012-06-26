@@ -68,7 +68,7 @@ class VCAP::Dea::Handler
   end
 
   def start_file_viewer
-    @file_viewer = VCAP::Dea::FileViewer.new(@local_ip, @file_viewer_port, '/tmp', @logger)
+    @file_viewer = VCAP::Dea::FileViewer.new('/tmp', @logger)
     @file_viewer.start
   end
 

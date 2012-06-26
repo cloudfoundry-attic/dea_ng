@@ -18,32 +18,31 @@ module VCAP module Dea end end
 
 module VCAP::Dea
   class FileViewer
-    attr_reader :auth_info
+    attr_reader :auth_info, :ip, :port
 
-    def initialize(local_ip, local_port, root_dir, logger = nil)
+    def initialize(root_dir, logger = nil)
       @logger = logger || VCAP::Logging.logger('dea/files')
-      @local_ip = local_ip
-      @file_viewer_port = local_port
+      @ip = VCAP.local_ip
+      @port = VCAP.grab_ephemeral_port
       @root_dir = root_dir
       @auth_info = [VCAP.secure_uuid, VCAP.secure_uuid]
     end
 
     # This is for general access to the file system for the staged droplets.
     def start
-      auth = @file_auth
+      auth = @auth_info
       root_dir = @root_dir
-      @file_viewer_server = Thin::Server.new(@local_ip, @file_viewer_port, :signals => false) do
-        #XXX turn on authentication for production.
+      @file_viewer_server = Thin::Server.new(@ip, @port, :signals => false) do
         Thin::Logging.silent = true
-        #use Rack::Auth::Basic do |username, password|
-         #[username, password] == auth
-        #end
+        use Rack::Auth::Basic do |username, password|
+         [username, password] == auth
+        end
         map '/droplets' do
           run VCAP::Dea::Directory.new(root_dir)
         end
       end
       @file_viewer_server.start!
-      @logger.info("File service started on #{@local_ip}:#{@file_viewer_port}")
+      @logger.info("File service started, curl --user #{@auth_info[0]}:#{auth_info[1]} #{@ip}:#{@port}")
     end
   end
 
