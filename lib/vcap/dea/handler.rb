@@ -4,6 +4,7 @@ require 'logger'
 require 'em/warden/client'
 require 'tmpdir'
 require 'fiber'
+require 'fileutils'
 
 require 'vcap/common'
 require 'vcap/logging'
@@ -52,6 +53,7 @@ class VCAP::Dea::Handler
 
     @app_cache = VCAP::Dea::AppCache.new(@directories, @logger)
     @snapshot = VCAP::Dea::Snapshot.new(@directories['db'], @logger)
+    @file_viewer = VCAP::Dea::FileViewer.new(@directories['instances'], @logger)
     @memory_in_use = 0
   end
 
@@ -68,7 +70,6 @@ class VCAP::Dea::Handler
   end
 
   def start_file_viewer
-    @file_viewer = VCAP::Dea::FileViewer.new('/tmp', @logger)
     @file_viewer.start
   end
 
@@ -300,6 +301,15 @@ class VCAP::Dea::Handler
     false
   end
 
+  #XXX we leak these right now, need to add some cleanup code.
+  def alloc_instance_dir(instance)
+    base_dir = @directories['instances']
+    instance_dir = File.join(base_dir, instance[:instance_id])
+    FileUtils.mkdir(instance_dir)
+    File.chmod(01777, instance_dir)
+    instance_dir
+  end
+
   def start_instance(msg)
     @logger.debug("DEA received start message: #{msg.details}")
 
@@ -362,12 +372,17 @@ class VCAP::Dea::Handler
       #check if bits already in cache, if not download them.
       @app_cache.download_droplet(bits_uri, sha1) unless @app_cache.has_droplet?(sha1)
       droplet_dir = @app_cache.droplet_dir(sha1)
+      droplet_mnt = [droplet_dir, droplet_dir, 'ro']
 
       runtime_path = @runtimes[runtime][:executable]
       runtime_dir = File.dirname(File.dirname(runtime_path))
+      runtime_mnt = [runtime_dir, runtime_dir, 'ro']
 
+      src_home_dir = alloc_instance_dir(instance)
+      dst_home_dir = '/home/vcap'
+      home_dir_mnt = [src_home_dir, dst_home_dir, 'rw']
 
-      mounts = [droplet_dir, runtime_dir]
+      mounts = [droplet_mnt, runtime_mnt, home_dir_mnt]
       warden_env = VCAP::Dea::WardenEnv.new(@logger)
       warden_env.create_container(mounts, resources)
       setup_network_ports(warden_env, instance, debug, console)
@@ -612,9 +627,10 @@ class VCAP::Dea::Handler
         :index => instance[:instance_index],
         :state => instance[:state],
         :state_timestamp => instance[:state_timestamp],
-        #XXX fix when new file server stuff working :file_uri => "http://#{@local_ip}:#{instance[:nginx_port]}",
-        #XXX see above. :credentials => instance[:nginx_auth],
-        :staged => '',
+        #XXX move this computation into the file viewer, figure out whats fucked..
+        :file_uri => "http://#{@file_viewer.ip}:#{@file_viewer.port}/instances/",
+        :credentials => @file_viewer.auth_info,
+        :staged => instance[:instance_id], #instance dir index'ed by instance id
         :debug_ip => instance[:debug_ip],
         :debug_port => instance[:debug_port],
         :console_ip => instance[:console_ip],

@@ -64,7 +64,7 @@ class VCAP::Dea::WardenEnv
 
   def build_mounts_list(mounts)
     mount_list = []
-    mounts.each { |path| mount_list.push([path, path, {"mode" => 'ro'}])}
+    mounts.each { |src, dst, mode| mount_list.push([src, dst, {"mode" => mode}])}
     mount_list
   end
 

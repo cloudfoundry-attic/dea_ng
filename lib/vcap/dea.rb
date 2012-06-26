@@ -35,7 +35,7 @@ module VCAP
         VCAP::Logging.setup_from_config(config[:logging])
         @logger = VCAP::Logging.logger('dea')
         @logger.info "Starting VCAP DEA version #{VCAP::Dea::VERSION}, pid: #{Process.pid}."
-        sub_dirs = %w[tmp droplets db instances]
+        sub_dirs = %w[tmp droplets db]
         base_dir = @config[:base_dir]
         setup_pidfile
         setup_directories(base_dir, sub_dirs)

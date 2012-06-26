@@ -24,6 +24,8 @@ module VCAP::Dea
       @logger = logger || VCAP::Logging.logger('dea/files')
       @ip = VCAP.local_ip
       @port = VCAP.grab_ephemeral_port
+      #XXX maybe refactor this, see also below.
+      #XXX@uri = "http://#{@ip}:#{@port}/instances/",
       @root_dir = root_dir
       @auth_info = [VCAP.secure_uuid, VCAP.secure_uuid]
     end
@@ -37,7 +39,7 @@ module VCAP::Dea
         use Rack::Auth::Basic do |username, password|
          [username, password] == auth
         end
-        map '/droplets' do
+        map '/instances' do
           run VCAP::Dea::Directory.new(root_dir)
         end
       end
