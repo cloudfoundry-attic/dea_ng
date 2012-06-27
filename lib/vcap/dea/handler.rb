@@ -39,6 +39,9 @@ class VCAP::Dea::Handler
     @logger.info "Using #{@num_cores} cores."
     @runtimes = params[:runtimes]
     @directories = params[:directories]
+    @global_mounts = params[:mounts]
+    @mount_runtimes = params[:mount_runtimes]
+    @logger.info "Global container mounts: #{@global_mounts.pretty_inspect}."
     @logger.info "Supported runtimes: #{@runtimes.keys}."
     @varz = {}
     @droplets = {}
@@ -412,7 +415,11 @@ class VCAP::Dea::Handler
       dst_home_dir = '/home/vcap'
       home_dir_mnt = [src_home_dir, dst_home_dir, 'rw']
 
-      mounts = [droplet_mnt, runtime_mnt, home_dir_mnt]
+      mounts = [droplet_mnt, home_dir_mnt]
+      mounts = mounts + @global_mounts
+      mounts << runtime_mnt if @mount_runtimes
+
+
       warden_env = VCAP::Dea::WardenEnv.new(@logger)
       warden_env.create_container(mounts, resources)
       setup_network_ports(warden_env, instance, debug, console)

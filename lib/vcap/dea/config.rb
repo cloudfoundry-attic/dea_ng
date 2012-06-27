@@ -32,6 +32,7 @@ class VCAP::Dea::Config < VCAP::Config
       },
 
      :runtimes => VCAP::JsonSchema::HashSchema.new,
+     :mount_runtimes => VCAP::JsonSchema::BoolSchema.new, #should we mount the runtime?
     }
   end
 
@@ -41,11 +42,13 @@ class VCAP::Dea::Config < VCAP::Config
       config = super(*args)
       normalize_config(config)
       validate_runtimes(config[:runtimes])
-      parse_mounts(config[:mounts])
+      parse_mounts(config)
       config
     end
 
-    def parse_mounts(mounts)
+    #XXX add support to config parser for checking sequences.
+    def parse_mounts(config)
+      mounts = config[:mounts]
       new_mounts = []
       valid_modes = ['ro','rw']
       return if mounts.nil? || mounts.empty?
@@ -67,7 +70,7 @@ class VCAP::Dea::Config < VCAP::Config
         end
         new_mounts.push([src_path, dst_path, mode])
       end
-      mounts = new_mounts unless new_mounts.empty?
+      config[:mounts] = new_mounts unless new_mounts.empty?
     end
 
     def validate_runtimes(runtimes)
