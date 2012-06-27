@@ -41,7 +41,33 @@ class VCAP::Dea::Config < VCAP::Config
       config = super(*args)
       normalize_config(config)
       validate_runtimes(config[:runtimes])
+      parse_mounts(config[:mounts])
       config
+    end
+
+    def parse_mounts(mounts)
+      new_mounts = []
+      valid_modes = ['ro','rw']
+      return if mounts.nil? || mounts.empty?
+      mounts.each do |line|
+        puts "line: #{line}"
+        src_path, dst_path, mode = line.split(',').map {|s| s.strip}
+
+        unless Dir.exist?(src_path)
+          puts "Directory #{src_path} in mount line #{line} does not exists!."
+          exit 1
+        end
+        unless dst_path
+          puts "invalid mount line: #{line}. valid syntax is src_path, dst_path, mode"
+          exit 1
+        end
+        unless valid_modes.include? mode
+          puts "invalid mount line: #{line}. mode must be either ro or rw"
+          exit 1
+        end
+        new_mounts.push([src_path, dst_path, mode])
+      end
+      mounts = new_mounts unless new_mounts.empty?
     end
 
     def validate_runtimes(runtimes)
