@@ -132,7 +132,7 @@ class VCAP::Dea::Server
 
   def start
     @logger.info("connecting to nats: #{@nats_uri}")
-    @nats = NATS.connect(:uri => @nats_uri) do
+    @nats = NATS.start(:uri => @nats_uri) do
       register_component
       setup_error_handling
       resume_detached_containers
