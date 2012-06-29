@@ -70,7 +70,7 @@ class VCAP::Dea::WardenEnv
   end
 
   def alloc_network_port
-    @client.net(fetch_handle, 'in')
+    @client.net(fetch_handle, 'in')["host_port"]
   end
 
   def bind_container(container_info)
@@ -132,7 +132,8 @@ class VCAP::Dea::WardenEnv
     result = @client.run(handle, cmd)
     end_time = Time.now
     total_time = end_time - start_time
-    @logger.debug("run #{cmd}:took (#{total_time}) returned: #{result.to_s}")
+    #XXX log different for now.
+    #@logger.debug("run #{cmd}:took (#{total_time}) returned: #{result.to_s}")
     result
   end
 
@@ -142,7 +143,9 @@ class VCAP::Dea::WardenEnv
     @jobid = @client.spawn(handle, cmd)
     end_time = Time.now
     total_time = end_time - start_time
-    @logger.debug("spawn #{cmd}:took (#{total_time}) returned: #{@jobid}")
+    #XXX log different for now.
+    #@logger.debug("spawn #{cmd}:took (#{total_time}) returned: #{@jobid}")
+    #@logger.debug("spawn")
     @jobid
   end
 
