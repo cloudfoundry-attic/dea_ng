@@ -143,9 +143,7 @@ class VCAP::Dea::WardenEnv
     @jobid = @client.spawn(handle, cmd)
     end_time = Time.now
     total_time = end_time - start_time
-    #XXX log different for now.
-    #@logger.debug("spawn #{cmd}:took (#{total_time}) returned: #{@jobid}")
-    #@logger.debug("spawn")
+    @logger.debug("spawn #{cmd}:took (#{total_time}) returned: #{@jobid}")
     @jobid
   end
 
