@@ -11,7 +11,7 @@ class VCAP::Dea::Config < VCAP::Config
       :base_dir              => String,     # where all dea stuff lives
       :pid_filename          => String,     # where our pid file lives.
       :reset_at_startup      => VCAP::JsonSchema::BoolSchema.new, #blow away saved state at startup.
-      :local_route           => String,
+      #XXX make this optionally nil, but still in schema:local_route           => String,
       :file_viewer_port      => Integer,
       :resources => {
         :node_limits => {
@@ -31,6 +31,7 @@ class VCAP::Dea::Config < VCAP::Config
         optional(:syslog)   => String,      # Name to associate with syslog messages (should start with 'vcap.')
       },
 
+     #XXX add support for mounts: to schema
      :runtimes => VCAP::JsonSchema::HashSchema.new,
      :mount_runtimes => VCAP::JsonSchema::BoolSchema.new, #should we mount the runtime?
     }
