@@ -1,5 +1,5 @@
 GIT
-  remote: git://github.com/cloudfoundry/common.git
+  remote: https://github.com/cloudfoundry/common.git
   revision: 3f6636fca4fcba81c85db74ff647e15ed3743a81
   ref: 3f6636fc
   specs:
@@ -10,14 +10,14 @@ GIT
       rake
 
 GIT
-  remote: git://github.com/cloudfoundry/eventmachine.git
+  remote: https://github.com/cloudfoundry/eventmachine.git
   revision: 2806c630d8631d5dcf9fb2555f665b829052aabe
   branch: release-0.12.11-cf
   specs:
     eventmachine (0.12.11.cloudfoundry.3)
 
 GIT
-  remote: git://github.com/cloudfoundry/vcap-common.git
+  remote: https://github.com/cloudfoundry/vcap-common.git
   revision: 9673dcedf0c2daf46e3592a8f9b30538c5dc7b56
   ref: 9673dced
   specs:
@@ -29,7 +29,7 @@ GIT
       yajl-ruby (~> 0.8.3)
 
 GIT
-  remote: git://github.com/cloudfoundry/warden.git
+  remote: https://github.com/cloudfoundry/warden.git
   revision: 1df76f804578ce7299abf235bd6b64085e523b92
   ref: 1df76f80
   specs:
