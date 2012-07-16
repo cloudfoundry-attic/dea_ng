@@ -1,0 +1,15 @@
+require "tmpdir"
+
+shared_context "tmpdir" do
+  attr_reader :tmpdir
+
+  around do |example|
+    Dir.mktmpdir do |tmpdir|
+      # Store path to tmpdir
+      @tmpdir = tmpdir
+
+      # Run example
+      example.run
+    end
+  end
+end
