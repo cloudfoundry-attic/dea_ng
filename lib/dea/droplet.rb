@@ -1,6 +1,7 @@
 require "tempfile"
 require "digest/sha1"
 require "em-http"
+require "steno"
 
 module Dea
   class Droplet
@@ -59,6 +60,10 @@ module Dea
 
     private
 
+    def logger
+      @logger ||= Steno.logger(self.class.name)
+    end
+
     def get(uri, &blk)
       FileUtils.mkdir_p(droplet_directory)
 
@@ -84,7 +89,11 @@ module Dea
 
       http.errback do
         cleanup.call do
-          blk.call(DownloadError.new(:uri => uri))
+          error = DownloadError.new \
+            :uri => uri
+
+          logger.warn(error.message, error.data)
+          blk.call(error)
         end
       end
 
@@ -92,13 +101,28 @@ module Dea
         cleanup.call do
           status = http.response_header.status
           if status == 200
-            if self.sha1 == sha1.hexdigest
+            sha1_expected = self.sha1
+            sha1_actual   = sha1.hexdigest
+
+            if sha1_expected == sha1_actual
               blk.call(nil, file.path)
             else
-              blk.call(DownloadError.new(:uri => uri, :reason => "SHA1 mismatch"))
+              error = DownloadError.new \
+                :reason        => "SHA1 mismatch",
+                :uri           => uri,
+                :sha1_expected => sha1_expected,
+                :sha1_actual   => sha1_actual
+
+              logger.warn(error.message, error.data)
+              blk.call(error)
             end
           else
-            blk.call(DownloadError.new(:uri => uri, :status => status))
+            error = DownloadError.new \
+              :uri    => uri,
+              :status => status
+
+            logger.warn(error.message, error.data)
+            blk.call(error)
           end
         end
       end
