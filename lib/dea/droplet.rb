@@ -5,14 +5,16 @@ require "em-http"
 module Dea
   class Droplet
     class DownloadError < StandardError
-      def initialize(options)
-        @options = options
+      attr_reader :data
+
+      def initialize(data)
+        @data = data
       end
 
       def message
-        reason = @options[:reason]
-        reason ||= "response status: %s" % [@options[:status] || "unknown"]
-        "error downloading: %s (%s)" % [@options[:uri], reason]
+        reason = @data[:reason]
+        reason ||= "response status: %s" % [@data[:status] || "unknown"]
+        "error downloading: %s (%s)" % [@data[:uri], reason]
       end
     end
 
