@@ -44,7 +44,7 @@ module Dea
 
       if @download_waiting.size == 1
         # Fire off request when this is the first call to #download
-        http_get(uri) do |err, path|
+        get(uri) do |err, path|
           if !err
             File.rename(path, droplet_file)
             File.chmod(0744, droplet_file)
@@ -59,7 +59,7 @@ module Dea
 
     private
 
-    def http_get(uri, &blk)
+    def get(uri, &blk)
       FileUtils.mkdir_p(droplet_directory)
 
       file = Tempfile.new("droplet", droplet_directory)
