@@ -10,7 +10,6 @@ require 'vcap/common'
 require 'vcap/logging'
 
 require 'vcap/dea/errors'
-require 'vcap/dea/fiber_aware_helpers'
 require 'vcap/dea/http_util'
 require 'vcap/dea/resource_tracker'
 require 'vcap/dea/version'
@@ -25,7 +24,6 @@ require 'vcap/dea/file_viewer'
 module VCAP module Dea end end
 
 class VCAP::Dea::Handler
-  include VCAP::Dea::FiberAwareHelpers
   include VCAP::Dea::Convert
 
   CRASHED_EXPIRATION_TIME = 60 * 60 #make crashed apps expire once an hour.
