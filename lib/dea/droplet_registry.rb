@@ -5,8 +5,8 @@ module Dea
     attr_reader :base_path
 
     def initialize(base_path)
-      super() do |hash, key|
-        hash[key] = Droplet.new(base_path, key)
+      super() do |hash, sha1|
+        hash[sha1] = Droplet.new(base_path, sha1)
       end
 
       # Seed registry with available droplets
