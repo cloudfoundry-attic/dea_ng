@@ -12,7 +12,7 @@ gem "rake"
 gem "thin"
 gem "yajl-ruby", :require => ["yajl", "yajl/json_gem"]
 
-gem "vcap_common", "~> 1.0.8", :git => "https://github.com/cloudfoundry/vcap-common.git", :ref => "9673dced"
+gem "vcap_common", :git => "https://github.com/cloudfoundry/vcap-common.git", :ref => "5334b662"
 gem "steno", :git => "https://github.com/cloudfoundry/steno.git", :ref => "a1a602a0"
 
 group :test do
