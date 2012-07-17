@@ -2,8 +2,16 @@ require "spec_helper"
 require "dea/bootstrap"
 
 describe Dea::Bootstrap do
+  include_context "tmpdir"
+
+  before do
+    @config = {
+      :base_dir => tmpdir
+    }
+  end
+
   subject(:bootstrap) do
-    Dea::Bootstrap.new
+    Dea::Bootstrap.new(@config)
   end
 
   describe "signal handlers" do
@@ -40,6 +48,18 @@ describe Dea::Bootstrap do
       # This should call the original handler
       send_signal("TERM")
       original_handler_called.should == 1
+    end
+  end
+
+  describe "directory setup" do
+    before do
+      bootstrap.setup_directories
+    end
+
+    %W(db droplets instances tmp).each do |dir|
+      it "should create '#{dir}'" do
+        File.directory?(File.join(tmpdir, dir)).should be_true
+      end
     end
   end
 end

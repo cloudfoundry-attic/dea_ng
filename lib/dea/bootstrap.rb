@@ -3,6 +3,12 @@ require "steno/core_ext"
 
 module Dea
   class Bootstrap
+    attr_reader :config
+
+    def initialize(config = {})
+      @config = config
+    end
+
     def setup_signal_handlers
       @old_signal_handlers = {}
 
@@ -48,6 +54,12 @@ module Dea
     end
 
     def trap_usr2
+    end
+
+    def setup_directories
+      %W(db droplets instances tmp).each do |dir|
+        FileUtils.mkdir_p(File.join(config[:base_dir], dir))
+      end
     end
 
     private
