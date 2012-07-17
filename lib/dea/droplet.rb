@@ -8,20 +8,14 @@ module Dea
     class DownloadError < StandardError
       attr_reader :data
 
-      def initialize(data)
+      def initialize(msg, data = {})
         @data = data
+
+        super("error downloading: %s (%s)" % [uri, msg])
       end
 
-      def status
-        data[:status] || "unknown"
-      end
-
-      def reason
-        data[:reason] || "response status: #{status}"
-      end
-
-      def message
-        "error downloading: %s (%s)" % [data[:uri], reason]
+      def uri
+        data[:uri] || "(unknown)"
       end
     end
 
@@ -101,7 +95,7 @@ module Dea
 
       http.errback do
         cleanup.call do
-          error = DownloadError.new(context)
+          error = DownloadError.new("response status: unknown", context)
           logger.warn(error.message, error.data)
           blk.call(error)
         end
@@ -120,17 +114,17 @@ module Dea
             if sha1_expected == sha1_actual
               blk.call(nil, file.path)
             else
-              error = DownloadError.new(context.merge(
-                :reason        => "SHA1 mismatch",
+              context = context.merge(
                 :sha1_expected => sha1_expected,
                 :sha1_actual   => sha1_actual
-              ))
+              )
 
+              error = DownloadError.new("SHA1 mismatch", context)
               logger.warn(error.message, error.data)
               blk.call(error)
             end
           else
-            error = DownloadError.new(context)
+            error = DownloadError.new("response status: #{status}", context)
             logger.warn(error.message, error.data)
             blk.call(error)
           end
