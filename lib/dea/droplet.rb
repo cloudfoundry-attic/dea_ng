@@ -93,11 +93,11 @@ module Dea
         end
       end
 
+      context = { :uri => uri }
+
       http.errback do
         cleanup.call do
-          error = DownloadError.new \
-            :uri => uri
-
+          error = DownloadError.new(context)
           logger.warn(error.message, error.data)
           blk.call(error)
         end
@@ -106,6 +106,9 @@ module Dea
       http.callback do
         cleanup.call do
           status = http.response_header.status
+
+          context = context.merge(:status => status)
+
           if status == 200
             sha1_expected = self.sha1
             sha1_actual   = sha1.hexdigest
@@ -113,20 +116,17 @@ module Dea
             if sha1_expected == sha1_actual
               blk.call(nil, file.path)
             else
-              error = DownloadError.new \
+              error = DownloadError.new(context.merge(
                 :reason        => "SHA1 mismatch",
-                :uri           => uri,
                 :sha1_expected => sha1_expected,
                 :sha1_actual   => sha1_actual
+              ))
 
               logger.warn(error.message, error.data)
               blk.call(error)
             end
           else
-            error = DownloadError.new \
-              :uri    => uri,
-              :status => status
-
+            error = DownloadError.new(context)
             logger.warn(error.message, error.data)
             blk.call(error)
           end
