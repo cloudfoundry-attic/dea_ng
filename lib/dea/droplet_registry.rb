@@ -1,5 +1,6 @@
 require "dea/droplet"
 require "steno"
+require "steno/core_ext"
 
 module Dea
   class DropletRegistry < Hash
@@ -23,7 +24,7 @@ module Dea
     private
 
     def logger
-      @logger ||= Steno.logger(self.class.name)
+      @logger ||= self.class.logger
     end
   end
 end

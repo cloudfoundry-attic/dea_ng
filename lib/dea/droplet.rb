@@ -2,6 +2,7 @@ require "tempfile"
 require "digest/sha1"
 require "em-http"
 require "steno"
+require "steno/core_ext"
 
 module Dea
   class Droplet
@@ -65,7 +66,7 @@ module Dea
     private
 
     def logger
-      @logger ||= Steno.logger(self.class.name)
+      @logger ||= self.class.logger.tag(:sha1 => sha1)
     end
 
     def get(uri, &blk)
