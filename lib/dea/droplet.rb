@@ -49,12 +49,16 @@ module Dea
       @download_waiting ||= []
       @download_waiting << blk
 
+      logger.debug "waiting for download to complete"
+
       if @download_waiting.size == 1
         # Fire off request when this is the first call to #download
         get(uri) do |err, path|
           if !err
             File.rename(path, droplet_file)
             File.chmod(0744, droplet_file)
+
+            logger.debug "moved droplet to #{droplet_file}"
           end
 
           while blk = @download_waiting.shift
