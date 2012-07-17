@@ -12,10 +12,16 @@ module Dea
         @data = data
       end
 
+      def status
+        data[:status] || "unknown"
+      end
+
+      def reason
+        data[:reason] || "response status: #{status}"
+      end
+
       def message
-        reason = @data[:reason]
-        reason ||= "response status: %s" % [@data[:status] || "unknown"]
-        "error downloading: %s (%s)" % [@data[:uri], reason]
+        "error downloading: %s (%s)" % [data[:uri], reason]
       end
     end
 
