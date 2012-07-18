@@ -1,3 +1,5 @@
+# coding: UTF-8
+
 require "tmpdir"
 
 shared_context "tmpdir" do

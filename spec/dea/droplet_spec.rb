@@ -1,3 +1,5 @@
+# coding: UTF-8
+
 require "spec_helper"
 require "digest/sha1"
 require "dea/droplet"

@@ -1,3 +1,5 @@
+# coding: UTF-8
+
 require "tempfile"
 require "digest/sha1"
 require "em-http"
