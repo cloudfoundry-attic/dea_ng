@@ -1,5 +1,6 @@
 require "steno"
 require "steno/core_ext"
+require "vcap/common"
 
 module Dea
   class Bootstrap
@@ -59,6 +60,18 @@ module Dea
     def setup_directories
       %W(db droplets instances tmp).each do |dir|
         FileUtils.mkdir_p(File.join(config[:base_dir], dir))
+      end
+    end
+
+    def setup_pid_file
+      path = config[:pid_filename]
+
+      begin
+        pid_file = VCAP::PidFile.new(path, false)
+        pid_file.unlink_at_exit
+      rescue => err
+        logger.error "Cannot create pid file at #{path} (#{err})"
+        raise
       end
     end
 
