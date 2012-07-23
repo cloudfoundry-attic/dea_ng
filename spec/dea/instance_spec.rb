@@ -21,15 +21,15 @@ describe Dea::Instance do
     message
   end
 
-  describe "static attributes" do
+  describe "attributes from start message" do
     subject(:instance) do
-      Dea::Instance.create_from_message(bootstrap, start_message)
+      Dea::Instance.new(bootstrap, Dea::Instance.translate_attributes(start_message.data))
     end
 
     describe "instance attributes" do
       let(:start_message_data) do
         {
-          "index" => "37",
+          "index" => 37,
         }
       end
 
@@ -40,7 +40,7 @@ describe Dea::Instance do
     describe "application attributes" do
       let(:start_message_data) do
         {
-          "droplet" => "37",
+          "droplet" => 37,
           "version" => "some_version",
           "name"    => "my_application",
           "uris"    => ["foo.com", "bar.com"],
