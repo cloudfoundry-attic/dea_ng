@@ -1,3 +1,5 @@
+# coding: UTF-8
+
 require "steno"
 require "steno/core_ext"
 require "nats/client"

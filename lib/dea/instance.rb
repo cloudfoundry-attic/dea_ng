@@ -1,3 +1,5 @@
+# coding: UTF-8
+
 require "vcap/common"
 require "steno"
 require "steno/core_ext"
