@@ -7,6 +7,21 @@ require "steno/core_ext"
 
 module Dea
   class Instance
+    class BaseError < StandardError
+    end
+
+    class RuntimeNotFoundError < BaseError
+      attr_reader :data
+
+      def initialize(runtime)
+        @data = { :runtime_name => runtime }
+      end
+
+      def message
+        "Runtime not found: #{data[:runtime_name].inspect}"
+      end
+    end
+
     def self.translate_attributes(attributes)
       attributes = attributes.dup
 
@@ -68,6 +83,7 @@ module Dea
       end
     end
 
+    attr_reader :bootstrap
     attr_reader :attributes
 
     def initialize(bootstrap, attributes)
@@ -76,8 +92,17 @@ module Dea
 
       # Generate unique ID
       @attributes["instance_id"] = VCAP.secure_uuid
+    end
 
-      logger.debug "initialized instance"
+    def validate
+      self.class.schema.validate(@attributes)
+
+      # Check if the runtime is available
+      if bootstrap.runtimes[self.runtime_name].nil?
+        error = RuntimeNotFoundError.new(self.runtime_name)
+        logger.warn(error.message, error.data)
+        raise error
+      end
     end
 
     private
