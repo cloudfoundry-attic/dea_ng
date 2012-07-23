@@ -159,6 +159,18 @@ module Dea
     end
 
     def handle_dea_directed_start(message)
+      attributes = Dea::Instance.translate_attributes(message.data)
+      instance = Dea::Instance.new(self, attributes)
+
+
+
+      begin
+        instance.validate
+      rescue Instance::BaseError => err
+        return
+      end
+
+      instance.resume
     end
 
     def handle_dea_locate(message)

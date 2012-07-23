@@ -1,127 +1,78 @@
 # coding: UTF-8
 
 require "vcap/common"
+require "membrane"
 require "steno"
 require "steno/core_ext"
 
 module Dea
   class Instance
-    module StaticAttributes
-      def assign_static_attributes(attributes)
-        @attributes["instance_id"]         = VCAP.secure_uuid
-        @attributes["instance_index"]      = Integer(attributes["index"])
+    def self.translate_attributes(attributes)
+      attributes = attributes.dup
 
-        @attributes["application_id"]      = Integer(attributes["droplet"])
-        @attributes["application_version"] = attributes["version"]
-        @attributes["application_name"]    = attributes["name"]
-        @attributes["application_uris"]    = attributes["uris"]
-        @attributes["application_users"]   = attributes["users"]
+      attributes["instance_index"]      = attributes.delete("index")
 
-        @attributes["droplet_sha1"]        = attributes["sha1"]
-        @attributes["droplet_file"]        = attributes["executableFile"]
-        @attributes["droplet_uri"]         = attributes["executableUri"]
+      attributes["application_id"]      = attributes.delete("droplet")
+      attributes["application_version"] = attributes.delete("version")
+      attributes["application_name"]    = attributes.delete("name")
+      attributes["application_uris"]    = attributes.delete("uris")
+      attributes["application_users"]   = attributes.delete("users")
 
-        @attributes["runtime"]             = attributes["runtime"]
-        @attributes["framework"]           = attributes["framework"]
+      attributes["droplet_sha1"]        = attributes.delete("sha1")
+      attributes["droplet_file"]        = attributes.delete("executableFile")
+      attributes["droplet_uri"]         = attributes.delete("executableUri")
 
-        @attributes["limits"]              = attributes["limits"]
-        @attributes["environment"]         = attributes["env"]
-        @attributes["services"]            = attributes["services"]
-        @attributes["flapping"]            = attributes["flapping"]
-        @attributes["debug"]               = attributes["debug"]
-        @attributes["console"]             = attributes["console"]
-      end
+      attributes["environment"]         = attributes.delete("env")
 
-      def instance_id
-        @attributes["instance_id"]
-      end
+      attributes
+    end
 
-      def instance_index
-        @attributes["instance_index"]
-      end
+    def self.schema
+      Membrane::SchemaParser.parse do
+        {
+          # Static attributes (coming from cloud controller):
+          "instance_id"         => String,
+          "instance_index"      => Integer,
 
-      def application_id
-        @attributes["application_id"]
-      end
+          "application_id"      => Integer,
+          "application_version" => String,
+          "application_name"    => String,
+          "application_uris"    => [String],
+          "application_users"   => [String],
 
-      def application_version
-        @attributes["application_version"]
-      end
+          "droplet_sha1"        => String,
+          "droplet_file"        => String,
+          "droplet_uri"         => String,
 
-      def application_name
-        @attributes["application_name"]
-      end
+          "runtime"             => String,
+          "framework"           => String,
 
-      def application_uris
-        @attributes["application_uris"]
-      end
-
-      def application_users
-        @attributes["application_users"]
-      end
-
-      def droplet_sha1
-        @attributes["droplet_sha1"]
-      end
-
-      def droplet_file
-        @attributes["droplet_file"]
-      end
-
-      def droplet_uri
-        @attributes["droplet_uri"]
-      end
-
-      def runtime
-        @attributes["runtime"]
-      end
-
-      def framework
-        @attributes["framework"]
-      end
-
-      def limits
-        @attributes["limits"]
-      end
-
-      def environment
-        @attributes["environment"]
-      end
-
-      def services
-        @attributes["services"]
-      end
-
-      def flapping
-        @attributes["flapping"]
-      end
-
-      def debug
-        @attributes["debug"]
-      end
-
-      def console
-        @attributes["console"]
+          # TODO: use proper schema
+          "limits"              => any,
+          "environment"         => any,
+          "services"            => any,
+          "flapping"            => any,
+          "debug"               => any,
+          "console"             => any,
+        }
       end
     end
 
-    include StaticAttributes
-
-    def self.create_from_message(bootstrap, message)
-      new(bootstrap, {}, message.data)
+    # Define an accessor for every attribute with a schema
+    self.schema.schemas.each do |key, _|
+      define_method(key) do
+        attributes[key]
+      end
     end
 
-    def initialize(bootstrap, attributes = {}, static_attributes = {})
+    attr_reader :attributes
+
+    def initialize(bootstrap, attributes)
       @bootstrap  = bootstrap
-      @attributes = {}
+      @attributes = attributes.dup
 
-      unless static_attributes.empty?
-        assign_static_attributes(static_attributes)
-      end
-
-      # Run-time attributes are either empty, or the full set of
-      # attributes as loaded from snapshot
-      @attributes = @attributes.merge(attributes)
+      # Generate unique ID
+      @attributes["instance_id"] = VCAP.secure_uuid
 
       logger.debug "initialized instance"
     end
