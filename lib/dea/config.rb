@@ -2,6 +2,8 @@
 
 require "membrane"
 
+require "dea/runtime"
+
 module Dea
   class Config
     def self.schema
@@ -15,6 +17,7 @@ module Dea
           },
           "nats_uri" => String,
           "pid_filename" => String,
+          "runtimes" => dict(String, Dea::Runtime.schema),
         }
       end
     end
