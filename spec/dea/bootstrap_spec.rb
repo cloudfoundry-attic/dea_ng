@@ -16,6 +16,40 @@ describe Dea::Bootstrap do
     Dea::Bootstrap.new(@config)
   end
 
+  describe "logging setup" do
+    after do
+      bootstrap.setup_logging
+    end
+
+    it "should use a file sink when specified" do
+      @config = { "logging" => { "file" => File.join(tmpdir, "out.log") } }
+
+      Steno.should_receive(:init).with do |config|
+        config.sinks.any? do |sink|
+          sink.kind_of?(Steno::Sink::IO)
+        end.should == true
+      end
+    end
+
+    it "should use a syslog sink when specified" do
+      @config = { "logging" => { "syslog" => "ident" } }
+
+      Steno.should_receive(:init).with do |config|
+        config.sinks.any? do |sink|
+          sink.kind_of?(Steno::Sink::Syslog)
+        end.should == true
+      end
+    end
+
+    it "should set the default log level when specified" do
+      @config = { "logging" => { "level" => "debug" } }
+
+      Steno.should_receive(:init).with do |config|
+        config.default_log_level.should == :debug
+      end
+    end
+  end
+
   describe "signal handlers" do
     def send_signal(signal)
       Process.kill(signal, Process.pid)

@@ -1,6 +1,7 @@
 # coding: UTF-8
 
 require "steno"
+require "steno/config"
 require "steno/core_ext"
 require "vcap/common"
 
@@ -12,6 +13,33 @@ module Dea
 
     def initialize(config = {})
       @config = config
+    end
+
+    def setup_logging
+      logging = config["logging"]
+
+      options = {
+        :sinks => [],
+      }
+
+      if logging["level"]
+        options[:default_log_level] = logging["level"].to_sym
+      end
+
+      if logging["file"]
+        options[:sinks] << Steno::Sink::IO.for_file(logging["file"])
+      end
+
+      if logging["syslog"]
+        Steno::Sink::Syslog.instance.open(logging["syslog"])
+        options[:sinks] << Steno::Sink::Syslog.instance
+      end
+
+      if options[:sinks].empty?
+        options[:sinks] << Steno::Sink::IO.new(STDOUT)
+      end
+
+      Steno.init(Steno::Config.new(options))
     end
 
     def setup_signal_handlers
