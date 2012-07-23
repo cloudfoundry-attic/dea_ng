@@ -6,12 +6,13 @@ require "dea/nats"
 describe Dea::Nats do
   before do
     @config = {
-      :nats_uri => "nats://something:4222",
+      "nats_uri" => "nats://something:4222",
     }
   end
 
   before do
     NATS.stub(:connect) do |options|
+      options[:uri].should match(/^nats:/)
       @nats_client = NatsClientMock.new(options)
     end
   end
@@ -28,7 +29,7 @@ describe Dea::Nats do
 
   describe "subscription setup" do
     before do
-      @config[:uuid] = "UUID"
+      @config["uuid"] = "UUID"
     end
 
     before do
