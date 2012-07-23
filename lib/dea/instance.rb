@@ -22,6 +22,9 @@ module Dea
       attributes["droplet_file"]        = attributes.delete("executableFile")
       attributes["droplet_uri"]         = attributes.delete("executableUri")
 
+      attributes["runtime_name"]        = attributes.delete("runtime")
+      attributes["framework_name"]      = attributes.delete("framework")
+
       attributes["environment"]         = attributes.delete("env")
 
       attributes
@@ -44,8 +47,8 @@ module Dea
           "droplet_file"        => String,
           "droplet_uri"         => String,
 
-          "runtime"             => String,
-          "framework"           => String,
+          "runtime_name"        => String,
+          "framework_name"      => String,
 
           # TODO: use proper schema
           "limits"              => any,

@@ -78,8 +78,8 @@ describe Dea::Instance do
         }
       end
 
-      its(:runtime)   { should == "ruby19" }
-      its(:framework) { should == "rails" }
+      its(:runtime_name)   { should == "ruby19" }
+      its(:framework_name) { should == "rails" }
     end
 
     describe "other attributes" do
