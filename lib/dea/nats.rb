@@ -53,18 +53,18 @@ module Dea
     end
 
     def publish(subject, data)
-      nats.publish(subject, Yajl::Encoder.encode(data))
+      client.publish(subject, Yajl::Encoder.encode(data))
     end
 
     def subscribe(subject)
-      nats.subscribe(subject) do |raw_data, respond_to|
+      client.subscribe(subject) do |raw_data, respond_to|
         message = Message.decode(self, subject, raw_data, respond_to)
         yield message
       end
     end
 
-    def nats
-      @nats ||= create_nats_client
+    def client
+      @client ||= create_nats_client
     end
 
     def create_nats_client
