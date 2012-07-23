@@ -20,6 +20,7 @@ module Dea
       Config.schema.validate(config)
 
       setup_logging
+      setup_runtimes
       setup_signal_handlers
       setup_directories
       setup_pid_file
@@ -51,6 +52,36 @@ module Dea
       end
 
       Steno.init(Steno::Config.new(options))
+    end
+
+    attr_reader :runtimes
+
+    def setup_runtimes
+      runtimes = config["runtimes"].map do |name, config|
+        Runtime.new(name, config)
+      end
+
+      runtimes = runtimes.select do |runtime|
+        rv = true
+
+        begin
+          runtime.validate
+        rescue Runtime::BaseError => err
+          logger.warn err.to_s
+          rv = false
+        end
+
+        rv
+      end
+
+      if runtimes.empty?
+        logger.fatal "No valid runtimes"
+        exit 1
+      end
+
+      @runtimes = Hash[runtimes.map { |e| [e.name, e] }]
+
+      nil
     end
 
     def setup_signal_handlers
