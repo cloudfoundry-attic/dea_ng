@@ -59,4 +59,15 @@ describe Dea::Nats do
       end
     end
   end
+
+  describe "message" do
+    it "should be able to respond" do
+      nats.subscribe("echo") do |message|
+        message.respond(message.data)
+      end
+
+      nats_client.should_receive(:publish).with("echo.reply", %{{"hello":"world"}})
+      nats_client.receive_message("echo", { "hello" => "world" }, "echo.reply")
+    end
+  end
 end

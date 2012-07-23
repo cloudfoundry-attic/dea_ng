@@ -52,6 +52,17 @@ module Dea
       end
     end
 
+    def publish(subject, data)
+      nats.publish(subject, Yajl::Encoder.encode(data))
+    end
+
+    def subscribe(subject)
+      nats.subscribe(subject) do |raw_data, respond_to|
+        message = Message.decode(self, subject, raw_data, respond_to)
+        yield message
+      end
+    end
+
     def nats
       @nats ||= create_nats_client
     end
@@ -85,11 +96,11 @@ module Dea
       end
 
       def response(data)
-        new(nats, respond_to, data, nil)
+        self.class.new(nats, respond_to, data, nil)
       end
 
       def publish
-        nats.publish(subject, Yajl::Encoder.encode(data))
+        nats.publish(subject, data)
       end
     end
 
@@ -97,13 +108,6 @@ module Dea
 
     def logger
       @logger ||= self.class.logger
-    end
-
-    def subscribe(subject)
-      nats.subscribe(subject) do |raw_data, respond_to|
-        message = Message.decode(nats, subject, raw_data, respond_to)
-        yield message
-      end
     end
   end
 end
