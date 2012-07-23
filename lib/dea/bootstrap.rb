@@ -4,6 +4,8 @@ require "steno"
 require "steno/core_ext"
 require "vcap/common"
 
+require "dea/nats"
+
 module Dea
   class Bootstrap
     attr_reader :config
@@ -75,6 +77,37 @@ module Dea
         logger.error "Cannot create pid file at #{path} (#{err})"
         raise
       end
+    end
+
+    def setup_nats
+      @nats = Dea::Nats.new(self, config)
+    end
+
+    def handle_health_manager_start(message)
+    end
+
+    def handle_router_start(message)
+    end
+
+    def handle_dea_status(message)
+    end
+
+    def handle_dea_directed_start(message)
+    end
+
+    def handle_dea_locate(message)
+    end
+
+    def handle_dea_stop(message)
+    end
+
+    def handle_dea_update(message)
+    end
+
+    def handle_dea_find_droplet(message)
+    end
+
+    def handle_droplet_status(message)
     end
 
     private
