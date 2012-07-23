@@ -8,7 +8,7 @@ describe Dea::Bootstrap do
 
   before do
     @config = {
-      :base_dir => tmpdir
+      "base_dir" => tmpdir
     }
   end
 
@@ -68,7 +68,7 @@ describe Dea::Bootstrap do
   describe "pid file setup" do
     it "should create a pid file" do
       pid_filename = File.join(tmpdir, "pid")
-      bootstrap = Dea::Bootstrap.new(:pid_filename => pid_filename)
+      bootstrap = Dea::Bootstrap.new("pid_filename" => pid_filename)
       bootstrap.setup_pid_file
 
       pid = File.read(pid_filename).chomp.to_i
@@ -78,7 +78,7 @@ describe Dea::Bootstrap do
     it "should raise when it can't create the pid file" do
       expect do
         pid_filename = File.join(tmpdir, "doesnt_exist", "pid")
-        bootstrap = Dea::Bootstrap.new(:pid_filename => pid_filename)
+        bootstrap = Dea::Bootstrap.new("pid_filename" => pid_filename)
         bootstrap.setup_pid_file
       end.to raise_error
     end

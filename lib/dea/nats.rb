@@ -55,8 +55,8 @@ module Dea
     end
 
     def create_nats_client
-      logger.info "Connecting to NATS on #{config[:nats_uri]}"
-      ::NATS.connect(:uri => config[:nats_uri])
+      logger.info "Connecting to NATS on #{config["nats_uri"]}"
+      ::NATS.connect(:uri => config["nats_uri"])
     end
 
     class Message

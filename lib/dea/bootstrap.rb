@@ -63,12 +63,12 @@ module Dea
 
     def setup_directories
       %W(db droplets instances tmp).each do |dir|
-        FileUtils.mkdir_p(File.join(config[:base_dir], dir))
+        FileUtils.mkdir_p(File.join(config["base_dir"], dir))
       end
     end
 
     def setup_pid_file
-      path = config[:pid_filename]
+      path = config["pid_filename"]
 
       begin
         pid_file = VCAP::PidFile.new(path, false)
