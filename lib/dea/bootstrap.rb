@@ -5,6 +5,7 @@ require "steno/config"
 require "steno/core_ext"
 require "vcap/common"
 
+require "dea/config"
 require "dea/nats"
 
 module Dea
@@ -13,6 +14,16 @@ module Dea
 
     def initialize(config = {})
       @config = config
+    end
+
+    def setup
+      Config.schema.validate(config)
+
+      setup_logging
+      setup_signal_handlers
+      setup_directories
+      setup_pid_file
+      setup_nats
     end
 
     def setup_logging
