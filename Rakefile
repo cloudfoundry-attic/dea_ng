@@ -31,3 +31,14 @@ task :ensure_coding do
     end
   end
 end
+
+namespace :config do
+  desc "Check if configuration file is valid"
+  task :check, :file do |t, args|
+    require "yaml"
+    require "dea/config"
+
+    config = YAML.load(File.read(args[:file]))
+    Dea::Config.schema.validate(config)
+  end
+end
