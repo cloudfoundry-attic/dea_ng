@@ -6,6 +6,7 @@ require "steno/core_ext"
 require "vcap/common"
 
 require "dea/config"
+require "dea/droplet_registry"
 require "dea/nats"
 
 module Dea
@@ -21,6 +22,7 @@ module Dea
 
       setup_logging
       setup_runtimes
+      setup_droplet_registry
       setup_signal_handlers
       setup_directories
       setup_pid_file
@@ -78,6 +80,12 @@ module Dea
       @runtimes = runtimes
 
       nil
+    end
+
+    attr_reader :droplet_registry
+
+    def setup_droplet_registry
+      @droplet_registry = Dea::DropletRegistry.new(config["base_dir"])
     end
 
     def setup_signal_handlers

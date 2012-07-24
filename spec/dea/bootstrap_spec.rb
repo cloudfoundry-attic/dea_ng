@@ -50,6 +50,17 @@ describe Dea::Bootstrap do
     end
   end
 
+  describe "droplet registry setup" do
+    before do
+      bootstrap.setup_droplet_registry
+    end
+
+    it "should create a new droplet registry" do
+      bootstrap.droplet_registry.should be_a(Dea::DropletRegistry)
+      bootstrap.droplet_registry.base_dir.should == @config["base_dir"]
+    end
+  end
+
   describe "signal handlers" do
     def send_signal(signal)
       Process.kill(signal, Process.pid)

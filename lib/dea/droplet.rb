@@ -22,16 +22,16 @@ module Dea
       end
     end
 
-    attr_reader :base_path
+    attr_reader :base_dir
     attr_reader :sha1
 
-    def initialize(base_path, sha1)
-      @base_path = base_path
+    def initialize(base_dir, sha1)
+      @base_dir = base_dir
       @sha1 = sha1
     end
 
     def droplet_directory
-      File.join(base_path, sha1)
+      File.join(base_dir, sha1)
     end
 
     def droplet_file
