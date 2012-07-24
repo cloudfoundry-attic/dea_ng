@@ -66,7 +66,7 @@ describe Dea::Bootstrap do
       Process.kill(signal, Process.pid)
 
       # Wait for the signal to arrive
-      sleep 0.001
+      sleep 0.05
     end
 
     def test_signal(signal)
