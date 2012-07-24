@@ -37,17 +37,22 @@ GIT
 
 GIT
   remote: https://github.com/cloudfoundry/warden.git
-  revision: 1df76f804578ce7299abf235bd6b64085e523b92
-  ref: 1df76f80
+  revision: 623e655a189b583c07ae3eaec505433f780c6fb8
   specs:
-    em-warden-client (0.0.1)
+    em-warden-client (0.1.0)
       eventmachine
-      yajl-ruby
+      warden-client
+      warden-protocol
+    warden-client (0.0.4)
+      warden-protocol
+    warden-protocol (0.0.3)
+      beefcake
 
 GEM
   remote: https://rubygems.org/
   specs:
     addressable (2.2.8)
+    beefcake (0.3.7)
     daemons (1.1.8)
     diff-lcs (1.1.3)
     em-http-request (1.0.0.beta.3)
@@ -108,4 +113,6 @@ DEPENDENCIES
   steno!
   thin
   vcap_common!
+  warden-client!
+  warden-protocol!
   yajl-ruby
