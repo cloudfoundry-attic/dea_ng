@@ -8,10 +8,6 @@ module Helpers
     timeout = options[:timeout] ||= 0.1
 
     ::EM.run {
-      ::EM.error_handler do |err|
-        # Ignore
-      end
-
       expect do
         quantum = 0.005
         ::EM.set_quantum(quantum * 1000) # Lowest possible timer resolution
