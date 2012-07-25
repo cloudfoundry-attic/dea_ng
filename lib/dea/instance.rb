@@ -1,9 +1,9 @@
 # coding: UTF-8
 
-require "vcap/common"
 require "membrane"
 require "steno"
 require "steno/core_ext"
+require "vcap/common"
 
 require "dea/promise"
 
