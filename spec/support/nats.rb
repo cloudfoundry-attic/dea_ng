@@ -12,6 +12,11 @@ class NatsClientMock
     @subscriptions[subject] << blk
   end
 
+  # Block omitted until needed
+  def publish(*args)
+    receive_message(*args)
+  end
+
   def receive_message(subject, data = {}, respond_to = nil)
     raw_data = Yajl::Encoder.encode(data)
 

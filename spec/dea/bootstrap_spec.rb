@@ -61,6 +61,16 @@ describe Dea::Bootstrap do
     end
   end
 
+  describe "instance registry setup" do
+    before do
+      bootstrap.setup_instance_registry
+    end
+
+    it "should create a new instance registry" do
+      bootstrap.instance_registry.should be_a(Dea::InstanceRegistry)
+    end
+  end
+
   describe "signal handlers" do
     def send_signal(signal)
       Process.kill(signal, Process.pid)
@@ -126,6 +136,62 @@ describe Dea::Bootstrap do
         bootstrap = Dea::Bootstrap.new("pid_filename" => pid_filename)
         bootstrap.setup_pid_file
       end.to raise_error
+    end
+  end
+
+  describe "heartbeats" do
+    it "should periodically send out heartbeats for all registered instances" do
+      nats_mock = NatsClientMock.new({})
+      Dea::Nats.stub(:new).and_return(nats_mock)
+
+      bootstrap = Dea::Bootstrap.new("intervals" => { "heartbeat" => 0.01 })
+      bootstrap.setup_instance_registry
+      bootstrap.setup_nats
+
+      # Register initial instances
+      instances = []
+      5.times do |ii|
+        instance = Dea::Instance.new(bootstrap,
+                                     "application_id" => ii,
+                                     "application_version" => ii,
+                                     "instance_index" => ii)
+        bootstrap.instance_registry.register(instance)
+        instances << instance
+      end
+
+      # Unregister an instance with each heartbeat received
+      hbs = []
+      nats_mock.subscribe("dea.heartbeat") do |msg, _|
+        hbs << Yajl::Parser.parse(msg)
+        if hbs.size == 5
+          EM.stop
+        else
+          bootstrap.instance_registry.unregister(instances[hbs.size - 1])
+        end
+      end
+
+      em(:timeout => 1) do
+        bootstrap.setup_sweepers
+      end
+
+      hbs.size.should == instances.size
+      instances.size.times do |ii|
+        hbs[ii].has_key?("dea").should be_true
+        hbs[ii]["droplets"].size.should == (instances.size - ii)
+
+        # Check that we received the correct heartbeats
+        hbs[ii]["droplets"].each_with_index do |instance_hb, jj|
+          hb_keys = %w[droplet version instance index state state_timestamp]
+          instance_hb.keys.should == hb_keys
+
+          instance = instances[ii + jj]
+          instance_hb["droplet"].should == instance.application_id
+          instance_hb["version"].should == instance.application_version
+          instance_hb["instance"].should == instance.instance_id
+          instance_hb["index"].should == instance.instance_index
+          instance_hb["state"].should == instance.state
+        end
+      end
     end
   end
 end

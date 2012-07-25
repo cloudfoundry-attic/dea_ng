@@ -4,13 +4,17 @@ require "steno"
 require "steno/config"
 require "steno/core_ext"
 require "vcap/common"
+require "vcap/component"
 
 require "dea/config"
 require "dea/droplet_registry"
+require "dea/instance_registry"
 require "dea/nats"
 
 module Dea
   class Bootstrap
+    DEFAULT_HEARTBEAT_INTERVAL = 10
+
     attr_reader :config
 
     def initialize(config = {})
@@ -23,9 +27,11 @@ module Dea
       setup_logging
       setup_runtimes
       setup_droplet_registry
+      setup_instance_registry
       setup_signal_handlers
       setup_directories
       setup_pid_file
+      setup_sweepers
       setup_nats
     end
 
@@ -86,6 +92,12 @@ module Dea
 
     def setup_droplet_registry
       @droplet_registry = Dea::DropletRegistry.new(config["base_dir"])
+    end
+
+    attr_reader :instance_registry
+
+    def setup_instance_registry
+      @instance_registry = Dea::InstanceRegistry.new
     end
 
     def setup_signal_handlers
@@ -153,6 +165,11 @@ module Dea
       end
     end
 
+    def setup_sweepers
+      hb_interval = config["intervals"]["heartbeat"] || DEFAULT_HEARTBEAT_INTERVAL
+      EM.add_periodic_timer(hb_interval) { send_heartbeats }
+    end
+
     def setup_nats
       @nats = Dea::Nats.new(self, config)
     end
@@ -182,6 +199,19 @@ module Dea
     end
 
     def handle_droplet_status(message)
+    end
+
+    def send_heartbeats
+      return if @instance_registry.empty?
+
+      # TODO(mjp): Fill in uuid w/ VCAP::Component.uuid once setup
+      heartbeats = {
+        "droplets" => @instance_registry.map { |i| i.generate_heartbeat },
+        "dea"      => @uuid,
+      }
+      @nats.publish("dea.heartbeat", heartbeats)
+
+      nil
     end
 
     private

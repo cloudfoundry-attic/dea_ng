@@ -176,6 +176,16 @@ describe Dea::Instance do
     end
   end
 
+  describe "state=" do
+    it "should set state_timestamp when invoked" do
+      instance = Dea::Instance.new(bootstrap, valid_attributes)
+      old_timestamp = instance.state_timestamp
+      instance.state = Dea::Instance::State::RUNNING
+
+      instance.state_timestamp.should > old_timestamp
+    end
+  end
+
   describe "start transition" do
     subject(:instance) do
       Dea::Instance.new(bootstrap, valid_attributes)
