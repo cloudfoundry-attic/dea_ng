@@ -126,6 +126,9 @@ module Dea
       # Generate unique ID
       @attributes["instance_id"] = VCAP.secure_uuid
       self.state = State::BORN
+
+      # Cache for warden connections for this instance
+      @warden_connections = {}
     end
 
     def validate
@@ -190,24 +193,34 @@ module Dea
       end
     end
 
-    def promise_create_warden_connection
+    def promise_warden_connection(name)
       Promise.new do |p|
-        socket     = bootstrap.config["warden_socket"]
-        klass      = ::EM::Warden::Client::Connection
+        connection = @warden_connections[name]
 
-        begin
-          connection = ::EM.connect_unix_domain(socket, klass)
-        rescue => error
-          p.fail(WardenError.new("Cannot connect to warden on #{socket}: #{error.message}"))
-        end
+        # Deliver cached connection if possible
+        if connection && connection.connected?
+          p.deliver(connection)
+        else
+          socket = bootstrap.config["warden_socket"]
+          klass  = ::EM::Warden::Client::Connection
 
-        if connection
-          connection.on(:connected) do
-            p.deliver(connection)
+          begin
+            connection = ::EM.connect_unix_domain(socket, klass)
+          rescue => error
+            p.fail(WardenError.new("Cannot connect to warden on #{socket}: #{error.message}"))
           end
 
-          connection.on(:disconnected) do
-            p.fail(WardenError.new("Cannot connect to warden on #{socket}"))
+          if connection
+            connection.on(:connected) do
+              # Cache connection
+              @warden_connections[name] = connection
+
+              p.deliver(connection)
+            end
+
+            connection.on(:disconnected) do
+              p.fail(WardenError.new("Cannot connect to warden on #{socket}"))
+            end
           end
         end
       end
@@ -217,7 +230,7 @@ module Dea
       p = Promise.new do
         promise_state(:from => State::BORN, :to => State::STARTING).resolve
         promise_droplet_available.resolve
-        promise_create_warden_connection.resolve
+        promise_warden_connection(:app).resolve
 
         p.deliver
       end

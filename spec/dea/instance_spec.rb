@@ -196,7 +196,7 @@ describe Dea::Instance do
     before do
       instance.stub(:promise_state).and_return(delivering_promise)
       instance.stub(:promise_droplet_available).and_return(delivering_promise)
-      instance.stub(:promise_create_warden_connection).and_return(delivering_promise)
+      instance.stub(:promise_warden_connection).and_return(delivering_promise)
     end
 
     describe "checking source state" do
@@ -288,7 +288,7 @@ describe Dea::Instance do
 
     describe "creating warden connection" do
       before do
-        instance.unstub(:promise_create_warden_connection)
+        instance.unstub(:promise_warden_connection)
       end
 
       let(:warden_socket) { File.join(tmpdir, "warden.sock") }
@@ -297,7 +297,7 @@ describe Dea::Instance do
         bootstrap.stub(:config).and_return("warden_socket" => warden_socket)
       end
 
-      it "succeeds when connecting succeeds" do
+      let(:dumb_connection) do
         dumb_connection = Class.new(::EM::Connection) do
           class << self
             attr_accessor :count
@@ -308,7 +308,9 @@ describe Dea::Instance do
             self.class.count += 1
           end
         end
+      end
 
+      it "succeeds when connecting succeeds" do
         em do
           ::EM.start_unix_domain_server(warden_socket, dumb_connection)
           ::EM.next_tick do
@@ -319,6 +321,27 @@ describe Dea::Instance do
               dumb_connection.count.should == 1
 
               done
+            end
+          end
+        end
+      end
+
+      it "succeeds when cached connection can be used" do
+        em do
+          ::EM.start_unix_domain_server(warden_socket, dumb_connection)
+          ::EM.next_tick do
+            Dea::Promise.resolve(instance.promise_warden_connection(:app)) do
+              # Check that the connection was made
+              dumb_connection.count.should == 1
+
+              instance.start do |error|
+                error.should be_nil
+
+                # Check that the connection wasn't made _again_
+                dumb_connection.count.should == 1
+
+                done
+              end
             end
           end
         end
