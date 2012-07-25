@@ -18,6 +18,7 @@ module Dea
           "nats_uri" => String,
           "pid_filename" => String,
           "runtimes" => dict(String, Dea::Runtime.schema),
+          "warden_socket" => String,
         }
       end
     end

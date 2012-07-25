@@ -4,6 +4,8 @@ require "spec_helper"
 require "dea/instance"
 
 describe Dea::Instance do
+  include_context "tmpdir"
+
   let(:valid_attributes) do
     {
       "instance_index"      => 37,
@@ -194,6 +196,7 @@ describe Dea::Instance do
     before do
       instance.stub(:promise_state).and_return(delivering_promise)
       instance.stub(:promise_droplet_available).and_return(delivering_promise)
+      instance.stub(:promise_create_warden_connection).and_return(delivering_promise)
     end
 
     describe "checking source state" do
@@ -278,6 +281,55 @@ describe Dea::Instance do
               error.message.should match(/download failed/)
               done
             end
+          end
+        end
+      end
+    end
+
+    describe "creating warden connection" do
+      before do
+        instance.unstub(:promise_create_warden_connection)
+      end
+
+      let(:warden_socket) { File.join(tmpdir, "warden.sock") }
+
+      before do
+        bootstrap.stub(:config).and_return("warden_socket" => warden_socket)
+      end
+
+      it "succeeds when connecting succeeds" do
+        dumb_connection = Class.new(::EM::Connection) do
+          class << self
+            attr_accessor :count
+          end
+
+          def post_init
+            self.class.count ||= 0
+            self.class.count += 1
+          end
+        end
+
+        em do
+          ::EM.start_unix_domain_server(warden_socket, dumb_connection)
+          ::EM.next_tick do
+            instance.start do |error|
+              error.should be_nil
+
+              # Check that the connection was made
+              dumb_connection.count.should == 1
+
+              done
+            end
+          end
+        end
+      end
+
+      it "fails when connecting fails" do
+        em do
+          instance.start do |error|
+            error.should be_a(Dea::Instance::WardenError)
+            error.message.should match(/cannot connect/i)
+            done
           end
         end
       end

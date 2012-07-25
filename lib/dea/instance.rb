@@ -1,5 +1,6 @@
 # coding: UTF-8
 
+require "em/warden/client/connection"
 require "membrane"
 require "steno"
 require "steno/core_ext"
@@ -49,6 +50,9 @@ module Dea
       def message
         "Cannot transition from #{from.inspect} to #{to.inspect}"
       end
+    end
+
+    class WardenError < BaseError
     end
 
     def self.translate_attributes(attributes)
@@ -186,10 +190,34 @@ module Dea
       end
     end
 
+    def promise_create_warden_connection
+      Promise.new do |p|
+        socket     = bootstrap.config["warden_socket"]
+        klass      = ::EM::Warden::Client::Connection
+
+        begin
+          connection = ::EM.connect_unix_domain(socket, klass)
+        rescue => error
+          p.fail(WardenError.new("Cannot connect to warden on #{socket}: #{error.message}"))
+        end
+
+        if connection
+          connection.on(:connected) do
+            p.deliver(connection)
+          end
+
+          connection.on(:disconnected) do
+            p.fail(WardenError.new("Cannot connect to warden on #{socket}"))
+          end
+        end
+      end
+    end
+
     def start(&callback)
       p = Promise.new do
         promise_state(:from => State::BORN, :to => State::STARTING).resolve
         promise_droplet_available.resolve
+        promise_create_warden_connection.resolve
 
         p.deliver
       end
