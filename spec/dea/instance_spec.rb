@@ -193,10 +193,18 @@ describe Dea::Instance do
       Dea::Instance.new(bootstrap, valid_attributes)
     end
 
+    let(:droplet) do
+      droplet = mock("droplet")
+      droplet.stub(:droplet_directory).and_return(File.join(tmpdir, "droplet"))
+      droplet
+    end
+
     before do
       instance.stub(:promise_state).and_return(delivering_promise)
       instance.stub(:promise_droplet_available).and_return(delivering_promise)
       instance.stub(:promise_warden_connection).and_return(delivering_promise)
+      instance.stub(:promise_warden_container).and_return(delivering_promise)
+      instance.stub(:droplet).and_return(droplet)
     end
 
     describe "checking source state" do
@@ -231,14 +239,6 @@ describe Dea::Instance do
     describe "downloading droplet" do
       before do
         instance.unstub(:promise_droplet_available)
-      end
-
-      let(:droplet) do
-        mock("droplet")
-      end
-
-      before do
-        instance.stub(:droplet).and_return(droplet)
       end
 
       describe "when it already exists" do
@@ -352,6 +352,57 @@ describe Dea::Instance do
           instance.start do |error|
             error.should be_a(Dea::Instance::WardenError)
             error.message.should match(/cannot connect/i)
+            done
+          end
+        end
+      end
+    end
+
+    describe "creating warden container" do
+      let(:warden_connection) do
+        mock("warden_connection")
+      end
+
+      before do
+        instance.unstub(:promise_warden_container)
+        instance.stub(:promise_warden_connection).and_return(delivering_promise(warden_connection))
+      end
+
+      it "succeeds when the call succeeds" do
+        response = mock("create_response")
+        response.stub(:handle).and_return("handle")
+
+        result = mock("result")
+        result.stub(:get).and_return(response)
+
+        warden_connection.stub(:call).and_yield(result)
+
+        em do
+          instance.start do |error|
+            error.should be_nil
+
+            # Warden handle should be set
+            instance.attributes["warden_handle"].should == "handle"
+
+            done
+          end
+        end
+      end
+
+      it "fails when the call fails" do
+        result = mock("result")
+        result.stub(:get).and_raise("error")
+
+        warden_connection.stub(:call).and_yield(result)
+
+        em do
+          instance.start do |error|
+            error.should be_a(RuntimeError)
+            error.message.should match(/error/i)
+
+            # Warden handle should not be set
+            instance.attributes["warden_handle"].should be_nil
+
             done
           end
         end

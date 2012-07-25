@@ -226,11 +226,41 @@ module Dea
       end
     end
 
+    def promise_warden_container(connection)
+      Promise.new do |p|
+        droplet_directory_bind_mount = ::Warden::Protocol::CreateRequest::BindMount.new
+        droplet_directory_bind_mount.src_path = droplet.droplet_directory
+        droplet_directory_bind_mount.dst_path = droplet.droplet_directory
+        droplet_directory_bind_mount.mode = ::Warden::Protocol::CreateRequest::BindMount::Mode::RO
+
+        create_request = ::Warden::Protocol::CreateRequest.new
+        create_request.bind_mounts = [droplet_directory_bind_mount]
+
+        connection.call(create_request) do |result|
+          error = nil
+
+          begin
+            response = result.get
+          rescue => error
+          end
+
+          if error
+            p.fail(error)
+          else
+            @attributes["warden_handle"] = response.handle
+
+            p.deliver
+          end
+        end
+      end
+    end
+
     def start(&callback)
       p = Promise.new do
         promise_state(:from => State::BORN, :to => State::STARTING).resolve
         promise_droplet_available.resolve
-        promise_warden_connection(:app).resolve
+        connection = promise_warden_connection(:app).resolve
+        promise_warden_container(connection).resolve
 
         p.deliver
       end
