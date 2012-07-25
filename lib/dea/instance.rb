@@ -134,39 +134,47 @@ module Dea
       bootstrap.droplet_registry[droplet_sha1]
     end
 
-    def start(&callback)
-      promise_state = Promise.new do |p|
-        if state != "born"
-          p.fail(TransitionError.new("born", "start"))
+    def promise_state(options)
+      promise_state = Promise.new do
+        if !Array(options[:from]).include?(state)
+          promise_state.fail(TransitionError.new(state, options[:to] || "<unknown>"))
         else
-          p.deliver
+          promise_state.deliver
         end
       end
+    end
 
-      promise_droplet_download = Promise.new do |p|
+    def promise_droplet_download
+      promise_droplet_download = Promise.new do
         droplet.download(droplet_uri) do |error|
           if error
-            p.fail(error)
+            promise_droplet_download.fail(error)
           else
-            p.deliver
+            promise_droplet_download.deliver
           end
         end
       end
+    end
 
-      promise_droplet_available = Promise.new do |p|
+    def promise_droplet_available
+      promise_droplet_available = Promise.new do
         unless droplet.droplet_exist?
           promise_droplet_download.resolve
         end
 
+        promise_droplet_available.deliver
+      end
+    end
+
+    def start(&callback)
+      p = Promise.new do
+        promise_state(:from => "born", :to => "start").resolve
+        promise_droplet_available.resolve
+
         p.deliver
       end
 
-      promise_start = Promise.new do |p|
-        promise_state.resolve
-        promise_droplet_available.resolve
-      end
-
-      Promise.resolve(promise_start) do |error, result|
+      Promise.resolve(p) do |error, result|
         callback.call(error)
       end
     end
