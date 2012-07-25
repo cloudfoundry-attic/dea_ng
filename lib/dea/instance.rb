@@ -5,6 +5,8 @@ require "membrane"
 require "steno"
 require "steno/core_ext"
 
+require "dea/promise"
+
 module Dea
   class Instance
     class BaseError < StandardError
@@ -164,117 +166,8 @@ module Dea
         promise_droplet_available.resolve
       end
 
-      sequence(promise_start, callback)
-    end
-
-    class Promise
-      attr_reader :elapsed_time
-
-      def initialize(&blk)
-        @blk = blk
-        @result = nil
-        @waiting = []
-      end
-
-      def fail(value)
-        resume([:fail, value])
-
-        nil
-      end
-
-      def deliver(value = nil)
-        resume([:deliver, value])
-
-        nil
-      end
-
-      def resolve
-        unless @result
-          wait
-        end
-
-        type, value = @result
-        raise value if type == :fail
-        value
-      end
-
-      protected
-
-      def wait
-        if @waiting.empty?
-          run
-        end
-
-        @waiting << Fiber.current
-        Fiber.yield
-      end
-
-      def resume(result)
-        # Set result once
-        unless @result
-          @result = result
-          @elapsed_time = Time.now - @start_time
-        end
-
-        # Resume from a fresh stack
-        EM.next_tick do
-          @waiting.each(&:resume)
-          @waiting = []
-        end
-
-        nil
-      end
-
-      def run
-        EM.next_tick do
-          f = Fiber.new do
-            begin
-              @start_time = Time.now
-              @blk.call(self)
-            rescue => error
-              fail(error)
-            end
-          end
-
-          f.resume
-        end
-      end
-    end
-
-    def sequence(promise, callback)
-      @sequence ||= []
-      @sequence << [promise, callback]
-
-      run = lambda do
-        promise, callback = @sequence.first
-
-        if promise
-          f = Fiber.new do
-            error = nil
-
-            begin
-              promise.resolve
-            rescue => error
-            end
-
-            callback.call(error)
-
-            # Remove completed promise from sequence
-            @sequence.shift
-
-            # Queue next promise
-            run.call
-          end
-
-          EM.next_tick do
-            f.resume
-          end
-        end
-      end
-
-      # Kickstart if this is the first promise of the sequence
-      if @sequence.size == 1
-        run.call
+      Promise.resolve(promise_start) do |error, result|
+        callback.call(error)
       end
     end
 
