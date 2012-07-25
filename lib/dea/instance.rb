@@ -92,6 +92,7 @@ module Dea
 
       # Generate unique ID
       @attributes["instance_id"] = VCAP.secure_uuid
+      @attributes["state"] = "born"
     end
 
     def validate
@@ -103,6 +104,14 @@ module Dea
         logger.warn(error.message, error.data)
         raise error
       end
+    end
+
+    def state
+      attributes["state"]
+    end
+
+    def state=(state)
+      attributes["state"] = state
     end
 
     private
