@@ -207,6 +207,7 @@ describe Dea::Instance do
 
         instance.start do |err|
           err.should be_kind_of(Dea::Instance::BaseError)
+          err.message.should match(/transition/)
           done
         end
       end
