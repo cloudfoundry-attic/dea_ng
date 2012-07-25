@@ -84,4 +84,20 @@ describe Dea::Promise do
 
     p.elapsed_time.should be_within(0.001).of(0.010)
   end
+
+  it "can run without resolve" do
+    p = Dea::Promise.new do
+      p.deliver("ok")
+    end
+
+    # Calling #run should start execution
+    expect do
+      p.run
+    end.to change(p, :ran?)
+
+    # Calling #resolve should work as expected
+    expect do |b|
+      Dea::Promise.resolve(p, &b)
+    end.to yield_with_args([nil, "ok"])
+  end
 end

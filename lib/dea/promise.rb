@@ -20,8 +20,13 @@ module Dea
 
     def initialize(&blk)
       @blk = blk
+      @ran = false
       @result = nil
       @waiting = []
+    end
+
+    def ran?
+      @ran
     end
 
     def fail(value)
@@ -37,17 +42,29 @@ module Dea
     end
 
     def resolve
-      if !@result && @waiting.empty?
-        run
-      end
-
-      if !@result
-        wait
-      end
+      run if !@ran
+      wait if !@result
 
       type, value = @result
       raise value if type == :fail
       value
+    end
+
+    def run
+      if !@ran
+        @ran = true
+
+        f = Fiber.new do
+          begin
+            @start_time = Time.now
+            @blk.call(self)
+          rescue => error
+            fail(error)
+          end
+        end
+
+        f.resume
+      end
     end
 
     protected
@@ -64,19 +81,6 @@ module Dea
       end
 
       nil
-    end
-
-    def run
-      f = Fiber.new do
-        begin
-          @start_time = Time.now
-          @blk.call(self)
-        rescue => error
-          fail(error)
-        end
-      end
-
-      f.resume
     end
 
     def wait
