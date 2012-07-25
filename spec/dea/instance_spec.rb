@@ -191,37 +191,94 @@ describe Dea::Instance do
       Dea::Instance.new(bootstrap, valid_attributes)
     end
 
-    let(:droplet) do
-      droplet = mock("droplet")
-      droplet.stub(:droplet_exist?).and_return(true)
-      droplet
-    end
-
     before do
-      instance.stub(:droplet).and_return(droplet)
+      instance.stub(:promise_state).and_return(delivering_promise)
+      instance.stub(:promise_droplet_available).and_return(delivering_promise)
     end
 
-    it "should raise when not in the start state" do
-      em do
-        instance.state = "blah"
+    describe "checking source state" do
+      before do
+        instance.unstub(:promise_state)
+      end
 
-        instance.start do |err|
-          err.should be_kind_of(Dea::Instance::BaseError)
-          err.message.should match(/transition/)
-          done
+      it "passes when \"born\"" do
+        instance.state = Dea::Instance::State::BORN
+
+        em do
+          instance.start do |error|
+            error.should be_nil
+            done
+          end
+        end
+      end
+
+      it "fails when invalid" do
+        instance.state = "invalid"
+
+        em do
+          instance.start do |error|
+            error.should be_kind_of(Dea::Instance::BaseError)
+            error.message.should match(/transition/)
+            done
+          end
         end
       end
     end
 
-    it "should raise when downloading droplet fails" do
-      em do
-        droplet.stub(:droplet_exist?).and_return(false)
-        droplet.stub(:download).and_yield(Dea::Instance::BaseError.new("download failed"))
+    describe "downloading droplet" do
+      before do
+        instance.unstub(:promise_droplet_available)
+      end
 
-        instance.start do |err|
-          err.should be_kind_of(Dea::Instance::BaseError)
-          err.message.should match(/download failed/)
-          done
+      let(:droplet) do
+        mock("droplet")
+      end
+
+      before do
+        instance.stub(:droplet).and_return(droplet)
+      end
+
+      describe "when it already exists" do
+        before do
+          droplet.stub(:droplet_exist?).and_return(true)
+        end
+
+        it "succeeds" do
+          em do
+            instance.start do |error|
+              error.should be_nil
+              done
+            end
+          end
+        end
+      end
+
+      describe "when it does not yet exist" do
+        before do
+          droplet.stub(:droplet_exist?).and_return(false)
+        end
+
+        it "succeeds when #download succeeds" do
+          droplet.stub(:download).and_yield(nil)
+
+          em do
+            instance.start do |error|
+              error.should be_nil
+              done
+            end
+          end
+        end
+
+        it "fails when #download fails" do
+          droplet.stub(:download).and_yield(Dea::Instance::BaseError.new("download failed"))
+
+          em do
+            instance.start do |error|
+              error.should be_kind_of(Dea::Instance::BaseError)
+              error.message.should match(/download failed/)
+              done
+            end
+          end
         end
       end
     end
