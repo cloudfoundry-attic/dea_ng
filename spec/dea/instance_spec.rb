@@ -175,4 +175,44 @@ describe Dea::Instance do
       end.to raise_error(Dea::Instance::RuntimeNotFoundError)
     end
   end
+
+  describe "start transition" do
+    subject(:instance) do
+      Dea::Instance.new(bootstrap, valid_attributes)
+    end
+
+    let(:droplet) do
+      droplet = mock("droplet")
+      droplet.stub(:droplet_exist?).and_return(true)
+      droplet
+    end
+
+    before do
+      instance.stub(:droplet).and_return(droplet)
+    end
+
+    it "should raise when not in the start state" do
+      em do
+        instance.state = "blah"
+
+        instance.start do |err|
+          err.should be_kind_of(Dea::Instance::BaseError)
+          done
+        end
+      end
+    end
+
+    it "should raise when downloading droplet fails" do
+      em do
+        droplet.stub(:droplet_exist?).and_return(false)
+        droplet.stub(:download).and_yield(Dea::Instance::BaseError.new("download failed"))
+
+        instance.start do |err|
+          err.should be_kind_of(Dea::Instance::BaseError)
+          err.message.should match(/download failed/)
+          done
+        end
+      end
+    end
+  end
 end
