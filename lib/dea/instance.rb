@@ -221,17 +221,9 @@ module Dea
       end
     end
 
-    def promise_create_container(connection)
+    def promise_warden_call(connection, request)
       Promise.new do |p|
-        droplet_directory_bind_mount = ::Warden::Protocol::CreateRequest::BindMount.new
-        droplet_directory_bind_mount.src_path = droplet.droplet_directory
-        droplet_directory_bind_mount.dst_path = droplet.droplet_directory
-        droplet_directory_bind_mount.mode = ::Warden::Protocol::CreateRequest::BindMount::Mode::RO
-
-        create_request = ::Warden::Protocol::CreateRequest.new
-        create_request.bind_mounts = [droplet_directory_bind_mount]
-
-        connection.call(create_request) do |result|
+        connection.call(request) do |result|
           error = nil
 
           begin
@@ -242,11 +234,27 @@ module Dea
           if error
             p.fail(error)
           else
-            @attributes["warden_handle"] = response.handle
-
-            p.deliver
+            p.deliver(response)
           end
         end
+      end
+    end
+
+    def promise_create_container(connection)
+      Promise.new do |p|
+        droplet_directory_bind_mount = ::Warden::Protocol::CreateRequest::BindMount.new
+        droplet_directory_bind_mount.src_path = droplet.droplet_directory
+        droplet_directory_bind_mount.dst_path = droplet.droplet_directory
+        droplet_directory_bind_mount.mode = ::Warden::Protocol::CreateRequest::BindMount::Mode::RO
+
+        create_request = ::Warden::Protocol::CreateRequest.new
+        create_request.bind_mounts = [droplet_directory_bind_mount]
+
+        response = promise_warden_call(connection, create_request).resolve
+
+        @attributes["warden_handle"] = response.handle
+
+        p.deliver
       end
     end
 
