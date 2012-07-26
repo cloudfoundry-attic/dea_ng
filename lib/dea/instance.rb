@@ -357,13 +357,21 @@ module Dea
         # file_uri
         # credentials
         # staged
-
-        # TODO: Include once debug/console is filled out
-        # debug_ip
-        # debug_port
-        # console_ip
-        # console_port
       }
+
+      if attributes["debug"]
+        response.update({
+          "debug_ip"   => bootstrap.local_ip,
+          "debug_port" => attributes["instance_debug_host_port"],
+        })
+      end
+
+      if attributes["console"]
+        response.update({
+          "console_ip"   => bootstrap.local_ip,
+          "console_port" => attributes["instance_console_host_port"],
+        })
+      end
 
       if include_stats
         response["stats"] = {

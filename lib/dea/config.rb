@@ -10,6 +10,7 @@ module Dea
       ::Membrane::SchemaParser.parse do
         {
           "base_dir" => String,
+          optional("local_route") => String,
           "logging" => {
             "level"            => String,
             optional("file")   => String,
