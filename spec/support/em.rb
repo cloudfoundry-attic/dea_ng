@@ -8,13 +8,11 @@ module Helpers
     timeout = options[:timeout] ||= 0.1
 
     ::EM.run {
-      expect do
-        quantum = 0.005
-        ::EM.set_quantum(quantum * 1000) # Lowest possible timer resolution
-        ::EM.set_heartbeat_interval(quantum) # Timeout connections asap
-        ::EM.add_timer(timeout) { raise "timeout" }
-        yield
-      end.to_not raise_error
+      quantum = 0.005
+      ::EM.set_quantum(quantum * 1000) # Lowest possible timer resolution
+      ::EM.set_heartbeat_interval(quantum) # Timeout connections asap
+      ::EM.add_timer(timeout) { raise "timeout" }
+      yield
     }
   end
 
