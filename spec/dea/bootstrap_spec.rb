@@ -195,6 +195,36 @@ describe Dea::Bootstrap do
     end
   end
 
+  describe "on healthmanager start" do
+    it "should send out heartbeats" do
+      nats_mock = NatsClientMock.new({})
+      NATS.stub(:connect).and_return(nats_mock)
+
+      bootstrap = Dea::Bootstrap.new({})
+      bootstrap.setup_instance_registry
+      bootstrap.setup_nats
+      bootstrap.nats.start
+
+      # Register initial instances
+      2.times do |ii|
+        instance = Dea::Instance.new(bootstrap, "application_id" => ii)
+        bootstrap.instance_registry.register(instance)
+      end
+
+      hb = nil
+      nats_mock.subscribe("dea.heartbeat") do |msg, _|
+        hb = Yajl::Parser.parse(msg)
+      end
+
+      nats_mock.publish("healthmanager.start")
+
+      # Being a bit lazy here by not validating message returned, however,
+      # that codepath is exercised by the periodic heartbeat tests.
+      hb.should_not be_nil
+      hb["droplets"].size.should == 2
+    end
+  end
+
   describe "on router start" do
     before :each do
       @nats_mock = NatsClientMock.new({})

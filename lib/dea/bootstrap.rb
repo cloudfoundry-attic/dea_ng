@@ -177,6 +177,7 @@ module Dea
     end
 
     def handle_health_manager_start(message)
+      send_heartbeats
     end
 
     def handle_router_start(message)
