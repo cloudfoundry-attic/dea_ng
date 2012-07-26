@@ -1,10 +1,10 @@
 # coding: UTF-8
 
-require "tempfile"
 require "digest/sha1"
 require "em-http"
 require "steno"
 require "steno/core_ext"
+require "tempfile"
 
 module Dea
   class Droplet
