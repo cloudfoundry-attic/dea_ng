@@ -17,7 +17,6 @@ describe Dea::Instance do
       "application_users"   => ["john@doe.com"],
 
       "droplet_sha1"        => "deadbeef",
-      "droplet_file"        => "file.ext",
       "droplet_uri"         => "http://foo.com/file.ext",
 
       "runtime_name"        => "ruby19",
@@ -86,13 +85,11 @@ describe Dea::Instance do
       let(:start_message_data) do
         {
           "sha1"           => "deadbeef",
-          "executableFile" => "file.ext",
           "executableUri"  => "http://foo.com/file.ext",
         }
       end
 
       its(:droplet_sha1) { should == "deadbeef" }
-      its(:droplet_file) { should == "file.ext" }
       its(:droplet_uri)  { should == "http://foo.com/file.ext" }
     end
 
