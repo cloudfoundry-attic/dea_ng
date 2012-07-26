@@ -38,12 +38,16 @@ module Dea
       File.expand_path(File.join(base_dir, sha1))
     end
 
-    def droplet_file
-      File.join(droplet_directory, "droplet.tgz")
+    def droplet_filename
+      "droplet.tgz"
+    end
+
+    def droplet_path
+      File.join(droplet_directory, droplet_filename)
     end
 
     def droplet_exist?
-      File.exist?(droplet_file)
+      File.exist?(droplet_path)
     end
 
     def download(uri, &blk)
@@ -56,10 +60,10 @@ module Dea
         # Fire off request when this is the first call to #download
         get(uri) do |err, path|
           if !err
-            File.rename(path, droplet_file)
-            File.chmod(0744, droplet_file)
+            File.rename(path, droplet_path)
+            File.chmod(0744, droplet_path)
 
-            logger.debug "moved droplet to #{droplet_file}"
+            logger.debug "moved droplet to #{droplet_path}"
           end
 
           while blk = @download_waiting.shift
