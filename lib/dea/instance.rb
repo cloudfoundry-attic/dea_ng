@@ -249,12 +249,23 @@ module Dea
       p = Promise.new do
         promise_state(:from => State::BORN, :to => State::STARTING).resolve
 
-        unless droplet.droplet_exist?
-          promise_droplet_download.resolve
+        promise_droplet = Promise.new do |p|
+          unless droplet.droplet_exist?
+            promise_droplet_download.resolve
+          end
+
+          p.deliver
         end
 
-        connection = promise_warden_connection(:app).resolve
-        promise_warden_container(connection).resolve
+        promise_container = Promise.new do |p|
+          connection = promise_warden_connection(:app).resolve
+          promise_warden_container(connection).resolve
+
+          p.deliver
+        end
+
+        # Concurrently download droplet and create container
+        [promise_droplet, promise_container].each(&:run).each(&:resolve)
 
         p.deliver
       end
