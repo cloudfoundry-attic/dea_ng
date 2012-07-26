@@ -10,6 +10,7 @@ require "dea/config"
 require "dea/droplet_registry"
 require "dea/instance_registry"
 require "dea/nats"
+require "dea/protocol"
 
 module Dea
   class Bootstrap
@@ -188,7 +189,8 @@ module Dea
       instance_registry.each do |instance|
         next if !instance.running? || instance.application_uris.empty?
 
-        @nats.publish("router.register", instance.generate_router_start_response)
+        resp = Dea::Protocol::V1::RouterStartResponse.generate(self, instance)
+        @nats.publish("router.register", resp)
       end
     end
 
@@ -241,7 +243,9 @@ module Dea
         matched &&= states.include?(instance.state)             unless states.nil?
 
         if matched
-          response = instance.generate_find_droplet_response(include_stats)
+          response = Dea::Protocol::V1::FindDropletResponse.generate(self,
+                                                                     instance,
+                                                                     include_stats)
           message.respond(response)
         end
       end
@@ -252,19 +256,16 @@ module Dea
     def handle_droplet_status(message)
       instance_registry.each do |instance|
         next unless instance.starting? || instance.running?
-        message.respond(instance.generate_droplet_status_response)
+        resp = Dea::Protocol::V1::DropletStatusResponse.generate(instance)
+        message.respond(resp)
       end
     end
 
     def send_heartbeats
       return if @instance_registry.empty?
 
-      # TODO(mjp): Fill in uuid w/ VCAP::Component.uuid once setup
-      heartbeats = {
-        "droplets" => @instance_registry.map { |i| i.generate_heartbeat },
-        "dea"      => @uuid,
-      }
-      @nats.publish("dea.heartbeat", heartbeats)
+      hbs = Dea::Protocol::V1::HeartbeatResponse.generate(self, instance_registry.to_a)
+      @nats.publish("dea.heartbeat", hbs)
 
       nil
     end
