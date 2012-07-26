@@ -180,6 +180,11 @@ module Dea
     end
 
     def handle_router_start(message)
+      instance_registry.each do |instance|
+        next if !instance.running? || instance.application_uris.empty?
+
+        @nats.publish("router.register", instance.generate_router_start_response)
+      end
     end
 
     def handle_dea_status(message)

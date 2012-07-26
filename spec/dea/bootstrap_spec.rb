@@ -195,6 +195,53 @@ describe Dea::Bootstrap do
     end
   end
 
+  describe "on router start" do
+    before :each do
+      @nats_mock = NatsClientMock.new({})
+      NATS.stub(:connect).and_return(@nats_mock)
+
+      bootstrap = Dea::Bootstrap.new({})
+      bootstrap.setup_instance_registry
+      bootstrap.setup_nats
+      bootstrap.nats.start
+
+      @instances = []
+
+      states = [Dea::Instance::State::RUNNING,
+                Dea::Instance::State::STOPPED,
+                Dea::Instance::State::RUNNING]
+      all_uris = [["foo"], ["bar"], []]
+
+      states.zip(all_uris).each_with_index do |xs, ii|
+        state, uris = xs
+        instance = Dea::Instance.new(bootstrap,
+                                     "application_id"   => ii,
+                                     "application_uris" => uris)
+        instance.state = state
+        @instances << instance
+        bootstrap.instance_registry.register(instance)
+      end
+    end
+
+    it "should only register running instances with uris" do
+      responses = []
+      @nats_mock.subscribe("router.register") do |msg, _|
+        responses << Yajl::Parser.parse(msg)
+      end
+
+      @nats_mock.publish("router.start")
+
+      expected = {
+        "dea"  => bootstrap.uuid,
+        "app"  => @instances[0].application_id,
+        "uris" => @instances[0].application_uris,
+      }
+
+      responses.size.should == 1
+      responses[0].should == expected
+    end
+  end
+
   describe "find droplet" do
     before :each do
       @nats_mock = NatsClientMock.new({})
