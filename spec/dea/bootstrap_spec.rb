@@ -57,7 +57,7 @@ describe Dea::Bootstrap do
 
     it "should create a new droplet registry" do
       bootstrap.droplet_registry.should be_a(Dea::DropletRegistry)
-      bootstrap.droplet_registry.base_dir.should == @config["base_dir"]
+      bootstrap.droplet_registry.base_dir.should == File.join(@config["base_dir"], "droplets")
     end
   end
 
