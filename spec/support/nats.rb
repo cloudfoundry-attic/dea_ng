@@ -18,7 +18,11 @@ class NatsClientMock
   end
 
   def receive_message(subject, data = {}, respond_to = nil)
-    raw_data = Yajl::Encoder.encode(data)
+    if data.kind_of?(String)
+      raw_data = data
+    else
+      raw_data = Yajl::Encoder.encode(data)
+    end
 
     @subscriptions[subject].each do |blk|
       blk.call(raw_data, respond_to)

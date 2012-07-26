@@ -202,6 +202,46 @@ module Dea
       }
     end
 
+    def generate_find_droplet_response(include_stats)
+      response = {
+        "dea"             => bootstrap.uuid,
+        "droplet"         => application_id,
+        "version"         => application_version,
+        "instance"        => instance_id,
+        "index"           => instance_index,
+        "state"           => state,
+        "state_timestamp" => state_timestamp,
+
+        # TODO: Include once file viewer is live
+        # file_uri
+        # credentials
+        # staged
+
+        # TODO: Include once debug/console is filled out
+        # debug_ip
+        # debug_port
+        # console_ip
+        # console_port
+      }
+
+      if include_stats
+        response["stats"] = {
+          "name" => application_name,
+          "uris" => application_uris,
+
+          # TODO: Include once start command is hooked up
+          # host
+          # port
+          # uptime
+          # mem_quota
+          # disk_quota
+          # cores
+        }
+      end
+
+      response
+    end
+
     private
 
     def logger
