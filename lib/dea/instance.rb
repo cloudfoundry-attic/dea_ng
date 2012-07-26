@@ -227,7 +227,7 @@ module Dea
       end
     end
 
-    def promise_warden_container(connection)
+    def promise_create_container(connection)
       Promise.new do |p|
         droplet_directory_bind_mount = ::Warden::Protocol::CreateRequest::BindMount.new
         droplet_directory_bind_mount.src_path = droplet.droplet_directory
@@ -270,7 +270,7 @@ module Dea
 
         promise_container = Promise.new do |p|
           connection = promise_warden_connection(:app).resolve
-          promise_warden_container(connection).resolve
+          promise_create_container(connection).resolve
 
           p.deliver
         end

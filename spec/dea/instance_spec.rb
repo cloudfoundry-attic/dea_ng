@@ -219,7 +219,7 @@ describe Dea::Instance do
       instance.stub(:promise_state).and_return(delivering_promise)
       instance.stub(:promise_droplet_download).and_return(delivering_promise)
       instance.stub(:promise_warden_connection).and_return(delivering_promise)
-      instance.stub(:promise_warden_container).and_return(delivering_promise)
+      instance.stub(:promise_create_container).and_return(delivering_promise)
       instance.stub(:droplet).and_return(droplet)
     end
 
@@ -380,7 +380,7 @@ describe Dea::Instance do
       end
 
       before do
-        instance.unstub(:promise_warden_container)
+        instance.unstub(:promise_create_container)
         instance.stub(:promise_warden_connection).and_return(delivering_promise(warden_connection))
       end
 
