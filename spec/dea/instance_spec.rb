@@ -215,10 +215,14 @@ describe Dea::Instance do
       droplet
     end
 
+    let(:warden_connection) do
+      mock("warden_connection")
+    end
+
     before do
       instance.stub(:promise_state).and_return(delivering_promise)
       instance.stub(:promise_droplet_download).and_return(delivering_promise)
-      instance.stub(:promise_warden_connection).and_return(delivering_promise)
+      instance.stub(:promise_warden_connection).and_return(delivering_promise(warden_connection))
       instance.stub(:promise_create_container).and_return(delivering_promise)
       instance.stub(:droplet).and_return(droplet)
     end
@@ -375,27 +379,26 @@ describe Dea::Instance do
     end
 
     describe "creating warden container" do
-      let(:warden_connection) do
-        mock("warden_connection")
-      end
-
       before do
         instance.unstub(:promise_create_container)
-        instance.stub(:promise_warden_connection).and_return(delivering_promise(warden_connection))
+      end
+
+      let(:response) do
+        response = mock("create_response")
+        response.stub(:handle).and_return("handle")
+        response
       end
 
       it "succeeds when the call succeeds" do
-        response = mock("create_response")
-        response.stub(:handle).and_return("handle")
-
-        result = mock("result")
-        result.stub(:get).and_return(response)
-
-        warden_connection.stub(:call).and_yield(result)
+        instance.stub(:promise_warden_call) do
+          delivering_promise(response)
+        end
 
         em do
           instance.start do |error|
-            error.should be_nil
+            expect do
+              raise error if error
+            end.to_not raise_error
 
             # Warden handle should be set
             instance.attributes["warden_handle"].should == "handle"
@@ -406,15 +409,15 @@ describe Dea::Instance do
       end
 
       it "fails when the call fails" do
-        result = mock("result")
-        result.stub(:get).and_raise("error")
-
-        warden_connection.stub(:call).and_yield(result)
+        instance.stub(:promise_warden_call) do
+          failing_promise(RuntimeError.new("error"))
+        end
 
         em do
           instance.start do |error|
-            error.should be_a(RuntimeError)
-            error.message.should match(/error/i)
+            expect do
+              raise error if error
+            end.to raise_error(RuntimeError, /error/i)
 
             # Warden handle should not be set
             instance.attributes["warden_handle"].should be_nil
