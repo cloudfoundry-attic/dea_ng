@@ -195,13 +195,14 @@ describe Dea::Instance do
 
     let(:droplet) do
       droplet = mock("droplet")
+      droplet.stub(:droplet_exist?).and_return(true)
       droplet.stub(:droplet_directory).and_return(File.join(tmpdir, "droplet"))
       droplet
     end
 
     before do
       instance.stub(:promise_state).and_return(delivering_promise)
-      instance.stub(:promise_droplet_available).and_return(delivering_promise)
+      instance.stub(:promise_droplet_download).and_return(delivering_promise)
       instance.stub(:promise_warden_connection).and_return(delivering_promise)
       instance.stub(:promise_warden_container).and_return(delivering_promise)
       instance.stub(:droplet).and_return(droplet)
@@ -238,7 +239,7 @@ describe Dea::Instance do
 
     describe "downloading droplet" do
       before do
-        instance.unstub(:promise_droplet_available)
+        instance.unstub(:promise_droplet_download)
       end
 
       describe "when it already exists" do

@@ -183,16 +183,6 @@ module Dea
       end
     end
 
-    def promise_droplet_available
-      promise_droplet_available = Promise.new do
-        unless droplet.droplet_exist?
-          promise_droplet_download.resolve
-        end
-
-        promise_droplet_available.deliver
-      end
-    end
-
     def promise_warden_connection(name)
       Promise.new do |p|
         connection = @warden_connections[name]
@@ -258,7 +248,11 @@ module Dea
     def start(&callback)
       p = Promise.new do
         promise_state(:from => State::BORN, :to => State::STARTING).resolve
-        promise_droplet_available.resolve
+
+        unless droplet.droplet_exist?
+          promise_droplet_download.resolve
+        end
+
         connection = promise_warden_connection(:app).resolve
         promise_warden_container(connection).resolve
 
