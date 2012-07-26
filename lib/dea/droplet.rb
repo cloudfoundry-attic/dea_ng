@@ -2,6 +2,7 @@
 
 require "digest/sha1"
 require "em-http"
+require "fileutils"
 require "steno"
 require "steno/core_ext"
 require "tempfile"
@@ -28,10 +29,13 @@ module Dea
     def initialize(base_dir, sha1)
       @base_dir = base_dir
       @sha1 = sha1
+
+      # Make sure the directory exists
+      FileUtils.mkdir_p(droplet_directory)
     end
 
     def droplet_directory
-      File.join(base_dir, sha1)
+      File.expand_path(File.join(base_dir, sha1))
     end
 
     def droplet_file

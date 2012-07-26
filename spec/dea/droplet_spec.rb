@@ -27,6 +27,10 @@ describe Dea::Droplet do
     droplet.droplet_exist?.should be_false
   end
 
+  it "should make sure its directory exists" do
+    File.directory?(droplet.droplet_directory).should be_true
+  end
+
   describe "download" do
     around do |example|
       em do
