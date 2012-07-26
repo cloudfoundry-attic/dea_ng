@@ -31,19 +31,23 @@ module Dea
       @sha1 = sha1
 
       # Make sure the directory exists
-      FileUtils.mkdir_p(droplet_directory)
+      FileUtils.mkdir_p(droplet_dirname)
     end
 
-    def droplet_directory
+    def droplet_dirname
       File.expand_path(File.join(base_dir, sha1))
     end
 
-    def droplet_file
-      File.join(droplet_directory, "droplet.tgz")
+    def droplet_basename
+      "droplet.tgz"
+    end
+
+    def droplet_path
+      File.join(droplet_dirname, droplet_basename)
     end
 
     def droplet_exist?
-      File.exist?(droplet_file)
+      File.exist?(droplet_path)
     end
 
     def download(uri, &blk)
@@ -56,10 +60,10 @@ module Dea
         # Fire off request when this is the first call to #download
         get(uri) do |err, path|
           if !err
-            File.rename(path, droplet_file)
-            File.chmod(0744, droplet_file)
+            File.rename(path, droplet_path)
+            File.chmod(0744, droplet_path)
 
-            logger.debug "moved droplet to #{droplet_file}"
+            logger.debug "moved droplet to #{droplet_path}"
           end
 
           while blk = @download_waiting.shift
@@ -76,9 +80,9 @@ module Dea
     end
 
     def get(uri, &blk)
-      FileUtils.mkdir_p(droplet_directory)
+      FileUtils.mkdir_p(droplet_dirname)
 
-      file = Tempfile.new("droplet", droplet_directory)
+      file = Tempfile.new("droplet", droplet_dirname)
       sha1 = Digest::SHA1.new
 
       http = EM::HttpRequest.new(uri).get
