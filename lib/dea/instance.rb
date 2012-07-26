@@ -122,6 +122,7 @@ module Dea
     def initialize(bootstrap, attributes)
       @bootstrap  = bootstrap
       @attributes = attributes.dup
+      @attributes["application_uris"] ||= []
 
       # Generate unique ID
       @attributes["instance_id"] = VCAP.secure_uuid
@@ -159,6 +160,10 @@ module Dea
 
     def droplet
       bootstrap.droplet_registry[droplet_sha1]
+    end
+
+    def running?
+      self.state == State::RUNNING
     end
 
     def promise_state(options)
@@ -324,6 +329,16 @@ module Dea
       end
 
       response
+    end
+
+    def generate_router_start_response
+      { "dea"  => bootstrap.uuid,
+        "app"  => application_id,
+        "uris" => application_uris,
+        # TODO: Fill in when available
+        # host
+        # port
+      }
     end
 
     private
