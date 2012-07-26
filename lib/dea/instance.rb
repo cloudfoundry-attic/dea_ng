@@ -347,6 +347,16 @@ module Dea
       }
     end
 
+    def generate_droplet_status_response
+      { "name" => application_name,
+        "uris" => application_uris,
+        # TODO: Fill in when available
+        # host
+        # port
+        # uptime
+      }
+    end
+
     private
 
     def logger

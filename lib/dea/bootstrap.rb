@@ -246,6 +246,10 @@ module Dea
     end
 
     def handle_droplet_status(message)
+      instance_registry.each do |instance|
+        next unless instance.starting? || instance.running?
+        message.respond(instance.generate_droplet_status_response)
+      end
     end
 
     def send_heartbeats
