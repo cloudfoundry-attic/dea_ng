@@ -209,6 +209,7 @@ describe Dea::Instance do
       instance.stub(:promise_droplet_download).and_return(delivering_promise)
       instance.stub(:promise_warden_connection).and_return(delivering_promise(warden_connection))
       instance.stub(:promise_create_container).and_return(delivering_promise)
+      instance.stub(:promise_setup_network).and_return(delivering_promise)
       instance.stub(:droplet).and_return(droplet)
     end
 
@@ -406,6 +407,80 @@ describe Dea::Instance do
 
             # Warden handle should not be set
             instance.attributes["warden_handle"].should be_nil
+
+            done
+          end
+        end
+      end
+    end
+
+    describe "setting up network" do
+      before do
+        instance.unstub(:promise_setup_network)
+      end
+
+      let(:response) do
+        response = mock("net_in_response")
+        response.stub(:host_port      => 1234)
+        response.stub(:container_port => 1235)
+        response
+      end
+
+      it "should make a net_in request on behalf of the container" do
+        instance.attributes["warden_handle"] = "handle"
+
+        instance.stub(:promise_warden_call) do |connection, request|
+          request.should be_kind_of(::Warden::Protocol::NetInRequest)
+          request.handle.should == "handle"
+
+          delivering_promise(response)
+        end
+
+        em do
+          instance.start do |error|
+            expect do
+              raise error if error
+            end.to_not raise_error
+
+            done
+          end
+        end
+      end
+
+      it "can succeed" do
+        instance.stub(:promise_warden_call) do
+          delivering_promise(response)
+        end
+
+        em do
+          instance.start do |error|
+            expect do
+              raise error if error
+            end.to_not raise_error
+
+            # Ports should be set
+            instance.attributes["instance_host_port"].     should == 1234
+            instance.attributes["instance_container_port"].should == 1235
+
+            done
+          end
+        end
+      end
+
+      it "can fail" do
+        instance.stub(:promise_warden_call) do
+          failing_promise(RuntimeError.new("error"))
+        end
+
+        em do
+          instance.start do |error|
+            expect do
+              raise error if error
+            end.to raise_error(RuntimeError, /error/i)
+
+            # Ports should not be set
+            instance.attributes["instance_host_port"].     should be_nil
+            instance.attributes["instance_container_port"].should be_nil
 
             done
           end

@@ -258,6 +258,22 @@ module Dea
       end
     end
 
+    def promise_setup_network(connection)
+      Promise.new do |p|
+        request = ::Warden::Protocol::NetInRequest.new
+        request.handle = @attributes["warden_handle"]
+        response = promise_warden_call(connection, request).resolve
+
+        @attributes["instance_host_port"]      = response.host_port
+        @attributes["instance_container_port"] = response.container_port
+
+        # TODO: map debug ports
+        # TODO: map console ports
+
+        p.deliver
+      end
+    end
+
     def start(&callback)
       p = Promise.new do
         promise_state(:from => State::BORN, :to => State::STARTING).resolve
@@ -279,6 +295,15 @@ module Dea
 
         # Concurrently download droplet and create container
         [promise_droplet, promise_container].each(&:run).each(&:resolve)
+
+        promise_network = Promise.new do |p|
+          connection = promise_warden_connection(:app).resolve
+          promise_setup_network(connection).resolve
+
+          p.deliver
+        end
+
+        promise_network.resolve
 
         p.deliver
       end
