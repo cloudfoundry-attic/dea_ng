@@ -349,7 +349,7 @@ describe Dea::Bootstrap do
       }
 
       responses.size.should == 1
-      responses[0].should == expected
+      responses[0].should include(expected)
     end
 
     it "should include 'stats' if requested" do

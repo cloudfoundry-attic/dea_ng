@@ -23,6 +23,10 @@ module Dea
       @config = config
     end
 
+    def local_ip
+      @local_ip ||= VCAP.local_ip(config["local_route"])
+    end
+
     def setup
       Config.schema.validate(config)
 
