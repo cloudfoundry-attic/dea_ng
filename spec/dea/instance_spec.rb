@@ -333,8 +333,10 @@ describe Dea::Instance do
         em do
           ::EM.start_unix_domain_server(warden_socket, dumb_connection)
           ::EM.next_tick do
-            instance.start do |error|
-              error.should be_nil
+            Dea::Promise.resolve(instance.promise_warden_connection(:app)) do |error, result|
+              expect do
+                raise error if error
+              end.to_not raise_error
 
               # Check that the connection was made
               dumb_connection.count.should == 1
@@ -349,12 +351,18 @@ describe Dea::Instance do
         em do
           ::EM.start_unix_domain_server(warden_socket, dumb_connection)
           ::EM.next_tick do
-            Dea::Promise.resolve(instance.promise_warden_connection(:app)) do
+            Dea::Promise.resolve(instance.promise_warden_connection(:app)) do |error, result|
+              expect do
+                raise error if error
+              end.to_not raise_error
+
               # Check that the connection was made
               dumb_connection.count.should == 1
 
-              instance.start do |error|
-                error.should be_nil
+              Dea::Promise.resolve(instance.promise_warden_connection(:app)) do |error, result|
+                expect do
+                  raise error if error
+                end.to_not raise_error
 
                 # Check that the connection wasn't made _again_
                 dumb_connection.count.should == 1
@@ -368,9 +376,11 @@ describe Dea::Instance do
 
       it "fails when connecting fails" do
         em do
-          instance.start do |error|
-            error.should be_a(Dea::Instance::WardenError)
-            error.message.should match(/cannot connect/i)
+          Dea::Promise.resolve(instance.promise_warden_connection(:app)) do |error, result|
+            expect do
+              raise error if error
+            end.to raise_error(Dea::Instance::WardenError, /cannot connect/i)
+
             done
           end
         end

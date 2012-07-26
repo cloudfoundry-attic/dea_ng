@@ -247,8 +247,10 @@ module Dea
       end
     end
 
-    def promise_create_container(connection)
+    def promise_create_container
       Promise.new do |p|
+        connection = promise_warden_connection(:app).resolve
+
         droplet_directory_bind_mount = ::Warden::Protocol::CreateRequest::BindMount.new
         droplet_directory_bind_mount.src_path = droplet.droplet_directory
         droplet_directory_bind_mount.dst_path = droplet.droplet_directory
@@ -265,8 +267,10 @@ module Dea
       end
     end
 
-    def promise_setup_network(connection)
+    def promise_setup_network
       Promise.new do |p|
+        connection = promise_warden_connection(:app).resolve
+
         net_in = lambda do
           request = ::Warden::Protocol::NetInRequest.new
           request.handle = @attributes["warden_handle"]
@@ -305,24 +309,10 @@ module Dea
           p.deliver
         end
 
-        promise_container = Promise.new do |p|
-          connection = promise_warden_connection(:app).resolve
-          promise_create_container(connection).resolve
-
-          p.deliver
-        end
-
         # Concurrently download droplet and create container
-        [promise_droplet, promise_container].each(&:run).each(&:resolve)
+        [promise_droplet, promise_create_container].each(&:run).each(&:resolve)
 
-        promise_network = Promise.new do |p|
-          connection = promise_warden_connection(:app).resolve
-          promise_setup_network(connection).resolve
-
-          p.deliver
-        end
-
-        promise_network.resolve
+        promise_setup_network.resolve
 
         p.deliver
       end
