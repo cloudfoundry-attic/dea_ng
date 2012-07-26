@@ -188,6 +188,21 @@ describe Dea::Instance do
     end
   end
 
+  describe "predicate methods" do
+    it "should be present for each state" do
+      instance = Dea::Instance.new(bootstrap, {})
+      instance.state = "invalid"
+
+      Dea::Instance::State.constants do |state|
+        predicate = "#{state.downcase.to_s}?"
+
+        instance.send(predicate).should be_false
+        instance.state = Dea::Instance::State.const_get(state)
+        instance.send(predicate).should be_true
+      end
+    end
+  end
+
   describe "start transition" do
     subject(:instance) do
       Dea::Instance.new(bootstrap, valid_attributes)
