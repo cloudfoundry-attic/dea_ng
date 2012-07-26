@@ -103,8 +103,9 @@ module Dea
           "environment"         => any,
           "services"            => any,
           "flapping"            => any,
-          "debug"               => any,
-          "console"             => any,
+
+          optional("debug")     => enum(nil, String),
+          optional("console")   => enum(nil, bool),
         }
       end
     end
@@ -266,15 +267,27 @@ module Dea
 
     def promise_setup_network(connection)
       Promise.new do |p|
-        request = ::Warden::Protocol::NetInRequest.new
-        request.handle = @attributes["warden_handle"]
-        response = promise_warden_call(connection, request).resolve
+        net_in = lambda do
+          request = ::Warden::Protocol::NetInRequest.new
+          request.handle = @attributes["warden_handle"]
+          promise_warden_call(connection, request).resolve
+        end
 
-        @attributes["instance_host_port"]      = response.host_port
-        @attributes["instance_container_port"] = response.container_port
+        response = net_in.call
+        attributes["instance_host_port"]      = response.host_port
+        attributes["instance_container_port"] = response.container_port
 
-        # TODO: map debug ports
-        # TODO: map console ports
+        if attributes["debug"]
+          response = net_in.call
+          attributes["instance_debug_host_port"]      = response.host_port
+          attributes["instance_debug_container_port"] = response.container_port
+        end
+
+        if attributes["console"]
+          response = net_in.call
+          attributes["instance_console_host_port"]      = response.host_port
+          attributes["instance_console_container_port"] = response.container_port
+        end
 
         p.deliver
       end

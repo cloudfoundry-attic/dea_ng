@@ -27,8 +27,6 @@ describe Dea::Instance do
       "environment"         => { "FOO" => "BAR" },
       "services"            => { "name" => "redis", "type" => "redis" },
       "flapping"            => false,
-      "debug"               => "debug",
-      "console"             => "console",
     }
   end
 
@@ -462,7 +460,7 @@ describe Dea::Instance do
         end
       end
 
-      it "can succeed" do
+      it "should map an instance port" do
         instance.stub(:promise_warden_call) do
           delivering_promise(response)
         end
@@ -476,6 +474,50 @@ describe Dea::Instance do
             # Ports should be set
             instance.attributes["instance_host_port"].     should == 1234
             instance.attributes["instance_container_port"].should == 1235
+
+            done
+          end
+        end
+      end
+
+      it "should map a debug port port if needed" do
+        instance.attributes["debug"] = "debug"
+
+        instance.stub(:promise_warden_call) do
+          delivering_promise(response)
+        end
+
+        em do
+          instance.start do |error|
+            expect do
+              raise error if error
+            end.to_not raise_error
+
+            # Ports should be set
+            instance.attributes["instance_debug_host_port"].     should == 1234
+            instance.attributes["instance_debug_container_port"].should == 1235
+
+            done
+          end
+        end
+      end
+
+      it "should map a console port port if needed" do
+        instance.attributes["console"] = true
+
+        instance.stub(:promise_warden_call) do
+          delivering_promise(response)
+        end
+
+        em do
+          instance.start do |error|
+            expect do
+              raise error if error
+            end.to_not raise_error
+
+            # Ports should be set
+            instance.attributes["instance_console_host_port"].     should == 1234
+            instance.attributes["instance_console_container_port"].should == 1235
 
             done
           end
