@@ -116,6 +116,16 @@ module Dea
       end
     end
 
+    # Helper method needed for creating a new scope
+    def self.define_state_predicate(state)
+      define_method("#{state.to_s.downcase}?") do
+        self.state == state
+      end
+    end
+
+    # Define predicate methods for querying state
+    State.constants.each { |state| define_state_predicate(State.const_get(state)) }
+
     attr_reader :bootstrap
     attr_reader :attributes
 
@@ -160,10 +170,6 @@ module Dea
 
     def droplet
       bootstrap.droplet_registry[droplet_sha1]
-    end
-
-    def running?
-      self.state == State::RUNNING
     end
 
     def promise_state(options)
