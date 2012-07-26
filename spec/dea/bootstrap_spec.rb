@@ -272,6 +272,43 @@ describe Dea::Bootstrap do
     end
   end
 
+  describe "receipt of droplet status" do
+    it "should result in replies for running and starting droplets" do
+      nats_mock = NatsClientMock.new({})
+      NATS.stub(:connect).and_return(nats_mock)
+
+      bootstrap = Dea::Bootstrap.new({})
+      bootstrap.setup_instance_registry
+      bootstrap.setup_nats
+      bootstrap.nats.start
+
+      # Register one instance per state
+      instances = {}
+      Dea::Instance::State.constants.each do |state|
+        name = state.to_s
+        instance = Dea::Instance.new(bootstrap,
+                                     "application_name" => name,
+                                     "application_uris" => ["http://www.foo.bar/#{name}"])
+        instance.state = Dea::Instance::State.const_get(state)
+        bootstrap.instance_registry.register(instance)
+        instances[instance.application_name] = instance
+      end
+
+      responses = []
+      nats_mock.subscribe("results") do |msg, _|
+        responses << Yajl::Parser.parse(msg)
+      end
+
+      nats_mock.publish("droplet.status", {}, "results")
+
+      responses.size.should == 2
+      responses.each do |r|
+        ["RUNNING", "STARTING"].include?(r["name"]).should be_true
+        r["uris"].should == instances[r["name"]].application_uris
+      end
+    end
+  end
+
   describe "find droplet" do
     before :each do
       @nats_mock = NatsClientMock.new({})
