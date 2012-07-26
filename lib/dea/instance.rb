@@ -67,7 +67,6 @@ module Dea
       attributes["application_users"]   = attributes.delete("users")
 
       attributes["droplet_sha1"]        = attributes.delete("sha1")
-      attributes["droplet_file"]        = attributes.delete("executableFile")
       attributes["droplet_uri"]         = attributes.delete("executableUri")
 
       attributes["runtime_name"]        = attributes.delete("runtime")
@@ -92,7 +91,6 @@ module Dea
           "application_users"   => [String],
 
           "droplet_sha1"        => String,
-          "droplet_file"        => String,
           "droplet_uri"         => String,
 
           "runtime_name"        => String,
