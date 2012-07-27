@@ -139,6 +139,59 @@ describe Dea::Bootstrap do
     end
   end
 
+  describe "advertise" do
+    before :each do
+      @nats_mock = NatsClientMock.new({})
+      NATS.stub(:connect).and_return(@nats_mock)
+
+      mock_runtime = mock("runtime")
+      mock_runtime.should_receive(:validate).twice()
+
+      Dea::Runtime.stub(:new).and_return(mock_runtime)
+
+      config = {
+        "intervals" => { "advertise" => 0.01 },
+        "runtimes"  => {
+          "test1" => {},
+          "test2" => {},
+        }
+      }
+      @bootstrap = Dea::Bootstrap.new(config)
+      @bootstrap.setup_runtimes
+      @bootstrap.setup_nats
+      @bootstrap.nats.start
+    end
+
+    it "should periodically send out advertise messages" do
+      advert = nil
+      @nats_mock.subscribe("dea.advertise") do |msg, _|
+        advert = Yajl::Parser.parse(msg)
+        EM.stop
+      end
+
+      em(:timeout => 1) do
+        @bootstrap.setup_sweepers
+      end
+
+      advert.should_not be_nil
+      advert["id"].should == @bootstrap.uuid
+      advert["runtimes"].should == @bootstrap.runtimes.keys
+    end
+
+    it "should respond with an advertisement" do
+      advert = nil
+      @nats_mock.subscribe("dea.advertise") do |msg, _|
+        advert = Yajl::Parser.parse(msg)
+      end
+
+      @nats_mock.publish("dea.locate")
+
+      advert.should_not be_nil
+      advert["id"].should == @bootstrap.uuid
+      advert["runtimes"].should == @bootstrap.runtimes.keys
+    end
+  end
+
   describe "heartbeats" do
     it "should periodically send out heartbeats for all registered instances" do
       nats_mock = NatsClientMock.new({})
