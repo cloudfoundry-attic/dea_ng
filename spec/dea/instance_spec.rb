@@ -222,6 +222,7 @@ describe Dea::Instance do
       instance.stub(:promise_warden_connection).and_return(delivering_promise(warden_connection))
       instance.stub(:promise_create_container).and_return(delivering_promise)
       instance.stub(:promise_setup_network).and_return(delivering_promise)
+      instance.stub(:promise_extract_droplet).and_return(delivering_promise)
       instance.stub(:droplet).and_return(droplet)
     end
 
@@ -547,6 +548,72 @@ describe Dea::Instance do
             # Ports should not be set
             instance.attributes["instance_host_port"].     should be_nil
             instance.attributes["instance_container_port"].should be_nil
+
+            done
+          end
+        end
+      end
+    end
+
+    describe "extracting the droplet" do
+      before do
+        instance.unstub(:promise_extract_droplet)
+        instance.attributes["warden_handle"] = "handle"
+      end
+
+      let(:response) do
+        mock("run_response")
+      end
+
+      it "should make a run request" do
+        response.stub(:exit_status).and_return(0)
+
+        instance.stub(:promise_warden_call) do |connection, request|
+          request.should be_kind_of(::Warden::Protocol::RunRequest)
+          request.handle.should == "handle"
+
+          delivering_promise(response)
+        end
+
+        em do
+          instance.start do |error|
+            expect do
+              raise error if error
+            end.to_not raise_error
+
+            done
+          end
+        end
+      end
+
+      it "can fail by tar failing" do
+        response.stub(:exit_status).and_return(1)
+
+        instance.stub(:promise_warden_call) do |connection, request|
+          delivering_promise(response)
+        end
+
+        em do
+          instance.start do |error|
+            expect do
+              raise error if error
+            end.to raise_error(::Dea::Instance::WardenError, /exited/i)
+
+            done
+          end
+        end
+      end
+
+      it "can fail by the request failing" do
+        instance.stub(:promise_warden_call) do |connection, request|
+          failing_promise(RuntimeError.new("error"))
+        end
+
+        em do
+          instance.start do |error|
+            expect do
+              raise error if error
+            end.to raise_error(RuntimeError, /error/i)
 
             done
           end

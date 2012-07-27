@@ -300,6 +300,23 @@ module Dea
       end
     end
 
+    def promise_extract_droplet
+      Promise.new do |p|
+        connection = promise_warden_connection(:app).resolve
+
+        request = ::Warden::Protocol::RunRequest.new
+        request.handle = attributes["warden_handle"]
+        request.script = "tar zxf %s" % droplet.droplet_path
+        response = promise_warden_call(connection, request).resolve
+
+        if response.exit_status > 0
+          p.fail(WardenError.new("tar exited with status #{response.exit_status}"))
+        else
+          p.deliver
+        end
+      end
+    end
+
     def start(&callback)
       p = Promise.new do
         promise_state(:from => State::BORN, :to => State::STARTING).resolve
@@ -316,6 +333,8 @@ module Dea
         [promise_droplet, promise_create_container].each(&:run).each(&:resolve)
 
         promise_setup_network.resolve
+
+        promise_extract_droplet.resolve
 
         p.deliver
       end
