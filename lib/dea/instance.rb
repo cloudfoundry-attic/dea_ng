@@ -116,7 +116,8 @@ module Dea
     end
 
     # Accessors for debug/console ports
-    %W[instance_debug_host_port instance_console_host_port].each do |key|
+    %W[instance_debug_host_port instance_console_host_port
+       instance_host_port].each do |key|
       define_method(key) { attributes[key] }
     end
 
@@ -174,6 +175,11 @@ module Dea
 
     def droplet
       bootstrap.droplet_registry[droplet_sha1]
+    end
+
+    def application_uris=(uris)
+      attributes["application_uris"] = uris
+      nil
     end
 
     def promise_state(options)

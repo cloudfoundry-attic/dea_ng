@@ -72,18 +72,6 @@ module Dea::Protocol::V1
     end
   end
 
-  class RouterStartResponse
-    def self.generate(bootstrap, instance)
-      { "dea"  => bootstrap.uuid,
-        "app"  => instance.application_id,
-        "uris" => instance.application_uris,
-        # TODO: Fill in when available
-        # host
-        # port
-      }
-    end
-  end
-
   class DropletStatusResponse
     def self.generate(instance)
       { "name" => instance.application_name,

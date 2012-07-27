@@ -233,6 +233,7 @@ describe Dea::Bootstrap do
       bootstrap = Dea::Bootstrap.new({})
       bootstrap.setup_instance_registry
       bootstrap.setup_nats
+      bootstrap.setup_router_client
       bootstrap.nats.start
 
       @instances = []
@@ -265,10 +266,106 @@ describe Dea::Bootstrap do
         "dea"  => bootstrap.uuid,
         "app"  => @instances[0].application_id,
         "uris" => @instances[0].application_uris,
+        "host" => bootstrap.local_ip,
+        "port" => @instances[0].instance_host_port,
+        "tags" => {
+          "framework" => @instances[0].framework_name,
+          "runtime"   => @instances[0].runtime_name,
+        }
       }
 
       responses.size.should == 1
       responses[0].should == expected
+    end
+  end
+
+  describe "on receipt of dea update" do
+    before :each do
+      @nats_mock = NatsClientMock.new({})
+      NATS.stub(:connect).and_return(@nats_mock)
+
+      bootstrap.setup_instance_registry
+      bootstrap.setup_nats
+      bootstrap.setup_router_client
+      bootstrap.nats.start
+    end
+
+    it "should register new uris" do
+      uris = []
+      2.times do |ii|
+        uri = "http://www.foo.com/#{ii}"
+        instance = Dea::Instance.new(bootstrap,
+                                     "application_id"   => ii,
+                                     "application_uris" => [uri])
+        bootstrap.instance_registry.register(instance)
+        uris << uri
+      end
+
+      new_uris = 2.times.map { |ii| ["http://www.foo.com/#{ii + 2}"] }
+
+      reqs = {}
+      @nats_mock.subscribe("router.register") do |msg, _|
+        req = Yajl::Parser.parse(msg)
+        reqs[req["app"]] = req
+      end
+
+      new_uris.each_with_index do |uri, ii|
+        @nats_mock.publish("dea.update",
+                           { "droplet" => ii,
+                             "uris"    => [uris[ii], new_uris[ii]].flatten })
+      end
+
+      2.times do |ii|
+        reqs[ii].should_not be_nil
+        reqs[ii]["uris"].should == new_uris[ii]
+      end
+    end
+
+    it "should unregister stale uris" do
+      2.times do |ii|
+        uris = 2.times.map { |jj| "http://www.foo.com/#{ii + jj}" }
+        instance = Dea::Instance.new(bootstrap,
+                                     "application_id"   => ii,
+                                     "application_uris" => uris)
+        bootstrap.instance_registry.register(instance)
+      end
+
+      reqs = {}
+      @nats_mock.subscribe("router.unregister") do |msg, _|
+        req = Yajl::Parser.parse(msg)
+        reqs[req["app"]] = req
+      end
+
+      old_uris = []
+      new_uris = []
+      bootstrap.instance_registry.each do |instance|
+        app_id = instance.application_id
+        old_uris[app_id] = instance.application_uris
+        new_uris[app_id] = instance.application_uris.slice(1, 1)
+        @nats_mock.publish("dea.update",
+                           { "droplet" => app_id,
+                             "uris"    => new_uris[app_id]})
+      end
+
+      bootstrap.instance_registry.each do |instance|
+        app_id = instance.application_id
+        reqs[app_id].should_not be_nil
+        reqs[app_id]["uris"].should == (old_uris[app_id] - new_uris[app_id])
+      end
+    end
+
+    it "should update the instance's uris" do
+      instance = Dea::Instance.new(bootstrap,
+                                   "application_id"   => 0,
+                                   "application_uris" => [])
+      bootstrap.instance_registry.register(instance)
+
+      uris = 2.times.map { |ii| "http://www.foo.com/#{ii}" }
+      @nats_mock.publish("dea.update",
+                         { "droplet" => instance.application_id,
+                           "uris"    => uris})
+
+      instance.application_uris.should == uris
     end
   end
 

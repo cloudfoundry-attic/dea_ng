@@ -11,6 +11,7 @@ require "dea/droplet_registry"
 require "dea/instance_registry"
 require "dea/nats"
 require "dea/protocol"
+require "dea/router_client"
 
 module Dea
   class Bootstrap
@@ -107,6 +108,12 @@ module Dea
       @instance_registry = Dea::InstanceRegistry.new
     end
 
+    attr_reader :router_client
+
+    def setup_router_client
+      @router_client = Dea::RouterClient.new(self)
+    end
+
     def setup_signal_handlers
       @old_signal_handlers = {}
 
@@ -188,9 +195,7 @@ module Dea
     def handle_router_start(message)
       instance_registry.each do |instance|
         next if !instance.running? || instance.application_uris.empty?
-
-        resp = Dea::Protocol::V1::RouterStartResponse.generate(self, instance)
-        @nats.publish("router.register", resp)
+        router_client.register_instance(instance)
       end
     end
 
@@ -207,6 +212,27 @@ module Dea
     end
 
     def handle_dea_update(message)
+      app_id = message.data["droplet"]
+      uris = message.data["uris"]
+
+      instance_registry.instances_for_application(app_id).each do |_, instance|
+        current_uris = instance.application_uris
+
+        logger.debug("Mapping new URIs")
+        logger.debug("New: #{uris} Old: #{current_uris}")
+
+        new_uris = uris - current_uris
+        unless new_uris.empty?
+          router_client.register_instance(instance, :uris => new_uris)
+        end
+
+        obsolete_uris = current_uris - uris
+        unless obsolete_uris.empty?
+          router_client.unregister_instance(instance, :uris => obsolete_uris)
+        end
+
+        instance.application_uris = uris
+      end
     end
 
     def handle_dea_find_droplet(message)
