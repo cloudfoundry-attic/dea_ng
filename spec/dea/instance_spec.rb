@@ -206,7 +206,9 @@ describe Dea::Instance do
     let(:droplet) do
       droplet = mock("droplet")
       droplet.stub(:droplet_exist?).and_return(true)
-      droplet.stub(:droplet_directory).and_return(File.join(tmpdir, "droplet"))
+      droplet.stub(:droplet_dirname).and_return(File.join(tmpdir, "droplet", "some_sha1"))
+      droplet.stub(:droplet_basename).and_return("droplet.tgz")
+      droplet.stub(:droplet_path).and_return(File.join(droplet.droplet_dirname, droplet.droplet_basename))
       droplet
     end
 

@@ -260,13 +260,13 @@ module Dea
       Promise.new do |p|
         connection = promise_warden_connection(:app).resolve
 
-        droplet_directory_bind_mount = ::Warden::Protocol::CreateRequest::BindMount.new
-        droplet_directory_bind_mount.src_path = droplet.droplet_directory
-        droplet_directory_bind_mount.dst_path = droplet.droplet_directory
-        droplet_directory_bind_mount.mode = ::Warden::Protocol::CreateRequest::BindMount::Mode::RO
+        droplet_dirname_bind_mount = ::Warden::Protocol::CreateRequest::BindMount.new
+        droplet_dirname_bind_mount.src_path = droplet.droplet_dirname
+        droplet_dirname_bind_mount.dst_path = droplet.droplet_dirname
+        droplet_dirname_bind_mount.mode = ::Warden::Protocol::CreateRequest::BindMount::Mode::RO
 
         create_request = ::Warden::Protocol::CreateRequest.new
-        create_request.bind_mounts = [droplet_directory_bind_mount]
+        create_request.bind_mounts = [droplet_dirname_bind_mount]
 
         response = promise_warden_call(connection, create_request).resolve
 
