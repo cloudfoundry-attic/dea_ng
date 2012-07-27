@@ -83,4 +83,14 @@ module Dea::Protocol::V1
       }
     end
   end
+
+  class AdvertiseMessage
+    def self.generate(bootstrap)
+      { "id"       => bootstrap.uuid,
+        "runtimes" => bootstrap.runtimes,
+        # TODO: Fill in when available
+        "available_memory" => 0,
+      }
+    end
+  end
 end

@@ -20,6 +20,18 @@ module Dea
           "pid_filename" => String,
           "runtimes" => dict(String, Dea::Runtime.schema),
           "warden_socket" => String,
+          "index" => Integer,
+
+          optional("status") => {
+            "user"     => String,
+            "port"     => Integer,
+            "password" => String,
+          },
+
+          optional("intervals") => {
+            optional("heartbeat") => Integer,
+            optional("advertise") => Integer,
+          }
         }
       end
     end

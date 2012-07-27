@@ -15,7 +15,8 @@ require "dea/router_client"
 
 module Dea
   class Bootstrap
-    DEFAULT_HEARTBEAT_INTERVAL = 10
+    DEFAULT_HEARTBEAT_INTERVAL = 10 # In secs
+    DEFAULT_ADVERTISE_INTERVAL = 5
 
     attr_reader :config
     attr_reader :nats
@@ -180,8 +181,13 @@ module Dea
     end
 
     def setup_sweepers
+      # Heartbeats of instances we're managing
       hb_interval = config["intervals"]["heartbeat"] || DEFAULT_HEARTBEAT_INTERVAL
       EM.add_periodic_timer(hb_interval) { send_heartbeats }
+
+      # Notifications for CloudControllers looking to place droplets
+      advertise_interval = config["intervals"]["advertise"] || DEFAULT_ADVERTISE_INTERVAL
+      EM.add_periodic_timer(advertise_interval) { send_advertise }
     end
 
     def setup_nats
@@ -206,6 +212,7 @@ module Dea
     end
 
     def handle_dea_locate(message)
+      send_advertise
     end
 
     def handle_dea_stop(message)
@@ -294,6 +301,12 @@ module Dea
       @nats.publish("dea.heartbeat", hbs)
 
       nil
+    end
+
+    def send_advertise
+      # TODO: Return if resources are exhausted
+      msg = Dea::Protocol::V1::AdvertiseMessage.generate(self)
+      @nats.publish("dea.advertise", msg)
     end
 
     private
