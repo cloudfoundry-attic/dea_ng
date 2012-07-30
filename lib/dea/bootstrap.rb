@@ -19,11 +19,12 @@ module Dea
     DEFAULT_ADVERTISE_INTERVAL = 5
 
     attr_reader :config
+    attr_reader :file_viewer_port
     attr_reader :nats
     attr_reader :uuid
 
     def initialize(config = {})
-      @config = {"intervals" => {}}.merge(config)
+      @config = Config::EMPTY_CONFIG.merge(config)
     end
 
     def local_ip
@@ -193,6 +194,26 @@ module Dea
 
     def setup_nats
       @nats = Dea::Nats.new(self, config)
+    end
+
+    def start
+      nats.start
+
+      VCAP::Component.register(
+        :type     => "DEA",
+        :host     => local_ip,
+        :index    => config["index"],
+        :config   => config,
+        :nats     => nats,
+        :port     => config["status"]["port"],
+        :user     => config["status"]["user"],
+        :password => config["status"]["password"])
+
+      @uuid = VCAP::Component.uuid
+
+      nats.publish("dea.start", Dea::Protocol::V1::HelloMessage.generate(self))
+
+      send_advertise
     end
 
     def handle_health_manager_start(message)

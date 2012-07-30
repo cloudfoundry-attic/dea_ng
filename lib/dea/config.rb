@@ -6,6 +6,11 @@ require "dea/runtime"
 
 module Dea
   class Config
+    EMPTY_CONFIG = {
+      "intervals" => {},
+      "status"    => {},
+    }
+
     def self.schema
       ::Membrane::SchemaParser.parse do
         {

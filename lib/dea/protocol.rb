@@ -1,3 +1,5 @@
+require "dea/version"
+
 module Dea
   module Protocol
   end
@@ -90,6 +92,16 @@ module Dea::Protocol::V1
         "runtimes" => bootstrap.runtimes.keys,
         # TODO: Fill in when available
         "available_memory" => 0,
+      }
+    end
+  end
+
+  class HelloMessage
+    def self.generate(bootstrap)
+      { "id"   => bootstrap.uuid,
+        "ip"   => bootstrap.local_ip,
+        "port" => bootstrap.file_viewer_port,
+        "version" => Dea::VERSION,
       }
     end
   end
