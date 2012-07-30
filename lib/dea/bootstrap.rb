@@ -77,7 +77,8 @@ module Dea
         [name, Runtime.new(config)]
       end]
 
-      runtimes = runtimes.keys.each do |name|
+      # Remove invalid runtimes
+      runtimes.keys.each do |name|
         begin
           runtimes[name].validate
         rescue Runtime::BaseError => err
