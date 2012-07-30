@@ -105,4 +105,20 @@ module Dea::Protocol::V1
       }
     end
   end
+
+  class DeaStatusResponse
+    def self.generate(bootstrap)
+      hello = HelloMessage.generate(bootstrap)
+
+      extra = {
+        # TODO: Fill these in when we have resource tracking working
+        "max_memory"      => nil,
+        "reserved_memory" => nil,
+        "used_memory"     => nil,
+        "num_clients"     => nil,
+      }
+
+      hello.merge(extra)
+    end
+  end
 end

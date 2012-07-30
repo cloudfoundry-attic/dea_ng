@@ -228,6 +228,7 @@ module Dea
     end
 
     def handle_dea_status(message)
+      message.respond(Dea::Protocol::V1::DeaStatusResponse.generate(self))
     end
 
     def handle_dea_directed_start(message)
