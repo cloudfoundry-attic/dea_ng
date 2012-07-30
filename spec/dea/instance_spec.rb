@@ -226,6 +226,22 @@ describe Dea::Instance do
       instance.stub(:droplet).and_return(droplet)
     end
 
+    def expect_start
+      error = nil
+
+      em do
+        instance.start do |error_|
+          error = error_
+        end
+
+        done
+      end
+
+      expect do
+        raise error if error
+      end
+    end
+
     describe "checking source state" do
       before do
         instance.unstub(:promise_state)
@@ -234,24 +250,13 @@ describe Dea::Instance do
       it "passes when \"born\"" do
         instance.state = Dea::Instance::State::BORN
 
-        em do
-          instance.start do |error|
-            error.should be_nil
-            done
-          end
-        end
+        expect_start.to_not raise_error
       end
 
       it "fails when invalid" do
         instance.state = "invalid"
 
-        em do
-          instance.start do |error|
-            error.should be_kind_of(Dea::Instance::BaseError)
-            error.message.should match(/transition/)
-            done
-          end
-        end
+        expect_start.to raise_error(Dea::Instance::BaseError, /transition/)
       end
     end
 
@@ -266,12 +271,7 @@ describe Dea::Instance do
         end
 
         it "succeeds" do
-          em do
-            instance.start do |error|
-              error.should be_nil
-              done
-            end
-          end
+          expect_start.to_not raise_error
         end
       end
 
@@ -283,24 +283,13 @@ describe Dea::Instance do
         it "succeeds when #download succeeds" do
           droplet.stub(:download).and_yield(nil)
 
-          em do
-            instance.start do |error|
-              error.should be_nil
-              done
-            end
-          end
+          expect_start.to_not raise_error
         end
 
         it "fails when #download fails" do
           droplet.stub(:download).and_yield(Dea::Instance::BaseError.new("download failed"))
 
-          em do
-            instance.start do |error|
-              error.should be_kind_of(Dea::Instance::BaseError)
-              error.message.should match(/download failed/)
-              done
-            end
-          end
+          expect_start.to raise_error(Dea::Instance::BaseError, "download failed")
         end
       end
     end
@@ -403,18 +392,10 @@ describe Dea::Instance do
           delivering_promise(response)
         end
 
-        em do
-          instance.start do |error|
-            expect do
-              raise error if error
-            end.to_not raise_error
+        expect_start.to_not raise_error
 
-            # Warden handle should be set
-            instance.attributes["warden_handle"].should == "handle"
-
-            done
-          end
-        end
+        # Warden handle should be set
+        instance.attributes["warden_handle"].should == "handle"
       end
 
       it "fails when the call fails" do
@@ -422,18 +403,10 @@ describe Dea::Instance do
           failing_promise(RuntimeError.new("error"))
         end
 
-        em do
-          instance.start do |error|
-            expect do
-              raise error if error
-            end.to raise_error(RuntimeError, /error/i)
+        expect_start.to raise_error(RuntimeError, /error/i)
 
-            # Warden handle should not be set
-            instance.attributes["warden_handle"].should be_nil
-
-            done
-          end
-        end
+        # Warden handle should not be set
+        instance.attributes["warden_handle"].should be_nil
       end
     end
 
@@ -459,15 +432,7 @@ describe Dea::Instance do
           delivering_promise(response)
         end
 
-        em do
-          instance.start do |error|
-            expect do
-              raise error if error
-            end.to_not raise_error
-
-            done
-          end
-        end
+        expect_start.to_not raise_error
       end
 
       it "should map an instance port" do
@@ -475,19 +440,11 @@ describe Dea::Instance do
           delivering_promise(response)
         end
 
-        em do
-          instance.start do |error|
-            expect do
-              raise error if error
-            end.to_not raise_error
+        expect_start.to_not raise_error
 
-            # Ports should be set
-            instance.attributes["instance_host_port"].     should == 1234
-            instance.attributes["instance_container_port"].should == 1235
-
-            done
-          end
-        end
+        # Ports should be set
+        instance.attributes["instance_host_port"].     should == 1234
+        instance.attributes["instance_container_port"].should == 1235
       end
 
       it "should map a debug port port if needed" do
@@ -497,19 +454,11 @@ describe Dea::Instance do
           delivering_promise(response)
         end
 
-        em do
-          instance.start do |error|
-            expect do
-              raise error if error
-            end.to_not raise_error
+        expect_start.to_not raise_error
 
-            # Ports should be set
-            instance.attributes["instance_debug_host_port"].     should == 1234
-            instance.attributes["instance_debug_container_port"].should == 1235
-
-            done
-          end
-        end
+        # Ports should be set
+        instance.attributes["instance_debug_host_port"].     should == 1234
+        instance.attributes["instance_debug_container_port"].should == 1235
       end
 
       it "should map a console port port if needed" do
@@ -519,19 +468,11 @@ describe Dea::Instance do
           delivering_promise(response)
         end
 
-        em do
-          instance.start do |error|
-            expect do
-              raise error if error
-            end.to_not raise_error
+        expect_start.to_not raise_error
 
-            # Ports should be set
-            instance.attributes["instance_console_host_port"].     should == 1234
-            instance.attributes["instance_console_container_port"].should == 1235
-
-            done
-          end
-        end
+        # Ports should be set
+        instance.attributes["instance_console_host_port"].     should == 1234
+        instance.attributes["instance_console_container_port"].should == 1235
       end
 
       it "can fail" do
@@ -539,19 +480,11 @@ describe Dea::Instance do
           failing_promise(RuntimeError.new("error"))
         end
 
-        em do
-          instance.start do |error|
-            expect do
-              raise error if error
-            end.to raise_error(RuntimeError, /error/i)
+        expect_start.to raise_error(RuntimeError, /error/i)
 
-            # Ports should not be set
-            instance.attributes["instance_host_port"].     should be_nil
-            instance.attributes["instance_container_port"].should be_nil
-
-            done
-          end
-        end
+        # Ports should not be set
+        instance.attributes["instance_host_port"].     should be_nil
+        instance.attributes["instance_container_port"].should be_nil
       end
     end
 
@@ -629,22 +562,6 @@ describe Dea::Instance do
     describe "extracting the droplet" do
       before do
         instance.unstub(:promise_extract_droplet)
-      end
-
-      def expect_start
-        error = nil
-
-        em do
-          instance.start do |error_|
-            error = error_
-          end
-
-          done
-        end
-
-        expect do
-          raise error if error
-        end
       end
 
       it "should run tar" do
