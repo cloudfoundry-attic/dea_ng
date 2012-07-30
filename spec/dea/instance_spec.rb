@@ -555,9 +555,8 @@ describe Dea::Instance do
       end
     end
 
-    describe "extracting the droplet" do
+    describe "running a script in a container" do
       before do
-        instance.unstub(:promise_extract_droplet)
         instance.attributes["warden_handle"] = "handle"
       end
 
@@ -576,7 +575,9 @@ describe Dea::Instance do
         end
 
         em do
-          instance.start do |error|
+          p = instance.promise_warden_run(warden_connection, "script")
+
+          Dea::Promise.resolve(p) do |error, result|
             expect do
               raise error if error
             end.to_not raise_error
@@ -586,7 +587,7 @@ describe Dea::Instance do
         end
       end
 
-      it "can fail by tar failing" do
+      it "can fail by the script failing" do
         response.stub(:exit_status).and_return(1)
 
         instance.stub(:promise_warden_call) do |connection, request|
@@ -594,10 +595,12 @@ describe Dea::Instance do
         end
 
         em do
-          instance.start do |error|
+          p = instance.promise_warden_run(warden_connection, "script")
+
+          Dea::Promise.resolve(p) do |error, result|
             expect do
               raise error if error
-            end.to raise_error(::Dea::Instance::WardenError, /exited/i)
+            end.to raise_error(Dea::Instance::WardenError, /script exited/i)
 
             done
           end
@@ -610,7 +613,9 @@ describe Dea::Instance do
         end
 
         em do
-          instance.start do |error|
+          p = instance.promise_warden_run(warden_connection, "script")
+
+          Dea::Promise.resolve(p) do |error, result|
             expect do
               raise error if error
             end.to raise_error(RuntimeError, /error/i)
@@ -618,6 +623,46 @@ describe Dea::Instance do
             done
           end
         end
+      end
+    end
+
+    describe "extracting the droplet" do
+      before do
+        instance.unstub(:promise_extract_droplet)
+      end
+
+      def expect_start
+        error = nil
+
+        em do
+          instance.start do |error_|
+            error = error_
+          end
+
+          done
+        end
+
+        expect do
+          raise error if error
+        end
+      end
+
+      it "should run tar" do
+        instance.stub(:promise_warden_run) do |_, script|
+          script.should =~ /tar zxf/
+
+          delivering_promise
+        end
+
+        expect_start.to_not raise_error
+      end
+
+      it "can fail by run failing" do
+        instance.stub(:promise_warden_run) do |*_|
+          failing_promise(RuntimeError.new("failure"))
+        end
+
+        expect_start.to raise_error("failure")
       end
     end
   end

@@ -306,20 +306,29 @@ module Dea
       end
     end
 
-    def promise_extract_droplet
+    def promise_warden_run(connection, script)
       Promise.new do |p|
-        connection = promise_warden_connection(:app).resolve
-
         request = ::Warden::Protocol::RunRequest.new
         request.handle = attributes["warden_handle"]
-        request.script = "tar zxf %s" % droplet.droplet_path
+        request.script = script
         response = promise_warden_call(connection, request).resolve
 
         if response.exit_status > 0
-          p.fail(WardenError.new("tar exited with status #{response.exit_status}"))
+          p.fail(WardenError.new("script exited with status #{response.exit_status}"))
         else
-          p.deliver
+          p.deliver(response)
         end
+      end
+    end
+
+    def promise_extract_droplet
+      Promise.new do |p|
+        connection = promise_warden_connection(:app).resolve
+        script = "tar zxf #{droplet.droplet_path}"
+
+        promise_warden_run(connection, script).resolve
+
+        p.deliver
       end
     end
 
