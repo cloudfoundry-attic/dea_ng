@@ -9,6 +9,7 @@ module Dea
     EMPTY_CONFIG = {
       "intervals" => {},
       "status"    => {},
+      "resources" => {},
     }
 
     def self.schema
@@ -36,7 +37,17 @@ module Dea
           optional("intervals") => {
             optional("heartbeat") => Integer,
             optional("advertise") => Integer,
-          }
+          },
+
+          optional("resources") => {
+            optional("memory_mb") => Integer,
+            optional("memory_overcommit_factor") => enum(Float, Integer),
+
+            optional("disk_mb") => Integer,
+            optional("disk_overcommit_factor") => enum(Float, Integer),
+
+            optional("num_instances") => Integer,
+          },
         }
       end
     end

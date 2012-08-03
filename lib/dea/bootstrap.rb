@@ -37,6 +37,7 @@ module Dea
       setup_logging
       setup_runtimes
       setup_droplet_registry
+      setup_resource_manager
       setup_instance_registry
       setup_signal_handlers
       setup_directories
@@ -103,6 +104,12 @@ module Dea
 
     def setup_droplet_registry
       @droplet_registry = Dea::DropletRegistry.new(File.join(config["base_dir"], "droplets"))
+    end
+
+    attr_reader :resource_manager
+
+    def setup_resource_manager
+      @resource_manager = Dea::ResourceManager.new(config["resources"])
     end
 
     attr_reader :instance_registry
