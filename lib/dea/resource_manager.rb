@@ -40,6 +40,10 @@ module Dea
       def release(amount)
         @remain += amount
       end
+
+      def used
+        @capacity - @remain
+      end
     end
 
     attr_reader :resources

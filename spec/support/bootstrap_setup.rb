@@ -29,6 +29,7 @@ shared_context "bootstrap_setup" do
     @bootstrap.setup_instance_registry
     @bootstrap.setup_runtimes
     @bootstrap.setup_router_client
+    @bootstrap.setup_resource_manager
     @bootstrap.setup_nats
     @bootstrap.nats.start
   end

@@ -15,8 +15,12 @@ require "dea/router_client"
 
 module Dea
   class Bootstrap
-    DEFAULT_HEARTBEAT_INTERVAL = 10 # In secs
-    DEFAULT_ADVERTISE_INTERVAL = 5
+    DEFAULT_HEARTBEAT_INTERVAL     = 10 # In secs
+    DEFAULT_ADVERTISE_INTERVAL     = 5
+
+    DISCOVER_DELAY_MS_PER_INSTANCE = 10
+    DISCOVER_DELAY_MS_MEM          = 100
+    DISCOVER_DELAY_MS_MAX          = 250
 
     attr_reader :config
     attr_reader :file_viewer_port
@@ -246,6 +250,40 @@ module Dea
     end
 
     def handle_dea_stop(message)
+    end
+
+    def handle_dea_discover(message)
+      runtime = message.data["runtime"]
+      rs = message.data["limits"]
+
+      if !runtimes.has_key?(runtime)
+        logger.info("Unsupported runtime '#{runtime}'")
+        return
+      elsif !resource_manager.could_reserve?(rs["mem"], rs["disk"], 1)
+        logger.info("Couldn't accomodate resource request")
+        return
+      end
+
+      delay = calculate_discover_delay(message.data["droplet"])
+
+      logger.debug("Delaying discover response for #{delay} secs.")
+
+      resp = Dea::Protocol::V1::HelloMessage.generate(self)
+      EM.add_timer(delay) { message.respond(resp) }
+    end
+
+    def calculate_discover_delay(app_id)
+      delay = 0.0
+      mem = resource_manager.resources["memory"]
+
+      # Penalize for instances of the same app
+      instances = instance_registry.instances_for_application(app_id)
+      delay += (instances.size * DISCOVER_DELAY_MS_PER_INSTANCE)
+
+      # Penalize for mem usage
+      delay += (mem.used / mem.capacity.to_f) * DISCOVER_DELAY_MS_MEM
+
+      [delay, DISCOVER_DELAY_MS_MAX].min.to_f / 1000
     end
 
     def handle_dea_update(message)
