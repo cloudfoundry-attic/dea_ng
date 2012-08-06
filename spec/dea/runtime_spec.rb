@@ -11,7 +11,7 @@ describe Dea::Runtime do
       runtime = Dea::Runtime.new(config)
 
       runtime.validate_executable
-      runtime.executable.should == "/usr/bin/printf"
+      runtime.executable.should == `which printf`.chomp
     end
     it "should work when an absolute path to the executable is specified" do
       config = { "executable" => "/usr/bin/printf" }
