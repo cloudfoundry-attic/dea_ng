@@ -147,11 +147,15 @@ module Dea
       @warden_connections = {}
     end
 
+    def runtime
+      bootstrap.runtimes[self.runtime_name]
+    end
+
     def validate
       self.class.schema.validate(@attributes)
 
       # Check if the runtime is available
-      if bootstrap.runtimes[self.runtime_name].nil?
+      if runtime.nil?
         error = RuntimeNotFoundError.new(self.runtime_name)
         logger.warn(error.message, error.data)
         raise error
@@ -332,6 +336,15 @@ module Dea
       end
     end
 
+    def promise_prepare_start_script
+      Promise.new do |p|
+        connection = promise_warden_connection(:app).resolve
+        script = "sed -i 's@%VCAP_LOCAL_RUNTIME%@#{runtime.executable}@g' startup"
+
+        promise_warden_run(connection, script).resolve
+      end
+    end
+
     def start(&callback)
       p = Promise.new do
         promise_state(:from => State::BORN, :to => State::STARTING).resolve
@@ -350,6 +363,8 @@ module Dea
         promise_setup_network.resolve
 
         promise_extract_droplet.resolve
+
+        promise_prepare_start_script.resolve
 
         p.deliver
       end

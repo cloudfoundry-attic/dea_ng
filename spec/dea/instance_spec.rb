@@ -223,6 +223,7 @@ describe Dea::Instance do
       instance.stub(:promise_create_container).and_return(delivering_promise)
       instance.stub(:promise_setup_network).and_return(delivering_promise)
       instance.stub(:promise_extract_droplet).and_return(delivering_promise)
+      instance.stub(:promise_prepare_start_script).and_return(delivering_promise)
       instance.stub(:droplet).and_return(droplet)
     end
 
@@ -567,6 +568,37 @@ describe Dea::Instance do
       it "should run tar" do
         instance.stub(:promise_warden_run) do |_, script|
           script.should =~ /tar zxf/
+
+          delivering_promise
+        end
+
+        expect_start.to_not raise_error
+      end
+
+      it "can fail by run failing" do
+        instance.stub(:promise_warden_run) do |*_|
+          failing_promise(RuntimeError.new("failure"))
+        end
+
+        expect_start.to raise_error("failure")
+      end
+    end
+
+    describe "preparing the start script" do
+      let(:runtime) do
+        runtime = mock(:runtime)
+        runtime.stub(:executable).and_return("/bin/runtime")
+        runtime
+      end
+
+      before do
+        instance.unstub(:promise_prepare_start_script)
+        instance.stub(:runtime).and_return(runtime)
+      end
+
+      it "should run sed" do
+        instance.stub(:promise_warden_run) do |_, script|
+          script.should =~ /^sed /
 
           delivering_promise
         end
