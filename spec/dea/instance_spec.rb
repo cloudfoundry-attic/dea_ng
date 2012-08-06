@@ -233,9 +233,8 @@ describe Dea::Instance do
       em do
         instance.start do |error_|
           error = error_
+          done
         end
-
-        done
       end
 
       expect do
