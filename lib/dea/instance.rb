@@ -359,10 +359,15 @@ module Dea
           p.deliver
         end
 
-        # Concurrently download droplet and create container
-        [promise_droplet, promise_create_container].each(&:run).each(&:resolve)
+        promise_container = Promise.new do |p|
+          promise_create_container.resolve
+          promise_setup_network.resolve
 
-        promise_setup_network.resolve
+          p.deliver
+        end
+
+        # Concurrently download droplet and setup container
+        [promise_droplet, promise_container].each(&:run).each(&:resolve)
 
         promise_extract_droplet.resolve
 
