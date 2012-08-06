@@ -82,7 +82,7 @@ describe Dea::Promise do
       Dea::Promise.resolve(p, &b)
     end.to yield_control
 
-    p.elapsed_time.should be_within(0.001).of(0.010)
+    p.elapsed_time.should be_within(0.005).of(0.010)
   end
 
   it "can run without resolve" do
