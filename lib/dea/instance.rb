@@ -342,6 +342,8 @@ module Dea
         script = "sed -i 's@%VCAP_LOCAL_RUNTIME%@#{runtime.executable}@g' startup"
 
         promise_warden_run(connection, script).resolve
+
+        p.deliver
       end
     end
 
