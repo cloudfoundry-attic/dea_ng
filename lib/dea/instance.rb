@@ -72,7 +72,11 @@ module Dea
       attributes["runtime_name"]        = attributes.delete("runtime")
       attributes["framework_name"]      = attributes.delete("framework")
 
-      attributes["environment"]         = attributes.delete("env")
+      # Translate environment to dictionary (it is passed as Array with VAR=VAL)
+      env = attributes.delete("env") || {}
+      attributes["environment"] = Hash[env.map do |e|
+        e.split("=", 2)
+      end]
 
       attributes
     end
@@ -98,7 +102,7 @@ module Dea
 
           # TODO: use proper schema
           "limits"              => any,
-          "environment"         => any,
+          "environment"         => dict(String, String),
           "services"            => any,
           "flapping"            => any,
 

@@ -109,7 +109,7 @@ describe Dea::Instance do
       let(:start_message_data) do
         {
           "limits"   => { "mem" => 1, "disk" => 2, "fds" => 3 },
-          "env"      => { "FOO" => "BAR" },
+          "env"      => ["FOO=BAR"],
           "services" => { "name" => "redis", "type" => "redis" },
           "flapping" => false,
           "debug"    => "debug",
