@@ -81,6 +81,16 @@ module Dea
       attributes
     end
 
+    def self.limits_schema
+      Membrane::SchemaParser.parse do
+        {
+          "mem"  => Fixnum,
+          "disk" => Fixnum,
+          "fds"  => Fixnum,
+        }
+      end
+    end
+
     def self.service_schema
       Membrane::SchemaParser.parse do
         {
@@ -98,6 +108,7 @@ module Dea
     end
 
     def self.schema
+      limits_schema = self.limits_schema
       service_schema = self.service_schema
 
       Membrane::SchemaParser.parse do
@@ -119,7 +130,7 @@ module Dea
           "framework_name"      => String,
 
           # TODO: use proper schema
-          "limits"              => any,
+          "limits"              => limits_schema,
           "environment"         => dict(String, String),
           "services"            => [service_schema],
           "flapping"            => any,
@@ -175,6 +186,19 @@ module Dea
 
     def runtime
       bootstrap.runtimes[self.runtime_name]
+    end
+
+    def memory_limit_in_bytes
+      # Adds a little bit of headroom (inherited from DEA v1)
+      ((limits["mem"].to_i * 1024 * 9) / 8) * 1024
+    end
+
+    def disk_limit_in_bytes
+      limits["disk"].to_i * 1024 * 1024
+    end
+
+    def file_descriptor_limit
+      limits["fds"].to_i
     end
 
     def validate
@@ -336,6 +360,32 @@ module Dea
       end
     end
 
+    def promise_limit_disk
+      Promise.new do |p|
+        connection = promise_warden_connection(:app).resolve
+
+        request = ::Warden::Protocol::LimitDiskRequest.new
+        request.handle = @attributes["warden_handle"]
+        request.byte = disk_limit_in_bytes
+        promise_warden_call(connection, request).resolve
+
+        p.deliver
+      end
+    end
+
+    def promise_limit_memory
+      Promise.new do |p|
+        connection = promise_warden_connection(:app).resolve
+
+        request = ::Warden::Protocol::LimitMemoryRequest.new
+        request.handle = @attributes["warden_handle"]
+        request.limit_in_bytes = memory_limit_in_bytes
+        promise_warden_call(connection, request).resolve
+
+        p.deliver
+      end
+    end
+
     def promise_warden_run(connection, script)
       Promise.new do |p|
         request = ::Warden::Protocol::RunRequest.new
@@ -388,6 +438,8 @@ module Dea
         promise_container = Promise.new do |p|
           promise_create_container.resolve
           promise_setup_network.resolve
+          promise_limit_disk.resolve
+          promise_limit_memory.resolve
 
           p.deliver
         end

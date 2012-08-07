@@ -140,6 +140,24 @@ describe Dea::Instance do
     end
   end
 
+  describe "resource limits" do
+    subject(:instance) do
+      Dea::Instance.new(bootstrap, valid_attributes)
+    end
+
+    it "exports the memory limit in bytes with a little bit of slack" do
+      instance.memory_limit_in_bytes.should be_within(200_000).of(1_000_000)
+    end
+
+    it "exports the disk limit in bytes" do
+      instance.disk_limit_in_bytes.should == 2048 * 1024
+    end
+
+    it "exports the file descriptor limit" do
+      instance.file_descriptor_limit.should == 3
+    end
+  end
+
   describe "validation" do
     before do
       bootstrap.stub(:runtimes).and_return(Hash.new { |*_| "runtime" })
@@ -236,6 +254,8 @@ describe Dea::Instance do
       instance.stub(:promise_warden_connection).and_return(delivering_promise(warden_connection))
       instance.stub(:promise_create_container).and_return(delivering_promise)
       instance.stub(:promise_setup_network).and_return(delivering_promise)
+      instance.stub(:promise_limit_disk).and_return(delivering_promise)
+      instance.stub(:promise_limit_memory).and_return(delivering_promise)
       instance.stub(:promise_extract_droplet).and_return(delivering_promise)
       instance.stub(:promise_prepare_start_script).and_return(delivering_promise)
       instance.stub(:droplet).and_return(droplet)
@@ -499,6 +519,64 @@ describe Dea::Instance do
         # Ports should not be set
         instance.instance_host_port.     should be_nil
         instance.instance_container_port.should be_nil
+      end
+    end
+
+    describe "limiting disk" do
+      before do
+        instance.unstub(:promise_limit_disk)
+        instance.stub(:disk_limit_in_bytes).and_return(1234)
+      end
+
+      it "should make a net_in request on behalf of the container" do
+        instance.attributes["warden_handle"] = "handle"
+
+        instance.stub(:promise_warden_call) do |connection, request|
+          request.should be_kind_of(::Warden::Protocol::LimitDiskRequest)
+          request.handle.should == "handle"
+          request.byte.should == 1234
+
+          delivering_promise
+        end
+
+        expect_start.to_not raise_error
+      end
+
+      it "can fail" do
+        instance.stub(:promise_warden_call) do
+          failing_promise(RuntimeError.new("error"))
+        end
+
+        expect_start.to raise_error(RuntimeError, /error/i)
+      end
+    end
+
+    describe "limiting memory" do
+      before do
+        instance.unstub(:promise_limit_memory)
+        instance.stub(:memory_limit_in_bytes).and_return(1234)
+      end
+
+      it "should make a net_in request on behalf of the container" do
+        instance.attributes["warden_handle"] = "handle"
+
+        instance.stub(:promise_warden_call) do |connection, request|
+          request.should be_kind_of(::Warden::Protocol::LimitMemoryRequest)
+          request.handle.should == "handle"
+          request.limit_in_bytes.should == 1234
+
+          delivering_promise
+        end
+
+        expect_start.to_not raise_error
+      end
+
+      it "can fail" do
+        instance.stub(:promise_warden_call) do
+          failing_promise(RuntimeError.new("error"))
+        end
+
+        expect_start.to raise_error(RuntimeError, /error/i)
       end
     end
 
