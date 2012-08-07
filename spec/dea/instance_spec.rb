@@ -6,6 +6,20 @@ require "dea/instance"
 describe Dea::Instance do
   include_context "tmpdir"
 
+  let(:valid_service_attributes) do
+    {
+      "name"        => "name",
+      "type"        => "type",
+      "label"       => "label",
+      "vendor"      => "vendor",
+      "version"     => "version",
+      "tags"        => { "key" => "value" },
+      "plan"        => "plan",
+      "plan_option" => "plan_option",
+      "credentials" => { "user" => "password" },
+    }
+  end
+
   let(:valid_attributes) do
     {
       "instance_index"      => 37,
@@ -24,7 +38,7 @@ describe Dea::Instance do
 
       "limits"              => { "mem" => 1, "disk" => 2, "fds" => 3 },
       "environment"         => { "FOO" => "BAR" },
-      "services"            => { "name" => "redis", "type" => "redis" },
+      "services"            => [valid_service_attributes],
       "flapping"            => false,
     }
   end

@@ -81,7 +81,25 @@ module Dea
       attributes
     end
 
+    def self.service_schema
+      Membrane::SchemaParser.parse do
+        {
+          "name"         => String,
+          "type"         => String,
+          "label"        => String,
+          "vendor"       => String,
+          "version"      => String,
+          "tags"         => any,
+          "plan"         => String,
+          "plan_option" => String,
+          "credentials"  => dict(String, String),
+        }
+      end
+    end
+
     def self.schema
+      service_schema = self.service_schema
+
       Membrane::SchemaParser.parse do
         {
           # Static attributes (coming from cloud controller):
@@ -103,7 +121,7 @@ module Dea
           # TODO: use proper schema
           "limits"              => any,
           "environment"         => dict(String, String),
-          "services"            => any,
+          "services"            => [service_schema],
           "flapping"            => any,
 
           optional("debug")     => enum(nil, String),
