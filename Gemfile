@@ -5,7 +5,7 @@ gem "em-http-request", "~> 1.0.0.beta.3", :require => "em-http"
 
 gem "em-warden-client", :git => "https://github.com/cloudfoundry/warden.git"
 gem "warden-client", :git => "https://github.com/cloudfoundry/warden.git"
-gem "warden-protocol", :git => "https://github.com/cloudfoundry/warden.git"
+gem "warden-protocol", :git => "https://github.com/cloudfoundry/warden.git", :ref => 'adf39019'
 
 gem "nats", :require => "nats/client"
 gem "em-posix-spawn", :git => "https://github.com/cloudfoundry/common.git",   :ref => "3f6636fc"

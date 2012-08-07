@@ -198,6 +198,53 @@ describe Dea::Instance do
     end
   end
 
+  describe "collect_stats" do
+    let(:info_response1) do
+      mem_stat = ::Warden::Protocol::InfoResponse::MemoryStat.new(:rss => 1024)
+      cpu_stat = ::Warden::Protocol::InfoResponse::CpuStat.new(:usage => 2048)
+      disk_stat = ::Warden::Protocol::InfoResponse::DiskStat.new(:bytes_used => 4096)
+      ::Warden::Protocol::InfoResponse.new(:events => [],
+                                           :memory_stat => mem_stat,
+                                           :disk_stat => disk_stat,
+                                           :cpu_stat => cpu_stat)
+    end
+
+    let(:info_response2) do
+      mem_stat = ::Warden::Protocol::InfoResponse::MemoryStat.new(:rss => 2048)
+      cpu_stat = ::Warden::Protocol::InfoResponse::CpuStat.new(:usage => 4096)
+      disk_stat = ::Warden::Protocol::InfoResponse::DiskStat.new(:bytes_used => 8192)
+      ::Warden::Protocol::InfoResponse.new(:events => [],
+                                           :memory_stat => mem_stat,
+                                           :disk_stat => disk_stat,
+                                           :cpu_stat => cpu_stat)
+    end
+
+    subject(:instance) do
+      Dea::Instance.new(bootstrap, valid_attributes)
+    end
+
+    it "should update memory and disk used when called" do
+      instance.stub(:promise_container_info).and_return(delivering_promise(info_response1))
+
+      instance.collect_stats
+
+      instance.used_memory.should == info_response1.memory_stat.rss
+      instance.used_disk.should == info_response1.disk_stat.bytes_used
+      instance.computed_pcpu.should == 0
+    end
+
+    it "should update computed_pcpu after 2 samples have been taken" do
+      [info_response1, info_response2].each do |resp|
+        instance.stub(:promise_container_info).and_return(delivering_promise(resp))
+        # Give some time between samples for pcpu computation
+        sleep(0.001)
+        instance.collect_stats
+      end
+
+      instance.computed_pcpu.should > 0
+    end
+  end
+
   describe "start transition" do
     subject(:instance) do
       Dea::Instance.new(bootstrap, valid_attributes)
@@ -225,6 +272,7 @@ describe Dea::Instance do
       instance.stub(:promise_extract_droplet).and_return(delivering_promise)
       instance.stub(:promise_prepare_start_script).and_return(delivering_promise)
       instance.stub(:droplet).and_return(droplet)
+      instance.stub(:start_stat_collector)
     end
 
     def expect_start
