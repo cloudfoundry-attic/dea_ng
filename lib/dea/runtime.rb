@@ -39,7 +39,11 @@ module Dea
     end
 
     def debug_environment(mode)
-      (config["debug_env"] || {})[mode] || []
+      env = (config["debug_env"] || {})[mode] || []
+
+      Hash[env.map do |e|
+        e.split("=", 2)
+      end]
     end
 
     def validate

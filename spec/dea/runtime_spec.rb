@@ -12,6 +12,9 @@ describe Dea::Runtime do
           "run" => [
             "foo=bar",
           ],
+          "suspend" => [
+            "foo=\"bar\"",
+          ],
         },
       }
     end
@@ -20,12 +23,17 @@ describe Dea::Runtime do
       Dea::Runtime.new(config)
     end
 
-    it "returns array with environment for mode" do
+    it "returns hash with environment for mode" do
       runtime.debug_environment("run").should have(1).entry
-      runtime.debug_environment("run").should include("foo=bar")
+      runtime.debug_environment("run")["foo"].should == %{bar}
     end
 
-    it "returns empty array for unknown mode" do
+    it "retains quotation marks around value" do
+      runtime.debug_environment("suspend").should have(1).entry
+      runtime.debug_environment("suspend")["foo"].should == %{"bar"}
+    end
+
+    it "returns empty hash for unknown mode" do
       runtime.debug_environment("unknown").should have(:no).entries
     end
   end
