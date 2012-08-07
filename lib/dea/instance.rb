@@ -6,6 +6,7 @@ require "steno"
 require "steno/core_ext"
 require "vcap/common"
 
+require "dea/env"
 require "dea/promise"
 
 module Dea
@@ -227,6 +228,14 @@ module Dea
       attributes["state_timestamp"]
     end
 
+    def started_at=(value)
+      attributes["started_at"] = value
+    end
+
+    def started_at
+      attributes["started_at"]
+    end
+
     def droplet
       bootstrap.droplet_registry[droplet_sha1]
     end
@@ -425,6 +434,42 @@ module Dea
       end
     end
 
+    def promise_start
+      Promise.new do |p|
+        script = []
+        script << "renice 0 $$"
+        script << "ulimit -n %d" % self.file_descriptor_limit
+        script << "ulimit -u %d" % 512
+        script << "umask 077"
+
+        env = Env.new(self)
+        env.env.each do |(key, value)|
+          script << "export %s=%s" % [key, value]
+        end
+
+        startup = "./startup"
+
+        # Pass port to `startup` if we have one
+        if self.instance_host_port
+          startup << " -p %d" % self.instance_host_port
+        end
+
+        script << startup
+        script << "exit"
+
+        connection = promise_warden_connection(:app).resolve
+
+        request = ::Warden::Protocol::SpawnRequest.new
+        request.handle = attributes["warden_handle"]
+        request.script = script.join("\n")
+        response = promise_warden_call(connection, request).resolve
+
+        attributes["warden_job_id"] = response.job_id
+
+        p.deliver
+      end
+    end
+
     def start(&callback)
       p = Promise.new do
         promise_state(:from => State::BORN, :to => State::STARTING).resolve
@@ -452,6 +497,11 @@ module Dea
         promise_extract_droplet.resolve
 
         promise_prepare_start_script.resolve
+
+        self.started_at = Time.now
+        self.state = State::RUNNING
+
+        promise_start.resolve
 
         p.deliver
       end

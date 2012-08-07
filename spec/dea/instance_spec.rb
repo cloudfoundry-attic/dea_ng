@@ -258,6 +258,7 @@ describe Dea::Instance do
       instance.stub(:promise_limit_memory).and_return(delivering_promise)
       instance.stub(:promise_extract_droplet).and_return(delivering_promise)
       instance.stub(:promise_prepare_start_script).and_return(delivering_promise)
+      instance.stub(:promise_start).and_return(delivering_promise)
       instance.stub(:droplet).and_return(droplet)
     end
 
@@ -719,6 +720,54 @@ describe Dea::Instance do
         end
 
         expect_start.to raise_error("failure")
+      end
+    end
+
+    describe "starting the application" do
+      let(:runtime) do
+        runtime = mock("Dea::Runtime")
+        runtime.stub(:environment).and_return({})
+        runtime.stub(:debug_environment).and_return({})
+        runtime
+      end
+
+      let(:response) do
+        response = mock("spawn_response")
+        response.stub(:job_id => 37)
+        response
+      end
+
+      before do
+        instance.unstub(:promise_start)
+        instance.stub(:runtime).and_return(runtime)
+      end
+
+      it "executes a SpawnRequest" do
+        instance.attributes["warden_handle"] = "handle"
+
+        instance.stub(:promise_warden_call) do |connection, request|
+          request.should be_kind_of(::Warden::Protocol::SpawnRequest)
+          request.handle.should == "handle"
+          request.script.should_not be_empty
+
+          delivering_promise(response)
+        end
+
+        expect_start.to_not raise_error
+
+        # Job ID should be set
+        instance.attributes["warden_job_id"].should == 37
+      end
+
+      it "can fail" do
+        instance.stub(:promise_warden_call) do
+          failing_promise(RuntimeError.new("error"))
+        end
+
+        expect_start.to raise_error(RuntimeError, /error/i)
+
+        # Job ID should not be set
+        instance.attributes["warden_job_id"].should be_nil
       end
     end
   end
