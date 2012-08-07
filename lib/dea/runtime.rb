@@ -38,6 +38,10 @@ module Dea
       config["environment"] || {}
     end
 
+    def debug_environment(mode)
+      (config["debug_env"] || {})[mode] || []
+    end
+
     def validate
       validate_executable
       validate_version

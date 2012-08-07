@@ -5,6 +5,31 @@ require "spec_helper"
 require "dea/runtime"
 
 describe Dea::Runtime do
+  describe "#debug_environment" do
+    let(:config) do
+      {
+        "debug_env" => {
+          "run" => [
+            "foo=bar",
+          ],
+        },
+      }
+    end
+
+    subject(:runtime) do
+      Dea::Runtime.new(config)
+    end
+
+    it "returns array with environment for mode" do
+      runtime.debug_environment("run").should have(1).entry
+      runtime.debug_environment("run").should include("foo=bar")
+    end
+
+    it "returns empty array for unknown mode" do
+      runtime.debug_environment("unknown").should have(:no).entries
+    end
+  end
+
   describe "validating the executable path" do
     it "should work when the basename of the executable is specified" do
       config = { "executable" => "printf" }
