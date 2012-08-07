@@ -10,6 +10,8 @@ require "dea/promise"
 
 module Dea
   class Instance
+    STAT_COLLECTION_INTERVAL_SECS = 1
+
     class State
       BORN     = "BORN"
 
@@ -170,6 +172,10 @@ module Dea
 
     attr_reader :bootstrap
     attr_reader :attributes
+    attr_reader :start_timestamp
+    attr_reader :used_memory      # In kB
+    attr_reader :used_disk        # In bytes
+    attr_reader :computed_pcpu    # See `man ps`
 
     def initialize(bootstrap, attributes)
       @bootstrap  = bootstrap
@@ -182,6 +188,17 @@ module Dea
 
       # Cache for warden connections for this instance
       @warden_connections = {}
+
+      @used_memory   = 0
+      @used_disk     = 0
+      @computed_pcpu = 0
+      @cpu_samples   = []
+      @stat_collection_timer = nil
+    end
+
+    # TODO: Fill in once start is hooked up
+    def flapping?
+      false
     end
 
     def runtime
@@ -423,7 +440,22 @@ module Dea
       end
     end
 
+    def promise_container_info
+      Promise.new do |p|
+        conn = promise_warden_connection(:info).resolve
+
+        handle = @attributes["warden_handle"]
+        request = ::Warden::Protocol::InfoRequest.new(:handle => handle)
+
+        response = promise_warden_call(conn, request).resolve
+
+        p.deliver(response)
+      end
+    end
+
     def start(&callback)
+      @start_timestamp = Time.now
+
       p = Promise.new do
         promise_state(:from => State::BORN, :to => State::STARTING).resolve
 
@@ -447,6 +479,10 @@ module Dea
         # Concurrently download droplet and setup container
         [promise_droplet, promise_container].each(&:run).each(&:resolve)
 
+        start_stat_collector
+
+        promise_setup_network.resolve
+
         promise_extract_droplet.resolve
 
         promise_prepare_start_script.resolve
@@ -456,6 +492,43 @@ module Dea
 
       Promise.resolve(p) do |error, result|
         callback.call(error)
+      end
+    end
+
+    def start_stat_collector
+      collector = Promise.new { |p| collect_stats }
+
+      Promise.resolve(collector) do |_, _|
+        @stat_collection_timer =
+          EM.add_timer(STAT_COLLECTION_INTERVAL_SECS) { start_stat_collector }
+      end
+    end
+
+    def collect_stats
+      begin
+        info_resp = promise_container_info.resolve
+      rescue => e
+        logger.error("Failed getting container info: #{e}")
+        return
+      end
+
+      @used_memory = info_resp.memory_stat.rss * 1024
+
+      @used_disk = info_resp.disk_stat.bytes_used
+
+      @cpu_samples << {
+        :timestamp_ns => Time.now.nsec,
+        :ns_used      => info_resp.cpu_stat.usage,
+      }
+      @cpu_samples.unshift if @cpu_samples.size > 2
+
+      if @cpu_samples.size == 2
+        used = @cpu_samples[1][:ns_used] - @cpu_samples[0][:ns_used]
+        elapsed = @cpu_samples[1][:timestamp_ns] - @cpu_samples[0][:timestamp_ns]
+
+        if elapsed > 0
+          @computed_pcpu = used.to_f / elapsed
+        end
       end
     end
 
