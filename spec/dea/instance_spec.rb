@@ -469,7 +469,9 @@ describe Dea::Instance do
         expect_start.to_not raise_error
       end
 
-      it "should map an instance port" do
+      it "should map an instance port when the application has uris" do
+        instance.attributes["application_uris"] = ["uri"]
+
         instance.stub(:promise_warden_call) do
           delivering_promise(response)
         end
@@ -479,6 +481,20 @@ describe Dea::Instance do
         # Ports should be set
         instance.attributes["instance_host_port"].     should == 1234
         instance.attributes["instance_container_port"].should == 1235
+      end
+
+      it "should not map an instance port when the application has no uris" do
+        instance.attributes["application_uris"] = []
+
+        instance.stub(:promise_warden_call) do
+          delivering_promise(response)
+        end
+
+        expect_start.to_not raise_error
+
+        # Ports should not be set
+        instance.attributes["instance_host_port"].     should be_nil
+        instance.attributes["instance_container_port"].should be_nil
       end
 
       it "should map a debug port port if needed" do

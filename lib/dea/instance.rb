@@ -340,9 +340,11 @@ module Dea
           promise_warden_call(connection, request).resolve
         end
 
-        response = net_in.call
-        attributes["instance_host_port"]      = response.host_port
-        attributes["instance_container_port"] = response.container_port
+        if !attributes["application_uris"].empty?
+          response = net_in.call
+          attributes["instance_host_port"]      = response.host_port
+          attributes["instance_container_port"] = response.container_port
+        end
 
         if attributes["debug"]
           response = net_in.call
