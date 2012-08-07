@@ -471,8 +471,8 @@ describe Dea::Instance do
         expect_start.to_not raise_error
 
         # Ports should be set
-        instance.attributes["instance_debug_host_port"].     should == 1234
-        instance.attributes["instance_debug_container_port"].should == 1235
+        instance.instance_debug_host_port.     should == 1234
+        instance.instance_debug_container_port.should == 1235
       end
 
       it "should map a console port port if needed" do
@@ -485,8 +485,8 @@ describe Dea::Instance do
         expect_start.to_not raise_error
 
         # Ports should be set
-        instance.attributes["instance_console_host_port"].     should == 1234
-        instance.attributes["instance_console_container_port"].should == 1235
+        instance.instance_console_host_port.     should == 1234
+        instance.instance_console_container_port.should == 1235
       end
 
       it "can fail" do
@@ -497,8 +497,8 @@ describe Dea::Instance do
         expect_start.to raise_error(RuntimeError, /error/i)
 
         # Ports should not be set
-        instance.attributes["instance_host_port"].     should be_nil
-        instance.attributes["instance_container_port"].should be_nil
+        instance.instance_host_port.     should be_nil
+        instance.instance_container_port.should be_nil
       end
     end
 

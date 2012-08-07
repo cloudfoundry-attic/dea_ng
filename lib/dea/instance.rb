@@ -137,10 +137,14 @@ module Dea
       end
     end
 
-    # Accessors for debug/console ports
-    %W[instance_debug_host_port instance_console_host_port
-       instance_host_port].each do |key|
-      define_method(key) { attributes[key] }
+    # Accessors for different types of host/container ports
+    [nil, "debug", "console"].each do |type|
+      ["host", "container"].each do |side|
+        key = ["instance", type, side, "port"].compact.join("_")
+        define_method(key) do
+          attributes[key]
+        end
+      end
     end
 
     # Helper method needed for creating a new scope
