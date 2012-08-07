@@ -237,26 +237,26 @@ describe Dea::Env do
     end
 
     it "includes VCAP_APPLICATION" do
-      find("VCAP_APPLICATION").should == Yajl::Encoder.encode(application_for_json)
+      find("VCAP_APPLICATION").should include(Yajl::Encoder.encode(application_for_json))
     end
 
     it "includes VCAP_SERVICES" do
-      find("VCAP_SERVICES").should == Yajl::Encoder.encode(services_for_json)
+      find("VCAP_SERVICES").should include(Yajl::Encoder.encode(services_for_json))
     end
 
     it "includes VCAP_APP_*" do
-      find("VCAP_APP_HOST").should == application_for_json["host"]
-      find("VCAP_APP_PORT").should == 4567
+      find("VCAP_APP_HOST").should =~ /#{application_for_json["host"]}/
+      find("VCAP_APP_PORT").should =~ /4567/
     end
 
     it "includes VCAP_DEBUG_*" do
-      find("VCAP_DEBUG_IP").should == application_for_json["host"]
-      find("VCAP_DEBUG_PORT").should == 4568
+      find("VCAP_DEBUG_IP").should =~ /#{application_for_json["host"]}/
+      find("VCAP_DEBUG_PORT").should =~ /4568/
     end
 
     it "includes VCAP_CONSOLE_*" do
-      find("VCAP_CONSOLE_IP").should == application_for_json["host"]
-      find("VCAP_CONSOLE_PORT").should == 4569
+      find("VCAP_CONSOLE_IP").should =~ /#{application_for_json["host"]}/
+      find("VCAP_CONSOLE_PORT").should =~ /4569/
     end
 
     it "includes the runtime's environment" do
@@ -275,6 +275,10 @@ describe Dea::Env do
 
     it "includes the user-specified environment" do
       find("ENVIRONMENT").should be
+    end
+
+    it "wraps user-specified enviroment in double quotes if it isn't already" do
+      find("ENVIRONMENT").should == %{"yep"}
     end
   end
 end

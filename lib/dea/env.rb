@@ -91,6 +91,11 @@ module Dea
       env << ["VCAP_CONSOLE_IP",   application["host"]]
       env << ["VCAP_CONSOLE_PORT", instance.instance_console_container_port]
 
+      # Wrap variables above in single quotes (no interpolation)
+      env = env.map do |(key, value)|
+        [key, %{'%s'} % value.to_s]
+      end
+
       # Include debug environment for runtime
       if instance.debug
         env.concat(instance.runtime.debug_environment(instance.debug).to_a)
@@ -99,8 +104,18 @@ module Dea
       # Include environment for runtime
       env.concat(instance.runtime.environment.to_a)
 
+      # Prepare user-specified environment
+      instance_environment = instance.environment.map do |(key, value)|
+        # Wrap value in double quotes if it isn't already (allows interpolation)
+        unless value =~ /^['"]/
+          value = %{"%s"} % value
+        end
+
+        [key, value]
+      end
+
       # Include user-specified environment
-      env.concat(instance.environment.to_a)
+      env.concat(instance_environment)
 
       env
     end
