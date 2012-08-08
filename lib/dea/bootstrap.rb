@@ -36,8 +36,12 @@ module Dea
       @local_ip ||= VCAP.local_ip(config["local_route"])
     end
 
-    def setup
+    def validate_config
       Config.schema.validate(config)
+    end
+
+    def setup
+      validate_config
 
       setup_logging
       setup_runtimes
