@@ -1,3 +1,8 @@
+# coding: UTF-8
+
+require "steno"
+require "steno/core_ext"
+
 module Dea
   class Promise
     def self.resolve(promise)
@@ -10,7 +15,12 @@ module Dea
           result = [error, nil]
         end
 
-        yield(result)
+        begin
+          yield(result)
+        rescue => error
+          logger.log_exception(error)
+          raise
+        end
       end
 
       f.resume
