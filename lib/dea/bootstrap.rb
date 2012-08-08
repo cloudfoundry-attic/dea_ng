@@ -53,6 +53,7 @@ module Dea
       setup_pid_file
       setup_sweepers
       setup_nats
+      setup_router_client
     end
 
     def setup_logging
