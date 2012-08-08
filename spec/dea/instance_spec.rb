@@ -690,6 +690,8 @@ describe Dea::Instance do
 
       it "can fail by the script failing" do
         response.stub(:exit_status).and_return(1)
+        response.stub(:stdout).and_return("stdout")
+        response.stub(:stderr).and_return("stderr")
 
         instance.stub(:promise_warden_call) do |connection, request|
           delivering_promise(response)

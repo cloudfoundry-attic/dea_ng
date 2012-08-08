@@ -427,7 +427,15 @@ module Dea
         response = promise_warden_call(connection, request).resolve
 
         if response.exit_status > 0
-          p.fail(WardenError.new("script exited with status #{response.exit_status}"))
+          data = {
+            :script      => script,
+            :exit_status => response.exit_status,
+            :stdout      => response.stdout,
+            :stderr      => response.stderr,
+          }
+
+          logger.warn("%s exited with status %d" % [script.inspect, response.exit_status], data)
+          p.fail(WardenError.new("Script exited with status %d" % response.exit_status))
         else
           p.deliver(response)
         end
