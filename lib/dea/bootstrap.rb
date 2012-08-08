@@ -207,9 +207,11 @@ module Dea
       @nats = Dea::Nats.new(self, config)
     end
 
-    def start
-      nats.start
+    def start_nats
+      @nats.start
+    end
 
+    def start_component
       VCAP::Component.register(
         :type     => "DEA",
         :host     => local_ip,
@@ -221,6 +223,11 @@ module Dea
         :password => config["status"]["password"])
 
       @uuid = VCAP::Component.uuid
+    end
+
+    def start
+      start_component
+      start_nats
 
       nats.publish("dea.start", Dea::Protocol::V1::HelloMessage.generate(self))
 
