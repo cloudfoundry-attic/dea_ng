@@ -136,7 +136,7 @@ module Dea
           "limits"              => limits_schema,
           "environment"         => dict(String, String),
           "services"            => [service_schema],
-          "flapping"            => any,
+          optional("flapping")  => bool,
 
           optional("debug")     => enum(nil, String),
           optional("console")   => enum(nil, bool),
