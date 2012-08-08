@@ -375,7 +375,7 @@ module Dea
     end
 
     def send_heartbeats
-      return if @instance_registry.empty?
+      return if instance_registry.empty?
 
       hbs = Dea::Protocol::V1::HeartbeatResponse.generate(self, instance_registry.to_a)
       @nats.publish("dea.heartbeat", hbs)
