@@ -11,6 +11,7 @@ require "dea/droplet_registry"
 require "dea/instance_registry"
 require "dea/nats"
 require "dea/protocol"
+require "dea/resource_manager"
 require "dea/router_client"
 
 module Dea
