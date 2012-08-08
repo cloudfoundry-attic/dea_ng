@@ -345,8 +345,13 @@ module Dea
         droplet_dirname_bind_mount.dst_path = droplet.droplet_dirname
         droplet_dirname_bind_mount.mode = ::Warden::Protocol::CreateRequest::BindMount::Mode::RO
 
+        runtime_dirname_bind_mount = ::Warden::Protocol::CreateRequest::BindMount.new
+        runtime_dirname_bind_mount.src_path = runtime.dirname
+        runtime_dirname_bind_mount.dst_path = runtime.dirname
+        runtime_dirname_bind_mount.mode = ::Warden::Protocol::CreateRequest::BindMount::Mode::RO
+
         create_request = ::Warden::Protocol::CreateRequest.new
-        create_request.bind_mounts = [droplet_dirname_bind_mount]
+        create_request.bind_mounts = [droplet_dirname_bind_mount, runtime_dirname_bind_mount]
 
         response = promise_warden_call(connection, create_request).resolve
 

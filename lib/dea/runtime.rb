@@ -46,6 +46,10 @@ module Dea
       end]
     end
 
+    def dirname
+      File.expand_path("../..", executable)
+    end
+
     def validate
       validate_executable
       validate_version

@@ -295,6 +295,12 @@ describe Dea::Instance do
       droplet
     end
 
+    let(:runtime) do
+      runtime = mock("runtime")
+      runtime.stub(:dirname).and_return("/runtime_path")
+      runtime
+    end
+
     let(:warden_connection) do
       mock("warden_connection")
     end
@@ -311,6 +317,7 @@ describe Dea::Instance do
       instance.stub(:promise_prepare_start_script).and_return(delivering_promise)
       instance.stub(:promise_start).and_return(delivering_promise)
       instance.stub(:droplet).and_return(droplet)
+      instance.stub(:runtime).and_return(runtime)
       instance.stub(:start_stat_collector)
     end
 
