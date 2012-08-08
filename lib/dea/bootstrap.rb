@@ -48,6 +48,7 @@ module Dea
       setup_pid_file
       setup_sweepers
       setup_nats
+      setup_component
     end
 
     def setup_logging
@@ -207,9 +208,7 @@ module Dea
       @nats = Dea::Nats.new(self, config)
     end
 
-    def start
-      nats.start
-
+    def setup_component
       VCAP::Component.register(
         :type     => "DEA",
         :host     => local_ip,
@@ -221,6 +220,10 @@ module Dea
         :password => config["status"]["password"])
 
       @uuid = VCAP::Component.uuid
+    end
+
+    def start
+      nats.start
 
       nats.publish("dea.start", Dea::Protocol::V1::HelloMessage.generate(self))
 

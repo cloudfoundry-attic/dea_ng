@@ -27,7 +27,7 @@ module Dea
         bootstrap.handle_dea_status(message)
       end
 
-      subscribe("dea.#{config["uuid"]}.start") do |message|
+      subscribe("dea.#{bootstrap.uuid}.start") do |message|
         bootstrap.handle_dea_directed_start(message)
       end
 
