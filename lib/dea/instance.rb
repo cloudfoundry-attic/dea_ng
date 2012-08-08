@@ -519,12 +519,17 @@ module Dea
     def start(&callback)
       @start_timestamp = Time.now
 
+      logger.info("Starting instance")
+
       p = Promise.new do
         promise_state(:from => State::BORN, :to => State::STARTING).resolve
 
         promise_droplet = Promise.new do |p|
-          unless droplet.droplet_exist?
+          if !droplet.droplet_exist?
+            logger.info("Starting droplet download")
             promise_droplet_download.resolve
+          else
+            logger.info("Skipping droplet download")
           end
 
           p.deliver
@@ -559,6 +564,14 @@ module Dea
       end
 
       Promise.resolve(p) do |error, result|
+        took = "took %.3f" % [Time.now - @start_timestamp]
+
+        if error
+          logger.warn("Error starting instance: #{error.message} (#{took})")
+        else
+          logger.info("Started instance (#{took})")
+        end
+
         callback.call(error)
       end
     end
