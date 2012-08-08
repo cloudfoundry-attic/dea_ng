@@ -29,7 +29,7 @@ describe Dea::Nats do
 
   describe "subscription setup" do
     before do
-      @config["uuid"] = "UUID"
+      bootstrap.stub(:uuid).and_return("UUID")
     end
 
     before do
