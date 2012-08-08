@@ -63,6 +63,7 @@ module Dea
     def subscribe(subject)
       client.subscribe(subject) do |raw_data, respond_to|
         message = Message.decode(self, subject, raw_data, respond_to)
+        logger.debug "Received on #{subject.inspect}: #{message.data.inspect}"
         yield message
       end
     end
