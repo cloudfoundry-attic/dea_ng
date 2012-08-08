@@ -597,10 +597,13 @@ module Dea
 
       @used_disk_in_bytes = info_resp.disk_stat.bytes_used
 
+      now = Time.now
+
       @cpu_samples << {
-        :timestamp_ns => Time.now.nsec,
+        :timestamp_ns => now.to_i * 1_000_000_000 + now.nsec,
         :ns_used      => info_resp.cpu_stat.usage,
       }
+
       @cpu_samples.unshift if @cpu_samples.size > 2
 
       if @cpu_samples.size == 2
