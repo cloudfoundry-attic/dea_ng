@@ -15,7 +15,7 @@ module Dea
       def initialize(msg, data = {})
         @data = data
 
-        super("error downloading: %s (%s)" % [uri, msg])
+        super("Error downloading: %s (%s)" % [uri, msg])
       end
 
       def uri
@@ -54,7 +54,7 @@ module Dea
       @download_waiting ||= []
       @download_waiting << blk
 
-      logger.debug "waiting for download to complete"
+      logger.debug "Waiting for download to complete"
 
       if @download_waiting.size == 1
         # Fire off request when this is the first call to #download
@@ -63,7 +63,7 @@ module Dea
             File.rename(path, droplet_path)
             File.chmod(0744, droplet_path)
 
-            logger.debug "moved droplet to #{droplet_path}"
+            logger.debug "Moved droplet to #{droplet_path}"
           end
 
           while blk = @download_waiting.shift
@@ -76,7 +76,7 @@ module Dea
     private
 
     def logger
-      @logger ||= self.class.logger.tag(:sha1 => sha1)
+      @logger ||= self.class.logger.tag(:droplet_sha1 => sha1)
     end
 
     def get(uri, &blk)
@@ -102,11 +102,11 @@ module Dea
         end
       end
 
-      context = { :uri => uri }
+      context = { :droplet_uri => uri }
 
       http.errback do
         cleanup.call do
-          error = DownloadError.new("response status: unknown", context)
+          error = DownloadError.new("Response status: unknown", context)
           logger.warn(error.message, error.data)
           blk.call(error)
         end
@@ -114,28 +114,26 @@ module Dea
 
       http.callback do
         cleanup.call do
-          status = http.response_header.status
+          http_status = http.response_header.status
 
-          context = context.merge(:status => status)
+          context[:droplet_http_status] = http_status
 
-          if status == 200
+          if http_status == 200
             sha1_expected = self.sha1
             sha1_actual   = sha1.hexdigest
 
             if sha1_expected == sha1_actual
               blk.call(nil, file.path)
             else
-              context = context.merge(
-                :sha1_expected => sha1_expected,
-                :sha1_actual   => sha1_actual
-              )
+              context[:droplet_sha1_expected] = sha1_expected
+              context[:droplet_sha1_actual]   = sha1_actual
 
               error = DownloadError.new("SHA1 mismatch", context)
               logger.warn(error.message, error.data)
               blk.call(error)
             end
           else
-            error = DownloadError.new("response status: #{status}", context)
+            error = DownloadError.new("HTTP status: #{http_status}", context)
             logger.warn(error.message, error.data)
             blk.call(error)
           end
