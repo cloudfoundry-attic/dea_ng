@@ -328,6 +328,9 @@ module Dea
           end
 
           if error
+            logger.warn "Request failed: #{request.inspect}"
+            logger.log_exception(error)
+
             p.fail(error)
           else
             p.deliver(response)
