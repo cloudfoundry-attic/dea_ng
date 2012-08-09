@@ -518,7 +518,7 @@ module Dea
     end
 
     def start(&callback)
-      @start_timestamp = Time.now
+      self.started_at = Time.now
 
       logger.info("Starting instance")
 
@@ -556,7 +556,6 @@ module Dea
 
         promise_prepare_start_script.resolve
 
-        self.started_at = Time.now
         self.state = State::RUNNING
 
         promise_start.resolve
@@ -565,7 +564,7 @@ module Dea
       end
 
       Promise.resolve(p) do |error, result|
-        took = "took %.3f" % [Time.now - @start_timestamp]
+        took = "took %.3f" % [Time.now - started_at]
 
         if error
           logger.warn("Error starting instance: #{error.message} (#{took})")
