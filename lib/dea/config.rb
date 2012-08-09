@@ -31,9 +31,9 @@ module Dea
           "directory_server_port" => Integer,
 
           optional("status") => {
-            "user"     => String,
-            "port"     => Integer,
-            "password" => String,
+            optional("user")     => String,
+            optional("port")     => Integer,
+            optional("password") => String,
           },
 
           optional("intervals") => {

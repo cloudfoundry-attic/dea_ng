@@ -6,16 +6,30 @@ require 'bundler/setup'
 
 $LOAD_PATH.unshift(File.expand_path('../../lib', __FILE__))
 
-require 'vcap/common'
-require 'vcap/dea'
+require "eventmachine"
+require "yaml"
 
-config_file = VCAP::Dea::Config::DEFAULT_CONFIG_PATH
+require "dea/bootstrap"
 
-OptionParser.new do |op|
-  op.on('-c', '--config [FILENAME]', 'Config filename') do |val|
-    config_file = val
+unless ARGV.size == 1
+  abort "Usage: dea <config path>"
+end
+
+begin
+  config = YAML.load_file(ARGV[0])
+rescue => e
+  abort "ERROR: Failed loading config: #{e}"
+end
+
+begin
+  bootstrap = Dea::Bootstrap.new(config)
+  EM.run do
+    bootstrap.setup
+    bootstrap.start
   end
-end.parse!
+rescue => e
+  abort "ERROR: #{e}"
+end
 
-VCAP::Dea.init(config_file)
-VCAP::Dea.start_server!
+
+
