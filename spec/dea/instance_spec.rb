@@ -6,43 +6,6 @@ require "dea/instance"
 describe Dea::Instance do
   include_context "tmpdir"
 
-  let(:valid_service_attributes) do
-    {
-      "name"        => "name",
-      "type"        => "type",
-      "label"       => "label",
-      "vendor"      => "vendor",
-      "version"     => "version",
-      "tags"        => { "key" => "value" },
-      "plan"        => "plan",
-      "plan_option" => "plan_option",
-      "credentials" => { "user" => "password" },
-    }
-  end
-
-  let(:valid_attributes) do
-    {
-      "instance_index"      => 37,
-
-      "application_id"      => 37,
-      "application_version" => "some_version",
-      "application_name"    => "my_application",
-      "application_uris"    => ["foo.com", "bar.com"],
-      "application_users"   => ["john@doe.com"],
-
-      "droplet_sha1"        => "deadbeef",
-      "droplet_uri"         => "http://foo.com/file.ext",
-
-      "runtime_name"        => "ruby19",
-      "framework_name"      => "rails",
-
-      "limits"              => { "mem" => 1, "disk" => 2, "fds" => 3 },
-      "environment"         => { "FOO" => "BAR" },
-      "services"            => [valid_service_attributes],
-      "flapping"            => false,
-    }
-  end
-
   let(:bootstrap) do
     mock("bootstrap")
   end
@@ -142,7 +105,7 @@ describe Dea::Instance do
 
   describe "resource limits" do
     subject(:instance) do
-      Dea::Instance.new(bootstrap, valid_attributes)
+      Dea::Instance.new(bootstrap, valid_instance_attributes)
     end
 
     it "exports the memory limit in bytes with a little bit of slack" do
@@ -164,7 +127,7 @@ describe Dea::Instance do
     end
 
     it "should not raise when the attributes are valid" do
-      instance = Dea::Instance.new(bootstrap, valid_attributes)
+      instance = Dea::Instance.new(bootstrap, valid_instance_attributes)
 
       expect do
         instance.validate
@@ -172,7 +135,7 @@ describe Dea::Instance do
     end
 
     it "should raise when attributes are missing" do
-      attributes = valid_attributes.dup
+      attributes = valid_instance_attributes.dup
       attributes.delete("application_id")
       instance = Dea::Instance.new(bootstrap, attributes)
 
@@ -182,7 +145,7 @@ describe Dea::Instance do
     end
 
     it "should raise when attributes are invalid" do
-      attributes = valid_attributes.dup
+      attributes = valid_instance_attributes.dup
       attributes["application_id"] = attributes["application_id"].to_s
       instance = Dea::Instance.new(bootstrap, attributes)
 
@@ -192,7 +155,7 @@ describe Dea::Instance do
     end
 
     it "should raise when the runtime is not found" do
-      attributes = valid_attributes.dup
+      attributes = valid_instance_attributes.dup
       attributes["runtime_name"] = "not_found"
 
       instance = Dea::Instance.new(bootstrap, attributes)
@@ -207,7 +170,7 @@ describe Dea::Instance do
 
   describe "state=" do
     it "should set state_timestamp when invoked" do
-      instance = Dea::Instance.new(bootstrap, valid_attributes)
+      instance = Dea::Instance.new(bootstrap, valid_instance_attributes)
       old_timestamp = instance.state_timestamp
       instance.state = Dea::Instance::State::RUNNING
 
@@ -252,7 +215,7 @@ describe Dea::Instance do
     end
 
     subject(:instance) do
-      Dea::Instance.new(bootstrap, valid_attributes)
+      Dea::Instance.new(bootstrap, valid_instance_attributes)
     end
 
     it "should update memory" do
@@ -283,7 +246,7 @@ describe Dea::Instance do
 
   describe "start transition" do
     subject(:instance) do
-      Dea::Instance.new(bootstrap, valid_attributes)
+      Dea::Instance.new(bootstrap, valid_instance_attributes)
     end
 
     let(:droplet) do
