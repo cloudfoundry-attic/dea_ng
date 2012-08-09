@@ -45,13 +45,20 @@ module Dea
       attr_reader :from
       attr_reader :to
 
-      def initialize(from, to)
+      def initialize(from, to = nil)
         @from = from
         @to = to
       end
 
       def message
-        "Cannot transition from #{from.inspect} to #{to.inspect}"
+        parts = []
+        parts << "Cannot transition from %s" % [from.inspect]
+
+        if to
+          parts << "to %s" % [to.inspect]
+        end
+
+        parts.join(" ")
       end
     end
 
@@ -262,12 +269,15 @@ module Dea
       nil
     end
 
-    def promise_state(options)
+    def promise_state(from, to = nil)
       promise_state = Promise.new do
-        if !Array(options[:from]).include?(state)
-          promise_state.fail(TransitionError.new(state, options[:to] || "<unknown>"))
+        if !Array(from).include?(state)
+          promise_state.fail(TransitionError.new(state, to))
         else
-          self.state = options[:to]
+          if to
+            self.state = to
+          end
+
           promise_state.deliver
         end
       end
@@ -524,7 +534,7 @@ module Dea
       logger.info("Starting instance")
 
       p = Promise.new do
-        promise_state(:from => State::BORN, :to => State::STARTING).resolve
+        promise_state(State::BORN, State::STARTING).resolve
 
         promise_droplet = Promise.new do |p|
           if !droplet.droplet_exist?
@@ -559,7 +569,7 @@ module Dea
 
         promise_start.resolve
 
-        promise_state(:from => State::STARTING, :to => State::RUNNING).resolve
+        promise_state(State::STARTING, State::RUNNING).resolve
 
         p.deliver
       end
