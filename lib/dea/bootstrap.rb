@@ -218,6 +218,10 @@ module Dea
                                                    @instance_registry)
     end
 
+    def start_directory_server
+      @directory_server.start
+    end
+
     def setup_nats
       @nats = Dea::Nats.new(self, config)
     end
@@ -240,15 +244,17 @@ module Dea
       @uuid = VCAP::Component.uuid
     end
 
-    def start
-      start_component
-      start_nats
-
-      directory_server.start
-
+    def start_finish
       nats.publish("dea.start", Dea::Protocol::V1::HelloMessage.generate(self))
 
       send_advertise
+    end
+
+    def start
+      start_component
+      start_nats
+      start_directory_server
+      start_finish
     end
 
     def handle_health_manager_start(message)
