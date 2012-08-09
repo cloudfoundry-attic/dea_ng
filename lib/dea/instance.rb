@@ -267,6 +267,7 @@ module Dea
         if !Array(options[:from]).include?(state)
           promise_state.fail(TransitionError.new(state, options[:to] || "<unknown>"))
         else
+          self.state = options[:to]
           promise_state.deliver
         end
       end
@@ -556,9 +557,9 @@ module Dea
 
         promise_prepare_start_script.resolve
 
-        self.state = State::RUNNING
-
         promise_start.resolve
+
+        promise_state(:from => State::STARTING, :to => State::RUNNING).resolve
 
         p.deliver
       end
