@@ -6,8 +6,8 @@ shared_context "bootstrap_setup" do
   attr_reader :bootstrap
   attr_reader :nats_mock
 
-  before :each do
-    @nats_mock = NatsClientMock.new({})
+  before do
+    @nats_mock = NatsClientMock.new
     NATS.stub(:connect).and_return(@nats_mock)
 
     config = {
@@ -22,22 +22,49 @@ shared_context "bootstrap_setup" do
       "directory_server_port" => 8080,
     }
 
-    mock_runtime = mock("runtime")
-    mock_runtime.should_receive(:validate).twice()
+    mock_runtime = mock("Dea::Runtime")
+    mock_runtime.stub(:validate)
     Dea::Runtime.stub(:new).and_return(mock_runtime)
 
     @bootstrap = Dea::Bootstrap.new(config)
-    @bootstrap.setup_instance_registry
-    @bootstrap.setup_runtimes
-    @bootstrap.setup_router_client
-    @bootstrap.setup_resource_manager
-    @bootstrap.setup_directory_server
-    @bootstrap.setup_nats
-    @bootstrap.nats.start
+
+    # No config validation
+    @bootstrap.stub(:validate_config)
+
+    # No setup (explicitly unstub)
+    @bootstrap.stub(:setup_logging)
+    @bootstrap.stub(:setup_runtimes)
+    @bootstrap.stub(:setup_droplet_registry)
+    @bootstrap.stub(:setup_resource_manager)
+    @bootstrap.stub(:setup_instance_registry)
+    @bootstrap.stub(:setup_signal_handlers)
+    @bootstrap.stub(:setup_directories)
+    @bootstrap.stub(:setup_pid_file)
+    @bootstrap.stub(:setup_sweepers)
+    @bootstrap.stub(:setup_directory_server)
+    @bootstrap.stub(:setup_nats)
+    @bootstrap.stub(:setup_router_client)
+
+    # No start (explicitly unstub)
+    @bootstrap.stub(:start_component)
+    @bootstrap.stub(:start_nats)
+    @bootstrap.stub(:start_directory_server)
+    @bootstrap.stub(:start_finish)
   end
 
-  def create_and_register_instance(bootstrap, inst_opts = {})
-    instance = Dea::Instance.new(bootstrap, inst_opts)
+  before do
+    # Setup that is always needed
+    @bootstrap.unstub(:setup_runtimes)
+    @bootstrap.unstub(:setup_resource_manager)
+    @bootstrap.unstub(:setup_instance_registry)
+    @bootstrap.unstub(:setup_nats)
+
+    # Start that is always needed
+    @bootstrap.unstub(:start_nats)
+  end
+
+  def create_and_register_instance(bootstrap, instance_attributes = {})
+    instance = Dea::Instance.new(bootstrap, instance_attributes)
     bootstrap.instance_registry.register(instance)
     instance
   end

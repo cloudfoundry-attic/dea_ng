@@ -6,15 +6,21 @@ require "dea/bootstrap"
 describe Dea do
   include_context "bootstrap_setup"
 
+  before do
+    bootstrap.unstub(:setup_directory_server)
+  end
+
   it "should publish a message on 'vcap.component.announce' on startup" do
+    bootstrap.unstub(:start_component)
+
     announcement = nil
     nats_mock.subscribe("vcap.component.announce") do |msg|
       announcement = Yajl::Parser.parse(msg)
-
-      EM.stop
+      done
     end
 
     em(:timeout => 1) do
+      bootstrap.setup
       bootstrap.start
     end
 
@@ -22,30 +28,34 @@ describe Dea do
   end
 
   it "should publish a message on 'dea.start' on startup" do
-    hello = nil
+    bootstrap.unstub(:start_finish)
+
+    start = nil
     nats_mock.subscribe("dea.start") do |msg|
-      hello = Yajl::Parser.parse(msg)
-      EM.stop
+      start = Yajl::Parser.parse(msg)
+      done
     end
 
     em(:timeout => 1) do
+      bootstrap.setup
       bootstrap.start
     end
 
-    verify_hello_message(bootstrap, hello)
+    verify_hello_message(bootstrap, start)
   end
 
   it "should respond to messages on 'dea.status' with enhanced hello messages" do
     status = nil
-    nats_mock.subscribe("results") do |msg|
+    nats_mock.subscribe("result") do |msg|
       status = Yajl::Parser.parse(msg)
-      EM.stop
+      done
     end
 
     em(:timeout => 1) do
+      bootstrap.setup
       bootstrap.start
 
-      nats_mock.publish("dea.status", {}, "results")
+      nats_mock.publish("dea.status", {}, "result")
     end
 
     verify_status_message(bootstrap, status)
@@ -53,31 +63,54 @@ describe Dea do
 
   describe "dea.discover" do
     it "should not respond for unsupported runtimes" do
-      recvd_msg = false
+      received_message = false
 
-      msg = discover_message("runtime" => "unsupported")
-      nats_mock.request("dea.discover", msg) { |_| recvd_msg = true }
+      em(:timeout => 1) do
+        bootstrap.setup
+        bootstrap.start
 
-      recvd_msg.should be_false
+        req = discover_message("runtime" => "unsupported")
+        nats_mock.request("dea.discover", req) do
+          received_message = true
+        end
+
+        done
+      end
+
+      received_message.should be_false
     end
 
     it "should not respond if insufficient resources" do
-      bootstrap.resource_manager.stub(:could_reserve?).and_return(false)
+      received_message = false
 
-      recvd_msg = false
-      nats_mock.request("dea.discover", discover_message) { |_| recvd_msg = true }
+      em(:timeout => 1) do
+        bootstrap.setup
+        bootstrap.start
 
-      recvd_msg.should be_false
+        bootstrap.resource_manager.stub(:could_reserve?).and_return(false)
+
+        req = discover_message()
+        nats_mock.request("dea.discover", req) do
+          received_message = true
+        end
+
+        done
+      end
+
+      received_message.should be_false
     end
 
     it "should respond with a hello message given sufficient resources" do
       hello = nil
 
       em(:timeout => 1) do
-        disc_msg = discover_message("droplet" => 1)
-        nats_mock.request("dea.discover", disc_msg) do |msg|
+        bootstrap.setup
+        bootstrap.start
+
+        req = discover_message("droplet" => 1)
+        nats_mock.request("dea.discover", req) do |msg|
           hello = Yajl::Parser.parse(msg)
-          EM.stop
+          done
         end
       end
 
@@ -85,81 +118,88 @@ describe Dea do
     end
 
     it "should delay its response proportionally to the number of instances already running" do
-      2.times do
-        create_and_register_instance(bootstrap, "application_id" => 0)
-      end
-
       hello = nil
-      tstart = Time.now
+      start = Time.now
 
       em(:timeout => 1) do
-        disc_msg = discover_message("droplet" => 0)
-        nats_mock.request("dea.discover", disc_msg) do |msg|
+        bootstrap.setup
+        bootstrap.start
+
+        2.times do
+          create_and_register_instance(bootstrap, "application_id" => 0)
+        end
+
+        req = discover_message("droplet" => 0)
+        nats_mock.request("dea.discover", req) do |msg|
           hello = Yajl::Parser.parse(msg)
-          EM.stop
+          done
         end
       end
 
-      elapsed = Time.now - tstart
-
+      actual_delay = Time.now - start
       expected_delay = (2.0 * Dea::Bootstrap::DISCOVER_DELAY_MS_PER_INSTANCE) / 1000
 
       verify_hello_message(bootstrap, hello)
-      elapsed.should be_within(0.05).of(expected_delay)
+      actual_delay.should be_within(0.05).of(expected_delay)
     end
 
     it "should delay its response proportionally to the amount of memory available" do
-      mem_mock = mock("memory")
-      mem_mock.stub(:used).and_return(1)
-      mem_mock.stub(:capacity).and_return(2)
-      resources = { "memory" => mem_mock }
-      bootstrap.resource_manager.stub(:resources).and_return(resources)
-
       hello = nil
-      tstart = Time.now
+      start = Time.now
 
       em(:timeout => 1) do
-        disc_msg = discover_message("droplet" => 0)
-        nats_mock.request("dea.discover", disc_msg) do |msg|
+        bootstrap.setup
+        bootstrap.start
+
+        mem_mock = mock("memory")
+        mem_mock.stub(:used).and_return(1)
+        mem_mock.stub(:capacity).and_return(2)
+
+        resources = { "memory" => mem_mock }
+        bootstrap.resource_manager.stub(:resources).and_return(resources)
+
+        req = discover_message("droplet" => 0)
+        nats_mock.request("dea.discover", req) do |msg|
           hello = Yajl::Parser.parse(msg)
-          EM.stop
+          done
         end
       end
 
-      elapsed = Time.now - tstart
-
+      actual_delay = Time.now - start
       expected_delay = (0.5 * Dea::Bootstrap::DISCOVER_DELAY_MS_MEM) / 1000
 
       verify_hello_message(bootstrap, hello)
-      elapsed.should be_within(0.05).of(expected_delay)
+      actual_delay.should be_within(0.05).of(expected_delay)
     end
 
     it "should cap its delay at a maximum" do
-      ninstances_needed =
-        Dea::Bootstrap::DISCOVER_DELAY_MS_MAX / Dea::Bootstrap::DISCOVER_DELAY_MS_PER_INSTANCE
-
-      instances = (0..(ninstances_needed + 1)).to_a
-      bootstrap.instance_registry                \
-               .stub(:instances_for_application) \
-               .and_return(instances)
-
       hello = nil
-      tstart = Time.now
+      start = Time.now
 
       em(:timeout => 1) do
-        disc_msg = discover_message("droplet" => 0)
-        nats_mock.request("dea.discover", disc_msg) do |msg|
+        bootstrap.setup
+        bootstrap.start
+
+        ninstances_needed =
+          Dea::Bootstrap::DISCOVER_DELAY_MS_MAX / Dea::Bootstrap::DISCOVER_DELAY_MS_PER_INSTANCE
+
+        instances = (0..(ninstances_needed + 1)).to_a
+        bootstrap.instance_registry                \
+                 .stub(:instances_for_application) \
+                 .and_return(instances)
+
+        req = discover_message("droplet" => 0)
+        nats_mock.request("dea.discover", req) do |msg|
           hello = Yajl::Parser.parse(msg)
-          EM.stop
+          done
         end
       end
 
-      elapsed = Time.now - tstart
-
+      actual_delay = Time.now - start
       expected_delay = (Dea::Bootstrap::DISCOVER_DELAY_MS_MAX.to_f / 1000)
 
       verify_hello_message(bootstrap, hello)
-      elapsed.should be_within(0.05).of(expected_delay)
+      actual_delay.should be_within(0.05).of(expected_delay)
     end
   end
 
@@ -189,4 +229,3 @@ describe Dea do
     end
   end
 end
-
