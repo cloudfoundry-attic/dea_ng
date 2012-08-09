@@ -37,8 +37,8 @@ GIT
 
 GIT
   remote: https://github.com/cloudfoundry/warden.git
-  revision: adf39019ff43147f4b928030b78d93a690ed105d
-  ref: adf39019
+  revision: 1d8e2fb1c4225fc907f78bd1bf9a56a181f4ecf6
+  ref: 1d8e2fb1
   specs:
     em-warden-client (0.1.0)
       eventmachine
@@ -84,6 +84,8 @@ GEM
     rack (1.4.1)
     rack-mount (0.8.3)
       rack (>= 1.0.0)
+    rack-test (0.6.1)
+      rack (>= 1.0)
     rake (0.9.2.2)
     rspec (2.11.0)
       rspec-core (~> 2.11.0)
@@ -109,6 +111,7 @@ DEPENDENCIES
   eventmachine!
   nats
   rack
+  rack-test
   rake
   rspec
   steno!

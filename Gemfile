@@ -3,7 +3,7 @@ source "https://rubygems.org"
 gem "eventmachine", :git => "https://github.com/cloudfoundry/eventmachine.git", :branch => "release-0.12.11-cf"
 gem "em-http-request", "~> 1.0.0.beta.3", :require => "em-http"
 
-git "https://github.com/cloudfoundry/warden.git", :ref => "adf39019" do
+git "https://github.com/cloudfoundry/warden.git", :ref => "1d8e2fb1" do
   gem "em-warden-client"
   gem "warden-client"
   gem "warden-protocol"
@@ -22,4 +22,5 @@ gem "steno", :git => "https://github.com/cloudfoundry/steno.git"
 
 group :test do
   gem "rspec"
+  gem "rack-test"
 end

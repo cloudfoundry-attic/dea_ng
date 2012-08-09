@@ -177,7 +177,7 @@ describe Dea do
     hello.should_not be_nil
     hello["id"].should == bootstrap.uuid
     hello["ip"].should == bootstrap.local_ip
-    hello["port"].should == bootstrap.file_viewer_port
+    hello["port"].should == bootstrap.directory_server.port
     hello["version"].should == Dea::VERSION
   end
 

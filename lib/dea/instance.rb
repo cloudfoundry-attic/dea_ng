@@ -511,6 +511,7 @@ module Dea
         request = ::Warden::Protocol::InfoRequest.new(:handle => handle)
 
         response = promise_warden_call(conn, request).resolve
+        @attributes["warden_container_path"] = response.container_path
 
         p.deliver(response)
       end

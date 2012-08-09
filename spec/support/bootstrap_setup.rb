@@ -18,7 +18,8 @@ shared_context "bootstrap_setup" do
       "runtimes"  => {
         "test1" => {},
         "test2" => {},
-      }
+      },
+      "directory_server_port" => 8080,
     }
 
     mock_runtime = mock("runtime")
@@ -30,6 +31,7 @@ shared_context "bootstrap_setup" do
     @bootstrap.setup_runtimes
     @bootstrap.setup_router_client
     @bootstrap.setup_resource_manager
+    @bootstrap.setup_directory_server
     @bootstrap.setup_nats
     @bootstrap.nats.start
   end

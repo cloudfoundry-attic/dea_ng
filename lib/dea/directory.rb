@@ -30,9 +30,8 @@ module Dea
     attr_reader :files
     attr_accessor :root, :path
 
-    def initialize(root, app = nil)
-      @root = Pathname.new(F.expand_path(root)).realpath
-      @app = app || FileServer.new(@root)
+    def initialize(instance_registry)
+      @instance_registry = instance_registry
     end
 
     def call(env)
@@ -42,9 +41,28 @@ module Dea
     F = ::File
 
     def _call(env)
-      @env = env
+      @env = env.dup
       @script_name = env['SCRIPT_NAME']
-      @path_info = Rack::Utils.unescape(env['PATH_INFO'])
+
+      path_info = Rack::Utils.unescape(env['PATH_INFO'])
+      path_parts = path_info.split("/")
+
+      # Lookup container associated with request
+      instance_id = path_parts[1]
+      instance = @instance_registry.lookup_instance(instance_id)
+      if instance.nil? || instance.attributes["warden_container_path"].nil?
+        return entity_not_found
+      end
+
+      # Root for all future operations is vcap's home dir inside the container
+      container_path = instance.attributes["warden_container_path"]
+      @root = Pathname.new(F.expand_path(F.join(container_path, "home", "vcap"))).realpath
+      @app = FileServer.new(@root)
+
+      # Strip the instance id from the path. This is required to keep backwards
+      # compatibility with how file URLs are constructed with DeaV1.
+      @path_info = path_parts[2, path_parts.size - 1].join("/")
+      @env["PATH_INFO"] = @path_info
       @path = F.expand_path(F.join(@root, @path_info))
 
       if not File.exists? @path
@@ -76,8 +94,8 @@ module Dea
     def check_forbidden
       forbidden = false
       forbidden = true if @path_info.include? ".."
-      forbidden = true if @path_info =~ /\/.+\/startup$/
-      forbidden = true if @path_info =~ /\/.+\/stop$/
+      forbidden = true if @path_info =~ /\/?.+\/startup$/
+      forbidden = true if @path_info =~ /\/?.+\/stop$/
 
       # breaks BVTs
       #forbidden = true if @path_info =~ /\/.+\/run\.pid/
@@ -97,13 +115,14 @@ module Dea
     def list_directory
       @files = []
       glob = F.join(@path, '*')
-      root = @path_info.sub(/^\/+/,'').split('/').length <= 1
+      root = @path_info.sub(/^\/+/,'').empty?
 
       Dir[glob].sort.each do |node|
         stat = stat(node)
         next unless stat
 
         basename = F.basename(node)
+
         # ignore B29 control files, only return defaults
         next if root && (basename != 'app' && basename != 'logs' && basename != 'tomcat')
         size = stat.directory? ? '-' : filesize_format(stat.size)
