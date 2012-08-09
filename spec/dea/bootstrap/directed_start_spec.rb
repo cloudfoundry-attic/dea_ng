@@ -26,7 +26,7 @@ describe Dea do
       Dea::Instance.should_receive(:new).and_return(@instance_mock)
     end
 
-    it "should not #start when the instance is invalid" do
+    it "doesn't call #start when the instance is invalid" do
       instance_mock.should_receive(:validate) do
         EM.next_tick do
           done
@@ -41,7 +41,7 @@ describe Dea do
     end
 
 
-    it "should #start when the instance is valid" do
+    it "calls #start" do
       instance_mock.should_receive(:validate) do
         EM.next_tick do
           done
@@ -51,6 +51,18 @@ describe Dea do
       instance_mock.should_receive(:start)
 
       publish
+    end
+
+    it "registers with the instance registry " do
+      instance_mock.should_receive(:validate) do
+        EM.next_tick do
+          done
+        end
+      end
+
+      publish
+
+      bootstrap.instance_registry.should_not be_empty
     end
 
     describe "when start completes" do
@@ -102,12 +114,6 @@ describe Dea do
           publish
 
           sent_router_register.should be_true
-        end
-
-        it "registers with the instance registry" do
-          publish
-
-          bootstrap.instance_registry.should_not be_empty
         end
       end
     end
