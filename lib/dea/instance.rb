@@ -574,8 +574,9 @@ module Dea
         p.deliver
       end
 
+      start = Time.now
       Promise.resolve(p) do |error, result|
-        took = "took %.3f" % [Time.now - started_at]
+        took = "took %.3f" % [Time.now - start]
 
         if error
           logger.warn("Error starting instance: #{error.message} (#{took})")
