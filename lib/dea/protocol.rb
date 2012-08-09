@@ -34,11 +34,9 @@ module Dea::Protocol::V1
         "index"           => instance.instance_index,
         "state"           => instance.state,
         "state_timestamp" => instance.state_timestamp,
-
-        # TODO: Include once file viewer is live
-        # file_uri
-        # credentials
-        # staged
+        "file_uri"        => bootstrap.directory_server.uri,
+        "credentials"     => bootstrap.directory_server.credentials,
+        "staged"          => "/#{instance.instance_id}",
       }
 
       if instance.debug
@@ -100,7 +98,7 @@ module Dea::Protocol::V1
     def self.generate(bootstrap)
       { "id"   => bootstrap.uuid,
         "ip"   => bootstrap.local_ip,
-        "port" => bootstrap.file_viewer_port,
+        "port" => bootstrap.directory_server.port,
         "version" => Dea::VERSION,
       }
     end

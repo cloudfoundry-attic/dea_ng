@@ -7,6 +7,7 @@ require "vcap/common"
 require "vcap/component"
 
 require "dea/config"
+require "dea/directory_server"
 require "dea/droplet_registry"
 require "dea/instance_registry"
 require "dea/nats"
@@ -24,7 +25,6 @@ module Dea
     DISCOVER_DELAY_MS_MAX          = 250
 
     attr_reader :config
-    attr_reader :file_viewer_port
     attr_reader :nats
     attr_reader :uuid
 
@@ -52,6 +52,7 @@ module Dea
       setup_directories
       setup_pid_file
       setup_sweepers
+      setup_directory_server
       setup_nats
     end
 
@@ -208,6 +209,14 @@ module Dea
       EM.add_periodic_timer(advertise_interval) { send_advertise }
     end
 
+    attr_reader :directory_server
+
+    def setup_directory_server
+      @directory_server = Dea::DirectoryServer.new(@local_ip,
+                                                   config["directory_server_port"],
+                                                   @instance_registry)
+    end
+
     def setup_nats
       @nats = Dea::Nats.new(self, config)
     end
@@ -233,6 +242,8 @@ module Dea
     def start
       start_component
       start_nats
+
+      directory_server.start
 
       nats.publish("dea.start", Dea::Protocol::V1::HelloMessage.generate(self))
 

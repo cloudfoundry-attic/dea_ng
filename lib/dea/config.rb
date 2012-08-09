@@ -28,6 +28,8 @@ module Dea
           "warden_socket" => String,
           "index" => Integer,
 
+          "directory_server_port" => Integer,
+
           optional("status") => {
             "user"     => String,
             "port"     => Integer,
