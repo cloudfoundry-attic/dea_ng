@@ -529,12 +529,12 @@ module Dea
     end
 
     def start(&callback)
-      self.started_at = Time.now
-
       logger.info("Starting instance")
 
       p = Promise.new do
         promise_state(State::BORN, State::STARTING).resolve
+
+        self.started_at = Time.now
 
         promise_droplet = Promise.new do |p|
           if !droplet.droplet_exist?
