@@ -88,8 +88,7 @@ module Dea::Protocol::V1
     def self.generate(bootstrap)
       { "id"       => bootstrap.uuid,
         "runtimes" => bootstrap.runtimes.keys,
-        # TODO: Fill in when available
-        "available_memory" => 0,
+        "available_memory" => bootstrap.resource_manager.resources["memory"].remain,
       }
     end
   end
@@ -108,12 +107,17 @@ module Dea::Protocol::V1
     def self.generate(bootstrap)
       hello = HelloMessage.generate(bootstrap)
 
+      used_memory = bootstrap.instance_registry.inject(0) do |a, i|
+        a + (i.used_memory_in_bytes / (1024 * 1024))
+      end
+
+      rm = bootstrap.resource_manager
+
       extra = {
-        # TODO: Fill these in when we have resource tracking working
-        "max_memory"      => nil,
-        "reserved_memory" => nil,
-        "used_memory"     => nil,
-        "num_clients"     => nil,
+        "max_memory"      => rm.resources["memory"].capacity,
+        "reserved_memory" => rm.resources["memory"].used,
+        "used_memory"     => used_memory,
+        "num_clients"     => rm.resources["num_instances"].used,
       }
 
       hello.merge(extra)

@@ -35,5 +35,6 @@ describe Dea do
     advert.should_not be_nil
     advert["id"].should == @bootstrap.uuid
     advert["runtimes"].should == @bootstrap.runtimes.keys
+    advert["available_memory"].should == @bootstrap.resource_manager.resources["memory"].remain
   end
 end
