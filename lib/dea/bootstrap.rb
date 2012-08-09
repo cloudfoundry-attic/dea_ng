@@ -366,44 +366,13 @@ module Dea
     end
 
     def handle_dea_find_droplet(message)
-      app_id  = message.data["droplet"]
-
-      if app_id
-        logger.debug("Find droplet request for app #{app_id}", :app_id => app_id)
-      else
-        logger.warn("Find droplet request missing app_id")
-        return
-      end
-
-      instances = instance_registry.instances_for_application(app_id)
-      if instances.empty?
-        logger.info("No instances found for app #{app_id}", :app_id => app_id)
-        return
-      end
-
-      set_or_nil = lambda { |h, k| h.has_key?(k) ? Set.new(h[k]) : nil }
-
-      # Optional search filters
-      version       = message.data["version"]
-      instance_ids  = set_or_nil.call(message.data, "instances")
-      indices       = set_or_nil.call(message.data, "indices")
-      states        = set_or_nil.call(message.data, "states")
       include_stats = !!message.data["include_stats"]
 
-      instances.each do |_, instance|
-        matched = true
-
-        matched &&= (instance.application_version == version)   unless version.nil?
-        matched &&= instance_ids.include?(instance.instance_id) unless instance_ids.nil?
-        matched &&= indices.include?(instance.instance_index)   unless indices.nil?
-        matched &&= states.include?(instance.state)             unless states.nil?
-
-        if matched
-          response = Dea::Protocol::V1::FindDropletResponse.generate(self,
-                                                                     instance,
-                                                                     include_stats)
-          message.respond(response)
-        end
+      instances_filtered_by_message(message) do |instance|
+        response = Dea::Protocol::V1::FindDropletResponse.generate(self,
+                                                                   instance,
+                                                                   include_stats)
+        message.respond(response)
       end
 
       nil
@@ -430,6 +399,44 @@ module Dea
       # TODO: Return if resources are exhausted
       msg = Dea::Protocol::V1::AdvertiseMessage.generate(self)
       @nats.publish("dea.advertise", msg)
+    end
+
+    def instances_filtered_by_message(message)
+      app_id = message.data["droplet"]
+
+      if app_id
+        logger.debug("Filter message for app_id: %d" % app_id, :app_id => app_id)
+      else
+        logger.warn("Filter message missing app_id")
+        return
+      end
+
+      instances = instance_registry.instances_for_application(app_id)
+      if instances.empty?
+        logger.info("No instances found for app_id: %d" % app_id, :app_id => app_id)
+        return
+      end
+
+      set_or_nil = lambda { |h, k| h.has_key?(k) ? Set.new(h[k]) : nil }
+
+      # Optional search filters
+      version       = message.data["version"]
+      instance_ids  = set_or_nil.call(message.data, "instances")
+      indices       = set_or_nil.call(message.data, "indices")
+      states        = set_or_nil.call(message.data, "states")
+
+      instances.each do |_, instance|
+        matched = true
+
+        matched &&= (instance.application_version == version)   unless version.nil?
+        matched &&= instance_ids.include?(instance.instance_id) unless instance_ids.nil?
+        matched &&= indices.include?(instance.instance_index)   unless indices.nil?
+        matched &&= states.include?(instance.state)             unless states.nil?
+
+        if matched
+          yield(instance)
+        end
+      end
     end
 
     private
