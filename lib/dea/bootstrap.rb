@@ -54,6 +54,7 @@ module Dea
       setup_sweepers
       setup_directory_server
       setup_nats
+      setup_router_client
     end
 
     def setup_logging
