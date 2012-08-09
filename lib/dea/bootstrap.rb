@@ -9,6 +9,7 @@ require "vcap/component"
 require "dea/config"
 require "dea/directory_server"
 require "dea/droplet_registry"
+require "dea/instance"
 require "dea/instance_registry"
 require "dea/nats"
 require "dea/protocol"
@@ -273,6 +274,31 @@ module Dea
     end
 
     def handle_dea_directed_start(message)
+      instance = Instance.new(self, Instance.translate_attributes(message.data))
+
+      begin
+        instance.validate
+      rescue => error
+        logger.warn "Error validating instance: #{error.message}"
+        return
+      end
+
+      instance.start do |error|
+        if error
+          logger.log_exception(error)
+          next
+        end
+
+        # Send heartbeat so code waiting for the instance to start can continue
+        hb = Dea::Protocol::V1::HeartbeatResponse.generate(self, [instance])
+        nats.publish("dea.heartbeat", hb)
+
+        # Register with router
+        router_client.register_instance(instance)
+
+        # Register with instance registry
+        instance_registry.register(instance)
+      end
     end
 
     def handle_dea_locate(message)
