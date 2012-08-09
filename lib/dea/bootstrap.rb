@@ -204,7 +204,7 @@ module Dea
     def setup_sweepers
       # Heartbeats of instances we're managing
       hb_interval = config["intervals"]["heartbeat"] || DEFAULT_HEARTBEAT_INTERVAL
-      EM.add_periodic_timer(hb_interval) { send_heartbeats }
+      EM.add_periodic_timer(hb_interval) { send_heartbeat(instance_registry.to_a) }
 
       # Notifications for CloudControllers looking to place droplets
       advertise_interval = config["intervals"]["advertise"] || DEFAULT_ADVERTISE_INTERVAL
@@ -259,7 +259,7 @@ module Dea
     end
 
     def handle_health_manager_start(message)
-      send_heartbeats
+      send_heartbeat(instance_registry.to_a)
     end
 
     def handle_router_start(message)
@@ -292,9 +292,8 @@ module Dea
           next
         end
 
-        # Send heartbeat so code waiting for the instance to start can continue
-        hb = Dea::Protocol::V1::HeartbeatResponse.generate(self, [instance])
-        nats.publish("dea.heartbeat", hb)
+        # Notify others immediately
+        send_heartbeat([instance])
 
         # Register with router
         router_client.register_instance(instance)
@@ -418,11 +417,11 @@ module Dea
       end
     end
 
-    def send_heartbeats
-      return if instance_registry.empty?
+    def send_heartbeat(instances)
+      return if instances.empty?
 
-      hbs = Dea::Protocol::V1::HeartbeatResponse.generate(self, instance_registry.to_a)
-      @nats.publish("dea.heartbeat", hbs)
+      hbs = Dea::Protocol::V1::HeartbeatResponse.generate(self, instances)
+      nats.publish("dea.heartbeat", hbs)
 
       nil
     end
