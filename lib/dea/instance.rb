@@ -517,6 +517,10 @@ module Dea
       end
     end
 
+    def started_at
+      @start_timestamp
+    end
+
     def start(&callback)
       @start_timestamp = Time.now
 
@@ -556,7 +560,6 @@ module Dea
 
         promise_prepare_start_script.resolve
 
-        self.started_at = Time.now
         self.state = State::RUNNING
 
         promise_start.resolve
