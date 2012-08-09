@@ -283,6 +283,9 @@ module Dea
         return
       end
 
+      # Register with instance registry
+      instance_registry.register(instance)
+
       instance.start do |error|
         if error
           logger.log_exception(error)
@@ -295,9 +298,6 @@ module Dea
 
         # Register with router
         router_client.register_instance(instance)
-
-        # Register with instance registry
-        instance_registry.register(instance)
       end
     end
 
