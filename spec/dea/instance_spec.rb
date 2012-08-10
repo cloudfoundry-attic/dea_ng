@@ -796,4 +796,92 @@ describe Dea::Instance do
       end
     end
   end
+
+  describe "stop transition" do
+    subject(:instance) do
+      Dea::Instance.new(bootstrap, valid_instance_attributes)
+    end
+
+    let(:warden_connection) do
+      mock("warden_connection")
+    end
+
+    before do
+      instance.stub(:promise_state).and_return(delivering_promise)
+      instance.stub(:promise_warden_connection).and_return(delivering_promise(warden_connection))
+      instance.stub(:promise_stop).and_return(delivering_promise)
+    end
+
+    def expect_stop
+      error = nil
+
+      em do
+        instance.stop do |error_|
+          error = error_
+          done
+        end
+      end
+
+      expect do
+        raise error if error
+      end
+    end
+
+    describe "checking source state" do
+      before do
+        instance.unstub(:promise_state)
+      end
+
+      passing_states = [Dea::Instance::State::RUNNING]
+
+      passing_states.each do |state|
+        it "passes when #{state.inspect}" do
+          instance.state = state
+          expect_stop.to_not raise_error
+        end
+      end
+
+      Dea::Instance::State.constants.map do |constant|
+        Dea::Instance::State.const_get(constant)
+      end.each do |state|
+        next if passing_states.include?(state)
+
+        it "fails when #{state.inspect}" do
+          instance.state = state
+          expect_stop.to raise_error(Dea::Instance::BaseError, /transition/)
+        end
+      end
+    end
+
+    describe "#promise_stop" do
+      before do
+        instance.unstub(:promise_stop)
+      end
+
+      let(:response) do
+        mock("Warden::Protocol::StopResponse")
+      end
+
+      it "executes a StopRequest" do
+        instance.attributes["warden_handle"] = "handle"
+
+        instance.stub(:promise_warden_call) do |connection, request|
+          request.should be_kind_of(::Warden::Protocol::StopRequest)
+          request.handle.should == "handle"
+
+          delivering_promise(response)
+        end
+
+        expect_stop.to_not raise_error
+      end
+
+      it "can fail" do
+        instance.stub(:promise_warden_call) do
+          failing_promise(RuntimeError.new("error"))
+        end
+
+        expect_stop.to raise_error(RuntimeError, /error/i)
+      end
+    end
+  end
 end
