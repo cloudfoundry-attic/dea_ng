@@ -25,6 +25,8 @@ module Dea
     DISCOVER_DELAY_MS_MEM          = 100
     DISCOVER_DELAY_MS_MAX          = 250
 
+    CRASHES_REAPER_INTERVAL_SECS   = 10
+
     attr_reader :config
     attr_reader :nats
     attr_reader :uuid
@@ -209,6 +211,9 @@ module Dea
       # Notifications for CloudControllers looking to place droplets
       advertise_interval = config["intervals"]["advertise"] || DEFAULT_ADVERTISE_INTERVAL
       EM.add_periodic_timer(advertise_interval) { send_advertise }
+
+      # Ensure we keep around only the most recent crash for short amount of time
+      EM.add_periodic_timer(CRASHES_REAPER_INTERVAL_SECS) { reap_crashes }
     end
 
     attr_reader :directory_server
@@ -435,6 +440,33 @@ module Dea
 
         if matched
           yield(instance)
+        end
+      end
+    end
+
+    def reap_crashes
+      logger.debug "Reaping crashes"
+
+      crashes_by_app = Hash.new { |h, k| h[k] = [] }
+      instance_registry.select { |i| i.crashed? } \
+                       .each   { |i| crashes_by_app[i.application_id] << i }
+
+      now = Time.now.to_i
+
+      crashes_by_app.each do |app_id, instances|
+        # Most recent crashes first
+        instances.sort! { |a, b| b.state_timestamp <=> a.state_timestamp }
+
+        instances.each_with_index do |instance, idx|
+          secs_since_crash = now - instance.state_timestamp
+
+          # Remove if not most recent, or too old
+          if (idx > 0) || (secs_since_crash > self.config["crash_lifetime_secs"])
+            logger.info "Removing crash for #{instance.application_name}"
+
+            instance.destroy_crash_artifacts
+            instance_registry.unregister(instance)
+          end
         end
       end
     end
