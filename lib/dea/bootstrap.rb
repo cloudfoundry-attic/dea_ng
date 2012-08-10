@@ -294,6 +294,7 @@ module Dea
       instance.start do |error|
         if error
           logger.log_exception(error)
+          instance_registry.unregister(instance)
           next
         end
 
