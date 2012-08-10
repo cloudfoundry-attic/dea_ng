@@ -1,5 +1,8 @@
 # Copyright (c) 2009-2012 VMware, Inc.
-require 'pathname'
+require "pathname"
+
+require "steno"
+require "steno/core_ext"
 
 # Rack::Directory serves entries below the +root+ given, according to the
 # path info of the Rack request. If a directory is found, the file's contents
@@ -51,6 +54,12 @@ module Dea
       instance_id = path_parts[1]
       instance = @instance_registry.lookup_instance(instance_id)
       if instance.nil? || instance.attributes["warden_container_path"].nil?
+        if instance.nil?
+          logger.warn("Unknown instance_id=#{instance_id}")
+        else
+          logger.warn("Container path unset for instance_id=#{instance_id}")
+        end
+
         return entity_not_found
       end
 
@@ -71,6 +80,8 @@ module Dea
 
       resolve_symlink
       if forbidden = check_forbidden
+        logger.warn("Path #{@path} is forbidden.")
+
         forbidden
       else
         list_path
@@ -167,6 +178,10 @@ module Dea
       show_path = @path.sub(/^#{@root}/,'')
       files = @files.map{|f| "%-35s %10s" % f }*"\n"
       files.each_line{|l| yield l }
+    end
+
+    def logger
+      @logger ||= self.class.logger
     end
 
     # Stolen from Ramaze
