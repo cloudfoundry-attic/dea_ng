@@ -335,7 +335,10 @@ module Dea
 
     def promise_warden_call(connection, request)
       Promise.new do |p|
+        logger.debug2(request.inspect)
         connection.call(request) do |result|
+          logger.debug2(result.inspect)
+
           error = nil
 
           begin
