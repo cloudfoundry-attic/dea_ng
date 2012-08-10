@@ -314,6 +314,9 @@ module Dea
       instances_filtered_by_message(message) do |instance|
         next if !instance.running?
 
+        # Unregister with router
+        router_client.unregister_instance(instance)
+
         instance.stop do |error|
           if error
             logger.log_exception(error)

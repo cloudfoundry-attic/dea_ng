@@ -49,6 +49,17 @@ describe "Dea::Bootstrap#handle_dea_stop" do
     end
   end
 
+  it "unregisters with the router" do
+    sent_router_unregister = false
+    nats_mock.subscribe("router.unregister") do
+      sent_router_unregister = true
+    end
+
+    publish
+
+    sent_router_unregister.should be_true
+  end
+
   describe "when stop completes" do
     before do
       instance_mock.stub(:running?).and_return(true)
