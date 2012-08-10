@@ -617,6 +617,10 @@ module Dea
       end
     end
 
+    def destroy_crash_artifacts
+      # TODO: Fill in
+    end
+
     private
 
     def logger
