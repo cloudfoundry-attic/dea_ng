@@ -311,6 +311,16 @@ module Dea
     end
 
     def handle_dea_stop(message)
+      instances_filtered_by_message(message) do |instance|
+        next if !instance.running?
+
+        instance.stop do |error|
+          if error
+            logger.log_exception(error)
+            next
+          end
+        end
+      end
     end
 
     def handle_dea_discover(message)
