@@ -260,6 +260,14 @@ module Dea
       attributes["started_at"]
     end
 
+    def stopped_at=(value)
+      attributes["stopped_at"] = value
+    end
+
+    def stopped_at
+      attributes["stopped_at"]
+    end
+
     def droplet
       bootstrap.droplet_registry[droplet_sha1]
     end
@@ -585,6 +593,47 @@ module Dea
           logger.warn("Error starting instance: #{error.message} (#{took})")
         else
           logger.info("Started instance (#{took})")
+        end
+
+        callback.call(error)
+      end
+    end
+
+    def promise_stop
+      Promise.new do |p|
+        connection = promise_warden_connection(:app).resolve
+
+        request = ::Warden::Protocol::StopRequest.new
+        request.handle = attributes["warden_handle"]
+        response = promise_warden_call(connection, request).resolve
+
+        p.deliver
+      end
+    end
+
+    def stop(&callback)
+      logger.info("Stopping instance")
+
+      p = Promise.new do
+        promise_state(State::RUNNING).resolve
+
+        self.stopped_at = Time.now
+
+        promise_stop.resolve
+
+        promise_state(State::RUNNING, State::STOPPED).resolve
+
+        p.deliver
+      end
+
+      start = Time.now
+      Promise.resolve(p) do |error, result|
+        took = "took %.3f" % [Time.now - start]
+
+        if error
+          logger.warn("Error stopping instance: #{error.message} (#{took})")
+        else
+          logger.info("Stopped instance (#{took})")
         end
 
         callback.call(error)
