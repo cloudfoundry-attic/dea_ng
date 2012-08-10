@@ -305,16 +305,24 @@ describe Dea::Instance do
         instance.unstub(:promise_state)
       end
 
-      it "passes when \"born\"" do
-        instance.state = Dea::Instance::State::BORN
+      passing_states = [Dea::Instance::State::BORN]
 
-        expect_start.to_not raise_error
+      passing_states.each do |state|
+        it "passes when #{state.inspect}" do
+          instance.state = state
+          expect_start.to_not raise_error
+        end
       end
 
-      it "fails when invalid" do
-        instance.state = "invalid"
+      Dea::Instance::State.constants.map do |constant|
+        Dea::Instance::State.const_get(constant)
+      end.each do |state|
+        next if passing_states.include?(state)
 
-        expect_start.to raise_error(Dea::Instance::BaseError, /transition/)
+        it "fails when #{state.inspect}" do
+          instance.state = state
+          expect_start.to raise_error(Dea::Instance::BaseError, /transition/)
+        end
       end
     end
 
