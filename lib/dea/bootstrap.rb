@@ -219,9 +219,9 @@ module Dea
     attr_reader :directory_server
 
     def setup_directory_server
-      @directory_server = Dea::DirectoryServer.new(@local_ip,
+      @directory_server = Dea::DirectoryServer.new(local_ip,
                                                    config["directory_server_port"],
-                                                   @instance_registry)
+                                                   instance_registry)
     end
 
     def start_directory_server
