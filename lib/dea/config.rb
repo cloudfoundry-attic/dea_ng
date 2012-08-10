@@ -11,6 +11,7 @@ module Dea
       "status"    => {},
       "resources" => {},
       "crash_lifetime_secs" => 60 * 60,
+      "bind_mounts" => [],
     }
 
     def self.schema
@@ -53,6 +54,12 @@ module Dea
 
             optional("num_instances") => Integer,
           },
+
+          optional("bind_mounts") => [{
+            "src_path" => String,
+            optional("dst_path") => String,
+            optional("mode")     => enum("ro", "rw"),
+          }],
         }
       end
     end

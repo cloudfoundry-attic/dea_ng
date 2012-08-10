@@ -269,6 +269,7 @@ describe Dea::Instance do
     end
 
     before do
+      bootstrap.stub(:config).and_return({ "bind_mounts" => [] })
       instance.stub(:promise_state).and_return(delivering_promise)
       instance.stub(:promise_droplet_download).and_return(delivering_promise)
       instance.stub(:promise_warden_connection).and_return(delivering_promise(warden_connection))

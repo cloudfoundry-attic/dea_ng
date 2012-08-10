@@ -13,6 +13,11 @@ module Dea
   class Instance
     STAT_COLLECTION_INTERVAL_SECS = 1
 
+    BIND_MOUNT_MODE_MAP = {
+      "ro" =>  ::Warden::Protocol::CreateRequest::BindMount::Mode::RO,
+      "rw" =>  ::Warden::Protocol::CreateRequest::BindMount::Mode::RW,
+    }
+
     class State
       BORN     = "BORN"
 
@@ -354,18 +359,30 @@ module Dea
       Promise.new do |p|
         connection = promise_warden_connection(:app).resolve
 
-        droplet_dirname_bind_mount = ::Warden::Protocol::CreateRequest::BindMount.new
-        droplet_dirname_bind_mount.src_path = droplet.droplet_dirname
-        droplet_dirname_bind_mount.dst_path = droplet.droplet_dirname
-        droplet_dirname_bind_mount.mode = ::Warden::Protocol::CreateRequest::BindMount::Mode::RO
+        # Droplet and runtime
+        bind_mounts = [droplet.droplet_dirname, runtime.dirname].map do |path|
+          bind_mount = ::Warden::Protocol::CreateRequest::BindMount.new
+          bind_mount.src_path = path
+          bind_mount.dst_path = path
+          bind_mount.mode = ::Warden::Protocol::CreateRequest::BindMount::Mode::RO
+          bind_mount
+        end
 
-        runtime_dirname_bind_mount = ::Warden::Protocol::CreateRequest::BindMount.new
-        runtime_dirname_bind_mount.src_path = runtime.dirname
-        runtime_dirname_bind_mount.dst_path = runtime.dirname
-        runtime_dirname_bind_mount.mode = ::Warden::Protocol::CreateRequest::BindMount::Mode::RO
+        # Extra mounts (these typically include libs like pq, mysql, etc)
+        bootstrap.config["bind_mounts"].each do |bm|
+          bind_mount = ::Warden::Protocol::CreateRequest::BindMount.new
+
+          bind_mount.src_path = bm["src_path"]
+          bind_mount.dst_path = bm["dst_path"] || bm["src_path"]
+
+          mode = bm["mode"] || "ro"
+          bind_mount.mode = BIND_MOUNT_MODE_MAP[mode]
+
+          bind_mounts << bind_mount
+        end
 
         create_request = ::Warden::Protocol::CreateRequest.new
-        create_request.bind_mounts = [droplet_dirname_bind_mount, runtime_dirname_bind_mount]
+        create_request.bind_mounts = bind_mounts
 
         response = promise_warden_call(connection, create_request).resolve
 
