@@ -16,9 +16,9 @@ GIT
 
 GIT
   remote: https://github.com/cloudfoundry/steno.git
-  revision: 9928a53a36c2f4dd486dd99d35f3354eb8811573
+  revision: 4dc656d211113a8070f6b70bec994d40fc5a49f3
   specs:
-    steno (0.0.3)
+    steno (0.0.14)
       grape
       yajl-ruby
 
