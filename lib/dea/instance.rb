@@ -371,6 +371,8 @@ module Dea
 
         @attributes["warden_handle"] = response.handle
 
+        @logger = logger.tag("warden_handle" => response.handle)
+
         p.deliver
       end
     end
