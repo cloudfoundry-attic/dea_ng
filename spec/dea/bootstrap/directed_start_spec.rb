@@ -70,23 +70,34 @@ describe Dea do
         bootstrap.unstub(:setup_router_client)
       end
 
-      it "does nothing when an error occured" do
-        received_heartbeat = false
-        nats_mock.subscribe("dea.heartbeat") do
-          received_heartbeat = true
+      describe "with failure" do
+        before do
+          # Almost done when #start is called
+          instance_mock.should_receive(:start) do
+            EM.next_tick { done }
+          end.and_yield(RuntimeError.new("Error"))
         end
 
-        # Almost done when #start is called
-        instance_mock.should_receive(:start) do
-          EM.next_tick { done }
-        end.and_yield(RuntimeError.new("Error"))
+        it "does not publish a heartbeat" do
+          received_heartbeat = false
+          nats_mock.subscribe("dea.heartbeat") do
+            received_heartbeat = true
+          end
 
-        publish
+          publish
 
-        received_heartbeat.should be_false
+          received_heartbeat.should be_false
+        end
+
+        it "unregisters with the instance registry" do
+          publish
+
+          bootstrap.instance_registry.should be_empty
+        end
       end
 
-      describe "successfully" do
+
+      describe "with success" do
         before do
           # Almost done when #start is called
           instance_mock.should_receive(:start) do
