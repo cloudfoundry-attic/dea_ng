@@ -330,7 +330,10 @@ module Dea
 
     def promise_warden_call(connection, request)
       Promise.new do |p|
+        logger.debug2(request.inspect)
         connection.call(request) do |result|
+          logger.debug2(result.inspect)
+
           error = nil
 
           begin
@@ -643,7 +646,11 @@ module Dea
         "application_name"    => application_name,
       }
 
-      @logger ||= self.class.logger.tag(tags)
+      if attributes["warden_handle"]
+        tags["warden_handle"] = attributes["warden_handle"]
+      end
+
+      self.class.logger.tag(tags)
     end
   end
 end
