@@ -459,7 +459,7 @@ module Dea
     end
 
     def reap_crashes
-      logger.debug "Reaping crashes"
+      logger.debug2 "Reaping crashes"
 
       crashes_by_app = Hash.new { |h, k| h[k] = [] }
       instance_registry.select { |i| i.crashed? } \
