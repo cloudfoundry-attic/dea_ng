@@ -37,8 +37,8 @@ GIT
 
 GIT
   remote: https://github.com/cloudfoundry/warden.git
-  revision: 1d8e2fb1c4225fc907f78bd1bf9a56a181f4ecf6
-  ref: 1d8e2fb1
+  revision: 3449bd5d3b3c4486329cc49998c348f1ae30e34c
+  ref: 3449bd5d
   specs:
     em-warden-client (0.1.0)
       eventmachine
