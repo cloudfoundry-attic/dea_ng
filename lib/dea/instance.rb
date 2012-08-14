@@ -279,6 +279,11 @@ module Dea
       nil
     end
 
+    def to_s
+      "Instance(id=%s, idx=%s, app_id=%s)" % [instance_id.slice(0, 4),
+                                             instance_index, application_id]
+    end
+
     def promise_state(from, to = nil)
       promise_state = Promise.new do
         if !Array(from).include?(state)
