@@ -270,7 +270,6 @@ describe Dea::Instance do
 
     before do
       bootstrap.stub(:config).and_return({ "bind_mounts" => [] })
-      instance.stub(:promise_state).and_return(delivering_promise)
       instance.stub(:promise_droplet_download).and_return(delivering_promise)
       instance.stub(:promise_warden_connection).and_return(delivering_promise(warden_connection))
       instance.stub(:promise_create_container).and_return(delivering_promise)
@@ -301,10 +300,6 @@ describe Dea::Instance do
     end
 
     describe "checking source state" do
-      before do
-        instance.unstub(:promise_state)
-      end
-
       passing_states = [Dea::Instance::State::BORN]
 
       passing_states.each do |state|

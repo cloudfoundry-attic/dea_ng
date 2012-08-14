@@ -176,15 +176,22 @@ module Dea
       end
     end
 
-    # Helper method needed for creating a new scope
-    def self.define_state_predicate(state)
-      define_method("#{state.to_s.downcase}?") do
+    def self.define_state_methods(state)
+      state_predicate = "#{state.to_s.downcase}?"
+      define_method(state_predicate) do
         self.state == state
+      end
+
+      state_time = "state_#{state.to_s.downcase}_timestamp"
+      define_method(state_time) do
+        attributes[state_time]
       end
     end
 
     # Define predicate methods for querying state
-    State.constants.each { |state| define_state_predicate(State.const_get(state)) }
+    State.constants.each do |state|
+      define_state_methods(State.const_get(state))
+    end
 
     attr_reader :bootstrap
     attr_reader :attributes
@@ -251,31 +258,16 @@ module Dea
 
     def state=(state)
       attributes["state"] = state
-      # This diverges from the old implementation (used to_i) but is more
-      # correct.
       attributes["state_timestamp"] = Time.now.to_f
+
+      state_time = "state_#{state.to_s.downcase}_timestamp"
+      attributes[state_time] = Time.now.to_f
 
       emit(state)
     end
 
     def state_timestamp
       attributes["state_timestamp"]
-    end
-
-    def started_at=(value)
-      attributes["started_at"] = value
-    end
-
-    def started_at
-      attributes["started_at"]
-    end
-
-    def stopped_at=(value)
-      attributes["stopped_at"] = value
-    end
-
-    def stopped_at
-      attributes["stopped_at"]
     end
 
     def droplet
@@ -569,8 +561,6 @@ module Dea
       p = Promise.new do
         promise_state(State::BORN, State::STARTING).resolve
 
-        self.started_at = Time.now
-
         promise_droplet = Promise.new do |p|
           if !droplet.droplet_exist?
             logger.info("Starting droplet download")
@@ -639,13 +629,9 @@ module Dea
       logger.info("Stopping instance")
 
       p = Promise.new do
-        promise_state(State::RUNNING).resolve
-
-        self.stopped_at = Time.now
+        promise_state(State::RUNNING, State::STOPPED).resolve
 
         promise_stop.resolve
-
-        promise_state(State::RUNNING, State::STOPPED).resolve
 
         p.deliver
       end

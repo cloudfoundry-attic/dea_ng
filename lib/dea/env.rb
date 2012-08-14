@@ -57,8 +57,10 @@ module Dea
         hash[key] = instance.send(key)
       end
 
-      hash["started_at"]           = instance.started_at
-      hash["started_at_timestamp"] = instance.started_at.to_i
+      started_at = Time.at(instance.state_starting_timestamp)
+
+      hash["started_at"]           = started_at
+      hash["started_at_timestamp"] = started_at.to_i
       hash["host"]                 = "0.0.0.0"
       hash["port"]                 = instance.instance_container_port
       hash["limits"]               = instance.limits

@@ -129,7 +129,7 @@ describe Dea::Env do
         instance.stub(key).and_return(value)
       end
 
-      instance.stub(:started_at).and_return(Time.now)
+      instance.stub(:state_starting_timestamp).and_return(Time.now.to_f)
 
       instance.stub(:instance_container_port).and_return(4567)
     end
