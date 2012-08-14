@@ -7,10 +7,13 @@ require "steno/core_ext"
 require "vcap/common"
 
 require "dea/env"
+require "dea/event_emitter"
 require "dea/promise"
 
 module Dea
   class Instance
+    include EventEmitter
+
     STAT_COLLECTION_INTERVAL_SECS = 1
 
     BIND_MOUNT_MODE_MAP = {
@@ -251,6 +254,8 @@ module Dea
       # This diverges from the old implementation (used to_i) but is more
       # correct.
       attributes["state_timestamp"] = Time.now.to_f
+
+      emit(state)
     end
 
     def state_timestamp
