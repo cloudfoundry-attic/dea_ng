@@ -60,6 +60,17 @@ describe "Dea::Bootstrap#handle_dea_stop" do
     sent_router_unregister.should be_true
   end
 
+  it "send exited notifications" do
+    sent_exited_notification = false
+    nats_mock.subscribe("droplet.exited") do
+      sent_exited_notification = true
+    end
+
+    publish
+
+    sent_exited_notification.should be_true
+  end
+
   describe "when stop completes" do
     before do
       instance_mock.stub(:running?).and_return(true)
