@@ -60,6 +60,14 @@ describe Dea::Nats do
     end
   end
 
+  describe "subscription teardown" do
+    it "should unsubscribe from everything when stop is called" do
+      nats.sids.each { |_, sid| nats_client.should_receive(:unsubscribe).with(sid) }
+
+      nats.stop
+    end
+  end
+
   describe "message" do
     it "should be able to respond" do
       nats.subscribe("echo") do |message|
