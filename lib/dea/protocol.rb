@@ -123,4 +123,22 @@ module Dea::Protocol::V1
       hello.merge(extra)
     end
   end
+
+  class ExitMessage
+    def self.generate(instance, reason)
+      msg = {
+        "droplet"  => instance.application_id,
+        "version"  => instance.application_version,
+        "instance" => instance.instance_id,
+        "index"    => instance.instance_index,
+        "reason"   => reason,
+      }
+
+      if instance.crashed?
+        msg["crash_timestamp"] = instance.state_timestamp.to_i
+      end
+
+      msg
+    end
+  end
 end

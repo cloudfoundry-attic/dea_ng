@@ -27,6 +27,11 @@ module Dea
 
     CRASHES_REAPER_INTERVAL_SECS   = 10
 
+    EXIT_REASON_STOPPED            = "STOPPED"
+    EXIT_REASON_CRASHED            = "CRASHED"
+    EXIT_REASON_SHUTDOWN           = "DEA_SHUTDOWN"
+    EXIT_REASON_EVACUATION         = "DEA_EVACUATION"
+
     attr_reader :config
     attr_reader :nats
     attr_reader :uuid
@@ -319,15 +324,7 @@ module Dea
       instances_filtered_by_message(message) do |instance|
         next if !instance.running?
 
-        # Unregister with router
-        router_client.unregister_instance(instance)
-
-        instance.stop do |error|
-          if error
-            logger.log_exception(error)
-            next
-          end
-        end
+        stop_instance(instance, EXIT_REASON_STOPPED)
       end
     end
 
@@ -410,6 +407,20 @@ module Dea
       end
     end
 
+    def stop_instance(instance, reason)
+      router_client.unregister_instance(instance)
+
+      msg = Dea::Protocol::V1::ExitMessage.generate(instance, reason)
+      nats.publish("droplet.exited", msg)
+
+      instance.stop do |error|
+        if error
+          logger.log_exception(error)
+          next
+        end
+      end
+    end
+
     def send_heartbeat(instances)
       return if instances.empty?
 
@@ -467,8 +478,10 @@ module Dea
       logger.debug2 "Reaping crashes"
 
       crashes_by_app = Hash.new { |h, k| h[k] = [] }
-      instance_registry.select { |i| i.crashed? } \
-                       .each   { |i| crashes_by_app[i.application_id] << i }
+
+      instance_registry.
+        select { |i| i.crashed? }.
+        each   { |i| crashes_by_app[i.application_id] << i }
 
       now = Time.now.to_i
 
