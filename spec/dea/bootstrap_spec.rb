@@ -142,6 +142,7 @@ describe Dea::Bootstrap do
 
   describe "shutdown" do
     it "should stop and flush nats" do
+      bootstrap.setup_signal_handlers
       bootstrap.setup_instance_registry
 
       nats_client_mock = mock("nats_client")
@@ -156,6 +157,46 @@ describe Dea::Bootstrap do
       bootstrap.stub(:terminate)
 
       bootstrap.shutdown
+    end
+  end
+
+  describe "evacuation" do
+    before :each do
+      bootstrap.setup_signal_handlers
+      bootstrap.setup_instance_registry
+    end
+
+    it "should send an exited message for each instance" do
+      instance = Dea::Instance.new(bootstrap, "application_id" => 0)
+      instance.state = Dea::Instance::State::RUNNING
+      bootstrap.instance_registry.register(instance)
+
+      # For shutdown delay
+      EM.stub(:add_timer)
+
+      bootstrap.
+        should_receive(:send_exited_message).
+        with(instance, Dea::Bootstrap::EXIT_REASON_EVACUATION)
+
+      bootstrap.evacuate
+    end
+
+    it "should call shutdown after some time" do
+      bootstrap.stub(:config).and_return({ "evacuation_delay_secs" => 0.2 })
+
+      shutdown_timestamp = nil
+      bootstrap.stub(:shutdown) do
+        shutdown_timestamp = Time.now
+        EM.stop
+      end
+
+      start = Time.now
+      em(:timeout => 1) do
+        bootstrap.evacuate
+      end
+
+      shutdown_timestamp.should_not be_nil
+      (shutdown_timestamp - start).should be_within(0.05).of(0.2)
     end
   end
 

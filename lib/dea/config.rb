@@ -11,6 +11,7 @@ module Dea
       "status"    => {},
       "resources" => {},
       "crash_lifetime_secs" => 60 * 60,
+      "evacuation_delay_secs" => 30,
       "bind_mounts" => [],
     }
 
@@ -33,6 +34,8 @@ module Dea
           "directory_server_port" => Integer,
 
           optional("crash_lifetime_secs") => Integer,
+
+          optional("evacuation_delay_secs") => Integer,
 
           optional("status") => {
             optional("user")     => String,
