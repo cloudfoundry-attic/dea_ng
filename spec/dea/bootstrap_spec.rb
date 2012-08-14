@@ -140,6 +140,25 @@ describe Dea::Bootstrap do
     end
   end
 
+  describe "shutdown" do
+    it "should stop and flush nats" do
+      bootstrap.setup_instance_registry
+
+      nats_client_mock = mock("nats_client")
+      nats_client_mock.should_receive(:flush)
+
+      nats_mock = mock("nats")
+      nats_mock.should_receive(:stop)
+      nats_mock.should_receive(:client).and_return(nats_client_mock)
+      bootstrap.stub(:nats).and_return(nats_mock)
+
+      # Don't want to exit tests :)
+      bootstrap.stub(:terminate)
+
+      bootstrap.shutdown
+    end
+  end
+
   describe "crash reaping" do
     before :each do
       bootstrap.setup_instance_registry
