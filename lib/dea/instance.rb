@@ -651,42 +651,44 @@ module Dea
     end
 
     def start_stat_collector
-      collector = Promise.new { |p| collect_stats }
-
-      Promise.resolve(collector) do |_, _|
+      Promise.resolve(promise_collect_stats) do
         @stat_collection_timer =
           EM.add_timer(STAT_COLLECTION_INTERVAL_SECS) { start_stat_collector }
       end
     end
 
-    def collect_stats
-      begin
-        info_resp = promise_container_info.resolve
-      rescue => e
-        logger.error("Failed getting container info: #{e}")
-        return
-      end
-
-      @used_memory_in_bytes = info_resp.memory_stat.rss * 1024
-
-      @used_disk_in_bytes = info_resp.disk_stat.bytes_used
-
-      now = Time.now
-
-      @cpu_samples << {
-        :timestamp_ns => now.to_i * 1_000_000_000 + now.nsec,
-        :ns_used      => info_resp.cpu_stat.usage,
-      }
-
-      @cpu_samples.unshift if @cpu_samples.size > 2
-
-      if @cpu_samples.size == 2
-        used = @cpu_samples[1][:ns_used] - @cpu_samples[0][:ns_used]
-        elapsed = @cpu_samples[1][:timestamp_ns] - @cpu_samples[0][:timestamp_ns]
-
-        if elapsed > 0
-          @computed_pcpu = used.to_f / elapsed
+    def promise_collect_stats
+      Promise.new do |p|
+        begin
+          info_resp = promise_container_info.resolve
+        rescue => error
+          logger.error("Failed getting container info: #{error}")
+          raise
         end
+
+        @used_memory_in_bytes = info_resp.memory_stat.rss * 1024
+
+        @used_disk_in_bytes = info_resp.disk_stat.bytes_used
+
+        now = Time.now
+
+        @cpu_samples << {
+          :timestamp_ns => now.to_i * 1_000_000_000 + now.nsec,
+          :ns_used      => info_resp.cpu_stat.usage,
+        }
+
+        @cpu_samples.unshift if @cpu_samples.size > 2
+
+        if @cpu_samples.size == 2
+          used = @cpu_samples[1][:ns_used] - @cpu_samples[0][:ns_used]
+          elapsed = @cpu_samples[1][:timestamp_ns] - @cpu_samples[0][:timestamp_ns]
+
+          if elapsed > 0
+            @computed_pcpu = used.to_f / elapsed
+          end
+        end
+
+        p.deliver
       end
     end
 

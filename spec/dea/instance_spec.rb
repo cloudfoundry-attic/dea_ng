@@ -220,14 +220,26 @@ describe Dea::Instance do
 
     it "should update memory" do
       instance.stub(:promise_container_info).and_return(delivering_promise(info_response1))
-      instance.collect_stats
+
+      delivered = false
+      Dea::Promise.resolve(instance.promise_collect_stats) do
+        delivered = true
+      end
+
+      delivered.should be_true
 
       instance.used_memory_in_bytes.should == info_response1.memory_stat.rss * 1024
     end
 
     it "should update disk" do
       instance.stub(:promise_container_info).and_return(delivering_promise(info_response1))
-      instance.collect_stats
+
+      delivered = false
+      Dea::Promise.resolve(instance.promise_collect_stats) do
+        delivered = true
+      end
+
+      delivered.should be_true
 
       instance.used_disk_in_bytes.should == info_response1.disk_stat.bytes_used
     end
@@ -235,9 +247,16 @@ describe Dea::Instance do
     it "should update computed_pcpu after 2 samples have been taken" do
       [info_response1, info_response2].each do |resp|
         instance.stub(:promise_container_info).and_return(delivering_promise(resp))
+
+        delivered = false
+        Dea::Promise.resolve(instance.promise_collect_stats) do
+          delivered = true
+        end
+
+        delivered.should be_true
+
         # Give some time between samples for pcpu computation
         sleep(0.001)
-        instance.collect_stats
       end
 
       instance.computed_pcpu.should > 0
