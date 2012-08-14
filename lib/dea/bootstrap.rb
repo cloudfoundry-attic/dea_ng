@@ -176,15 +176,15 @@ module Dea
     end
 
     def trap_term
-      exit
+      shutdown
     end
 
     def trap_int
-      exit
+      shutdown
     end
 
     def trap_quit
-      exit
+      shutdown
     end
 
     def trap_usr1
@@ -407,13 +407,59 @@ module Dea
       end
     end
 
-    def stop_instance(instance, reason)
+    def shutdown
+      if @shutting_down
+        logger.warn("Shutdown already in progress, doing nothing.")
+        return
+      else
+        @shutting_down = true
+        logger.info("Shutting down")
+      end
+
+      nats.stop
+
+      pending_stops = Set.new([])
+      on_pending_empty = proc do
+        logger.info("All instances stopped, exiting.")
+        nats.client.flush
+        terminate
+      end
+
+      instance_registry.each do |instance|
+        pending_stops.add(instance)
+
+        stop_instance(instance, EXIT_REASON_SHUTDOWN) do |_|
+          pending_stops.delete(instance)
+
+          logger.debug("#{instance} exited")
+
+          if pending_stops.empty?
+            on_pending_empty.call
+          end
+        end
+      end
+
+      if pending_stops.empty?
+        on_pending_empty.call
+      end
+    end
+
+    # So we can test shutdown()
+    def terminate
+      exit
+    end
+
+    def stop_instance(instance, reason, &blk)
       router_client.unregister_instance(instance)
 
       msg = Dea::Protocol::V1::ExitMessage.generate(instance, reason)
       nats.publish("droplet.exited", msg)
 
       instance.stop do |error|
+        if blk
+          blk.call(error)
+        end
+
         if error
           logger.log_exception(error)
           next
