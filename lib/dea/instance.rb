@@ -569,9 +569,9 @@ module Dea
     end
 
     def start(&callback)
-      logger.info("Starting instance")
-
       p = Promise.new do
+        logger.info("Starting instance")
+
         promise_state(State::BORN, State::STARTING).resolve
 
         promise_droplet = Promise.new do |p|
@@ -612,9 +612,8 @@ module Dea
         p.deliver
       end
 
-      start = Time.now
       Promise.resolve(p) do |error, result|
-        took = "took %.3f" % [Time.now - start]
+        took = "took %.3f" % p.elapsed_time
 
         if error
           logger.warn("Error starting instance: #{error.message} (#{took})")
@@ -643,9 +642,9 @@ module Dea
     end
 
     def stop(&callback)
-      logger.info("Stopping instance")
-
       p = Promise.new do
+        logger.info("Stopping instance")
+
         promise_state(State::RUNNING, State::STOPPED).resolve
 
         promise_stop.resolve
@@ -653,9 +652,8 @@ module Dea
         p.deliver
       end
 
-      start = Time.now
       Promise.resolve(p) do |error, result|
-        took = "took %.3f" % [Time.now - start]
+        took = "took %.3f" % p.elapsed_time
 
         if error
           logger.warn("Error stopping instance: #{error.message} (#{took})")
