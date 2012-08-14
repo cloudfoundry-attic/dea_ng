@@ -50,6 +50,8 @@ module Dea
       path_info = Rack::Utils.unescape(env['PATH_INFO'])
       path_parts = path_info.split("/")
 
+      logger.debug2("Handling request for path #{path_info}")
+
       # Lookup container associated with request
       instance_id = path_parts[1]
       instance = @instance_registry.lookup_instance(instance_id)
@@ -65,7 +67,7 @@ module Dea
 
       # Root for all future operations is vcap's home dir inside the container
       container_path = instance.attributes["warden_container_path"]
-      @root = Pathname.new(F.expand_path(F.join(container_path, "home", "vcap"))).realpath
+      @root = Pathname.new(F.expand_path(F.join(container_path, "rootfs", "home", "vcap"))).realpath
       @app = FileServer.new(@root)
 
       # Strip the instance id from the path. This is required to keep backwards
@@ -86,6 +88,11 @@ module Dea
       else
         list_path
       end
+    rescue => e
+      logger.error("Caught exception: #{e}")
+      logger.log_exception(e)
+
+      raise e
     end
 
     def resolve_symlink
