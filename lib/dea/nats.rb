@@ -8,10 +8,13 @@ module Dea
   class Nats
     attr_reader :bootstrap
     attr_reader :config
+    attr_reader :sids
 
     def initialize(bootstrap, config)
       @bootstrap = bootstrap
-      @config = config
+      @config    = config
+      @sids      = {}
+      @client    = nil
     end
 
     def start
@@ -56,16 +59,23 @@ module Dea
       end
     end
 
+    def stop
+      @sids.each { |_, sid| client.unsubscribe(sid) }
+      @sids = {}
+    end
+
     def publish(subject, data)
       client.publish(subject, Yajl::Encoder.encode(data))
     end
 
     def subscribe(subject)
-      client.subscribe(subject) do |raw_data, respond_to|
+      sid = client.subscribe(subject) do |raw_data, respond_to|
         message = Message.decode(self, subject, raw_data, respond_to)
         logger.debug "Received on #{subject.inspect}: #{message.data.inspect}"
         yield message
       end
+
+      @sids[subject] = sid
     end
 
     def client
