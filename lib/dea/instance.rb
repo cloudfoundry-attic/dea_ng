@@ -34,6 +34,12 @@ module Dea
       DELETED  = "DELETED"
     end
 
+    class Transition < Struct.new(:from, :to)
+      def initialize(*args)
+        super(*args.map(&:to_s).map(&:downcase))
+      end
+    end
+
     class BaseError < StandardError
     end
 
@@ -257,13 +263,15 @@ module Dea
     end
 
     def state=(state)
+      transition = Transition.new(attributes["state"], state)
+
       attributes["state"] = state
       attributes["state_timestamp"] = Time.now.to_f
 
       state_time = "state_#{state.to_s.downcase}_timestamp"
       attributes[state_time] = Time.now.to_f
 
-      emit(state)
+      emit(transition)
     end
 
     def state_timestamp
@@ -610,6 +618,10 @@ module Dea
 
         if error
           logger.warn("Error starting instance: #{error.message} (#{took})")
+          logger.log_exception(error)
+
+          # An error occured while starting, mark as crashed
+          self.state = State::CRASHED
         else
           logger.info("Started instance (#{took})")
         end
