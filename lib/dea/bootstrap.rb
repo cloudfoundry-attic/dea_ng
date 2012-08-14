@@ -164,6 +164,8 @@ module Dea
           ::Kernel::trap(signal, handler)
         end
       end
+
+      @old_signal_handlers = {}
     end
 
     def with_signal_handlers
@@ -192,7 +194,7 @@ module Dea
     end
 
     def trap_usr2
-      exit
+      evacuate
     end
 
     def setup_directories
@@ -407,14 +409,36 @@ module Dea
       end
     end
 
-    def shutdown
-      if @shutting_down
-        logger.warn("Shutdown already in progress, doing nothing.")
+    def evacuate
+      if @evacuation_processed
+        logger.info("Evacuation already processed, doing nothing.")
         return
       else
-        @shutting_down = true
-        logger.info("Shutting down")
+        logger.info("Evacuating apps")
+        @evacuation_processed = true
       end
+
+      teardown_signal_handlers
+
+      instance_registry.each do |instance|
+        next unless instance.running? || instance.starting?
+
+        send_exited_message(instance, EXIT_REASON_EVACUATION)
+      end
+
+      EM.add_timer(config["evacuation_delay_secs"]) { shutdown }
+    end
+
+    def shutdown
+      if @shutdown_processed
+        logger.info("Shutdown already processed, doing nothing.")
+        return
+      else
+        logger.info("Shutting down")
+        @shutdown_processed = true
+      end
+
+      teardown_signal_handlers
 
       nats.stop
 
@@ -452,8 +476,12 @@ module Dea
     def stop_instance(instance, reason, &blk)
       router_client.unregister_instance(instance)
 
-      msg = Dea::Protocol::V1::ExitMessage.generate(instance, reason)
-      nats.publish("droplet.exited", msg)
+      # This is a little wonky, however, during evacuation we explicitly send
+      # an exit message before calling shutdown in order to give apps a chance
+      # to be started on other deas.
+      unless reason == EXIT_REASON_EVACUATION
+        send_exited_message(instance, reason)
+      end
 
       instance.stop do |error|
         if blk
@@ -465,6 +493,13 @@ module Dea
           next
         end
       end
+    end
+
+    def send_exited_message(instance, reason)
+      msg = Dea::Protocol::V1::ExitMessage.generate(instance, reason)
+      nats.publish("droplet.exited", msg)
+
+      nil
     end
 
     def send_heartbeat(instances)
