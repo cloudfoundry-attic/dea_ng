@@ -171,18 +171,23 @@ module Dea
     end
 
     def trap_term
+      exit
     end
 
     def trap_int
+      exit
     end
 
     def trap_quit
+      exit
     end
 
     def trap_usr1
+      exit
     end
 
     def trap_usr2
+      exit
     end
 
     def setup_directories
