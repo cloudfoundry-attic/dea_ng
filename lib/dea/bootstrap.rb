@@ -268,6 +268,28 @@ module Dea
       start_finish
     end
 
+    def create_instance(attributes)
+      instance = Instance.new(self, Instance.translate_attributes(attributes))
+
+      instance.on(Instance::Transition.new(:born, :starting)) do
+        instance_registry.register(instance)
+      end
+
+      instance.on(Instance::Transition.new(:starting, :crashed)) do
+        instance_registry.unregister(instance)
+      end
+
+      instance.on(Instance::Transition.new(:starting, :running)) do
+        # Notify others immediately
+        send_heartbeat([instance])
+
+        # Register with router
+        router_client.register_instance(instance)
+      end
+
+      instance
+    end
+
     def handle_health_manager_start(message)
       send_heartbeat(instance_registry.to_a)
     end
@@ -284,7 +306,7 @@ module Dea
     end
 
     def handle_dea_directed_start(message)
-      instance = Instance.new(self, Instance.translate_attributes(message.data))
+      instance = create_instance(message.data)
 
       begin
         instance.validate
@@ -293,22 +315,7 @@ module Dea
         return
       end
 
-      # Register with instance registry
-      instance_registry.register(instance)
-
-      instance.start do |error|
-        if error
-          logger.log_exception(error)
-          instance_registry.unregister(instance)
-          next
-        end
-
-        # Notify others immediately
-        send_heartbeat([instance])
-
-        # Register with router
-        router_client.register_instance(instance)
-      end
+      instance.start
     end
 
     def handle_dea_locate(message)
