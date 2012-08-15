@@ -121,7 +121,43 @@ describe Dea do
     it "should include 'stats' if requested" do
       responses = []
 
+      expected = nil
       run do
+        # Stub time for uptime and usage calculations
+        frozen_time = Time.now
+        Time.stub(:now).and_return(frozen_time)
+
+        expected = {
+          "name"       => @instances[0].application_name,
+          "uris"       => @instances[0].application_uris,
+          "host"       => bootstrap.local_ip,
+          "port"       => 5,
+          "uptime"     => 1,
+          "mem_quota"  => 5,
+          "disk_quota" => 10,
+          "fds_quota"  => 15,
+          "usage"      => {
+            "cpu"  => 0,
+            "mem"  => 0,
+            "disk" => 0,
+            "time" => frozen_time.to_s,
+          }
+        }
+
+        # Port
+        @instances[0].stub(:instance_host_port).and_return(expected["port"])
+
+        # Limits
+        getters = [:memory_limit_in_bytes, :disk_limit_in_bytes,
+                   :file_descriptor_limit]
+        keys = %W(mem disk fds)
+        getters.zip(keys).each do |getter, key|
+          @instances[0].stub(getter).and_return(expected["#{key}_quota"])
+        end
+
+        # Uptime
+        @instances[0].stub(:state_starting_timestamp).and_return(frozen_time - 1)
+
         responses = find_droplet(:count => 1) do
           {
             "droplet" => @instances[0].application_id,
@@ -130,12 +166,8 @@ describe Dea do
         end
       end
 
-      expected = {
-        "name" => @instances[0].application_name,
-        "uris" => @instances[0].application_uris,
-      }
-
       responses.size.should == 1
+      responses[0]["stats"].should_not be_nil
       responses[0]["stats"].should == expected
     end
 

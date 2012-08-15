@@ -53,17 +53,23 @@ module Dea::Protocol::V1
         })
       end
 
-      if include_stats
+      if include_stats && instance.running?
         response["stats"] = {
-          "name" => instance.application_name,
-          "uris" => instance.application_uris,
-
-          # TODO: Include once start command is hooked up
-          # host
-          # port
-          # uptime
-          # mem_quota
-          # disk_quota
+          "name"       => instance.application_name,
+          "uris"       => instance.application_uris,
+          "host"       => bootstrap.local_ip,
+          "port"       => instance.instance_host_port,
+          "uptime"     => (Time.now - instance.state_starting_timestamp).to_i,
+          "mem_quota"  => instance.memory_limit_in_bytes,
+          "disk_quota" => instance.disk_limit_in_bytes,
+          "fds_quota"  => instance.file_descriptor_limit,
+          "usage"      => {
+            "time" => Time.now,
+            "cpu"  => instance.computed_pcpu,
+            "mem"  => instance.used_memory_in_bytes / 1024,
+            "disk" => instance.used_disk_in_bytes,
+          },
+          # Purposefully omitted, as I'm not sure what purpose it serves.
           # cores
         }
       end
