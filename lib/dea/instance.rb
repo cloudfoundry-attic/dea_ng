@@ -618,7 +618,7 @@ module Dea
           self.state = State::CRASHED
         end
 
-        callback.call(error)
+        callback.call(error) unless callback.nil?
       end
     end
 
@@ -646,7 +646,7 @@ module Dea
       end
 
       resolve(p, "stop instance") do |error, _|
-        callback.call(error)
+        callback.call(error) unless callback.nil?
       end
     end
 
