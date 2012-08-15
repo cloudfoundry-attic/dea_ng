@@ -612,17 +612,10 @@ module Dea
         p.deliver
       end
 
-      Promise.resolve(p) do |error, result|
-        took = "took %.3f" % p.elapsed_time
-
+      resolve(p, "start instance") do |error, _|
         if error
-          logger.warn("Error starting instance: #{error.message} (#{took})")
-          logger.log_exception(error)
-
           # An error occured while starting, mark as crashed
           self.state = State::CRASHED
-        else
-          logger.info("Started instance (#{took})")
         end
 
         callback.call(error)
@@ -652,15 +645,7 @@ module Dea
         p.deliver
       end
 
-      Promise.resolve(p) do |error, result|
-        took = "took %.3f" % p.elapsed_time
-
-        if error
-          logger.warn("Error stopping instance: #{error.message} (#{took})")
-        else
-          logger.info("Stopped instance (#{took})")
-        end
-
+      resolve(p, "stop instance") do |error, _|
         callback.call(error)
       end
     end
@@ -723,6 +708,33 @@ module Dea
       }
 
       @logger ||= self.class.logger.tag(tags)
+    end
+
+    # Resolve a promise making sure that only one runs at a time.
+    def resolve(p, name)
+      if @busy
+        logger.warn("Ignored: #{name}")
+        return
+      else
+        @busy = true
+
+        Promise.resolve(p) do |error, result|
+          begin
+            took = "took %.3f" % p.elapsed_time
+
+            if error
+              logger.warn("Failed: #{name} (#{took})")
+              logger.log_exception(error)
+            else
+              logger.info("Delivered: #{name} (#{took})")
+            end
+
+            yield(error, result)
+          ensure
+            @busy = false
+          end
+        end
+      end
     end
   end
 end
