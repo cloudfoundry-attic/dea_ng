@@ -72,6 +72,61 @@ describe Dea do
     heartbeat["droplets"].size.should == 2
   end
 
+  describe "instance state filtering" do
+    def run
+      heartbeat = nil
+      nats_mock.subscribe("dea.heartbeat") do |msg, _|
+        heartbeat = Yajl::Parser.parse(msg)
+        done
+      end
+
+      em do
+        bootstrap.setup
+        bootstrap.start
+
+        yield
+
+        # Trigger heartbeat
+        nats_mock.publish("healthmanager.start")
+
+        # Done in 0.01s (if the subscription doesn't receive a heartbeat)
+        ::EM.add_timer(0.01) { done }
+      end
+
+      heartbeat
+    end
+
+    matching_states = [
+      Dea::Instance::State::STARTING,
+      Dea::Instance::State::RUNNING,
+      Dea::Instance::State::CRASHED,
+    ]
+
+    Dea::Instance::State.constants.map do |constant|
+      Dea::Instance::State.const_get(constant)
+    end.each do |state|
+      if matching_states.include?(state)
+        it "should include #{state.inspect}" do
+          heartbeat = run do
+            instance = create_and_register_instance(bootstrap)
+            instance.state = state
+          end
+
+          heartbeat.should_not be_nil
+        end
+      else
+        it "should exclude #{state.inspect}" do
+          heartbeat = run do
+            instance = create_and_register_instance(bootstrap)
+            instance.state = state
+          end
+
+          heartbeat.should be_nil
+        end
+      end
+    end
+  end
+
   def verify_instance_heartbeat(hb, instance)
     hb_keys = %w[droplet version instance index state state_timestamp]
     hb.keys.should == hb_keys

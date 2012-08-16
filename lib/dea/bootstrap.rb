@@ -520,6 +520,14 @@ module Dea
     end
 
     def send_heartbeat(instances)
+      instances = instances.select do |instance|
+        match = false
+        match ||= instance.starting?
+        match ||= instance.running?
+        match ||= instance.crashed?
+        match
+      end
+
       return if instances.empty?
 
       hbs = Dea::Protocol::V1::HeartbeatResponse.generate(self, instances)

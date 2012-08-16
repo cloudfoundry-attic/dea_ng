@@ -65,6 +65,7 @@ shared_context "bootstrap_setup" do
 
   def create_and_register_instance(bootstrap, instance_attributes = {})
     instance = Dea::Instance.new(bootstrap, instance_attributes)
+    instance.state = Dea::Instance::State::RUNNING
     bootstrap.instance_registry.register(instance)
     instance
   end
