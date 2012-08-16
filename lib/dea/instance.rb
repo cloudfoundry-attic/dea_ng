@@ -616,6 +616,9 @@ module Dea
         if error
           # An error occured while starting, mark as crashed
           self.state = State::CRASHED
+        else
+          # Instance is started, start waiting for it to exit
+          EM.next_tick { link }
         end
 
         callback.call(error) unless callback.nil?
@@ -694,6 +697,48 @@ module Dea
 
     def destroy_crash_artifacts
       # TODO: Fill in
+    end
+
+    def promise_link
+      Promise.new do |p|
+        response = nil
+
+        begin
+          logger.info("Linking")
+
+          connection = promise_warden_connection(:link).resolve
+
+          request = ::Warden::Protocol::LinkRequest.new
+          request.handle = attributes["warden_handle"]
+          request.job_id = attributes["warden_job_id"]
+          response = promise_warden_call(connection, request).resolve
+
+        rescue ::EM::Warden::Client::ConnectionError => error
+          logger.warn("Linking failed, retrying")
+          logger.log_exception(error)
+          retry
+        end
+
+        logger.info("Linking completed with exit status: %d" % response.exit_status)
+
+        p.deliver(response)
+      end
+    end
+
+    def link(&callback)
+      Promise.resolve(promise_link) do |error, _|
+        uptime = Time.now - attributes["state_running_timestamp"]
+        logger.info("Instance uptime: %.3fs" % uptime)
+
+        # Move to "crashed" state if it was "running"
+        if self.state == State::RUNNING
+          self.state = State::CRASHED
+        else
+          # Linking likely completed because of stop
+        end
+
+        callback.call(error) unless callback.nil?
+      end
     end
 
     private

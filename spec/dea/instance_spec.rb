@@ -301,6 +301,7 @@ describe Dea::Instance do
       instance.stub(:droplet).and_return(droplet)
       instance.stub(:runtime).and_return(runtime)
       instance.stub(:start_stat_collector)
+      instance.stub(:link)
     end
 
     def expect_start
@@ -903,6 +904,107 @@ describe Dea::Instance do
         end
 
         expect_stop.to raise_error(RuntimeError, /error/i)
+      end
+    end
+  end
+
+  describe "link" do
+    subject(:instance) do
+      Dea::Instance.new(bootstrap, valid_instance_attributes)
+    end
+
+    let(:warden_connection) do
+      mock("warden_connection")
+    end
+
+    before do
+      instance.stub(:promise_warden_connection).and_return(delivering_promise(warden_connection))
+      instance.stub(:promise_link).and_return(delivering_promise)
+    end
+
+    before do
+      instance.state = Dea::Instance::State::RUNNING
+    end
+
+    def expect_link
+      error = nil
+
+      em do
+        instance.link do |error_|
+          error = error_
+          done
+        end
+      end
+
+      expect do
+        raise error if error
+      end
+    end
+
+    describe "#promise_link" do
+      before do
+        instance.unstub(:promise_link)
+      end
+
+      let(:response) do
+        response = mock("Warden::Protocol::LinkResponse")
+        response.stub(:exit_status).and_return(0)
+        response
+      end
+
+      it "executes a LinkRequest" do
+        instance.attributes["warden_handle"] = "handle"
+        instance.attributes["warden_job_id"] = "1"
+
+        instance.stub(:promise_warden_call) do |connection, request|
+          request.should be_kind_of(::Warden::Protocol::LinkRequest)
+          request.handle.should == "handle"
+          request.job_id.should == "1"
+
+          delivering_promise(response)
+        end
+
+        expect_link.to_not raise_error
+      end
+
+      it "retries when a ::EM::Warden::Client::ConnectionError occurs" do
+        instance.
+          should_receive(:promise_warden_call).
+          ordered.
+          and_return(failing_promise(::EM::Warden::Client::ConnectionError.new))
+
+        instance.
+          should_receive(:promise_warden_call).
+          ordered.
+          and_return(delivering_promise(response))
+
+        expect_link.to_not raise_error
+      end
+
+      it "can fail" do
+        instance.
+          should_receive(:promise_warden_call).
+          and_return(failing_promise(RuntimeError.new("error")))
+
+        expect_link.to raise_error(RuntimeError, /error/i)
+      end
+    end
+
+    describe "state" do
+      it "changes to the \"crashed\" state when it was \"running\"" do
+        instance.state = Dea::Instance::State::RUNNING
+
+        expect do
+          expect_link.to_not raise_error
+        end.to change(instance, :state).to(Dea::Instance::State::CRASHED)
+      end
+
+      it "doesn't change when it was not \"running\"" do
+        instance.state = Dea::Instance::State::STOPPED
+
+        expect do
+          expect_link.to_not raise_error
+        end.to_not change(instance, :state)
       end
     end
   end
