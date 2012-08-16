@@ -29,6 +29,7 @@ module Dea
       # changed.
       STARTING = "STARTING"
       RUNNING  = "RUNNING"
+      STOPPING = "STOPPING"
       STOPPED  = "STOPPED"
       CRASHED  = "CRASHED"
       DELETED  = "DELETED"
@@ -641,9 +642,11 @@ module Dea
       p = Promise.new do
         logger.info("Stopping instance")
 
-        promise_state(State::RUNNING, State::STOPPED).resolve
+        promise_state(State::RUNNING, State::STOPPING).resolve
 
         promise_stop.resolve
+
+        promise_state(State::STOPPING, State::STOPPED).resolve
 
         p.deliver
       end
