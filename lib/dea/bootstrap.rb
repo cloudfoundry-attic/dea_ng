@@ -302,6 +302,11 @@ module Dea
         router_client.register_instance(instance)
       end
 
+      instance.on(Instance::Transition.new(:running, :crashed)) do
+        router_client.unregister_instance(instance)
+        send_exited_message(instance, EXIT_REASON_CRASHED)
+      end
+
       instance
     end
 
