@@ -29,11 +29,11 @@ module Dea
       attr_reader :host
       attr_reader :port
 
-      def initialize(host, port, retry_interval_secs = nil)
+      def initialize(host, port, retry_interval_secs = 0.5)
         @host  = host
         @port  = port
         @timer = nil
-        @retry_interval_secs = retry_interval_secs || 0.5
+        @retry_interval_secs = retry_interval_secs
 
         setup_callbacks
 
