@@ -9,6 +9,13 @@ module Dea::Protocol::V1
   class HeartbeatResponse
     def self.generate(bootstrap, instances)
       hbs = instances.map do |instance|
+        match = false
+        match ||= instance.starting?
+        match ||= instance.running?
+        match ||= instance.crashed?
+
+        next unless match
+
         { "droplet"         => instance.application_id,
           "version"         => instance.application_version,
           "instance"        => instance.instance_id,
@@ -18,7 +25,7 @@ module Dea::Protocol::V1
         }
       end
 
-      { "droplets" => hbs,
+      { "droplets" => hbs.compact,
         "dea"      => bootstrap.uuid,
       }
     end
