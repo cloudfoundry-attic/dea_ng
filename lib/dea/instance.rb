@@ -223,7 +223,8 @@ module Dea
       @used_disk_in_bytes    = 0
       @computed_pcpu         = 0
       @cpu_samples           = []
-      @stat_collection_timer = nil
+
+      setup_stat_collector
     end
 
     # TODO: Fill in once start is hooked up
@@ -598,8 +599,6 @@ module Dea
         # Concurrently download droplet and setup container
         [promise_droplet, promise_container].each(&:run).each(&:resolve)
 
-        start_stat_collector
-
         promise_setup_network.resolve
 
         promise_extract_droplet.resolve
@@ -656,10 +655,47 @@ module Dea
       end
     end
 
+    def setup_stat_collector
+      on(Transition.new(:starting, :running)) do
+        start_stat_collector
+      end
+
+      on(Transition.new(:running, :stopping)) do
+        stop_stat_collector
+      end
+
+      on(Transition.new(:running, :crashed)) do
+        stop_stat_collector
+      end
+    end
+
     def start_stat_collector
+      @run_stat_collector = true
+
+      run_stat_collector
+    end
+
+    def stop_stat_collector
+      @run_stat_collector = false
+
+      if @run_stat_collector_timer
+        @run_stat_collector_timer.cancel
+        @run_stat_collector_timer = nil
+      end
+    end
+
+    def stat_collection_interval_secs
+      STAT_COLLECTION_INTERVAL_SECS
+    end
+
+    def run_stat_collector
       Promise.resolve(promise_collect_stats) do
-        @stat_collection_timer =
-          EM.add_timer(STAT_COLLECTION_INTERVAL_SECS) { start_stat_collector }
+        if @run_stat_collector
+          @run_stat_collector_timer =
+            ::EM::Timer.new(stat_collection_interval_secs) do
+              run_stat_collector
+            end
+        end
       end
     end
 
