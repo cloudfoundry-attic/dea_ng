@@ -25,8 +25,6 @@ module Dea
     DISCOVER_DELAY_MS_MEM          = 100
     DISCOVER_DELAY_MS_MAX          = 250
 
-    CRASHES_REAPER_INTERVAL_SECS   = 10
-
     EXIT_REASON_STOPPED            = "STOPPED"
     EXIT_REASON_CRASHED            = "CRASHED"
     EXIT_REASON_SHUTDOWN           = "DEA_SHUTDOWN"
@@ -136,7 +134,7 @@ module Dea
     attr_reader :instance_registry
 
     def setup_instance_registry
-      @instance_registry = Dea::InstanceRegistry.new
+      @instance_registry = Dea::InstanceRegistry.new(config)
     end
 
     attr_reader :router_client
@@ -235,7 +233,7 @@ module Dea
       EM.add_periodic_timer(advertise_interval) { send_advertise }
 
       # Ensure we keep around only the most recent crash for short amount of time
-      EM.add_periodic_timer(CRASHES_REAPER_INTERVAL_SECS) { reap_crashes }
+      instance_registry.start_reaper
     end
 
     attr_reader :directory_server
@@ -576,35 +574,6 @@ module Dea
 
         if matched
           yield(instance)
-        end
-      end
-    end
-
-    def reap_crashes
-      logger.debug2 "Reaping crashes"
-
-      crashes_by_app = Hash.new { |h, k| h[k] = [] }
-
-      instance_registry.
-        select { |i| i.crashed? }.
-        each   { |i| crashes_by_app[i.application_id] << i }
-
-      now = Time.now.to_i
-
-      crashes_by_app.each do |app_id, instances|
-        # Most recent crashes first
-        instances.sort! { |a, b| b.state_timestamp <=> a.state_timestamp }
-
-        instances.each_with_index do |instance, idx|
-          secs_since_crash = now - instance.state_timestamp
-
-          # Remove if not most recent, or too old
-          if (idx > 0) || (secs_since_crash > self.config["crash_lifetime_secs"])
-            logger.info "Removing crash for #{instance.application_name}"
-
-            instance.destroy_crash_artifacts
-            instance_registry.unregister(instance)
-          end
         end
       end
     end
