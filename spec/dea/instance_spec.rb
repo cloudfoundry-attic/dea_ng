@@ -193,6 +193,67 @@ describe Dea::Instance do
     end
   end
 
+  describe "stat collector" do
+    subject(:instance) do
+      Dea::Instance.new(bootstrap, valid_instance_attributes)
+    end
+
+    attr_reader :calls
+
+    before do
+      @calls = 0
+
+      instance.stub(:stat_collection_interval_secs).and_return(0.001)
+      instance.stub(:promise_collect_stats) do
+        Dea::Promise.new do |p|
+          @calls += 1
+          p.deliver
+        end
+      end
+
+      instance.state = Dea::Instance::State::STARTING
+    end
+
+    [
+      Dea::Instance::State::RUNNING,
+    ].each do |state|
+      it "starts when the instance moves to the #{state.inspect} state" do
+        em do
+          instance.state = state
+
+          calls.should == 1
+
+          ::EM.add_timer(0.001) do
+            calls.should == 2
+            done
+          end
+        end
+      end
+    end
+
+    describe "when started" do
+      [
+        Dea::Instance::State::STOPPING,
+        Dea::Instance::State::CRASHED,
+      ].each do |state|
+        it "stops when the instance moves to the #{state.inspect} state" do
+          em do
+            instance.state = Dea::Instance::State::RUNNING
+
+            calls.should == 1
+
+            instance.state = state
+
+            ::EM.add_timer(0.001) do
+              calls.should == 1
+              done
+            end
+          end
+        end
+      end
+    end
+  end
+
   describe "collect_stats" do
     let(:info_response1) do
       mem_stat = ::Warden::Protocol::InfoResponse::MemoryStat.new(:rss => 1024)
