@@ -5,9 +5,12 @@ require "membrane"
 require "steno"
 require "steno/core_ext"
 require "vcap/common"
+require "yaml"
 
 require "dea/env"
 require "dea/event_emitter"
+require "dea/health_check/port_open"
+require "dea/health_check/state_file_ready"
 require "dea/promise"
 
 module Dea
@@ -608,7 +611,13 @@ module Dea
 
         promise_start.resolve
 
-        promise_state(State::STARTING, State::RUNNING).resolve
+        if promise_health_check.resolve
+          logger.info("Instance healthy")
+          promise_state(State::STARTING, State::RUNNING).resolve
+        else
+          logger.warn("Instance unhealthy")
+          p.fail("Instance unhealthy")
+        end
 
         p.deliver
       end
@@ -744,7 +753,76 @@ module Dea
       end
     end
 
+    def promise_read_instance_manifest(container_path)
+      Promise.new do |p|
+        if container_path.nil?
+          p.deliver({})
+          next
+        end
+
+        manifest_path = container_relative_path(container_path, "droplet.yaml")
+        if !File.exist?(manifest_path)
+          p.deliver({})
+        else
+          manifest = YAML.load_file(manifest_path)
+          p.deliver(manifest)
+        end
+      end
+    end
+
+    def promise_port_open
+      Promise.new do |p|
+        host = bootstrap.local_ip
+        port = instance_host_port
+
+        logger.debug("Health check for #{host}:#{port}")
+
+        health_check = Dea::HealthCheck::PortOpen.new(host, port) do |hc|
+          hc.callback { p.deliver(true) }
+
+          hc.errback  { p.deliver(false) }
+
+          hc.timeout(60)
+        end
+      end
+    end
+
+    def promise_state_file_ready(path)
+      Promise.new do |p|
+        logger.debug("Health check for state file #{path}")
+
+        health_check = Dea::HealthCheck::StateFileReady.new(path) do |hc|
+          hc.callback { p.deliver(true) }
+
+          hc.errback { p.deliver(false) }
+
+          if attributes["debug"] != "suspend"
+            hc.timeout(60 * 5)
+          end
+        end
+      end
+    end
+
+    def promise_health_check
+      Promise.new do |p|
+        info = promise_container_info.resolve
+
+        manifest = promise_read_instance_manifest(info.container_path).resolve
+
+        if manifest["state_file"]
+          manifest_path = container_relative_path(info.container_path, manifest["state_file"])
+          p.deliver(promise_state_file_ready(manifest["state_file"]).resolve)
+        else
+          p.deliver(promise_port_open.resolve)
+        end
+      end
+    end
+
     private
+
+    def container_relative_path(root, *parts)
+      File.join(root, "rootfs", "home", "vcap", *parts)
+    end
 
     def logger
       tags = {

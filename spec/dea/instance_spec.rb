@@ -298,6 +298,7 @@ describe Dea::Instance do
       instance.stub(:promise_extract_droplet).and_return(delivering_promise)
       instance.stub(:promise_prepare_start_script).and_return(delivering_promise)
       instance.stub(:promise_start).and_return(delivering_promise)
+      instance.stub(:promise_health_check).and_return(delivering_promise(true))
       instance.stub(:droplet).and_return(droplet)
       instance.stub(:runtime).and_return(runtime)
       instance.stub(:start_stat_collector)
@@ -818,6 +819,32 @@ describe Dea::Instance do
         instance.attributes["warden_job_id"].should be_nil
       end
     end
+
+    describe "checking application health" do
+      before :each do
+        instance.
+          should_receive(:promise_state).
+          with(Dea::Instance::State::BORN, Dea::Instance::State::STARTING).
+          and_return(delivering_promise)
+      end
+
+      it "transitions from starting to running if healthy" do
+        instance.stub(:promise_health_check).and_return(delivering_promise(true))
+
+        instance.
+          should_receive(:promise_state).
+          with(Dea::Instance::State::STARTING, Dea::Instance::State::RUNNING).
+          and_return(delivering_promise)
+
+        expect_start.to_not raise_error
+      end
+
+      it "fails if the instance is unhealthy" do
+        instance.stub(:promise_health_check).and_return(delivering_promise(false))
+
+        expect_start.to raise_error
+      end
+    end
   end
 
   describe "stop transition" do
@@ -1005,6 +1032,37 @@ describe Dea::Instance do
         expect do
           expect_link.to_not raise_error
         end.to_not change(instance, :state)
+      end
+    end
+  end
+
+  describe "health checks" do
+    let(:instance) do
+      Dea::Instance.new(bootstrap, valid_instance_attributes)
+    end
+
+    let(:manifest_path) do
+      File.join(tmpdir, "rootfs", "home", "vcap", "droplet.yaml")
+    end
+
+    before :each do
+      FileUtils.mkdir_p(File.dirname(manifest_path))
+    end
+
+    describe "#promise_read_instance_manifest" do
+      it "delivers {} if no container path is returned" do
+        instance.promise_read_instance_manifest(nil).resolve.should == {}
+      end
+
+      it "delivers {} if the manifest path doesn't exist" do
+        instance.promise_read_instance_manifest(tmpdir).resolve.should == {}
+      end
+
+      it "delivers the parsed manifest if the path exists" do
+        manifest = { "test" => "manifest" }
+        File.open(manifest_path, "w+") { |f| YAML.dump(manifest, f) }
+
+        instance.promise_read_instance_manifest(tmpdir).resolve.should == manifest
       end
     end
   end
