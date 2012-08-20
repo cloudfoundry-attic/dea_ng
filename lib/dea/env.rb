@@ -12,6 +12,29 @@ module Dea
       @instance = instance
     end
 
+    # The format used by VMC_SERVICES
+    def legacy_services_for_json
+      whitelisted_keys = %W(name type vendor version)
+      translated_keys = {
+        "plan"        => "tier",
+        "credentials" => "options",
+      }
+
+      instance.services.map do |service|
+        legacy_service = {}
+
+        whitelisted_keys.each do |k|
+          legacy_service[k] = service[k] if service[k]
+        end
+
+        translated_keys.each do |current_key, legacy_key|
+          legacy_service[legacy_key] = service[current_key]
+        end
+
+        legacy_service
+      end
+    end
+
     # The format used by VCAP_SERVICES
     def services_for_json
       whitelist = %W(
@@ -78,6 +101,38 @@ module Dea
       hash
     end
 
+    # Legacy format. Currently needed to pass BVTs.
+    def legacy_env
+      application = application_for_json
+      services    = legacy_services_for_json
+
+      warning = "All VMC_* environment variables are deprecated, please use "
+      warning += "VCAP_* versions."
+
+      lenv = []
+      lenv << ["VMC_WARNING_WARNING", warning]
+      lenv << ["VMC_SERVICES",     Yajl::Encoder.encode(services)]
+      lenv << ["VMC_APP_INSTANCE", Yajl::Encoder.encode(application)]
+      lenv << ["VMC_APP_NAME",     application["name"]]
+      lenv << ["VMC_APP_ID",       application["instance_id"]]
+      lenv << ["VMC_APP_VERSION",  application["version"]]
+      lenv << ["VMC_APP_HOST",     application["host"]]
+      lenv << ["VMC_APP_PORT",     application["port"]]
+
+      instance.services.each do |service|
+        creds  = service["credentials"] || {}
+        host   = creds["hostname"] || creds["host"]
+        port   = creds["port"]
+        vendor = service["vendor"].upcase
+
+        next if host.nil? || port.nil?
+
+        lenv << ["VMC_#{vendor}", "#{host}:#{port}"]
+      end
+
+      lenv
+    end
+
     def env
       application = application_for_json
       services    = services_for_json
@@ -92,6 +147,9 @@ module Dea
       env << ["VCAP_DEBUG_PORT",   instance.instance_debug_container_port]
       env << ["VCAP_CONSOLE_IP",   application["host"]]
       env << ["VCAP_CONSOLE_PORT", instance.instance_console_container_port]
+
+      # Remove this once BVTs are updated/killed.
+      env.concat(legacy_env)
 
       # Wrap variables above in single quotes (no interpolation)
       env = env.map do |(key, value)|
