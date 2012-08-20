@@ -6,7 +6,7 @@ module Helpers
       "label"       => "label",
       "vendor"      => "vendor",
       "version"     => "version",
-      "tags"        => { "key" => "value" },
+      "tags"        => ["tag1", "tag2"],
       "plan"        => "plan",
       "plan_option" => "plan_option",
       "credentials" => { "user" => "password" },
