@@ -17,7 +17,11 @@ describe Dea::Env do
       "tags"        => { "key" => "value" },
       "plan"        => "plan",
       "plan_option" => "plan_option",
-      "credentials" => { "user" => "password" },
+      "credentials" => {
+        "user" => "password",
+        "host" => "host",
+        "port" => "port",
+      },
       "invalid"     => "invalid",
     }
   end
@@ -52,6 +56,44 @@ describe Dea::Env do
 
   subject(:env) do
     Dea::Env.new(instance)
+  end
+
+  describe "#legacy_services_for_json" do
+    let(:services) do
+      [service]
+    end
+
+    let(:legacy_services_for_json) do
+      env.legacy_services_for_json
+    end
+
+    before do
+      instance.stub(:services).and_return(services)
+    end
+
+    it "returns an array of hashes" do
+      legacy_services_for_json.should be_a(Array)
+      legacy_services_for_json.size.should == 1
+      legacy_services_for_json.each { |s| s.should be_a(Hash) }
+    end
+
+    it "doesn't include unknown keys" do
+      legacy_services_for_json[0].keys.should_not include("invalid")
+    end
+
+    it "translates the 'plan' and 'credentials' keys" do
+      { "plan"        => "tier",
+        "credentials" => "options", }.each do |new, old|
+        legacy_services_for_json[0].keys.should_not include(new)
+        legacy_services_for_json[0][old].should == service[new]
+      end
+    end
+
+    it "leaves whitelisted keys untouched" do
+      %W(name type vendor version).each do |k|
+        legacy_services_for_json[0][k].should == service[k]
+      end
+    end
   end
 
   describe "#services_for_json" do
@@ -194,7 +236,10 @@ describe Dea::Env do
   describe "#env" do
     let(:application_for_json) do
       {
-        "host" => "localhost",
+        "host"        => "localhost",
+        "name"        => "name",
+        "instance_id" => "instance_id",
+        "version"     => "version",
       }
     end
 
@@ -203,6 +248,12 @@ describe Dea::Env do
         "label" => {
           "name" => "service",
         },
+      }
+    end
+
+    let(:legacy_services_for_json) do
+      {
+        "tier" => "free"
       }
     end
 
@@ -217,10 +268,12 @@ describe Dea::Env do
     before do
       subject.stub(:application_for_json).and_return(application_for_json)
       subject.stub(:services_for_json).and_return(services_for_json)
+      subject.stub(:legacy_services_for_json).and_return(legacy_services_for_json)
 
       instance.stub(:instance_container_port).and_return(4567)
       instance.stub(:instance_debug_container_port).and_return(4568)
       instance.stub(:instance_console_container_port).and_return(4569)
+      instance.stub(:services).and_return([service])
 
       instance.stub(:debug).and_return(nil)
       instance.stub(:runtime).and_return(runtime)
@@ -279,6 +332,37 @@ describe Dea::Env do
 
     it "wraps user-specified enviroment in double quotes if it isn't already" do
       find("ENVIRONMENT").should == %{"yep"}
+    end
+
+    it "include VMC_SERVICES" do
+      find("VMC_SERVICES").should include(Yajl::Encoder.encode(legacy_services_for_json))
+    end
+
+    it "include VMC_APP_NAME" do
+      find("VMC_APP_NAME").should =~ /#{application_for_json["name"]}/
+    end
+
+    it "include VMC_APP_ID" do
+      find("VMC_APP_ID").should =~ /#{application_for_json["instance_id"]}/
+    end
+
+    it "include VMC_APP_VERSION" do
+      find("VMC_APP_VERSION").should =~ /#{application_for_json["version"]}/
+    end
+
+    it "include VMC_APP_HOST" do
+      find("VMC_APP_HOST").should =~ /#{application_for_json["host"]}/
+    end
+
+    it "include VMC_APP_PORT" do
+      find("VMC_APP_PORT").should =~ /#{application_for_json["port"]}/
+    end
+
+    it "include VMC_<SERVICE_VENDOR>" do
+      host = service["credentials"]["host"]
+      port = service["credentials"]["port"]
+
+      find("VMC_VENDOR").should =~ /#{host}:#{port}/
     end
   end
 end
