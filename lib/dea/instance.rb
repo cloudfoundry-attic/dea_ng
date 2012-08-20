@@ -127,10 +127,10 @@ module Dea
           "label"        => String,
           "vendor"       => String,
           "version"      => String,
-          "tags"         => any,
+          "tags"         => [String],
           "plan"         => String,
-          "plan_option" => String,
-          "credentials"  => dict(String, String),
+          "plan_option"  => enum(String, nil),
+          "credentials"  => any,
         }
       end
     end
