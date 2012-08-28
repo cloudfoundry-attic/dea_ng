@@ -308,6 +308,11 @@ module Dea
         send_exited_message(instance, EXIT_REASON_CRASHED)
       end
 
+      instance.on(Instance::Transition.new(:stopping, :stopped)) do
+        instance_registry.unregister(instance)
+        EM.next_tick { instance.destroy }
+      end
+
       instance
     end
 

@@ -1099,6 +1099,48 @@ describe Dea::Instance do
     end
   end
 
+  describe "destroy" do
+    subject(:instance) do
+      Dea::Instance.new(bootstrap, valid_instance_attributes)
+    end
+
+    let(:warden_connection) { mock("warden_connection") }
+
+    before do
+      instance.stub(:promise_warden_connection).and_return(delivering_promise(warden_connection))
+    end
+
+    def expect_destroy
+      error = nil
+
+      em do
+        instance.destroy do |error_|
+          error = error_
+          done
+        end
+      end
+
+      expect do
+        raise error if error
+      end
+    end
+
+    describe "#promise_destroy" do
+      it "executes a DestroyRequest" do
+        instance.attributes["warden_handle"] = "handle"
+
+        instance.stub(:promise_warden_call) do |_, request|
+          request.should be_kind_of(::Warden::Protocol::DestroyRequest)
+          request.handle.should == "handle"
+
+          delivering_promise
+        end
+
+        expect_destroy.to_not raise_error
+      end
+    end
+  end
+
   describe "health checks" do
     let(:instance) do
       Dea::Instance.new(bootstrap, valid_instance_attributes)
