@@ -57,19 +57,19 @@ module Dea
       # Lookup container associated with request
       instance_id = path_parts[1]
       instance = @instance_registry.lookup_instance(instance_id)
-      if instance.nil? || instance.attributes["warden_container_path"].nil?
-        if instance.nil?
-          logger.warn("Unknown instance_id=#{instance_id}")
-        else
-          logger.warn("Container path unset for instance_id=#{instance_id}")
-        end
 
+      if instance.nil?
+        logger.warn("Unknown instance_id=#{instance_id}")
         return entity_not_found
       end
 
-      # Root for all future operations is vcap's home dir inside the container
-      container_path = instance.attributes["warden_container_path"]
-      @root = Pathname.new(F.expand_path(F.join(container_path, "rootfs", "home", "vcap"))).realpath
+      if !instance.instance_path_available?
+        logger.warn("Instance path unavailable for instance_id=#{instance_id}")
+        return entity_not_found
+      end
+
+      # The instance path is the root for all future operations
+      @root = Pathname.new(instance.instance_path).realpath
       @app = FileServer.new(@root)
 
       # Strip the instance id from the path. This is required to keep backwards

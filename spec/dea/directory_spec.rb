@@ -42,6 +42,8 @@ describe Dea::Directory do
     }
 
     instance.stub(:attributes).and_return(attributes)
+
+    instance.stub(:instance_path_available?).and_return(true)
   end
 
   after :each do
@@ -50,6 +52,14 @@ describe Dea::Directory do
 
   it "should return a 404 for unknown instances" do
     get "/unknown"
+
+    last_response.status.should == 404
+  end
+
+  it "should return a 404 if the instance is unavailable" do
+    instance.stub(:instance_path_available?).and_return(false)
+
+    get "#{instance.instance_id}"
 
     last_response.status.should == 404
   end
