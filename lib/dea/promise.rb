@@ -16,7 +16,7 @@ module Dea
         end
 
         begin
-          yield(result)
+          yield(result) if block_given?
         rescue => error
           logger.log_exception(error)
           raise

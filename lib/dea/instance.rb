@@ -722,7 +722,15 @@ module Dea
       Promise.new do |p|
         request = ::Warden::Protocol::DestroyRequest.new
         request.handle = attributes["warden_handle"]
-        response = promise_warden_call(:app, request).resolve
+
+        begin
+          response = promise_warden_call_with_retry(:app, request).resolve
+        rescue ::EM::Warden::Client::Error => error
+          logger.warn("Error destroying container: #{error.message}")
+        end
+
+        # Remove container handle from attributes now that it can no longer be used
+        attributes.delete("warden_handle")
 
         p.deliver
       end
@@ -739,6 +747,50 @@ module Dea
 
       resolve(p, "destroy instance") do |error, _|
         callback.call(error) unless callback.nil?
+      end
+    end
+
+    def promise_copy_out
+      Promise.new do |p|
+        new_instance_path = File.join(bootstrap.config["base_dir"], "crashes", instance_id)
+        FileUtils.mkdir_p(new_instance_path)
+
+        request = ::Warden::Protocol::CopyOutRequest.new
+        request.handle = attributes["warden_handle"]
+        request.src_path = "/home/vcap/"
+        request.dst_path = new_instance_path
+        request.owner = Process.uid
+
+        begin
+          promise_warden_call_with_retry(:app, request).resolve
+        rescue ::EM::Warden::Client::Error => error
+          logger.warn("Error copying files out of container: #{error.message}")
+        end
+
+        attributes["instance_path"] = new_instance_path
+
+        p.deliver
+      end
+    end
+
+    def setup_crash_handler
+      crash_handler = Promise.new do |p|
+        if attributes["warden_handle"]
+          promise_copy_out.resolve
+          promise_destroy.resolve
+        end
+
+        p.deliver
+      end
+
+      # Resuming to crashed state
+      on(Transition.new(:born, :crashed)) do
+        Promise.resolve(crash_handler)
+      end
+
+      # On crash
+      on(Transition.new(:running, :crashed)) do
+        Promise.resolve(crash_handler)
       end
     end
 

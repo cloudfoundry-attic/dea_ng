@@ -1255,4 +1255,43 @@ describe Dea::Instance do
       end
     end
   end
+
+  describe "crash handler" do
+    before do
+      instance.setup_crash_handler
+      instance.state = Dea::Instance::State::RUNNING
+      instance.stub(:promise_copy_out).and_return(delivering_promise)
+      instance.stub(:promise_destroy).and_return(delivering_promise)
+    end
+
+    [
+      Dea::Instance::State::BORN,
+      Dea::Instance::State::RUNNING,
+    ].each do |state|
+      describe "when #{state.inspect}" do
+        before do
+          instance.attributes["warden_handle"] = "handle"
+          instance.state = state
+        end
+
+        it "should resolve #promise_copy_out" do
+          em do
+            instance.should_receive(:promise_copy_out).and_return(delivering_promise)
+            instance.state = Dea::Instance::State::CRASHED
+
+            done
+          end
+        end
+
+        it "should resolve #promise_destroy" do
+          em do
+            instance.should_receive(:promise_destroy).and_return(delivering_promise)
+            instance.state = Dea::Instance::State::CRASHED
+
+            done
+          end
+        end
+      end
+    end
+  end
 end
