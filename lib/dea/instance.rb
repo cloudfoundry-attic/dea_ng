@@ -438,6 +438,22 @@ module Dea
       end
     end
 
+    def promise_warden_call_with_retry(connection_name, request)
+      Promise.new do |p|
+        response = nil
+
+        begin
+          response = promise_warden_call(connection_name, request).resolve
+        rescue ::EM::Warden::Client::ConnectionError => error
+          logger.warn("Request failed: #{request.inspect}, retrying")
+          logger.log_exception(error)
+          retry
+        end
+
+        p.deliver(response)
+      end
+    end
+
     def promise_create_container
       Promise.new do |p|
         # Droplet and runtime

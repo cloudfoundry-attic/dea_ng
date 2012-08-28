@@ -448,6 +448,76 @@ describe Dea::Instance do
     end
   end
 
+  describe "#promise_warden_call_with_retry" do
+    let(:request) do
+      mock("Request")
+    end
+
+    def resolve(&blk)
+      em do
+        promise = instance.promise_warden_call_with_retry(:name, request)
+        Dea::Promise.resolve(promise, &blk)
+      end
+    end
+
+    def expect_success
+      resolve do |error, result|
+        expect do
+          raise error if error
+        end.to_not raise_error
+
+        # Check result
+        result.should == "ok"
+
+        done
+      end
+    end
+
+    def expect_failure
+      resolve do |error, result|
+        expect do
+          raise error if error
+        end.to raise_error(/error/)
+
+        done
+      end
+    end
+
+    it "succeeds when #promise_warden_call succeeds" do
+      instance.
+        should_receive(:promise_warden_call).
+        with(:name, request).
+        and_return(delivering_promise("ok"))
+
+      expect_success
+    end
+
+    it "fails when #promise_warden_call fails with ::EM::Warden::Client::Error" do
+      instance.
+        should_receive(:promise_warden_call).
+        with(:name, request).
+        and_return(failing_promise(::EM::Warden::Client::Error.new("error")))
+
+      expect_failure
+    end
+
+    it "retries when #promise_warden_call fails with ::EM::Warden::Client::ConnectionError" do
+      instance.
+        should_receive(:promise_warden_call).
+        with(:name, request).
+        ordered.
+        and_return(failing_promise(::EM::Warden::Client::ConnectionError.new("error")))
+
+      instance.
+        should_receive(:promise_warden_call).
+        with(:name, request).
+        ordered.
+        and_return(delivering_promise("ok"))
+
+      expect_success
+    end
+  end
+
   describe "start transition" do
     let(:droplet) do
       droplet = mock("droplet")
