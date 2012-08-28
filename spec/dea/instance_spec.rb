@@ -409,6 +409,7 @@ describe Dea::Instance do
     end
 
     before do
+      instance.should_receive(:promise_warden_connection).and_return(delivering_promise(connection))
       connection.should_receive(:call).with(request).and_yield(result)
     end
 

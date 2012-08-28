@@ -412,9 +412,10 @@ module Dea
       end
     end
 
-    def promise_warden_call(connection, request)
+    def promise_warden_call(connection_name, request)
       Promise.new do |p|
         logger.debug2(request.inspect)
+        connection = promise_warden_connection(connection_name).resolve
         connection.call(request) do |result|
           logger.debug2(result.inspect)
 
@@ -439,8 +440,6 @@ module Dea
 
     def promise_create_container
       Promise.new do |p|
-        connection = promise_warden_connection(:app).resolve
-
         # Droplet and runtime
         bind_mounts = [droplet.droplet_dirname, runtime.dirname].map do |path|
           bind_mount = ::Warden::Protocol::CreateRequest::BindMount.new
@@ -466,7 +465,7 @@ module Dea
         create_request = ::Warden::Protocol::CreateRequest.new
         create_request.bind_mounts = bind_mounts
 
-        response = promise_warden_call(connection, create_request).resolve
+        response = promise_warden_call(:app, create_request).resolve
 
         @attributes["warden_handle"] = response.handle
 
@@ -478,12 +477,10 @@ module Dea
 
     def promise_setup_network
       Promise.new do |p|
-        connection = promise_warden_connection(:app).resolve
-
         net_in = lambda do
           request = ::Warden::Protocol::NetInRequest.new
           request.handle = @attributes["warden_handle"]
-          promise_warden_call(connection, request).resolve
+          promise_warden_call(:app, request).resolve
         end
 
         if !attributes["application_uris"].empty?
@@ -510,12 +507,10 @@ module Dea
 
     def promise_limit_disk
       Promise.new do |p|
-        connection = promise_warden_connection(:app).resolve
-
         request = ::Warden::Protocol::LimitDiskRequest.new
         request.handle = @attributes["warden_handle"]
         request.byte = disk_limit_in_bytes
-        promise_warden_call(connection, request).resolve
+        promise_warden_call(:app, request).resolve
 
         p.deliver
       end
@@ -523,23 +518,21 @@ module Dea
 
     def promise_limit_memory
       Promise.new do |p|
-        connection = promise_warden_connection(:app).resolve
-
         request = ::Warden::Protocol::LimitMemoryRequest.new
         request.handle = @attributes["warden_handle"]
         request.limit_in_bytes = memory_limit_in_bytes
-        promise_warden_call(connection, request).resolve
+        promise_warden_call(:app, request).resolve
 
         p.deliver
       end
     end
 
-    def promise_warden_run(connection, script)
+    def promise_warden_run(connection_name, script)
       Promise.new do |p|
         request = ::Warden::Protocol::RunRequest.new
         request.handle = attributes["warden_handle"]
         request.script = script
-        response = promise_warden_call(connection, request).resolve
+        response = promise_warden_call(connection_name, request).resolve
 
         if response.exit_status > 0
           data = {
@@ -559,10 +552,9 @@ module Dea
 
     def promise_extract_droplet
       Promise.new do |p|
-        connection = promise_warden_connection(:app).resolve
         script = "tar zxf #{droplet.droplet_path}"
 
-        promise_warden_run(connection, script).resolve
+        promise_warden_run(:app, script).resolve
 
         p.deliver
       end
@@ -570,10 +562,9 @@ module Dea
 
     def promise_prepare_start_script
       Promise.new do |p|
-        connection = promise_warden_connection(:app).resolve
         script = "sed -i 's@%VCAP_LOCAL_RUNTIME%@#{runtime.executable}@g' startup"
 
-        promise_warden_run(connection, script).resolve
+        promise_warden_run(:app, script).resolve
 
         p.deliver
       end
@@ -602,12 +593,10 @@ module Dea
         script << startup
         script << "exit"
 
-        connection = promise_warden_connection(:app).resolve
-
         request = ::Warden::Protocol::SpawnRequest.new
         request.handle = attributes["warden_handle"]
         request.script = script.join("\n")
-        response = promise_warden_call(connection, request).resolve
+        response = promise_warden_call(:app, request).resolve
 
         attributes["warden_job_id"] = response.job_id
 
@@ -617,12 +606,10 @@ module Dea
 
     def promise_container_info
       Promise.new do |p|
-        conn = promise_warden_connection(:info).resolve
-
         handle = @attributes["warden_handle"]
         request = ::Warden::Protocol::InfoRequest.new(:handle => handle)
 
-        response = promise_warden_call(conn, request).resolve
+        response = promise_warden_call(:info, request).resolve
         @attributes["warden_container_path"] = response.container_path
 
         p.deliver(response)
@@ -689,11 +676,9 @@ module Dea
 
     def promise_stop
       Promise.new do |p|
-        connection = promise_warden_connection(:app).resolve
-
         request = ::Warden::Protocol::StopRequest.new
         request.handle = attributes["warden_handle"]
-        response = promise_warden_call(connection, request).resolve
+        response = promise_warden_call(:app, request).resolve
 
         p.deliver
       end
@@ -845,12 +830,10 @@ module Dea
         begin
           logger.info("Linking")
 
-          connection = promise_warden_connection(:link).resolve
-
           request = ::Warden::Protocol::LinkRequest.new
           request.handle = attributes["warden_handle"]
           request.job_id = attributes["warden_job_id"]
-          response = promise_warden_call(connection, request).resolve
+          response = promise_warden_call(:link, request).resolve
 
         rescue ::EM::Warden::Client::ConnectionError => error
           logger.warn("Linking failed, retrying")
