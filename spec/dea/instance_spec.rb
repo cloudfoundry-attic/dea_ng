@@ -395,6 +395,58 @@ describe Dea::Instance do
     end
   end
 
+  describe "#promise_warden_call" do
+    let(:connection) do
+      mock("Connection")
+    end
+
+    let(:request) do
+      mock("Request")
+    end
+
+    let(:result) do
+      mock("Result")
+    end
+
+    before do
+      connection.should_receive(:call).with(request).and_yield(result)
+    end
+
+    def resolve(&blk)
+      em do
+        promise = instance.promise_warden_call(connection, request)
+        Dea::Promise.resolve(promise, &blk)
+      end
+    end
+
+    it "succeeds when request succeeds" do
+      result.should_receive(:get).and_return("OK")
+
+      resolve do |error, result|
+        expect do
+          raise error if error
+        end.to_not raise_error
+
+        # Check result
+        result.should == "OK"
+
+        done
+      end
+    end
+
+    it "fails when request fails" do
+      result.should_receive(:get).and_raise(RuntimeError.new("ERR"))
+
+      resolve do |error, result|
+        expect do
+          raise error if error
+        end.to raise_error(/ERR/)
+
+        done
+      end
+    end
+  end
+
   describe "start transition" do
     let(:droplet) do
       droplet = mock("droplet")
