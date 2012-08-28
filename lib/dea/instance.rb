@@ -294,21 +294,18 @@ module Dea
     end
 
     def instance_path_available?
-      !attributes["warden_container_path"].nil? &&
-        (state == State::RUNNING || state == State::CRASHED)
+      state == State::RUNNING || state == State::CRASHED
     end
 
     def instance_path
-      unless @instance_path
-        if !instance_path_available?
-          raise "Instance path unavailable"
+      attributes["instance_path"] ||=
+        begin
+          if !instance_path_available? || attributes["warden_container_path"].nil?
+            raise "Instance path unavailable"
+          end
+
+          File.expand_path(container_relative_path(attributes["warden_container_path"]))
         end
-
-        @instance_path = File.expand_path \
-          File.join(attributes["warden_container_path"], "rootfs", "home", "vcap")
-      end
-
-      @instance_path
     end
 
     def validate
