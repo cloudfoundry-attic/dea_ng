@@ -568,6 +568,7 @@ module Dea
       instance_ids  = set_or_nil.call(message.data, "instances")
       indices       = set_or_nil.call(message.data, "indices")
       states        = set_or_nil.call(message.data, "states")
+      states        = states.map { |e| Dea::Instance::State.from_external(e) } unless states.nil?
 
       instances.each do |_, instance|
         matched = true

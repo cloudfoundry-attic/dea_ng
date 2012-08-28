@@ -117,7 +117,7 @@ module Dea
         :mem_quota       => instance.limits["mem"],
         :disk_quota      => instance.limits["disk"],
         :fds_quota       => instance.limits["fds"],
-        :state           => instance.state,
+        :state           => Dea::Instance::State.to_external(instance.state),
         :state_timestamp => instance.state_timestamp.to_i,
         :flapping        => instance.flapping?,
         :start           => instance.start_timestamp,

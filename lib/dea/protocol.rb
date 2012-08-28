@@ -13,7 +13,7 @@ module Dea::Protocol::V1
           "version"         => instance.application_version,
           "instance"        => instance.instance_id,
           "index"           => instance.instance_index,
-          "state"           => instance.state,
+          "state"           => Dea::Instance::State.to_external(instance.state),
           "state_timestamp" => instance.state_timestamp,
         }
       end
@@ -32,7 +32,7 @@ module Dea::Protocol::V1
         "version"         => instance.application_version,
         "instance"        => instance.instance_id,
         "index"           => instance.instance_index,
-        "state"           => instance.state,
+        "state"           => Dea::Instance::State.to_external(instance.state),
         "state_timestamp" => instance.state_timestamp,
         "file_uri"        => bootstrap.directory_server.uri,
         "credentials"     => bootstrap.directory_server.credentials,
