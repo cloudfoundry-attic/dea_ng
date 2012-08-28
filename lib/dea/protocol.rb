@@ -6,14 +6,39 @@ module Dea
 end
 
 module Dea::Protocol::V1
+  module Helper
+    def state_to_string(state)
+      case state
+      when Dea::Instance::State::BORN
+        "BORN"
+      when Dea::Instance::State::STARTING
+        "STARTING"
+      when Dea::Instance::State::RUNNING
+        "RUNNING"
+      when Dea::Instance::State::STOPPING
+        "STOPPING"
+      when Dea::Instance::State::STOPPED
+        "STOPPED"
+      when Dea::Instance::State::CRASHED
+        "CRASHED"
+      when Dea::Instance::State::DELETED
+        "DELETED"
+      else
+        raise "Unknown state"
+      end
+    end
+  end
+
   class HeartbeatResponse
+    extend Helper
+
     def self.generate(bootstrap, instances)
       hbs = instances.map do |instance|
         { "droplet"         => instance.application_id,
           "version"         => instance.application_version,
           "instance"        => instance.instance_id,
           "index"           => instance.instance_index,
-          "state"           => instance.state,
+          "state"           => state_to_string(instance.state),
           "state_timestamp" => instance.state_timestamp,
         }
       end
@@ -25,6 +50,8 @@ module Dea::Protocol::V1
   end
 
   class FindDropletResponse
+    extend Helper
+
     def self.generate(bootstrap, instance, include_stats)
       response = {
         "dea"             => bootstrap.uuid,
@@ -32,7 +59,7 @@ module Dea::Protocol::V1
         "version"         => instance.application_version,
         "instance"        => instance.instance_id,
         "index"           => instance.instance_index,
-        "state"           => instance.state,
+        "state"           => state_to_string(instance.state),
         "state_timestamp" => instance.state_timestamp,
         "file_uri"        => bootstrap.directory_server.uri,
         "credentials"     => bootstrap.directory_server.credentials,

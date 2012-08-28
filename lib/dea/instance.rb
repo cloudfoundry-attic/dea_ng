@@ -23,10 +23,6 @@ module Dea
 
     class State
       BORN     = "BORN"
-
-      # Lifted from the old dea. These are emitted in heartbeat messages and
-      # are used by the hm, consequently it must be updated if these are
-      # changed.
       STARTING = "STARTING"
       RUNNING  = "RUNNING"
       STOPPING = "STOPPING"
