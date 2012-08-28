@@ -290,6 +290,27 @@ module Dea
       limits["fds"].to_i
     end
 
+    def instance_path_available?
+      [
+        State::RUNNING,
+        State::CRASHED,
+      ].include?(state)
+    end
+
+    def instance_path
+      unless @instance_path
+        unless path = attributes["warden_container_path"]
+          error = "No container associated with instance"
+          logger.error(error)
+          raise error
+        end
+
+        @instance_path = File.expand_path(File.join(path, "rootfs", "home", "vcap"))
+      end
+
+      @instance_path
+    end
+
     def validate
       self.class.schema.validate(@attributes)
 
