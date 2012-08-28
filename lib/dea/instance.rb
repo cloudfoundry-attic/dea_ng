@@ -26,16 +26,54 @@ module Dea
 
     class State
       BORN     = "BORN"
-
-      # Lifted from the old dea. These are emitted in heartbeat messages and
-      # are used by the hm, consequently it must be updated if these are
-      # changed.
       STARTING = "STARTING"
       RUNNING  = "RUNNING"
       STOPPING = "STOPPING"
       STOPPED  = "STOPPED"
       CRASHED  = "CRASHED"
       DELETED  = "DELETED"
+
+      def self.from_external(state)
+        case state.upcase
+        when "BORN"
+          BORN
+        when "STARTING"
+          STARTING
+        when "RUNNING"
+          RUNNING
+        when "STOPPING"
+          STOPPING
+        when "STOPPED"
+          STOPPED
+        when "CRASHED"
+          CRASHED
+        when "DELETED"
+          DELETED
+        else
+          raise "Unknown state: #{state}"
+        end
+      end
+
+      def self.to_external(state)
+        case state
+        when Dea::Instance::State::BORN
+          "BORN"
+        when Dea::Instance::State::STARTING
+          "STARTING"
+        when Dea::Instance::State::RUNNING
+          "RUNNING"
+        when Dea::Instance::State::STOPPING
+          "STOPPING"
+        when Dea::Instance::State::STOPPED
+          "STOPPED"
+        when Dea::Instance::State::CRASHED
+          "CRASHED"
+        when Dea::Instance::State::DELETED
+          "DELETED"
+        else
+          raise "Unknown state: #{state}"
+        end
+      end
     end
 
     class Transition < Struct.new(:from, :to)
