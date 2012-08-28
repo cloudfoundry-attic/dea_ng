@@ -409,6 +409,7 @@ describe Dea::Instance do
     end
 
     before do
+      instance.should_receive(:promise_warden_connection).and_return(delivering_promise(connection))
       connection.should_receive(:call).with(request).and_yield(result)
     end
 
@@ -470,7 +471,7 @@ describe Dea::Instance do
     before do
       bootstrap.stub(:config).and_return({ "bind_mounts" => [] })
       instance.stub(:promise_droplet_download).and_return(delivering_promise)
-      instance.stub(:promise_warden_connection).and_return(delivering_promise(warden_connection))
+      instance.stub(:promise_warden_connection).and_return(failing_promise("error"))
       instance.stub(:promise_create_container).and_return(delivering_promise)
       instance.stub(:promise_setup_network).and_return(delivering_promise)
       instance.stub(:promise_limit_disk).and_return(delivering_promise)
