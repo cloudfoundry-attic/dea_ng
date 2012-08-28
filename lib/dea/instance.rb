@@ -720,6 +720,32 @@ module Dea
       end
     end
 
+    def promise_destroy
+      Promise.new do |p|
+        connection = promise_warden_connection(:app).resolve
+
+        request = ::Warden::Protocol::DestroyRequest.new
+        request.handle = attributes["warden_handle"]
+        response = promise_warden_call(connection, request).resolve
+
+        p.deliver
+      end
+    end
+
+    def destroy(&callback)
+      p = Promise.new do
+        logger.info("Destroying instance")
+
+        promise_destroy.resolve
+
+        p.deliver
+      end
+
+      resolve(p, "destroy instance") do |error, _|
+        callback.call(error) unless callback.nil?
+      end
+    end
+
     def setup_stat_collector
       on(Transition.new(:starting, :running)) do
         start_stat_collector
