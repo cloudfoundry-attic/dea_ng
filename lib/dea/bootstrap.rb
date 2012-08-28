@@ -285,6 +285,7 @@ module Dea
 
     def create_instance(attributes)
       instance = Instance.new(self, Instance.translate_attributes(attributes))
+      instance.setup
 
       instance.on(Instance::Transition.new(:born, :starting)) do
         instance_registry.register(instance)

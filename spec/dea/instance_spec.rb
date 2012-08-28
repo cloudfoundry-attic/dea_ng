@@ -195,7 +195,9 @@ describe Dea::Instance do
 
   describe "stat collector" do
     subject(:instance) do
-      Dea::Instance.new(bootstrap, valid_instance_attributes)
+      instance = Dea::Instance.new(bootstrap, valid_instance_attributes)
+      instance.setup_stat_collector
+      instance
     end
 
     attr_reader :calls

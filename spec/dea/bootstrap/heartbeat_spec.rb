@@ -28,10 +28,12 @@ describe Dea do
 
       # Register instances
       5.times do |ii|
-        instances << create_and_register_instance(bootstrap,
-                                                  "application_id"      => ii,
-                                                  "application_version" => ii,
-                                                  "instance_index"      => ii)
+        instance = create_and_register_instance(bootstrap,
+                                                "application_id"      => ii,
+                                                "application_version" => ii,
+                                                "instance_index"      => ii)
+        instance.state = Dea::Instance::State::RUNNING
+        instances << instance
       end
     end
 
@@ -60,7 +62,8 @@ describe Dea do
 
       # Register instances
       2.times do |ii|
-        create_and_register_instance(bootstrap, "application_id" => ii)
+        instance = create_and_register_instance(bootstrap, "application_id" => ii)
+        instance.state = Dea::Instance::State::RUNNING
       end
 
       nats_mock.publish("healthmanager.start")
