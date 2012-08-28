@@ -268,6 +268,7 @@ module Dea
 
     def setup
       setup_stat_collector
+      setup_link
     end
 
     # TODO: Fill in once start is hooked up
@@ -683,9 +684,6 @@ module Dea
         if error
           # An error occured while starting, mark as crashed
           self.state = State::CRASHED
-        else
-          # Instance is started, start waiting for it to exit
-          EM.next_tick { link }
         end
 
         callback.call(error) unless callback.nil?
@@ -803,6 +801,18 @@ module Dea
 
     def destroy_crash_artifacts
       # TODO: Fill in
+    end
+
+    def setup_link
+      # Resuming to running state
+      on(Transition.new(:born, :running)) do
+        link
+      end
+
+      # On start
+      on(Transition.new(:starting, :running)) do
+        link
+      end
     end
 
     def promise_link
