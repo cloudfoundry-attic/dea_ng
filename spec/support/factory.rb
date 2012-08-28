@@ -1,3 +1,5 @@
+# coding: UTF-8
+
 module Helpers
   def valid_service_attributes
     {

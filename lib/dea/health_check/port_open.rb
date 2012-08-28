@@ -1,3 +1,5 @@
+# coding: UTF-8
+
 require "dea/health_check/base"
 
 module Dea
