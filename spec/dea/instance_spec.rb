@@ -10,6 +10,10 @@ describe Dea::Instance do
     mock("bootstrap")
   end
 
+  subject(:instance) do
+    Dea::Instance.new(bootstrap, valid_instance_attributes)
+  end
+
   describe "attributes from start message" do
     let(:start_message) do
       message = double("message")
@@ -49,7 +53,6 @@ describe Dea::Instance do
           "users"   => ["john@doe.com"],
         }
       end
-
 
       its(:application_id)      { should == 37 }
       its(:application_version) { should == "some_version" }
@@ -104,10 +107,6 @@ describe Dea::Instance do
   end
 
   describe "resource limits" do
-    subject(:instance) do
-      Dea::Instance.new(bootstrap, valid_instance_attributes)
-    end
-
     it "exports the memory limit in bytes with a little bit of slack" do
       instance.memory_limit_in_bytes.should be_within(200_000).of(1_000_000)
     end
@@ -170,10 +169,8 @@ describe Dea::Instance do
 
   describe "state=" do
     it "should set state_timestamp when invoked" do
-      instance = Dea::Instance.new(bootstrap, valid_instance_attributes)
       old_timestamp = instance.state_timestamp
       instance.state = Dea::Instance::State::RUNNING
-
       instance.state_timestamp.should > old_timestamp
     end
   end
@@ -194,10 +191,8 @@ describe Dea::Instance do
   end
 
   describe "stat collector" do
-    subject(:instance) do
-      instance = Dea::Instance.new(bootstrap, valid_instance_attributes)
+    before do
       instance.setup_stat_collector
-      instance
     end
 
     attr_reader :calls
@@ -277,10 +272,6 @@ describe Dea::Instance do
                                            :cpu_stat => cpu_stat)
     end
 
-    subject(:instance) do
-      Dea::Instance.new(bootstrap, valid_instance_attributes)
-    end
-
     it "should update memory" do
       instance.stub(:promise_container_info).and_return(delivering_promise(info_response1))
 
@@ -327,10 +318,6 @@ describe Dea::Instance do
   end
 
   describe "start transition" do
-    subject(:instance) do
-      Dea::Instance.new(bootstrap, valid_instance_attributes)
-    end
-
     let(:droplet) do
       droplet = mock("droplet")
       droplet.stub(:droplet_exist?).and_return(true)
@@ -911,10 +898,6 @@ describe Dea::Instance do
   end
 
   describe "stop transition" do
-    subject(:instance) do
-      Dea::Instance.new(bootstrap, valid_instance_attributes)
-    end
-
     let(:warden_connection) do
       mock("warden_connection")
     end
@@ -999,10 +982,6 @@ describe Dea::Instance do
   end
 
   describe "link" do
-    subject(:instance) do
-      Dea::Instance.new(bootstrap, valid_instance_attributes)
-    end
-
     let(:warden_connection) do
       mock("warden_connection")
     end
