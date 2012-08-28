@@ -21,14 +21,10 @@ rescue => e
   abort "ERROR: Failed loading config: #{e}"
 end
 
-begin
-  bootstrap = Dea::Bootstrap.new(config)
-  EM.run do
-    bootstrap.setup
-    bootstrap.start
-  end
-rescue => e
-  abort "ERROR: #{e}"
+bootstrap = Dea::Bootstrap.new(config)
+EM.run do
+  bootstrap.setup
+  bootstrap.start
 end
 
 
