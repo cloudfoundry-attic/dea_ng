@@ -317,6 +317,84 @@ describe Dea::Instance do
     end
   end
 
+  describe "#promise_warden_connection" do
+    let(:warden_socket) { File.join(tmpdir, "warden.sock") }
+
+    before do
+      bootstrap.stub(:config).and_return("warden_socket" => warden_socket)
+    end
+
+    let(:dumb_connection) do
+      dumb_connection = Class.new(::EM::Connection) do
+        class << self
+          attr_accessor :count
+        end
+
+        def post_init
+          self.class.count ||= 0
+          self.class.count += 1
+        end
+      end
+    end
+
+    it "succeeds when connecting succeeds" do
+      em do
+        ::EM.start_unix_domain_server(warden_socket, dumb_connection)
+        ::EM.next_tick do
+          Dea::Promise.resolve(instance.promise_warden_connection(:app)) do |error, result|
+            expect do
+              raise error if error
+            end.to_not raise_error
+
+            # Check that the connection was made
+            dumb_connection.count.should == 1
+
+            done
+          end
+        end
+      end
+    end
+
+    it "succeeds when cached connection can be used" do
+      em do
+        ::EM.start_unix_domain_server(warden_socket, dumb_connection)
+        ::EM.next_tick do
+          Dea::Promise.resolve(instance.promise_warden_connection(:app)) do |error, result|
+            expect do
+              raise error if error
+            end.to_not raise_error
+
+            # Check that the connection was made
+            dumb_connection.count.should == 1
+
+            Dea::Promise.resolve(instance.promise_warden_connection(:app)) do |error, result|
+              expect do
+                raise error if error
+              end.to_not raise_error
+
+              # Check that the connection wasn't made _again_
+              dumb_connection.count.should == 1
+
+              done
+            end
+          end
+        end
+      end
+    end
+
+    it "fails when connecting fails" do
+      em do
+        Dea::Promise.resolve(instance.promise_warden_connection(:app)) do |error, result|
+          expect do
+            raise error if error
+          end.to raise_error(Dea::Instance::WardenError, /cannot connect/i)
+
+          done
+        end
+      end
+    end
+  end
+
   describe "start transition" do
     let(:droplet) do
       droplet = mock("droplet")
@@ -422,88 +500,6 @@ describe Dea::Instance do
           droplet.stub(:download).and_yield(Dea::Instance::BaseError.new("download failed"))
 
           expect_start.to raise_error(Dea::Instance::BaseError, "download failed")
-        end
-      end
-    end
-
-    describe "creating warden connection" do
-      before do
-        instance.unstub(:promise_warden_connection)
-      end
-
-      let(:warden_socket) { File.join(tmpdir, "warden.sock") }
-
-      before do
-        bootstrap.stub(:config).and_return("warden_socket" => warden_socket)
-      end
-
-      let(:dumb_connection) do
-        dumb_connection = Class.new(::EM::Connection) do
-          class << self
-            attr_accessor :count
-          end
-
-          def post_init
-            self.class.count ||= 0
-            self.class.count += 1
-          end
-        end
-      end
-
-      it "succeeds when connecting succeeds" do
-        em do
-          ::EM.start_unix_domain_server(warden_socket, dumb_connection)
-          ::EM.next_tick do
-            Dea::Promise.resolve(instance.promise_warden_connection(:app)) do |error, result|
-              expect do
-                raise error if error
-              end.to_not raise_error
-
-              # Check that the connection was made
-              dumb_connection.count.should == 1
-
-              done
-            end
-          end
-        end
-      end
-
-      it "succeeds when cached connection can be used" do
-        em do
-          ::EM.start_unix_domain_server(warden_socket, dumb_connection)
-          ::EM.next_tick do
-            Dea::Promise.resolve(instance.promise_warden_connection(:app)) do |error, result|
-              expect do
-                raise error if error
-              end.to_not raise_error
-
-              # Check that the connection was made
-              dumb_connection.count.should == 1
-
-              Dea::Promise.resolve(instance.promise_warden_connection(:app)) do |error, result|
-                expect do
-                  raise error if error
-                end.to_not raise_error
-
-                # Check that the connection wasn't made _again_
-                dumb_connection.count.should == 1
-
-                done
-              end
-            end
-          end
-        end
-      end
-
-      it "fails when connecting fails" do
-        em do
-          Dea::Promise.resolve(instance.promise_warden_connection(:app)) do |error, result|
-            expect do
-              raise error if error
-            end.to raise_error(Dea::Instance::WardenError, /cannot connect/i)
-
-            done
-          end
         end
       end
     end
