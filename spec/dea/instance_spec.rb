@@ -1144,7 +1144,7 @@ describe Dea::Instance do
         instance.attributes["warden_handle"] = "handle"
         instance.attributes["warden_job_id"] = "1"
 
-        instance.stub(:promise_warden_call) do |connection, request|
+        instance.should_receive(:promise_warden_call_with_retry) do |_, request|
           request.should be_kind_of(::Warden::Protocol::LinkRequest)
           request.handle.should == "handle"
           request.job_id.should == "1"
@@ -1155,24 +1155,10 @@ describe Dea::Instance do
         expect_link.to_not raise_error
       end
 
-      it "retries when a ::EM::Warden::Client::ConnectionError occurs" do
-        instance.
-          should_receive(:promise_warden_call).
-          ordered.
-          and_return(failing_promise(::EM::Warden::Client::ConnectionError.new))
-
-        instance.
-          should_receive(:promise_warden_call).
-          ordered.
-          and_return(delivering_promise(response))
-
-        expect_link.to_not raise_error
-      end
-
       it "can fail" do
-        instance.
-          should_receive(:promise_warden_call).
-          and_return(failing_promise(RuntimeError.new("error")))
+        instance.should_receive(:promise_warden_call_with_retry) do |_, request|
+          failing_promise(RuntimeError.new("error"))
+        end
 
         expect_link.to raise_error(RuntimeError, /error/i)
       end

@@ -839,21 +839,10 @@ module Dea
 
     def promise_link
       Promise.new do |p|
-        response = nil
-
-        begin
-          logger.info("Linking")
-
-          request = ::Warden::Protocol::LinkRequest.new
-          request.handle = attributes["warden_handle"]
-          request.job_id = attributes["warden_job_id"]
-          response = promise_warden_call(:link, request).resolve
-
-        rescue ::EM::Warden::Client::ConnectionError => error
-          logger.warn("Linking failed, retrying")
-          logger.log_exception(error)
-          retry
-        end
+        request = ::Warden::Protocol::LinkRequest.new
+        request.handle = attributes["warden_handle"]
+        request.job_id = attributes["warden_job_id"]
+        response = promise_warden_call_with_retry(:link, request).resolve
 
         logger.info("Linking completed with exit status: %d" % response.exit_status)
 
