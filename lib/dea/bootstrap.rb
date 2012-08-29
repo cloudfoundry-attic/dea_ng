@@ -345,6 +345,14 @@ module Dea
       instance = Instance.new(self, Instance.translate_attributes(attributes))
       instance.setup
 
+      instance.on(Instance::Transition.new(:resuming, :running)) do
+        instance_registry.register(instance)
+      end
+
+      instance.on(Instance::Transition.new(:resuming, :crashed)) do
+        instance_registry.register(instance)
+      end
+
       instance.on(Instance::Transition.new(:born, :starting)) do
         instance_registry.register(instance)
       end
