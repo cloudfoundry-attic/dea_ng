@@ -1129,6 +1129,19 @@ describe Dea::Instance do
       end
     end
 
+    [
+      Dea::Instance::State::RESUMING,
+      Dea::Instance::State::STARTING,
+    ].each do |state|
+      it "is triggered link when transitioning from #{state.inspect}" do
+        instance.state = state
+        instance.setup_link
+
+        instance.should_receive(:link)
+        instance.state = Dea::Instance::State::RUNNING
+      end
+    end
+
     describe "#promise_link" do
       before do
         instance.unstub(:promise_link)

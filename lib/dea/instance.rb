@@ -895,7 +895,7 @@ module Dea
 
     def setup_link
       # Resuming to running state
-      on(Transition.new(:born, :running)) do
+      on(Transition.new(:resuming, :running)) do
         link
       end
 
