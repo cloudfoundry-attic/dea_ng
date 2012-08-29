@@ -387,6 +387,18 @@ module Dea
         end
       end
 
+      instance.on(Instance::Transition.new(:starting, :running)) do
+        save_snapshot
+      end
+
+      instance.on(Instance::Transition.new(:running, :stopping)) do
+        save_snapshot
+      end
+
+      instance.on(Instance::Transition.new(:running, :crashed)) do
+        save_snapshot
+      end
+
       instance.on(Instance::Transition.new(:stopping, :stopped)) do
         @instance_registry.unregister(instance)
         EM.next_tick { instance.destroy }

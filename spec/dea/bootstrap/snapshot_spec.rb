@@ -7,6 +7,9 @@ describe "snapshot" do
   include_context "bootstrap_setup"
 
   before do
+    bootstrap.unstub(:save_snapshot)
+    bootstrap.unstub(:load_snapshot)
+
     bootstrap.unstub(:setup_directories)
     bootstrap.setup_directories
   end

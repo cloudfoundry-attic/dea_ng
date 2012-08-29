@@ -32,6 +32,10 @@ shared_context "bootstrap_setup" do
     # No config validation
     @bootstrap.stub(:validate_config)
 
+    # No snapshotting
+    @bootstrap.stub(:save_snapshot)
+    @bootstrap.stub(:load_snapshot)
+
     # No setup (explicitly unstub)
     @bootstrap.stub(:setup_logging)
     @bootstrap.stub(:setup_runtimes)
