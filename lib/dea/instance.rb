@@ -781,32 +781,36 @@ module Dea
     end
 
     def setup_crash_handler
-      crash_handler = lambda do
-        p = Promise.new do
-          if attributes["warden_handle"]
-            promise_copy_out.resolve
-            promise_destroy.resolve
-          end
-
-          p.deliver
-        end
-
-        Promise.resolve(p) do |error, _|
-          if error
-            logger.warn("Error running crash handler: #{error}")
-            logger.log_exception(error)
-          end
-        end
-      end
-
       # Resuming to crashed state
       on(Transition.new(:resuming, :crashed)) do
-        crash_handler.call
+        crash_handler
       end
 
       # On crash
       on(Transition.new(:running, :crashed)) do
-        crash_handler.call
+        crash_handler
+      end
+    end
+
+    def promise_crash_handler
+      Promise.new do |p|
+        if attributes["warden_handle"]
+          promise_copy_out.resolve
+          promise_destroy.resolve
+        end
+
+        p.deliver
+      end
+    end
+
+    def crash_handler(&callback)
+      Promise.resolve(promise_crash_handler) do |error, _|
+        if error
+          logger.warn("Error running crash handler: #{error}")
+          logger.log_exception(error)
+        end
+
+        callback.call(error) unless callback.nil?
       end
     end
 

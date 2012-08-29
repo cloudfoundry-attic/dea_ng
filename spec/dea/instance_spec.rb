@@ -1277,33 +1277,46 @@ describe Dea::Instance do
       instance.stub(:promise_destroy).and_return(delivering_promise)
     end
 
+    def expect_crash_handler
+      error = nil
+
+      em do
+        instance.crash_handler do |error_|
+          error = error_
+          done
+        end
+      end
+
+      expect do
+        raise error if error
+      end
+    end
+
     [
       Dea::Instance::State::RESUMING,
       Dea::Instance::State::RUNNING,
     ].each do |state|
-      describe "when #{state.inspect}" do
-        before do
-          instance.attributes["warden_handle"] = "handle"
-          instance.state = state
-        end
+      it "is triggered link when transitioning from #{state.inspect}" do
+        instance.state = state
 
-        it "should resolve #promise_copy_out" do
-          em do
-            instance.should_receive(:promise_copy_out).and_return(delivering_promise)
-            instance.state = Dea::Instance::State::CRASHED
+        instance.should_receive(:crash_handler)
+        instance.state = Dea::Instance::State::CRASHED
+      end
+    end
 
-            done
-          end
-        end
+    describe "when triggered" do
+      before do
+        instance.attributes["warden_handle"] = "handle"
+      end
 
-        it "should resolve #promise_destroy" do
-          em do
-            instance.should_receive(:promise_destroy).and_return(delivering_promise)
-            instance.state = Dea::Instance::State::CRASHED
+      it "should resolve #promise_copy_out" do
+        instance.should_receive(:promise_copy_out).and_return(delivering_promise)
+        expect_crash_handler.to_not raise_error
+      end
 
-            done
-          end
-        end
+      it "should resolve #promise_destroy" do
+        instance.should_receive(:promise_destroy).and_return(delivering_promise)
+        expect_crash_handler.to_not raise_error
       end
     end
   end
