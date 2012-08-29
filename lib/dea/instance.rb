@@ -32,6 +32,7 @@ module Dea
       STOPPED  = "STOPPED"
       CRASHED  = "CRASHED"
       DELETED  = "DELETED"
+      RESUMING = "RESUMING"
 
       def self.from_external(state)
         case state.upcase
@@ -49,6 +50,8 @@ module Dea
           CRASHED
         when "DELETED"
           DELETED
+        when "RESUMING"
+          RESUMING
         else
           raise "Unknown state: #{state}"
         end
@@ -70,6 +73,8 @@ module Dea
           "CRASHED"
         when Dea::Instance::State::DELETED
           "DELETED"
+        when Dea::Instance::State::RESUMING
+          "RESUMING"
         else
           raise "Unknown state: #{state}"
         end
@@ -795,7 +800,7 @@ module Dea
       end
 
       # Resuming to crashed state
-      on(Transition.new(:born, :crashed)) do
+      on(Transition.new(:resuming, :crashed)) do
         crash_handler.call
       end
 

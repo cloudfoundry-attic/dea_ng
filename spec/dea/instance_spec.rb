@@ -1265,7 +1265,7 @@ describe Dea::Instance do
     end
 
     [
-      Dea::Instance::State::BORN,
+      Dea::Instance::State::RESUMING,
       Dea::Instance::State::RUNNING,
     ].each do |state|
       describe "when #{state.inspect}" do
