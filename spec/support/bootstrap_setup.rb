@@ -11,6 +11,7 @@ shared_context "bootstrap_setup" do
     NATS.stub(:connect).and_return(@nats_mock)
 
     config = {
+      "base_dir" => Dir.mktmpdir,
       "intervals" => {
         "advertise" => 0.01,
         "heartbeat" => 0.01,
