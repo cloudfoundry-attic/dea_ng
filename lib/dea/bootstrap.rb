@@ -308,8 +308,29 @@ module Dea
         send_exited_message(instance, EXIT_REASON_CRASHED)
       end
 
+      instance.on(Instance::Transition.new(:running, :stopping)) do
+        router_client.unregister_instance(instance)
+
+        # This is a little wonky but ensures that we don't send an exited
+        # message twice. During evacuation, an exit message is sent for each
+        # running app, the evacuation interval is allowed to pass, and the app
+        # is finally stopped.  This allows the app to be started on another DEA
+        # and begin serving traffic before we stop it here.
+        if !evacuating?
+          reason = nil
+
+          if shutting_down?
+            reason = EXIT_REASON_SHUTDOWN
+          else
+            reason = EXIT_REASON_STOPPED
+          end
+
+          send_exited_message(instance, reason)
+        end
+      end
+
       instance.on(Instance::Transition.new(:stopping, :stopped)) do
-        instance_registry.unregister(instance)
+        @instance_registry.unregister(instance)
         EM.next_tick { instance.destroy }
       end
 
@@ -352,7 +373,9 @@ module Dea
       instances_filtered_by_message(message) do |instance|
         next if !instance.running?
 
-        stop_instance(instance, EXIT_REASON_STOPPED)
+        instance.stop do |error|
+          logger.warn("Failed stopping #{instance}: #{error}") if error
+        end
       end
     end
 
@@ -435,6 +458,10 @@ module Dea
       end
     end
 
+    def evacuating?
+      @evacuation_processed == true
+    end
+
     def evacuate
       if @evacuation_processed
         logger.info("Evacuation already processed, doing nothing.")
@@ -453,6 +480,10 @@ module Dea
       end
 
       EM.add_timer(config["evacuation_delay_secs"]) { shutdown }
+    end
+
+    def shutting_down?
+      @shutdown_processed == true
     end
 
     def shutdown
@@ -478,10 +509,14 @@ module Dea
       instance_registry.each do |instance|
         pending_stops.add(instance)
 
-        stop_instance(instance, EXIT_REASON_SHUTDOWN) do |_|
+        instance.stop do |error|
           pending_stops.delete(instance)
 
-          logger.debug("#{instance} exited")
+          if error
+            logger.warn("#{instance} failed to stop: #{error}")
+          else
+            logger.debug("#{instance} exited")
+          end
 
           if pending_stops.empty?
             on_pending_empty.call
@@ -497,28 +532,6 @@ module Dea
     # So we can test shutdown()
     def terminate
       exit
-    end
-
-    def stop_instance(instance, reason, &blk)
-      router_client.unregister_instance(instance)
-
-      # This is a little wonky, however, during evacuation we explicitly send
-      # an exit message before calling shutdown in order to give apps a chance
-      # to be started on other deas.
-      unless reason == EXIT_REASON_EVACUATION
-        send_exited_message(instance, reason)
-      end
-
-      instance.stop do |error|
-        if blk
-          blk.call(error)
-        end
-
-        if error
-          logger.log_exception(error)
-          next
-        end
-      end
     end
 
     def send_exited_message(instance, reason)

@@ -16,24 +16,31 @@ describe "Dea::Bootstrap#handle_dea_stop" do
   end
 
   let(:instance_mock) do
-    Dea::Instance.new(bootstrap, valid_instance_attributes)
+    instance = bootstrap.create_instance(valid_instance_attributes)
+    instance.state = Dea::Instance::State::RUNNING
+    instance
   end
 
   before do
     bootstrap.unstub(:setup_router_client)
 
-    # Almost done when #instances_filtered_by_message is called
-    bootstrap.stub(:instances_filtered_by_message) do
-      EM.next_tick do
-        done
-      end
-    end.and_yield(instance_mock)
+    Dea::Instance.any_instance.stub(:setup_link)
+    bootstrap.stub(:instances_filtered_by_message).and_yield(instance_mock)
 
     instance_mock.stub(:running?).and_return(true)
-    instance_mock.stub(:stop)
+    instance_mock.stub(:promise_stop).and_return(delivering_promise)
+    instance_mock.stub(:destroy)
   end
 
   describe "filtering" do
+    before do
+      bootstrap.stub(:instances_filtered_by_message) do
+        EM.next_tick do
+          done
+        end
+      end.and_yield(instance_mock)
+    end
+
     it "skips instances that are not running" do
       instance_mock.stub(:running?).and_return(false)
       instance_mock.should_not_receive(:stop)
@@ -53,6 +60,7 @@ describe "Dea::Bootstrap#handle_dea_stop" do
     sent_router_unregister = false
     nats_mock.subscribe("router.unregister") do
       sent_router_unregister = true
+      EM.stop
     end
 
     publish
@@ -64,6 +72,7 @@ describe "Dea::Bootstrap#handle_dea_stop" do
     sent_exited_notification = false
     nats_mock.subscribe("droplet.exited") do
       sent_exited_notification = true
+      EM.stop
     end
 
     publish
@@ -74,6 +83,12 @@ describe "Dea::Bootstrap#handle_dea_stop" do
   describe "when stop completes" do
     before do
       instance_mock.stub(:running?).and_return(true)
+
+      bootstrap.stub(:instances_filtered_by_message) do
+        EM.next_tick do
+          done
+        end
+      end.and_yield(instance_mock)
     end
 
     describe "with failure" do
