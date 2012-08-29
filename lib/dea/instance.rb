@@ -269,6 +269,7 @@ module Dea
     def setup
       setup_stat_collector
       setup_link
+      setup_crash_handler
     end
 
     # TODO: Fill in once start is hooked up
@@ -753,13 +754,14 @@ module Dea
     def promise_copy_out
       Promise.new do |p|
         new_instance_path = File.join(bootstrap.config["base_dir"], "crashes", instance_id)
+        new_instance_path = File.expand_path(new_instance_path)
         FileUtils.mkdir_p(new_instance_path)
 
         request = ::Warden::Protocol::CopyOutRequest.new
         request.handle = attributes["warden_handle"]
         request.src_path = "/home/vcap/"
         request.dst_path = new_instance_path
-        request.owner = Process.uid
+        request.owner = Process.uid.to_s
 
         begin
           promise_warden_call_with_retry(:app, request).resolve
@@ -774,23 +776,32 @@ module Dea
     end
 
     def setup_crash_handler
-      crash_handler = Promise.new do |p|
-        if attributes["warden_handle"]
-          promise_copy_out.resolve
-          promise_destroy.resolve
+      crash_handler = lambda do
+        p = Promise.new do
+          if attributes["warden_handle"]
+            promise_copy_out.resolve
+            promise_destroy.resolve
+          end
+
+          p.deliver
         end
 
-        p.deliver
+        Promise.resolve(p) do |error, _|
+          if error
+            logger.warn("Error running crash handler: #{error}")
+            logger.log_exception(error)
+          end
+        end
       end
 
       # Resuming to crashed state
       on(Transition.new(:born, :crashed)) do
-        Promise.resolve(crash_handler)
+        crash_handler.call
       end
 
       # On crash
       on(Transition.new(:running, :crashed)) do
-        Promise.resolve(crash_handler)
+        crash_handler.call
       end
     end
 
