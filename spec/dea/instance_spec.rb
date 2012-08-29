@@ -212,11 +212,13 @@ describe Dea::Instance do
     end
 
     [
-      Dea::Instance::State::RUNNING,
+      Dea::Instance::State::RESUMING,
+      Dea::Instance::State::STARTING,
     ].each do |state|
-      it "starts when the instance moves to the #{state.inspect} state" do
+      it "starts when moving from #{state.inspect} to #{Dea::Instance::State::RUNNING.inspect}" do
         em do
           instance.state = state
+          instance.state = Dea::Instance::State::RUNNING
 
           calls.should == 1
 

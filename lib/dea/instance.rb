@@ -815,6 +815,10 @@ module Dea
     end
 
     def setup_stat_collector
+      on(Transition.new(:resuming, :running)) do
+        start_stat_collector
+      end
+
       on(Transition.new(:starting, :running)) do
         start_stat_collector
       end
