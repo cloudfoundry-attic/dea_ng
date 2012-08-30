@@ -520,6 +520,98 @@ describe Dea::Instance do
     end
   end
 
+  describe "#promise_health_check" do
+    let(:info_response) do
+      info_response = mock("InfoResponse")
+      info_response.stub(:container_path).and_return("/")
+      info_response
+    end
+
+    let(:deferrable) do
+      ::EM::DefaultDeferrable.new
+    end
+
+    before do
+      bootstrap.stub(:local_ip).and_return("127.0.0.1")
+      instance.stub(:promise_container_info).and_return(delivering_promise(info_response))
+      instance.stub(:promise_read_instance_manifest).and_return(delivering_promise({}))
+    end
+
+    def execute_health_check
+      error = result = nil
+
+      em do
+        Dea::Promise.resolve(instance.promise_health_check) do |error_, result_|
+          error, result = error_, result_
+          done
+        end
+
+        yield if block_given?
+      end
+
+      expect do
+        raise error if error
+      end
+
+      result
+    end
+
+    describe "via state file" do
+      before do
+        instance.stub(:promise_read_instance_manifest).and_return(delivering_promise({ "state_file" => "state_file.yml" }))
+
+        Dea::HealthCheck::StateFileReady.stub(:new).and_yield(deferrable)
+      end
+
+      it "can succeed" do
+        result = execute_health_check do
+          deferrable.succeed
+        end
+
+        result.should be_true
+      end
+
+      it "can fail" do
+        result = execute_health_check do
+          deferrable.fail
+        end
+
+        result.should be_false
+      end
+    end
+
+    describe "via port" do
+      before do
+        instance.stub(:instance_host_port).and_return(1234)
+
+        Dea::HealthCheck::PortOpen.stub(:new).and_yield(deferrable)
+      end
+
+      it "can succeed" do
+        result = execute_health_check do
+          deferrable.succeed
+        end
+
+        result.should be_true
+      end
+
+      it "can fail" do
+        result = execute_health_check do
+          deferrable.fail
+        end
+
+        result.should be_false
+      end
+    end
+
+    describe "without ability to do a health check" do
+      it "should succeed" do
+        result = execute_health_check
+        result.should be_true
+      end
+    end
+  end
+
   describe "start transition" do
     let(:droplet) do
       droplet = mock("droplet")
