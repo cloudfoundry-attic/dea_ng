@@ -1,5 +1,6 @@
 # coding: UTF-8
 
+require "set"
 require "steno"
 require "steno/config"
 require "steno/core_ext"
@@ -20,6 +21,7 @@ module Dea
   class Bootstrap
     DEFAULT_HEARTBEAT_INTERVAL     = 10 # In secs
     DEFAULT_ADVERTISE_INTERVAL     = 5
+    DROPLET_REAPER_INTERVAL_SECS   = 10
 
     DISCOVER_DELAY_MS_PER_INSTANCE = 10
     DISCOVER_DELAY_MS_MEM          = 100
@@ -234,6 +236,11 @@ module Dea
 
       # Ensure we keep around only the most recent crash for short amount of time
       instance_registry.start_reaper
+
+      # Remove unreferenced droplets
+      EM.add_periodic_timer(DROPLET_REAPER_INTERVAL_SECS) do
+        reap_unreferenced_droplets
+      end
     end
 
     attr_reader :directory_server
@@ -351,6 +358,18 @@ module Dea
         end
 
         logger.debug("Loading snapshot took: %.3fs" % [Time.now - start])
+      end
+    end
+
+    def reap_unreferenced_droplets
+      refd_shas = Set.new(instance_registry.values.map(&:droplet_sha1))
+      all_shas  = Set.new(droplet_registry.keys)
+
+      (all_shas - refd_shas).each do |unused_sha|
+        logger.debug("Removing droplet for sha=#{unused_sha}")
+
+        droplet = droplet_registry.delete(unused_sha)
+        droplet.destroy
       end
     end
 
