@@ -67,6 +67,10 @@ module Dea
       @instances.empty?
     end
 
+    def size
+      @instances.size
+    end
+
     def reap_crashes
       logger.debug2("Reaping crashes")
 

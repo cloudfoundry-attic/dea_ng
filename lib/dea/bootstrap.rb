@@ -280,7 +280,20 @@ module Dea
       start_component
       start_nats
       start_directory_server
-      start_finish
+
+      load_snapshot
+
+      unless instance_registry.empty?
+        logger.info("Loaded #{instance_registry.size} instances from snapshot")
+
+        # Wait a bit to give instances time to re-link, and figure out their state
+        ::EM.add_timer(1.0) do
+          send_heartbeat(instance_registry.to_a)
+          start_finish
+        end
+      else
+        start_finish
+      end
     end
 
     def snapshot_path
