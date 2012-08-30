@@ -433,6 +433,11 @@ module Dea
     def handle_dea_directed_start(message)
       instance = create_instance(message.data)
 
+      if config.only_production_apps? && !instance.production_app?
+        logger.info("Ignoring instance for non-production app: #{instance}")
+        return
+      end
+
       begin
         instance.validate
       rescue => error

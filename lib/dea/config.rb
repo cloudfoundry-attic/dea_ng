@@ -13,6 +13,7 @@ module Dea
       "crash_lifetime_secs" => 60 * 60,
       "evacuation_delay_secs" => 30,
       "bind_mounts" => [],
+      "only_production_apps" => false,
     }
 
     def self.schema
@@ -25,6 +26,7 @@ module Dea
             optional("file")   => String,
             optional("syslog") => String,
           },
+          "only_production_apps" => bool,
           "nats_uri" => String,
           "pid_filename" => String,
           "runtimes" => dict(String, Dea::Runtime.schema),
@@ -87,6 +89,10 @@ module Dea
 
     def validate
       self.class.schema.validate(@config)
+    end
+
+    def only_production_apps?
+      self["only_production_apps"]
     end
   end
 end
