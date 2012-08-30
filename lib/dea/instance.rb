@@ -968,10 +968,9 @@ module Dea
       end
     end
 
-    def promise_port_open
+    def promise_port_open(port)
       Promise.new do |p|
         host = bootstrap.local_ip
-        port = instance_host_port
 
         logger.debug("Health check for #{host}:#{port}")
 
@@ -1010,8 +1009,10 @@ module Dea
         if manifest["state_file"]
           manifest_path = container_relative_path(info.container_path, manifest["state_file"])
           p.deliver(promise_state_file_ready(manifest_path).resolve)
+        elsif instance_host_port
+          p.deliver(promise_port_open(instance_host_port).resolve)
         else
-          p.deliver(promise_port_open.resolve)
+          p.deliver(true)
         end
       end
     end
