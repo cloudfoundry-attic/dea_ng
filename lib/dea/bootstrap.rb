@@ -37,7 +37,7 @@ module Dea
     attr_reader :uuid
 
     def initialize(config = {})
-      @config = Config::EMPTY_CONFIG.merge(config)
+      @config = Config.new(config)
     end
 
     def local_ip
@@ -45,7 +45,7 @@ module Dea
     end
 
     def validate_config
-      Config.schema.validate(config)
+      config.validate
     end
 
     def setup

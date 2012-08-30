@@ -66,5 +66,27 @@ module Dea
         }
       end
     end
+
+    include Enumerable
+
+    def initialize(config)
+      @config = EMPTY_CONFIG.merge(config)
+    end
+
+    def [](k)
+      @config[k]
+    end
+
+    def []=(k, v)
+      @config[k] = v
+    end
+
+    def each(&blk)
+      @config.each(&blk)
+    end
+
+    def validate
+      self.class.schema.validate(@config)
+    end
   end
 end
