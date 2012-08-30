@@ -211,20 +211,20 @@ describe Dea::Bootstrap do
     end
 
     let(:instance_registry) do
-      instance_registry = {}
+      instance_registry = []
       ["a", "b"].each do |sha|
-        instance_registry[sha] = mock("instance_#{sha}")
-        instance_registry[sha].stub(:droplet_sha1).and_return(sha)
+        instance_registry << mock("instance_#{sha}")
+        instance_registry.last.stub(:droplet_sha1).and_return(sha)
       end
       instance_registry
     end
 
     let(:unreferenced_shas) do
-      droplet_registry.keys - instance_registry.keys
+      droplet_registry.keys - instance_registry.map(&:droplet_sha1)
     end
 
     let(:referenced_shas) do
-      instance_registry.values.map(&:droplet_sha1)
+      instance_registry.map(&:droplet_sha1)
     end
 
     before do

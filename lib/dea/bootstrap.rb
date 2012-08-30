@@ -362,7 +362,7 @@ module Dea
     end
 
     def reap_unreferenced_droplets
-      refd_shas = Set.new(instance_registry.values.map(&:droplet_sha1))
+      refd_shas = Set.new(instance_registry.map(&:droplet_sha1))
       all_shas  = Set.new(droplet_registry.keys)
 
       (all_shas - refd_shas).each do |unused_sha|
