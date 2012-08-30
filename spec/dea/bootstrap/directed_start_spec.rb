@@ -13,6 +13,10 @@ describe Dea do
         bootstrap.start
 
         nats_mock.publish("dea.#{bootstrap.uuid}.start", {})
+
+        EM.next_tick do
+          done
+        end
       end
     end
 
@@ -32,26 +36,14 @@ describe Dea do
     end
 
     it "doesn't call #start when the instance is invalid" do
-      instance_mock.should_receive(:validate) do
-        EM.next_tick do
-          done
-        end
-
-        raise "Validation error"
-      end
-
+      instance_mock.should_receive(:validate).and_raise("Validation error")
       instance_mock.should_not_receive(:start)
 
       publish
     end
 
     it "calls #start" do
-      instance_mock.should_receive(:validate) do
-        EM.next_tick do
-          done
-        end
-      end
-
+      instance_mock.should_receive(:validate)
       instance_mock.should_receive(:start)
 
       publish
@@ -63,9 +55,6 @@ describe Dea do
           instance_mock.stub(:start) do
             instance_mock.state = Dea::Instance::State::STARTING
             instance_mock.state = Dea::Instance::State::CRASHED
-
-            # Almost done when #start is called
-            EM.next_tick { done }
           end
         end
 
@@ -103,9 +92,6 @@ describe Dea do
           instance_mock.stub(:start) do
             instance_mock.state = Dea::Instance::State::STARTING
             instance_mock.state = Dea::Instance::State::RUNNING
-
-            # Almost done when #start is called
-            EM.next_tick { done }
           end
         end
 
