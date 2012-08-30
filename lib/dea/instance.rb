@@ -261,7 +261,7 @@ module Dea
       @attributes["application_uris"] ||= []
 
       # Generate unique ID
-      @attributes["instance_id"] = VCAP.secure_uuid
+      @attributes["instance_id"] ||= VCAP.secure_uuid
       self.state = State::BORN
 
       # Assume non-production app when not specified
