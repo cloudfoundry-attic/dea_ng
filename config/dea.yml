@@ -20,6 +20,10 @@ file_viewer_port: 12345
 logging:
   level: debug
 
+# The this flag determines whether or not this DEA should only host
+# production apps. (default: false)
+only_production_apps: false
+
 #helpful for development
 reset_at_startup: true
 

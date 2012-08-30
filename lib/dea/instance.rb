@@ -136,6 +136,7 @@ module Dea
       attributes["application_name"]    ||= attributes.delete("name")
       attributes["application_uris"]    ||= attributes.delete("uris")
       attributes["application_users"]   ||= attributes.delete("users")
+      attributes["application_prod"]    ||= attributes.delete("prod")
 
       attributes["droplet_sha1"]        ||= attributes.delete("sha1")
       attributes["droplet_uri"]         ||= attributes.delete("executableUri")
@@ -193,6 +194,7 @@ module Dea
           "application_name"    => String,
           "application_uris"    => [String],
           "application_users"   => [String],
+          optional("application_prod") => bool,
 
           "droplet_sha1"        => String,
           "droplet_uri"         => String,
@@ -297,6 +299,10 @@ module Dea
 
     def file_descriptor_limit
       limits["fds"].to_i
+    end
+
+    def production_app?
+      attributes["application_prod"] || false
     end
 
     def instance_path_available?

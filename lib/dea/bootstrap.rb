@@ -37,7 +37,7 @@ module Dea
     attr_reader :uuid
 
     def initialize(config = {})
-      @config = Config::EMPTY_CONFIG.merge(config)
+      @config = Config.new(config)
     end
 
     def local_ip
@@ -45,7 +45,7 @@ module Dea
     end
 
     def validate_config
-      Config.schema.validate(config)
+      config.validate
     end
 
     def setup
@@ -445,6 +445,11 @@ module Dea
 
     def handle_dea_directed_start(message)
       instance = create_instance(message.data)
+
+      if config.only_production_apps? && !instance.production_app?
+        logger.info("Ignoring instance for non-production app: #{instance}")
+        return
+      end
 
       begin
         instance.validate
