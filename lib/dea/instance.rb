@@ -355,7 +355,7 @@ module Dea
     end
 
     def droplet
-      bootstrap.droplet_registry[droplet_sha1]
+      @droplet ||= bootstrap.droplet_registry[droplet_sha1]
     end
 
     def application_uris=(uris)
