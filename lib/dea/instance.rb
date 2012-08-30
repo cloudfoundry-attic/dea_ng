@@ -355,7 +355,12 @@ module Dea
     end
 
     def droplet
-      bootstrap.droplet_registry[droplet_sha1]
+      if @droplet.nil?
+        @droplet = bootstrap.droplet_registry[droplet_sha1]
+        @droplet.hold
+      end
+
+      @droplet
     end
 
     def application_uris=(uris)
@@ -757,6 +762,8 @@ module Dea
 
         promise_destroy.resolve
 
+        release_droplet
+
         p.deliver
       end
 
@@ -919,6 +926,20 @@ module Dea
       # On start
       on(Transition.new(:starting, :running)) do
         link
+      end
+    end
+
+    def release_droplet
+      droplet.release
+
+      logger.debug("Releasing droplet, sha=#{droplet_sha1} refcnt=#{droplet.ref_count}")
+
+      if droplet.ref_count == 0
+        logger.debug("Destroying droplet, sha=#{droplet_sha1}")
+
+        bootstrap.droplet_registry.delete(droplet_sha1)
+
+        droplet.destroy
       end
     end
 

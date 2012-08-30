@@ -1200,7 +1200,9 @@ describe Dea::Instance do
 
   describe "destroy" do
     subject(:instance) do
-      Dea::Instance.new(bootstrap, valid_instance_attributes)
+      instance = Dea::Instance.new(bootstrap, valid_instance_attributes)
+      instance.stub(:release_droplet)
+      instance
     end
 
     let(:warden_connection) { mock("warden_connection") }
@@ -1221,6 +1223,37 @@ describe Dea::Instance do
 
       expect do
         raise error if error
+      end
+    end
+
+    describe "droplet management" do
+      let(:droplet) do
+        d = mock("droplet")
+        d.stub(:ref_count).and_return(2)
+        d.stub(:hold)
+        d
+      end
+
+      let(:droplet_registry) { { instance.droplet_sha1 => droplet } }
+
+      before do
+        bootstrap.stub(:droplet_registry).and_return(droplet_registry)
+        instance.unstub(:release_droplet)
+
+        instance.stub(:promise_warden_call).and_return(delivering_promise)
+      end
+
+      it "should release the droplet" do
+        droplet.should_receive(:release)
+        expect_destroy.to_not raise_error
+      end
+
+      it "it should destroy the droplet when its ref_count is 0" do
+        droplet.stub(:ref_count).and_return(0)
+        droplet.should_receive(:release)
+        droplet.should_receive(:destroy)
+        droplet_registry.should_receive(:delete).with(instance.droplet_sha1)
+        expect_destroy.to_not raise_error
       end
     end
 

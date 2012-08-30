@@ -25,10 +25,12 @@ module Dea
 
     attr_reader :base_dir
     attr_reader :sha1
+    attr_reader :ref_count
 
     def initialize(base_dir, sha1)
       @base_dir = base_dir
       @sha1 = sha1
+      @ref_count = 0
 
       # Make sure the directory exists
       FileUtils.mkdir_p(droplet_dirname)
@@ -70,6 +72,30 @@ module Dea
             blk.call(err)
           end
         end
+      end
+    end
+
+    def hold
+      @ref_count += 1
+    end
+
+    def release
+      @ref_count -= 1
+    end
+
+    def destroy(&blk)
+      dir_to_remove = droplet_dirname + ".deleted." + Time.now.to_i.to_s
+
+      # Rename first to both prevent a new instance from referencing a file
+      # that is about to be deleted and to avoid doing a potentially expensive
+      # operation on the reactor thread.
+      logger.debug("Renaming #{droplet_dirname} to #{dir_to_remove}")
+      File.rename(droplet_dirname, dir_to_remove)
+
+      EM.defer do
+        logger.debug("Removing #{dir_to_remove}")
+        FileUtils.rm_rf(dir_to_remove)
+        blk.call if blk
       end
     end
 

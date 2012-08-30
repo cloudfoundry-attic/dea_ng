@@ -24,6 +24,7 @@ describe Dea do
 
     before do
       @instance_mock = Dea::Instance.new(bootstrap, valid_instance_attributes)
+      @instance_mock.stub(:setup_droplet_reaping)
       @instance_mock.stub(:validate)
       @instance_mock.stub(:start) do
         @instance_mock.state = Dea::Instance::State::STARTING
