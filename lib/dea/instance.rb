@@ -194,7 +194,7 @@ module Dea
           "application_name"    => String,
           "application_uris"    => [String],
           "application_users"   => [String],
-          optional("application_prod") => bool,
+          "application_prod"    => bool,
 
           "droplet_sha1"        => String,
           "droplet_uri"         => String,
@@ -264,6 +264,9 @@ module Dea
       @attributes["instance_id"] = VCAP.secure_uuid
       self.state = State::BORN
 
+      # Assume non-production app when not specified
+      @attributes["application_prod"] ||= false
+
       # Cache for warden connections for this instance
       @warden_connections = {}
 
@@ -302,7 +305,7 @@ module Dea
     end
 
     def production_app?
-      attributes["application_prod"] || false
+      attributes["application_prod"]
     end
 
     def instance_path_available?
