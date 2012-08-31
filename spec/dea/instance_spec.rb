@@ -1225,7 +1225,6 @@ describe Dea::Instance do
 
     [
       Dea::Instance::State::RESUMING,
-      Dea::Instance::State::STARTING,
     ].each do |state|
       it "is triggered link when transitioning from #{state.inspect}" do
         instance.state = state
@@ -1272,20 +1271,32 @@ describe Dea::Instance do
     end
 
     describe "state" do
-      it "changes to the \"crashed\" state when it was \"running\"" do
-        instance.state = Dea::Instance::State::RUNNING
+      [
+        Dea::Instance::State::STARTING,
+        Dea::Instance::State::RUNNING,
+      ].each do |from|
+        to = Dea::Instance::State::CRASHED
 
-        expect do
-          expect_link.to_not raise_error
-        end.to change(instance, :state).to(Dea::Instance::State::CRASHED)
+        it "changes to #{to.inspect} when it was #{from.inspect}" do
+          instance.state = from
+
+          expect do
+            expect_link.to_not raise_error
+          end.to change(instance, :state).to(to)
+        end
       end
 
-      it "doesn't change when it was not \"running\"" do
-        instance.state = Dea::Instance::State::STOPPED
+      [
+        Dea::Instance::State::STOPPING,
+        Dea::Instance::State::STOPPED,
+      ].each do |from|
+        it "doesn't change when it was #{from.inspect}" do
+          instance.state = from
 
-        expect do
-          expect_link.to_not raise_error
-        end.to_not change(instance, :state)
+          expect do
+            expect_link.to_not raise_error
+          end.to_not change(instance, :state)
+        end
       end
     end
   end
