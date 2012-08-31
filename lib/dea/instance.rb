@@ -684,6 +684,14 @@ module Dea
 
         promise_start.resolve
 
+        on(Transition.new(:starting, :crashed)) do
+          cancel_health_check
+        end
+
+        # Fire off link so that the health check can be cancelled when the
+        # instance crashes before the health check completes.
+        link
+
         if promise_health_check.resolve
           logger.info("Instance healthy")
           promise_state(State::STARTING, State::RUNNING).resolve
@@ -915,11 +923,6 @@ module Dea
       on(Transition.new(:resuming, :running)) do
         link
       end
-
-      # On start
-      on(Transition.new(:starting, :running)) do
-        link
-      end
     end
 
     def promise_link
@@ -940,8 +943,8 @@ module Dea
         uptime = Time.now - attributes["state_running_timestamp"]
         logger.info("Instance uptime: %.3fs" % uptime)
 
-        # Move to "crashed" state if it was "running"
-        if self.state == State::RUNNING
+        # Move to "crashed" state if it was "starting" or "running"
+        if [State::STARTING, State::RUNNING].include?(self.state)
           self.state = State::CRASHED
         else
           # Linking likely completed because of stop
@@ -974,7 +977,7 @@ module Dea
 
         logger.debug("Health check for #{host}:#{port}")
 
-        health_check = Dea::HealthCheck::PortOpen.new(host, port) do |hc|
+        @health_check = Dea::HealthCheck::PortOpen.new(host, port) do |hc|
           hc.callback { p.deliver(true) }
 
           hc.errback  { p.deliver(false) }
@@ -988,7 +991,7 @@ module Dea
       Promise.new do |p|
         logger.debug("Health check for state file #{path}")
 
-        health_check = Dea::HealthCheck::StateFileReady.new(path) do |hc|
+        @health_check = Dea::HealthCheck::StateFileReady.new(path) do |hc|
           hc.callback { p.deliver(true) }
 
           hc.errback { p.deliver(false) }
@@ -997,6 +1000,13 @@ module Dea
             hc.timeout(60 * 5)
           end
         end
+      end
+    end
+
+    def cancel_health_check
+      if @health_check
+        @health_check.fail
+        @health_check = nil
       end
     end
 
