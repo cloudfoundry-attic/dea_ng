@@ -107,10 +107,10 @@ describe Dea do
           sent_router_register.should be_false
         end
 
-        it "should not be registered with the instance registry" do
+        it "should be registered with the instance registry" do
           publish
 
-          bootstrap.instance_registry.should be_empty
+          bootstrap.instance_registry.should_not be_empty
         end
       end
 
