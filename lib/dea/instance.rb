@@ -804,6 +804,11 @@ module Dea
       end
 
       # On crash
+      on(Transition.new(:starting, :crashed)) do
+        crash_handler
+      end
+
+      # On crash
       on(Transition.new(:running, :crashed)) do
         crash_handler
       end
