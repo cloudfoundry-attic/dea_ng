@@ -370,6 +370,10 @@ module Dea
         instance_registry.register(instance)
       end
 
+      instance.on(Instance::Transition.new(:starting, :crashed)) do
+        send_exited_message(instance, EXIT_REASON_CRASHED)
+      end
+
       instance.on(Instance::Transition.new(:starting, :running)) do
         # Notify others immediately
         send_heartbeat([instance])
