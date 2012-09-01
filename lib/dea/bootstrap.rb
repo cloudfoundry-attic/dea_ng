@@ -680,7 +680,7 @@ module Dea
 
       # Optional search filters
       version       = message.data["version"]
-      instance_ids  = set_or_nil.call(message.data, "instances")
+      instance_ids  = set_or_nil.call(message.data, "instance_ids")
       indices       = set_or_nil.call(message.data, "indices")
       states        = set_or_nil.call(message.data, "states")
       states        = states.map { |e| Dea::Instance::State.from_external(e) } unless states.nil?
