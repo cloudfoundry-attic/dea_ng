@@ -31,6 +31,18 @@ describe Dea::Droplet do
     File.directory?(droplet.droplet_dirname).should be_true
   end
 
+  describe "destroy" do
+    it "should remove the associated directory" do
+      File.exist?(droplet.droplet_dirname).should be_true
+
+      em do
+        droplet.destroy { EM.stop }
+      end
+
+      File.exist?(droplet.droplet_dirname).should be_false
+    end
+  end
+
   describe "download" do
     around do |example|
       em do

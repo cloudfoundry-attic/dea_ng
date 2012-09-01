@@ -199,4 +199,49 @@ describe Dea::Bootstrap do
       (shutdown_timestamp - start).should be_within(0.05).of(0.2)
     end
   end
+
+  describe "#reap_unreferenced_droplets" do
+    let(:droplet_registry) do
+      droplet_registry = {}
+      ["a", "b", "c", "d"].each do |sha|
+        droplet_registry[sha] = mock("droplet_#{sha}")
+        droplet_registry[sha].stub(:destroy)
+      end
+      droplet_registry
+    end
+
+    let(:instance_registry) do
+      instance_registry = []
+      ["a", "b"].each do |sha|
+        instance_registry << mock("instance_#{sha}")
+        instance_registry.last.stub(:droplet_sha1).and_return(sha)
+      end
+      instance_registry
+    end
+
+    let(:unreferenced_shas) do
+      droplet_registry.keys - instance_registry.map(&:droplet_sha1)
+    end
+
+    let(:referenced_shas) do
+      instance_registry.map(&:droplet_sha1)
+    end
+
+    before do
+      bootstrap.stub(:instance_registry).and_return(instance_registry)
+      bootstrap.stub(:droplet_registry).and_return(droplet_registry)
+    end
+
+    it "should delete any unreferenced droplets from the registry" do
+      bootstrap.reap_unreferenced_droplets
+      bootstrap.droplet_registry.keys.should == referenced_shas
+    end
+
+    it "should destroy any unreferenced droplets" do
+      unreferenced_shas.each do |sha|
+        droplet_registry[sha].should_receive(:destroy)
+      end
+      bootstrap.reap_unreferenced_droplets
+    end
+  end
 end

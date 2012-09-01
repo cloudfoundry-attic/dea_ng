@@ -73,6 +73,22 @@ module Dea
       end
     end
 
+    def destroy(&blk)
+      dir_to_remove = droplet_dirname + ".deleted." + Time.now.to_i.to_s
+
+      # Rename first to both prevent a new instance from referencing a file
+      # that is about to be deleted and to avoid doing a potentially expensive
+      # operation on the reactor thread.
+      logger.debug("Renaming #{droplet_dirname} to #{dir_to_remove}")
+      File.rename(droplet_dirname, dir_to_remove)
+
+      EM.defer do
+        logger.debug("Removing #{dir_to_remove}")
+        FileUtils.rm_rf(dir_to_remove)
+        blk.call if blk
+      end
+    end
+
     private
 
     def logger
