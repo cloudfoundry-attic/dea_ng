@@ -1,6 +1,7 @@
 # coding: UTF-8
 
 require "thin"
+require "securerandom"
 require "vcap/common"
 
 require "dea/directory"
@@ -11,6 +12,7 @@ module Dea
     attr_reader :credentials
     attr_reader :port
     attr_reader :uri
+    attr_reader :uuid
 
     def initialize(host, port, instance_registry)
       @host = host
@@ -18,6 +20,7 @@ module Dea
       @uri = "http://#{host}:#{port}/instances"
       @credentials = [VCAP.secure_uuid, VCAP.secure_uuid]
       @instance_registry = instance_registry
+      @uuid = SecureRandom.uuid
       @server = create_server(host, port, @credentials, instance_registry)
     end
 
