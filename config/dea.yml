@@ -17,6 +17,8 @@ local_route:
 #where the server that provides access to application home directories (log files, etc.) lives.
 file_viewer_port: 12345
 
+domain: vcap.me
+
 logging:
   level: debug
 
