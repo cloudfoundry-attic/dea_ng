@@ -253,6 +253,7 @@ module Dea
 
     def start_directory_server
       @directory_server.start
+      register_file_server
     end
 
     def setup_nats
@@ -281,6 +282,26 @@ module Dea
       nats.publish("dea.start", Dea::Protocol::V1::HelloMessage.generate(self))
 
       send_advertise
+    end
+
+    def register_file_server
+      opts = {
+        :host => local_ip,
+        :port => config["directory_server_port"],
+        :uri => "#{uuid}.#{config["domain"]}",
+      }
+
+      @router_client.register_file_server(opts)
+    end
+
+    def unregister_file_server
+      opts = {
+        :host => local_ip,
+        :port => config["directory_server_port"],
+        :uri => "#{uuid}.#{config["domain"]}",
+      }
+
+      @router_client.unregister_file_server(opts)
     end
 
     def start
@@ -456,6 +477,8 @@ module Dea
         next if !instance.running? || instance.application_uris.empty?
         router_client.register_instance(instance)
       end
+
+      register_file_server
     end
 
     def handle_dea_status(message)
@@ -613,6 +636,8 @@ module Dea
       ignore_signals
 
       nats.stop
+
+      unregister_file_server
 
       pending_stops = Set.new([])
       on_pending_empty = proc do
