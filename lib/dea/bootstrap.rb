@@ -1,9 +1,12 @@
 # coding: UTF-8
 
 require "set"
+require "securerandom"
+
 require "steno"
 require "steno/config"
 require "steno/core_ext"
+
 require "vcap/common"
 require "vcap/component"
 
@@ -58,11 +61,11 @@ module Dea
       setup_droplet_registry
       setup_resource_manager
       setup_instance_registry
+      setup_directory_server
       setup_signal_handlers
       setup_directories
       setup_pid_file
       setup_sweepers
-      setup_directory_server
       setup_nats
       setup_router_client
     end
@@ -253,6 +256,8 @@ module Dea
 
     def start_directory_server
       @directory_server.start
+
+      register_directory_server
     end
 
     def setup_nats
@@ -281,6 +286,19 @@ module Dea
       nats.publish("dea.start", Dea::Protocol::V1::HelloMessage.generate(self))
 
       send_advertise
+    end
+
+    def register_directory_server
+      uri = "#{@directory_server.uuid}.#{config["domain"]}"
+      @router_client.register_directory_server(local_ip,
+                                               config["directory_server_port"],
+                                               uri)
+    end
+
+    def unregister_directory_server
+      port = config["directory_server_port"]
+      uri = "#{@directory_server.uuid}.#{config["domain"]}"
+      @router_client.unregister_directory_server(local_ip, port, uri)
     end
 
     def start
@@ -456,6 +474,8 @@ module Dea
         next if !instance.running? || instance.application_uris.empty?
         router_client.register_instance(instance)
       end
+
+      register_directory_server
     end
 
     def handle_dea_status(message)
@@ -613,6 +633,8 @@ module Dea
       ignore_signals
 
       nats.stop
+
+      unregister_directory_server
 
       pending_stops = Set.new([])
       on_pending_empty = proc do

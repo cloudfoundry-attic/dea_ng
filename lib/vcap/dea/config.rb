@@ -13,6 +13,7 @@ class VCAP::Dea::Config < VCAP::Config
       :reset_at_startup      => VCAP::JsonSchema::BoolSchema.new, #blow away saved state at startup.
       #XXX make this optionally nil, but still in schema:local_route           => String,
       :file_viewer_port      => Integer,
+      :domain                => String,
       :resources => {
         :node_limits => {
           :max_memory => Integer,
@@ -25,7 +26,7 @@ class VCAP::Dea::Config < VCAP::Config
         },
       },
       :nats_uri              => String,     # where nats lives.
-       :logging => {
+      :logging => {
         :level              => String,      # debug, info, etc.
         optional(:file)     => String,      # Log file to use
         optional(:syslog)   => String,      # Name to associate with syslog messages (should start with 'vcap.')

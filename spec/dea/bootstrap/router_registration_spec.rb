@@ -8,9 +8,10 @@ describe Dea do
 
   before do
     bootstrap.unstub(:setup_router_client)
+    bootstrap.unstub(:setup_directory_server)
   end
 
-  it "should publish a message on 'router.register' upon receipt of a message on 'router.start'" do
+  it "should publish two messages on 'router.register' upon receipt of a message on 'router.start'" do
     instances = []
     responses = []
 
@@ -39,7 +40,7 @@ describe Dea do
       nats_mock.publish("router.start")
     end
 
-    expected = {
+    expected_0 = {
       "dea"  => bootstrap.uuid,
       "app"  => instances[0].application_id,
       "uris" => instances[0].application_uris,
@@ -51,8 +52,13 @@ describe Dea do
       }
     }
 
-    responses.size.should == 1
-    responses[0].should == expected
+    expected_1 = {
+      "host" => bootstrap.local_ip,
+      "port" => bootstrap.config["directory_server_port"],
+      "uris" => ["#{bootstrap.directory_server.uuid}.#{bootstrap.config["domain"]}"]
+    }
+
+    responses.should =~ [expected_0, expected_1]
   end
 
   describe "upon receipt of a message on 'dea.update'" do

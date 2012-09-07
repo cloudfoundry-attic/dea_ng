@@ -21,6 +21,7 @@ shared_context "bootstrap_setup" do
         "test2" => {},
       },
       "directory_server_port" => 12345,
+      "domain" => "default",
     }
 
     mock_runtime = mock("Dea::Runtime")

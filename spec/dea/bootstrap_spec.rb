@@ -9,7 +9,9 @@ describe Dea::Bootstrap do
 
   before do
     @config = {
-      "base_dir" => tmpdir
+      "base_dir" => tmpdir,
+      "directory_server_port" => 12345,
+      "domain" => "default",
     }
   end
 
@@ -144,6 +146,8 @@ describe Dea::Bootstrap do
     it "should stop and flush nats" do
       bootstrap.setup_signal_handlers
       bootstrap.setup_instance_registry
+      bootstrap.setup_router_client
+      bootstrap.setup_directory_server
 
       nats_client_mock = mock("nats_client")
       nats_client_mock.should_receive(:flush)
@@ -151,6 +155,16 @@ describe Dea::Bootstrap do
       nats_mock = mock("nats")
       nats_mock.should_receive(:stop)
       nats_mock.should_receive(:client).and_return(nats_client_mock)
+
+      nats_mock.should_receive(:publish) do |subject, message|
+        subject.should == "router.unregister"
+
+        message.should be_an_instance_of Hash
+        message["host"].should == bootstrap.local_ip
+        message["port"].should == bootstrap.config["directory_server_port"]
+        message["uris"].size.should == 1
+        message["uris"][0].should match /.*\.#{bootstrap.config["domain"]}$/
+      end
       bootstrap.stub(:nats).and_return(nats_mock)
 
       # Don't want to exit tests :)
