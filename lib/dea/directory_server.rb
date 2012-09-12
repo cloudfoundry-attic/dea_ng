@@ -1,7 +1,6 @@
 # coding: UTF-8
 
 require "thin"
-require "securerandom"
 require "vcap/common"
 
 require "dea/directory"
@@ -20,7 +19,7 @@ module Dea
       @uri = "http://#{host}:#{port}/instances"
       @credentials = [VCAP.secure_uuid, VCAP.secure_uuid]
       @instance_registry = instance_registry
-      @uuid = SecureRandom.uuid
+      @uuid = VCAP.secure_uuid
       @server = create_server(host, port, @credentials, instance_registry)
     end
 
