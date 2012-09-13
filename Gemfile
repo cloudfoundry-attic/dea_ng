@@ -14,6 +14,7 @@ gem "rack", :require => ["rack/utils", "rack/mime"]
 gem "rake"
 gem "thin"
 gem "yajl-ruby", :require => ["yajl", "yajl/json_gem"]
+gem "grape", :git => "https://github.com/intridea/grape.git"
 
 gem "vcap_common", :git => "https://github.com/cloudfoundry/vcap-common.git", :ref => "5334b662"
 gem "steno", :git => "https://github.com/cloudfoundry/steno.git"
