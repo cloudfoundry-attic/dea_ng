@@ -8,11 +8,12 @@ require "dea/file_api"
 
 describe Dea::FileApi do
   include Rack::Test::Methods
+  include_context "tmpdir"
 
   let(:instance) do
     instance_mock = mock("instance_mock")
     instance_mock.stub(:instance_id).and_return("test_instance")
-    instance_mock.stub(:instance_path).and_return("/foo/bar")
+    instance_mock.stub(:instance_path).and_return(tmpdir)
     instance_mock
   end
 
@@ -77,11 +78,26 @@ describe Dea::FileApi do
       last_error.should == "Instance unavailable"
     end
 
+    it "returns 404 if the requested file doesn't exist" do
+      instance.stub(:instance_path_available?).and_return(true)
+      get_instance_path
+      last_response.status.should == 404
+    end
+
+    it "returns 403 if the file points outside the instance directory" do
+      instance.stub(:instance_path_available?).and_return(true)
+      get_instance_path(:path => "/..")
+      last_response.status.should == 403
+    end
+
     it "returns the full path on success" do
       instance.stub(:instance_path_available?).and_return(true)
-      path = "/test/path"
-      get_instance_path(:path => path)
-      json_body["instance_path"].should == File.join(instance.instance_path, path)
+
+      path = File.join(tmpdir, "test")
+      FileUtils.touch(path)
+
+      get_instance_path(:path => "/test")
+      json_body["instance_path"].should == File.join(instance.instance_path, "test")
     end
   end
 

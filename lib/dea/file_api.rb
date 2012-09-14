@@ -106,7 +106,21 @@ module Dea
           json_error!("Instance unavailable", 503)
         end
 
-        { "instance_path" => File.join(instance.instance_path, path) }
+        full_path = File.join(instance.instance_path, path)
+
+        if !File.exists?(full_path)
+          json_error!("Entity not found", 404)
+        end
+
+        # Expand symlinks and '..'
+        real_path = File.realpath(full_path)
+        if !real_path.start_with?(instance.instance_path)
+          logger.warn("Requested path '#{full_path}' points outside instance " +
+                      "to '#{real_path}'")
+          json_error!("Not accessible", 403)
+        end
+
+        { "instance_path" => real_path }
       end
     end
 
