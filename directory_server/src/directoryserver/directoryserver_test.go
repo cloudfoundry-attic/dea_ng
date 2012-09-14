@@ -25,18 +25,8 @@ func checkRequest(received *http.Request, expected *http.Request) bool {
 	badUrl := received.URL.String() != "/path"
 	badProto := received.Proto != expected.Proto
 	badHost := received.Host != expected.Host
-	expAuth := expected.Header["Authorization"]
 
-	var badAuth bool = false
-	if len(expAuth) > 0 {
-		badAuth = true
-		receivedAuth := received.Header["Authorization"]
-		badAuth = len(receivedAuth) != 2
-		badAuth = badAuth || (receivedAuth[0] != expAuth[0])
-		badAuth = badAuth || (receivedAuth[1] != expAuth[1])
-	}
-
-	if badMethod || badUrl || badProto || badHost || badAuth {
+	if badMethod || badUrl || badProto || badHost {
 		return false
 	}
 
@@ -81,10 +71,9 @@ func (handler denyingDeaHandler) ServeHTTP(w http.ResponseWriter,
 func TestDeaClientImpl_ConstructDeaRequest(t *testing.T) {
 	dc := deaClientImpl{host: "host", port: 10}
 
-	auth := []string{"username", "password"}
 	expRequest, _ := http.NewRequest("GET", "http://host:10/path", nil)
 
-	req, _ := dc.ConstructDeaRequest("/path", auth)
+	req, _ := dc.ConstructDeaRequest("/path")
 
 	if req.Method != expRequest.Method {
 		t.Fail()
@@ -104,28 +93,6 @@ func TestDeaClientImpl_ConstructDeaRequest(t *testing.T) {
 	if req.Host != expRequest.Host {
 		t.Fail()
 	}
-
-	headerSize := 0
-	for k, v := range req.Header {
-		if k != "Authorization" {
-			t.Fail()
-		}
-		if len(v) != 2 {
-			t.Fail()
-		}
-		if v[0] != auth[0] {
-			t.Fail()
-		}
-		if v[1] != auth[1] {
-			t.Fail()
-		}
-
-		headerSize += 1
-	}
-
-	if headerSize != 1 {
-		t.Fail()
-	}
 }
 
 func TestDeaClientImpl_Get(t *testing.T) {
@@ -135,15 +102,13 @@ func TestDeaClientImpl_Get(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	auth := []string{"username", "password"}
 	expRequest, _ := http.NewRequest("GET", "http://localhost:1234/path", nil)
-	expRequest.Header["Authorization"] = auth
 	responseBody := "dummy"
 	// Start mock DEA server in a separate thread and wait for it to start.
 	go http.Serve(l, dummyDeaHandler{t, expRequest, responseBody})
 	time.Sleep(2 * time.Millisecond)
 
-	response, err := dc.Get("/path", auth)
+	response, err := dc.Get("/path")
 	if err != nil {
 		t.Error(err)
 	}
