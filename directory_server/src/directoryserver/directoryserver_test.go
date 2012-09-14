@@ -1,13 +1,13 @@
 package directoryserver
 
 import (
+	"bytes"
 	"fmt"
 	"net"
 	"net/http"
 	"strconv"
 	"testing"
 	"time"
-	"bytes"
 )
 
 func getBody(response *http.Response) (*[]byte, error) {
@@ -46,7 +46,7 @@ func (handler dummyDeaHandler) ServeHTTP(w http.ResponseWriter,
 	}
 
 	w.Header()["Content-Length"] = []string{strconv.
-			Itoa(len(*(handler.responseBody)))}
+		Itoa(len(*(handler.responseBody)))}
 	w.Write(*(handler.responseBody))
 }
 
@@ -63,7 +63,7 @@ func (handler denyingDeaHandler) ServeHTTP(w http.ResponseWriter,
 	}
 
 	w.Header()["Content-Length"] = []string{strconv.
-			Itoa(len(*(handler.responseBody)))}
+		Itoa(len(*(handler.responseBody)))}
 	w.WriteHeader(400)
 	w.Write(*(handler.responseBody))
 }
@@ -103,7 +103,7 @@ func TestDeaClientImpl_Get(t *testing.T) {
 		t.Error(err)
 	}
 	expRequest, _ := http.NewRequest("GET", "http://localhost:1234/path", nil)
-	responseBody := []byte("dummy")
+	responseBody := []byte("{\"instance_path\" : \"dummy\"}")
 	// Start mock DEA server in a separate thread and wait for it to start.
 	go http.Serve(l, dummyDeaHandler{t, expRequest, &responseBody})
 	time.Sleep(2 * time.Millisecond)
@@ -168,7 +168,8 @@ func TestHandler_ServeHTTP_RequestDeniedByDea(t *testing.T) {
 		t.Error(err)
 	}
 	expRequest, _ := http.NewRequest("GET", "http://localhost:1236/path", nil)
-	responseBody := []byte("dummy")
+	responseBody := []byte("{\"instance_path\" : \"dummy\"}")
+
 	// Start mock DEA server in a separate thread and wait for it to start.
 	go http.Serve(deaServerListener,
 		denyingDeaHandler{t, expRequest, &responseBody})
