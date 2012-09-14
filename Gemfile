@@ -22,4 +22,6 @@ gem "steno", :git => "https://github.com/cloudfoundry/steno.git"
 group :test do
   gem "rspec"
   gem "rack-test"
+  gem "rcov"
+  gem "ci_reporter"
 end
