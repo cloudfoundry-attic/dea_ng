@@ -3,7 +3,9 @@ package directoryserver
 import (
 	"fmt"
 	"log"
+	"net"
 	"net/http"
+	"strconv"
 )
 
 type deaClient interface {
@@ -80,4 +82,72 @@ func (dc *deaClientImpl) Get(path string,
 
 func newDeaClient(host string, port int) deaClientImpl {
 	return deaClientImpl{host: host, port: port}
+}
+
+type handler struct {
+	deaHost   string
+	deaPort   int
+	deaClient deaClient
+}
+
+func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if h.deaClient == nil {
+		dc := newDeaClient(h.deaHost, h.deaPort)
+		h.deaClient = &dc
+	}
+
+	response, err := h.deaClient.Get(r.URL.String(),
+		r.Header["Authorization"])
+
+	if err != nil {
+		msgFormat := "Can't make HTTP request to DEA due to error => %s"
+		msg := fmt.Sprintf(msgFormat, err.Error())
+		log.Printf(msg)
+		w.WriteHeader(500)
+		fmt.Fprintf(w, msg)
+		return
+	}
+
+	body := make([]byte, response.ContentLength)
+	_, err = response.Body.Read(body)
+	if err != nil {
+		msgFormat := "Can't read the body of HTTP response"
+		msgFormat += " from DEA due to error: %s"
+		msg := fmt.Sprintf(msgFormat, err.Error())
+		log.Print(msg)
+		w.WriteHeader(500)
+		fmt.Fprintf(w, msg)
+		return
+	}
+
+	log.Print(response)
+	if response.StatusCode == 200 {
+		pathString := string(body)
+		// TODO(kowshik): Read contents in the path string
+		// and serve the response.
+		fmt.Fprintf(w, pathString)
+	} else {
+		contentLength := []string{strconv.
+			FormatInt(response.ContentLength, 10)}
+
+		w.Header()["Content-Length"] = contentLength
+		w.WriteHeader(response.StatusCode)
+		w.Write(body)
+	}
+}
+
+func startServer(listener *net.Listener, deaHost string, deaPort int) error {
+	return http.Serve(*listener,
+		handler{deaHost: deaHost, deaPort: deaPort})
+}
+
+func Start(host string, port int, deaPort int) error {
+	address := host + ":" + strconv.Itoa(port)
+	listener, err := net.Listen("tcp", address)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Starting HTTP server at host: %s on port: %d", host, port)
+	return startServer(&listener, host, deaPort)
 }
