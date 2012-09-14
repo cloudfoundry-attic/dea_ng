@@ -17,8 +17,8 @@ type deaClient interface {
 	SetPort(port int)
 	SetHttpClient(httpClient *http.Client)
 
-	ConstructDeaRequest(path string, auth []string) (*http.Request, error)
-	Get(path string, auth []string) (*http.Response, error)
+	ConstructDeaRequest(path string) (*http.Request, error)
+	Get(path string) (*http.Response, error)
 }
 
 type deaClientImpl struct {
@@ -51,8 +51,7 @@ func (dc *deaClientImpl) SetHttpClient(httpClient *http.Client) {
 	dc.httpClient = httpClient
 }
 
-func (dc *deaClientImpl) ConstructDeaRequest(path string,
-	auth []string) (*http.Request, error) {
+func (dc *deaClientImpl) ConstructDeaRequest(path string) (*http.Request, error) {
 	url := fmt.Sprintf("http://%s:%d%s", dc.Host(), dc.Port(), path)
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -60,18 +59,15 @@ func (dc *deaClientImpl) ConstructDeaRequest(path string,
 		return nil, err
 	}
 
-	// Forward the authentication credentials to the DEA.
-	req.Header["Authorization"] = auth
 	return req, nil
 }
 
-func (dc *deaClientImpl) Get(path string,
-	auth []string) (*http.Response, error) {
+func (dc *deaClientImpl) Get(path string) (*http.Response, error) {
 	if dc.HttpClient() == nil {
 		dc.SetHttpClient(&http.Client{})
 	}
 
-	deaRequest, err := dc.ConstructDeaRequest(path, auth)
+	deaRequest, err := dc.ConstructDeaRequest(path)
 	if err != nil {
 		return nil, err
 	}
@@ -96,8 +92,7 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.deaClient = &dc
 	}
 
-	response, err := h.deaClient.Get(r.URL.String(),
-		r.Header["Authorization"])
+	response, err := h.deaClient.Get(r.URL.String())
 
 	if err != nil {
 		msgFormat := "Can't make HTTP request to DEA due to error => %s"
