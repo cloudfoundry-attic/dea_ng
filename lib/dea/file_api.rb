@@ -27,9 +27,19 @@ module Dea
       end
 
       def verify_hmac_hexdigest(hexdigest, other_hexdigest = "")
-        hexdigest.split("").
-          zip(other_hexdigest.split("")).
-          inject(true) { |a, to_cmp| a && (to_cmp[0] == to_cmp[1]) }
+        return false if hexdigest.size != other_hexdigest.size
+
+        expected_bytes = hexdigest.split("")
+        given_bytes    = other_hexdigest.split("")
+
+        # We explicity do not short circuit here in order to avoid a timing
+        # attack.
+        verified = true
+        expected_bytes.zip(given_bytes) do |expected_byte, given_byte|
+          verified = false if expected_byte != given_byte
+        end
+
+        verified
       end
 
       def generate_file_url(instance_id, path)
