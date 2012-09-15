@@ -3,14 +3,22 @@ package directoryserver
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
+	"os"
+	"regexp"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
 
 func getBody(response *http.Response) (*[]byte, error) {
+	if response.ContentLength <= 0 {
+		return nil, nil
+	}
+
 	body := make([]byte, response.ContentLength)
 	_, err := response.Body.Read(body)
 	if err != nil {
@@ -98,14 +106,16 @@ func TestDeaClientImpl_ConstructDeaRequest(t *testing.T) {
 func TestDeaClientImpl_Get(t *testing.T) {
 	dc := deaClientImpl{host: "localhost", port: 1234}
 
+	// Start mock DEA server in a separate thread and wait for it to start.
 	l, err := net.Listen("tcp", "localhost:"+strconv.Itoa(1234))
 	if err != nil {
 		t.Error(err)
 	}
 	expRequest, _ := http.NewRequest("GET", "http://localhost:1234/path", nil)
 	responseBody := []byte("{\"instance_path\" : \"dummy\"}")
-	// Start mock DEA server in a separate thread and wait for it to start.
-	go http.Serve(l, dummyDeaHandler{t, expRequest, &responseBody})
+
+	go http.Serve(l,
+		dummyDeaHandler{t, expRequest, &responseBody}) // thread.
 	time.Sleep(2 * time.Millisecond)
 
 	response, err := dc.Get("/path")
@@ -129,14 +139,14 @@ func TestDeaClientImpl_Get(t *testing.T) {
 }
 
 func TestHandler_ServeHTTP_RequestToDeaFailed(t *testing.T) {
+	// Start mock dir server in a separate thread and wait for it to start.
 	address := "localhost:" + strconv.Itoa(1235)
 	dirServerListener, err := net.Listen("tcp", address)
 	if err != nil {
 		t.Error(err)
 	}
-	// Start mock dir server in a separate thread and wait for it to start.
 	// "badhost" causes the HTTP request to DEA to fail.
-	go startServer(&dirServerListener, "badhost", 0)
+	go startServer(&dirServerListener, "badhost", 0) // thread.
 	time.Sleep(2 * time.Millisecond)
 
 	response, err := http.Get("http://localhost:1235/path")
@@ -153,38 +163,38 @@ func TestHandler_ServeHTTP_RequestToDeaFailed(t *testing.T) {
 }
 
 func TestHandler_ServeHTTP_RequestDeniedByDea(t *testing.T) {
-	address := "localhost:" + strconv.Itoa(1235)
+	// Start mock dir server in a separate thread and wait for it to start.
+	address := "localhost:" + strconv.Itoa(1236)
 	dirServerListener, err := net.Listen("tcp", address)
 	if err != nil {
 		t.Error(err)
 	}
-	// Start mock dir server in a separate thread and wait for it to start.
-	go startServer(&dirServerListener, "localhost", 1236)
+	go startServer(&dirServerListener, "localhost", 1237) // thread.
 	time.Sleep(2 * time.Millisecond)
 
-	address = "localhost:" + strconv.Itoa(1236)
+	// Start mock DEA server in a separate thread and wait for it to start.
+	address = "localhost:" + strconv.Itoa(1237)
 	deaServerListener, err := net.Listen("tcp", address)
 	if err != nil {
 		t.Error(err)
 	}
-	expRequest, _ := http.NewRequest("GET", "http://localhost:1236/path", nil)
+	expRequest, _ := http.NewRequest("GET", "http://localhost:1237/path", nil)
 	responseBody := []byte("{\"instance_path\" : \"dummy\"}")
-
-	// Start mock DEA server in a separate thread and wait for it to start.
 	go http.Serve(deaServerListener,
-		denyingDeaHandler{t, expRequest, &responseBody})
+		denyingDeaHandler{t, expRequest, &responseBody}) // thread.
 	time.Sleep(2 * time.Millisecond)
 
-	response, err := http.Get("http://localhost:1235/path")
-	fmt.Println(response)
+	response, err := http.Get("http://localhost:1236/path")
 	if err != nil {
 		t.Error(err)
 	}
 
+	// Check status code.
 	if response.StatusCode != 400 {
 		t.Fail()
 	}
 
+	// Check body.
 	body, err := getBody(response)
 	if err != nil {
 		t.Error(err)
@@ -198,7 +208,146 @@ func TestHandler_ServeHTTP_RequestDeniedByDea(t *testing.T) {
 	dirServerListener.Close()
 }
 
-// TODO(kowshik): This is only a placeholder and will change during next phase
-// of implementation.
-func TestHandler_ServeHTTP_RequestApprovedByDea(t *testing.T) {
+func TestHandler_ServeHTTP_EntityNotFound(t *testing.T) {
+	// Start mock dir server in a separate thread and wait for it to start.
+	address := "localhost:" + strconv.Itoa(1238)
+	dirServerListener, err := net.Listen("tcp", address)
+	if err != nil {
+		t.Error(err)
+	}
+	go startServer(&dirServerListener, "localhost", 1239) // thread.
+	time.Sleep(2 * time.Millisecond)
+
+	// Start mock DEA server in a separate thread and wait for it to start.
+	address = "localhost:" + strconv.Itoa(1239)
+	deaServerListener, err := net.Listen("tcp", address)
+	if err != nil {
+		t.Error(err)
+	}
+	expRequest, _ := http.NewRequest("GET", "http://localhost:1239/path", nil)
+	responseBody := []byte("{\"instance_path\" : \"dummy\"}")
+	go http.Serve(deaServerListener,
+		dummyDeaHandler{t, expRequest, &responseBody}) // thread.
+	time.Sleep(2 * time.Millisecond)
+
+	response, err := http.Get("http://localhost:1238/path")
+	fmt.Println(response)
+	if err != nil {
+		t.Error(err)
+	}
+
+	// Check status code.
+	if response.StatusCode != 404 {
+		t.Fail()
+	}
+
+	// Check headers.
+	headerValue := response.Header["Content-Type"]
+	if len(headerValue) != 1 || headerValue[0] != "text/plain" {
+		t.Fail()
+	}
+
+	headerValue = response.Header["X-Cascade"]
+	if len(headerValue) != 1 || headerValue[0] != "pass" {
+		t.Fail()
+	}
+
+	// Check body.
+	body, err := getBody(response)
+	if err != nil {
+		t.Error(err)
+	}
+	if strings.ToLower(string(*body)) != "entity not found.\n" {
+		t.Fail()
+	}
+
+	// Shutdown servers.
+	deaServerListener.Close()
+	dirServerListener.Close()
+}
+
+func TestHandler_ServeHTTP_ReturnDirectoryListing(t *testing.T) {
+	address := "localhost:" + strconv.Itoa(1240)
+	dirServerListener, err := net.Listen("tcp", address)
+	if err != nil {
+		t.Error(err)
+	}
+	// Start mock dir server in a separate thread and wait for it to start.
+	go startServer(&dirServerListener, "localhost", 1241)
+	time.Sleep(2 * time.Millisecond)
+
+	address = "localhost:" + strconv.Itoa(1241)
+	deaServerListener, err := net.Listen("tcp", address)
+	if err != nil {
+		t.Error(err)
+	}
+	expRequest, _ := http.NewRequest("GET", "http://localhost:1241/path", nil)
+	// Create temp directory listing for this unit test.
+	tmpDir, err := ioutil.TempDir("", "")
+	if err != nil {
+		t.Fail()
+	}
+	_, err = ioutil.TempDir(tmpDir, "testdir_")
+	if err != nil {
+		t.Fail()
+	}
+	tmpFile, err := ioutil.TempFile(tmpDir, "testfile_")
+	if err != nil {
+		t.Fail()
+	}
+	err = tmpFile.Close()
+	if err != nil {
+		t.Fail()
+	}
+	var dump bytes.Buffer
+	for index := 0; index < 10000; index++ {
+		dump.WriteString("A")
+	}
+	err = ioutil.WriteFile(tmpFile.Name(), []byte(dump.String()), 0600)
+	t.Log(tmpFile.Name())
+	if err != nil {
+		t.Fail()
+	}
+
+	responseBody := []byte(fmt.
+		Sprintf("{\"instance_path\" : \"%s\"}", tmpDir))
+
+	// Start mock DEA server in a separate thread and wait for it to start.
+	go http.Serve(deaServerListener,
+		dummyDeaHandler{t, expRequest, &responseBody})
+	time.Sleep(2 * time.Millisecond)
+
+	response, err := http.Get("http://localhost:1240/path")
+	if err != nil {
+		t.Error(err)
+	}
+
+	// Check status code.
+	if response.StatusCode != 200 {
+		t.Fail()
+	}
+
+	// Check headers.
+	headerValue := response.Header["Content-Type"]
+	if len(headerValue) != 1 || headerValue[0] != "text/plain" {
+		t.Fail()
+	}
+
+	// Check body.
+	body, err := getBody(response)
+	if err != nil {
+		t.Error(err)
+	}
+	pattern := "\\s*testdir_.*/\\s*-\\n\\s*testfile_.*\\s*9\\.8K"
+	matched, _ := regexp.Match(pattern, *body)
+	if !matched {
+		t.Fail()
+	}
+
+	// Clean up.
+	if err = os.RemoveAll(tmpDir); err != nil {
+		t.Fail()
+	}
+	deaServerListener.Close()
+	dirServerListener.Close()
 }
