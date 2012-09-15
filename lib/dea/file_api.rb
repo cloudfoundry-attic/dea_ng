@@ -3,7 +3,6 @@
 require "grape"
 require "openssl"
 require "steno"
-require "steno/core_ext"
 
 module Dea
   class FileApi < Grape::API
@@ -46,6 +45,8 @@ module Dea
       end
     end
 
+    logger Steno.logger(self.class.name)
+
     format :json
     error_format :json
 
@@ -72,7 +73,7 @@ module Dea
       end
 
       def logger
-        Dea::FileApi.logger
+        FileApi.logger
       end
     end
 
