@@ -122,7 +122,7 @@ func entityNotFound() (*int, *map[string]string, *string) {
 	return &statusCode, &headers, &body
 }
 
-func (h handler) writeDeaServerError(err *error, w http.ResponseWriter) {
+func (h handler) writeDeaClientError(err *error, w http.ResponseWriter) {
 	msgFormat := "Can't read the body of HTTP response"
 	msgFormat += " from DEA due to error: %s"
 	msg := fmt.Sprintf(msgFormat, (*err).Error())
@@ -197,14 +197,14 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	response, err := h.deaClient.Get(r.URL.String())
 
 	if err != nil {
-		h.writeDeaServerError(&err, w)
+		h.writeDeaClientError(&err, w)
 		return
 	}
 
 	jsonBlob := make([]byte, response.ContentLength)
 	_, err = response.Body.Read(jsonBlob)
 	if err != nil {
-		h.writeDeaServerError(&err, w)
+		h.writeDeaClientError(&err, w)
 		return
 	}
 
@@ -213,7 +213,7 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		var jsonObj interface{}
 		err := json.Unmarshal(jsonBlob, &jsonObj)
 		if err != nil {
-			h.writeDeaServerError(&err, w)
+			h.writeDeaClientError(&err, w)
 			return
 		}
 
