@@ -110,14 +110,15 @@ func fileSizeFormat(size int64) string {
 	return fmt.Sprintf("%dB", size)
 }
 
-func entityNotFound() (*int, *map[string]string, *string) {
+func (h handler) entityNotFound() (*int, *map[string][]string, *[]byte) {
 	statusCode := 404
 
-	body := "Entity not found.\n"
+	body := []byte("Entity not found.\n")
 
-	headers := make(map[string]string)
-	headers["Content-Type"] = "text/plain"
-	headers["X-Cascade"] = "pass"
+	headers := make(map[string][]string)
+	headers["Content-Length"] = []string{strconv.Itoa(len(body))}
+	headers["Content-Type"] = []string{"text/plain"}
+	headers["X-Cascade"] = []string{"pass"}
 
 	return &statusCode, &headers, &body
 }
@@ -139,8 +140,8 @@ func (h handler) writeServerError(err *error, w http.ResponseWriter) {
 	fmt.Fprintf(w, msg)
 }
 
-func (h handler) listDir(dirPath string) (*int, *map[string]string,
-	*string, error) {
+func (h handler) listDir(dirPath string) (*int, *map[string][]string,
+	*[]byte, error) {
 	statusCode := 200
 
 	entries, err := ioutil.ReadDir(dirPath)
@@ -164,28 +165,44 @@ func (h handler) listDir(dirPath string) (*int, *map[string]string,
 		bodyBuffer.WriteString(entryStr)
 	}
 
-	body := bodyBuffer.String()
+	body := bodyBuffer.Bytes()
 
-	headers := make(map[string]string)
-	headers["Content-Type"] = "text/plain"
-
+	headers := make(map[string][]string)
+	headers["Content-Type"] = []string{"text/plain"}
+	headers["Content-Length"] = []string{strconv.Itoa(len(body))}
 	return &statusCode, &headers, &body, nil
 }
 
-func (h handler) listPath(path string) (*int, *map[string]string,
-	*string, error) {
-	info, err := os.Stat(path)
+func (h handler) handleFileRequest(w http.ResponseWriter, path string) {
+	// TODO(kowshik): Handle file streaming requests here.	
+}
+
+func (h handler) listPath(request *http.Request, writer http.ResponseWriter,
+	deaResponse *http.Response) {
+	path, err := h.getPath(deaResponse)
 	if err != nil {
-		statusCode, headers, body := entityNotFound()
-		return statusCode, headers, body, nil
+		h.writeDeaClientError(&err, writer)
+		return
+	}
+
+	info, err := os.Stat(*path)
+	if err != nil {
+		statusCode, headers, body := h.entityNotFound()
+		h.writeResponse(writer, *statusCode, headers, body)
+		return
 	}
 
 	if info.IsDir() {
-		return h.listDir(path)
-	}
+		statusCode, headers, body, err := h.listDir(*path)
+		if err != nil {
+			h.writeServerError(&err, writer)
+			return
+		}
 
-	// TODO(kowshik): Streaming files.
-	return nil, nil, nil, nil
+		h.writeResponse(writer, *statusCode, headers, body)
+	} else {
+		h.handleFileRequest(writer, *path)
+	}
 }
 
 func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -194,51 +211,70 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.deaClient = &dc
 	}
 
-	response, err := h.deaClient.Get(r.URL.String())
-
+	deaResponse, err := h.deaClient.Get(r.URL.String())
 	if err != nil {
 		h.writeDeaClientError(&err, w)
 		return
 	}
 
-	jsonBlob := make([]byte, response.ContentLength)
-	_, err = response.Body.Read(jsonBlob)
-	if err != nil {
-		h.writeDeaClientError(&err, w)
-		return
-	}
-
-	log.Print(response)
-	if response.StatusCode == 200 {
-		var jsonObj interface{}
-		err := json.Unmarshal(jsonBlob, &jsonObj)
-		if err != nil {
-			h.writeDeaClientError(&err, w)
-			return
-		}
-
-		path := jsonObj.(map[string]interface{})["instance_path"].(string)
-		statusCode, headers, body, err := h.listPath(path)
-		if err != nil {
-			h.writeServerError(&err, w)
-		}
-
-		for header, value := range *headers {
-			w.Header()[header] = []string{value}
-		}
-
-		w.Header()["Content-Length"] = []string{strconv.
-			Itoa(len(*body))}
-		w.WriteHeader(*statusCode)
-		fmt.Fprintf(w, *body)
+	log.Print("HTTP response from DEA: ", deaResponse)
+	if deaResponse.StatusCode == 200 {
+		h.listPath(r, w, deaResponse)
 	} else {
-		contentLength := []string{strconv.
-			FormatInt(response.ContentLength, 10)}
-
-		w.Header()["Content-Length"] = contentLength
-		w.WriteHeader(response.StatusCode)
-		w.Write(jsonBlob)
+		h.forwardDeaResponse(w, deaResponse)
 	}
+}
+
+func (h handler) getPath(deaResponse *http.Response) (*string, error) {
+	jsonBlob := make([]byte, (*deaResponse).ContentLength)
+	_, err := (*deaResponse).Body.Read(jsonBlob)
+	if err != nil {
+		return nil, err
+	}
+
+	var jsonObj interface{}
+	err = json.Unmarshal(jsonBlob, &jsonObj)
+	if err != nil {
+		return nil, err
+	}
+
+	path := jsonObj.(map[string]interface{})["instance_path"].(string)
+	return &path, nil
+}
+
+func (h handler) forwardDeaResponse(w http.ResponseWriter,
+	deaResponse *http.Response,) {
+	body := make([]byte, deaResponse.ContentLength)
+	_, err := (*deaResponse).Body.Read(body)
+	if err != nil {
+		h.writeServerError(&err, w)
+		return
+	}
+
+	for header, value := range (*deaResponse).Header {
+		w.Header()[header] = value
+	}
+	h.writeResponse(w, (*deaResponse).StatusCode, nil, &body)
+}
+
+func (h handler) writeResponse(w http.ResponseWriter, statusCode int,
+	headers *map[string][]string, body *[]byte) error {
+	if headers != nil {
+		for header, value := range *headers {
+			w.Header()[header] = value
+		}
+	}
+
+	w.WriteHeader(statusCode)
+
+	if body != nil {
+		_, err := w.Write(*body)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func startServer(listener *net.Listener, deaHost string, deaPort int) error {
