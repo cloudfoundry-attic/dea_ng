@@ -30,7 +30,8 @@ func getBody(response *http.Response) (*[]byte, error) {
 
 func checkRequest(received *http.Request, expected *http.Request) bool {
 	badMethod := received.Method != expected.Method
-	badUrl := received.URL.String() != "/path"
+	badUrl := !strings.HasSuffix(expected.URL.String(),
+		received.URL.String())
 	badProto := received.Proto != expected.Proto
 	badHost := received.Host != expected.Host
 
@@ -234,7 +235,6 @@ func TestHandler_ServeHTTP_EntityNotFound(t *testing.T) {
 	time.Sleep(2 * time.Millisecond)
 
 	response, err := http.Get("http://localhost:1238/path")
-	fmt.Println(response)
 	if err != nil {
 		t.Error(err)
 	}
@@ -308,7 +308,6 @@ func TestHandler_ServeHTTP_ReturnDirectoryListing(t *testing.T) {
 		dump.WriteString("A")
 	}
 	err = ioutil.WriteFile(tmpFile.Name(), []byte(dump.String()), 0600)
-	t.Log(tmpFile.Name())
 	if err != nil {
 		t.Fail()
 	}
