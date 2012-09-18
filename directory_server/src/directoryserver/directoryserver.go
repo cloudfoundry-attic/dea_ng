@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type deaClient interface {
@@ -173,7 +174,8 @@ func (h handler) listDir(dirPath string) (*int, *map[string][]string,
 	return &statusCode, &headers, &body, nil
 }
 
-func (h handler) handleFileRequest(w http.ResponseWriter, path string) {
+func (h handler) handleFileRequest(w http.ResponseWriter, path string,
+	tail bool) {
 	// TODO(kowshik): Handle file streaming requests here.	
 }
 
@@ -201,7 +203,15 @@ func (h handler) listPath(request *http.Request, writer http.ResponseWriter,
 
 		h.writeResponse(writer, *statusCode, headers, body)
 	} else {
-		h.handleFileRequest(writer, *path)
+		tail := false
+		for key, _ := range request.URL.Query() {
+			if strings.ToLower(key) == "tail" {
+				tail = true
+				break
+			}
+		}
+
+		h.handleFileRequest(writer, *path, tail)
 	}
 }
 
