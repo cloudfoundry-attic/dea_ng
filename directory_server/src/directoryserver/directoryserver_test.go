@@ -136,6 +136,7 @@ func TestDeaClientImpl_Get(t *testing.T) {
 	}
 
 	l.Close()
+	time.Sleep(2 * time.Millisecond)
 }
 
 func TestHandler_ServeHTTP_RequestToDeaFailed(t *testing.T) {
@@ -160,6 +161,7 @@ func TestHandler_ServeHTTP_RequestToDeaFailed(t *testing.T) {
 
 	// Shutdown server.
 	dirServerListener.Close()
+	time.Sleep(2 * time.Millisecond)
 }
 
 func TestHandler_ServeHTTP_RequestDeniedByDea(t *testing.T) {
@@ -206,6 +208,7 @@ func TestHandler_ServeHTTP_RequestDeniedByDea(t *testing.T) {
 	// Shutdown servers.
 	deaServerListener.Close()
 	dirServerListener.Close()
+	time.Sleep(2 * time.Millisecond)
 }
 
 func TestHandler_ServeHTTP_EntityNotFound(t *testing.T) {
@@ -264,6 +267,7 @@ func TestHandler_ServeHTTP_EntityNotFound(t *testing.T) {
 	// Shutdown servers.
 	deaServerListener.Close()
 	dirServerListener.Close()
+	time.Sleep(2 * time.Millisecond)
 }
 
 func TestHandler_ServeHTTP_ReturnDirectoryListing(t *testing.T) {
@@ -350,4 +354,5 @@ func TestHandler_ServeHTTP_ReturnDirectoryListing(t *testing.T) {
 	}
 	deaServerListener.Close()
 	dirServerListener.Close()
+	time.Sleep(2 * time.Millisecond)
 }
