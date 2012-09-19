@@ -375,7 +375,7 @@ func TestHandler_ServeHTTP_ReturnDirectoryListing(t *testing.T) {
 	time.Sleep(2 * time.Millisecond)
 }
 
-func TestHandler_ServeHTTP_StreamFiles(t *testing.T) {
+func TestHandler_ServeHTTP_StreamFile(t *testing.T) {
 	// Start mock dir server in a separate thread and wait for it to start.
 	address := "localhost:" + strconv.Itoa(1242)
 	dirServerListener, err := net.Listen("tcp", address)
@@ -398,8 +398,7 @@ func TestHandler_ServeHTTP_StreamFiles(t *testing.T) {
 	if err != nil {
 		t.Fail()
 	}
-	tmpFile.Close()
-
+	err = tmpFile.Close()
 	if err != nil {
 		t.Error(err)
 	}
@@ -433,6 +432,75 @@ func TestHandler_ServeHTTP_StreamFiles(t *testing.T) {
 	_, err = response.Body.Read(body)
 	matched, _ := regexp.Match("blah", body)
 	if !matched {
+		t.Fail()
+	}
+
+	// Clean up.
+	if err = os.Remove(tmpFile.Name()); err != nil {
+		t.Fail()
+	}
+	deaServerListener.Close()
+	dirServerListener.Close()
+	time.Sleep(2 * time.Millisecond)
+}
+
+func TestHandler_ServeHTTP_DumpFile(t *testing.T) {
+	// Start mock dir server in a separate thread and wait for it to start.
+	address := "localhost:" + strconv.Itoa(1242)
+	dirServerListener, err := net.Listen("tcp", address)
+	if err != nil {
+		t.Error(err)
+	}
+	go startServer(&dirServerListener, "localhost", 1243, 2) // thread.
+	time.Sleep(2 * time.Millisecond)
+
+	// Start mock dea server in a separate thread and wait for it to start.
+	address = "localhost:" + strconv.Itoa(1243)
+	deaServerListener, err := net.Listen("tcp", address)
+	if err != nil {
+		t.Error(err)
+	}
+	expRequest, _ := http.NewRequest("GET", "http://localhost:1243/path", nil)
+
+	// Create temp file for this unit test.
+	tmpFile, err := ioutil.TempFile("", "testfile_")
+	if err != nil {
+		t.Fail()
+	}
+	err = tmpFile.Close()
+	if err != nil {
+		t.Error(err)
+	}
+	var dump bytes.Buffer
+	for index := 0; index < 1000; index++ {
+		dump.WriteString("A")
+	}
+	err = ioutil.WriteFile(tmpFile.Name(), []byte(dump.String()), 0600)
+	if err != nil {
+		t.Fail()
+	}
+
+	responseBody := []byte(fmt.Sprintf("{\"instance_path\" : \"%s\"}", tmpFile.Name()))
+	go http.Serve(deaServerListener,
+		dummyDeaHandler{t, expRequest, &responseBody}) // thread.
+	time.Sleep(2 * time.Millisecond)
+
+	response, err := http.Get("http://localhost:1242/path")
+	if err != nil {
+		t.Error(err)
+	}
+
+	// Check status code.
+	if response.StatusCode != 200 {
+		t.Fail()
+	}
+
+	// Check body.
+	body, err := getBody(response)
+	if err != nil {
+		t.Error(err)
+	}
+	if string(*body) != dump.String() {
 		t.Fail()
 	}
 
