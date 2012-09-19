@@ -10,9 +10,28 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 )
+
+func dump(file *os.File, t *testing.T, numLines int) error {
+	handle, err := os.OpenFile(file.Name(), syscall.O_WRONLY, 0666)
+	if err != nil {
+		t.Error(err)
+	}
+
+	for count := 0; count < numLines; count++ {
+		_, err = handle.WriteString("blah")
+		if err != nil {
+			t.Error(err)
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+
+	err = handle.Close()
+	return err
+}
 
 func getBody(response *http.Response) (*[]byte, error) {
 	if response.ContentLength <= 0 {
@@ -148,7 +167,7 @@ func TestHandler_ServeHTTP_RequestToDeaFailed(t *testing.T) {
 		t.Error(err)
 	}
 	// "badhost" causes the HTTP request to DEA to fail.
-	go startServer(&dirServerListener, "badhost", 0) // thread.
+	go startServer(&dirServerListener, "badhost", 0, 1) // thread.
 	time.Sleep(2 * time.Millisecond)
 
 	response, err := http.Get("http://localhost:1235/path")
@@ -172,7 +191,7 @@ func TestHandler_ServeHTTP_RequestDeniedByDea(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	go startServer(&dirServerListener, "localhost", 1237) // thread.
+	go startServer(&dirServerListener, "localhost", 1237, 1) // thread.
 	time.Sleep(2 * time.Millisecond)
 
 	// Start mock DEA server in a separate thread and wait for it to start.
@@ -219,7 +238,7 @@ func TestHandler_ServeHTTP_EntityNotFound(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	go startServer(&dirServerListener, "localhost", 1239) // thread.
+	go startServer(&dirServerListener, "localhost", 1239, 1) // thread.
 	time.Sleep(2 * time.Millisecond)
 
 	// Start mock DEA server in a separate thread and wait for it to start.
@@ -240,7 +259,7 @@ func TestHandler_ServeHTTP_EntityNotFound(t *testing.T) {
 	}
 
 	// Check status code.
-	if response.StatusCode != 404 {
+	if response.StatusCode != 400 {
 		t.Fail()
 	}
 
@@ -277,7 +296,7 @@ func TestHandler_ServeHTTP_ReturnDirectoryListing(t *testing.T) {
 		t.Error(err)
 	}
 	// Start mock dir server in a separate thread and wait for it to start.
-	go startServer(&dirServerListener, "localhost", 1241)
+	go startServer(&dirServerListener, "localhost", 1241, 1)
 	time.Sleep(2 * time.Millisecond)
 
 	address = "localhost:" + strconv.Itoa(1241)
@@ -349,6 +368,76 @@ func TestHandler_ServeHTTP_ReturnDirectoryListing(t *testing.T) {
 
 	// Clean up.
 	if err = os.RemoveAll(tmpDir); err != nil {
+		t.Fail()
+	}
+	deaServerListener.Close()
+	dirServerListener.Close()
+	time.Sleep(2 * time.Millisecond)
+}
+
+func TestHandler_ServeHTTP_StreamFiles(t *testing.T) {
+	// Start mock dir server in a separate thread and wait for it to start.
+	address := "localhost:" + strconv.Itoa(1242)
+	dirServerListener, err := net.Listen("tcp", address)
+	if err != nil {
+		t.Error(err)
+	}
+	go startServer(&dirServerListener, "localhost", 1243, 2) // thread.
+	time.Sleep(2 * time.Millisecond)
+
+	// Start mock dea server in a separate thread and wait for it to start.
+	address = "localhost:" + strconv.Itoa(1243)
+	deaServerListener, err := net.Listen("tcp", address)
+	if err != nil {
+		t.Error(err)
+	}
+	expRequest, _ := http.NewRequest("GET", "http://localhost:1243/path?tail", nil)
+
+	// Create temp file for this unit test.
+	tmpFile, err := ioutil.TempFile("", "testfile_")
+	if err != nil {
+		t.Fail()
+	}
+	tmpFile.Close()
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	responseBody := []byte(fmt.Sprintf("{\"instance_path\" : \"%s\"}", tmpFile.Name()))
+	go http.Serve(deaServerListener,
+		dummyDeaHandler{t, expRequest, &responseBody}) // thread.
+	time.Sleep(2 * time.Millisecond)
+
+	// Start writing content to the temp file in a separate thread.
+	go dump(tmpFile, t, 10) // thread.
+	time.Sleep(1 * time.Second)
+
+	response, err := http.Get("http://localhost:1242/path?tail")
+	if err != nil {
+		t.Error(err)
+	}
+
+	// Check status code.
+	if response.StatusCode != 200 {
+		t.Fail()
+	}
+
+	// Check transfer encoding.
+	te := response.TransferEncoding
+	if len(te) != 1 || te[0] != "chunked" {
+		t.Fail()
+	}
+
+	body := make([]byte, 100)
+	_, err = response.Body.Read(body)
+	matched, _ := regexp.Match("blah", body)
+	if !matched {
+		t.Fail()
+	}
+
+	// Clean up.
+	if err = os.Remove(tmpFile.Name()); err != nil {
 		t.Fail()
 	}
 	deaServerListener.Close()
