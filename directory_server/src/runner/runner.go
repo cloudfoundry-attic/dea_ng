@@ -56,6 +56,7 @@ func main() {
 	deaPort := config["dea_port"].(int)
 	dirServerPort := config["directory_server_port"].(int)
 	route := config["local_route"]
+	streamingTimeout := config["streaming_timeout"].(int)
 
 	var localIp *string
 	if route != nil {
@@ -69,7 +70,7 @@ func main() {
 	}
 
 	if err := directoryserver.Start(*localIp, deaPort,
-		dirServerPort); err != nil {
+		dirServerPort, uint32(streamingTimeout)); err != nil {
 		log.Panic(err)
 	}
 }
