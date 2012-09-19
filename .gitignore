@@ -1,4 +1,4 @@
-directory_server/src/launchpad.net
-directory_server/pkg
-directory_server/bin
+go/src/launchpad.net
+go/pkg
+go/bin
 spec_reports
