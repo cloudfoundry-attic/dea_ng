@@ -1,6 +1,7 @@
 package directoryserver
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -86,6 +87,15 @@ type handler struct {
 	deaClient deaClient
 }
 
+func (h handler) writeDeaServerError(err *error, w http.ResponseWriter) {
+	msgFormat := "Can't read the body of HTTP response"
+	msgFormat += " from DEA due to error: %s"
+	msg := fmt.Sprintf(msgFormat, (*err).Error())
+	log.Print(msg)
+	w.WriteHeader(500)
+	fmt.Fprintf(w, msg)
+}
+
 func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if h.deaClient == nil {
 		dc := newDeaClient(h.deaHost, h.deaPort)
@@ -95,39 +105,38 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	response, err := h.deaClient.Get(r.URL.String())
 
 	if err != nil {
-		msgFormat := "Can't make HTTP request to DEA due to error => %s"
-		msg := fmt.Sprintf(msgFormat, err.Error())
-		log.Printf(msg)
-		w.WriteHeader(500)
-		fmt.Fprintf(w, msg)
+		h.writeDeaServerError(&err, w)
 		return
 	}
 
-	body := make([]byte, response.ContentLength)
-	_, err = response.Body.Read(body)
+	jsonBlob := make([]byte, response.ContentLength)
+	_, err = response.Body.Read(jsonBlob)
 	if err != nil {
-		msgFormat := "Can't read the body of HTTP response"
-		msgFormat += " from DEA due to error: %s"
-		msg := fmt.Sprintf(msgFormat, err.Error())
-		log.Print(msg)
-		w.WriteHeader(500)
-		fmt.Fprintf(w, msg)
+		h.writeDeaServerError(&err, w)
 		return
 	}
 
 	log.Print(response)
 	if response.StatusCode == 200 {
-		pathString := string(body)
+		jsonObj := make(map[interface{}]interface{})
+		err := json.Unmarshal(jsonBlob, &jsonObj)
+		if err != nil {
+			h.writeDeaServerError(&err, w)
+			return
+		}
+
 		// TODO(kowshik): Read contents in the path string
 		// and serve the response.
-		fmt.Fprintf(w, pathString)
+		path := jsonObj["instance_path"].(string)
+
+		fmt.Fprintf(w, path)
 	} else {
 		contentLength := []string{strconv.
 			FormatInt(response.ContentLength, 10)}
 
 		w.Header()["Content-Length"] = contentLength
 		w.WriteHeader(response.StatusCode)
-		w.Write(body)
+		w.Write(jsonBlob)
 	}
 }
 
