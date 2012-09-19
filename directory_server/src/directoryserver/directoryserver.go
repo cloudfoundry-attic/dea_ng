@@ -1,9 +1,12 @@
 package directoryserver
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -11,6 +14,9 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"syscall"
+	"time"
+	"unsafe"
 )
 
 type deaClient interface {
@@ -86,9 +92,10 @@ func newDeaClient(host string, port int) deaClientImpl {
 }
 
 type handler struct {
-	deaHost   string
-	deaPort   int
-	deaClient deaClient
+	deaHost          string
+	deaPort          int
+	deaClient        deaClient
+	streamingTimeout uint32
 }
 
 func fileSizeFormat(size int64) string {
@@ -112,7 +119,7 @@ func fileSizeFormat(size int64) string {
 }
 
 func (h handler) entityNotFound() (*int, *map[string][]string, *[]byte) {
-	statusCode := 404
+	statusCode := 400
 
 	body := []byte("Entity not found.\n")
 
@@ -174,9 +181,146 @@ func (h handler) listDir(dirPath string) (*int, *map[string][]string,
 	return &statusCode, &headers, &body, nil
 }
 
-func (h handler) handleFileRequest(w http.ResponseWriter, path string,
-	tail bool) {
-	// TODO(kowshik): Handle file streaming requests here.
+func set(fdSetPtr *syscall.FdSet, fd int) {
+	(*fdSetPtr).Bits[fd/64] |= 1 << uint64(fd%64)
+}
+
+func isSet(fdSetPtr *syscall.FdSet, fd int) bool {
+	return ((*fdSetPtr).Bits[fd/64] & (1 << uint64(fd%64))) != 0
+}
+
+func clearAll(fdSetPtr *syscall.FdSet) {
+	for index, _ := range (*fdSetPtr).Bits {
+		(*fdSetPtr).Bits[index] = 0
+	}
+}
+
+func timeout(t time.Time, timeout uint32) bool {
+	return time.Now().Sub(t).Seconds() > float64(timeout)
+}
+
+func (h handler) streamFile(writer http.ResponseWriter, path string) error {
+	handle, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+
+	// Seek to EOF.
+	_, err = handle.Seek(0, 2)
+	if err != nil {
+		return err
+	}
+
+	reader := bufio.NewReader(handle)
+	readBuffer := make([]byte, 4096)
+
+	inotifyFd, err := syscall.InotifyInit()
+	if err != nil {
+		return err
+	}
+
+	watchDesc, err := syscall.InotifyAddWatch(inotifyFd, path, syscall.IN_MODIFY)
+	if err != nil {
+		return err
+	}
+
+	eventsBuffer := make([]byte, syscall.SizeofInotifyEvent*4096)
+
+	selectTimeout := syscall.Timeval{}
+	selectTimeout.Sec = int64(h.streamingTimeout)
+
+	inotifyFdSet := syscall.FdSet{}
+	lastWriteTime := time.Now()
+
+	canScan := true
+	for canScan && !timeout(lastWriteTime, h.streamingTimeout) {
+		clearAll(&inotifyFdSet)
+		set(&inotifyFdSet, inotifyFd)
+		_, err := syscall.Select(inotifyFd+1, &inotifyFdSet,
+			nil, nil, &selectTimeout)
+
+		if err != nil {
+			break
+		}
+
+		if !isSet(&inotifyFdSet, inotifyFd) {
+			continue
+		}
+
+		numEventsBytes, err := syscall.Read(inotifyFd, eventsBuffer[0:])
+		if numEventsBytes < syscall.SizeofInotifyEvent {
+			if numEventsBytes < 0 {
+				err = errors.New("inotify: read failed.")
+			} else {
+				err = errors.New("inotify: short read.")
+			}
+
+			break
+		}
+
+		var offset uint32 = 0
+		for offset <= uint32(numEventsBytes-syscall.SizeofInotifyEvent) {
+			event := (*syscall.InotifyEvent)(unsafe.
+				Pointer(&eventsBuffer[offset]))
+
+			n, err := reader.Read(readBuffer)
+			if err != nil {
+				// We ignore EOF error because
+				// we would like to continue polling
+				// the file until timeout.
+				if err == io.EOF {
+					err = nil
+				}
+				break
+			}
+
+			buffer := make([]byte, n)
+			for index := 0; index < n; index++ {
+				buffer[index] = readBuffer[index]
+			}
+
+			_, err = writer.Write(buffer)
+			if err != nil {
+				// Client has disconnected, so we don't proceed.
+				canScan = false
+				break
+			}
+
+			lastWriteTime = time.Now()
+			// Move to the next event.
+			offset += syscall.SizeofInotifyEvent + event.Len
+		}
+	}
+
+	// The inotify watch gets automatically removed by the inotify system
+	// when the file is removed. If the above loop times out, but the file
+	// is removed only just before the if block below is executed, then the
+	// removal of the watch below will throw an error as the watch
+	// descriptor is obsolete. We ignore this error because it is harmless.
+	syscall.InotifyRmWatch(inotifyFd, uint32(watchDesc))
+
+	// Though we return the first error that occured, we still need to
+	// attempt to close all the file descriptors.
+	inotifyCloseErr := syscall.Close(inotifyFd)
+	handleCloseErr := handle.Close()
+
+	if err != nil {
+		return err
+	} else if inotifyCloseErr != nil {
+		return inotifyCloseErr
+	}
+
+	return handleCloseErr
+}
+
+func (h handler) handleFileRequest(writer http.ResponseWriter, path string,
+	tail bool) error {
+	if tail {
+		return h.streamFile(writer, path)
+	}
+
+	// TODO(kowshik): Handle non-streaming requests.
+	return nil
 }
 
 func (h handler) listPath(request *http.Request, writer http.ResponseWriter,
@@ -211,7 +355,10 @@ func (h handler) listPath(request *http.Request, writer http.ResponseWriter,
 			}
 		}
 
-		h.handleFileRequest(writer, *path, tail)
+		err := h.handleFileRequest(writer, *path, tail)
+		if err != nil {
+			h.writeServerError(&err, writer)
+		}
 	}
 }
 
@@ -287,12 +434,17 @@ func (h handler) writeResponse(w http.ResponseWriter, statusCode int,
 	return nil
 }
 
-func startServer(listener *net.Listener, deaHost string, deaPort int) error {
-	return http.Serve(*listener,
-		handler{deaHost: deaHost, deaPort: deaPort})
+func startServer(listener *net.Listener, deaHost string, deaPort int,
+	streamingTimeout uint32) error {
+	h := handler{}
+	h.deaHost = deaHost
+	h.deaPort = deaPort
+	h.streamingTimeout = streamingTimeout
+
+	return http.Serve(*listener, h)
 }
 
-func Start(host string, port int, deaPort int) error {
+func Start(host string, port int, deaPort int, streamingTimeout uint32) error {
 	address := host + ":" + strconv.Itoa(port)
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
@@ -300,5 +452,5 @@ func Start(host string, port int, deaPort int) error {
 	}
 
 	log.Printf("Starting HTTP server at host: %s on port: %d", host, port)
-	return startServer(&listener, host, deaPort)
+	return startServer(&listener, host, deaPort, streamingTimeout)
 }
