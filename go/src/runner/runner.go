@@ -4,7 +4,7 @@ import (
 	"directoryserver"
 	"fmt"
 	"io/ioutil"
-	"launchpad.net/goyaml"
+	"github.com/xushiwei/goyaml"
 	"log"
 	"net"
 	"os"
