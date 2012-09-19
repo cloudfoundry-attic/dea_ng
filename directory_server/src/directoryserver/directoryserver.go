@@ -313,14 +313,54 @@ func (h handler) streamFile(writer http.ResponseWriter, path string) error {
 	return handleCloseErr
 }
 
+func (h handler) dumpFile(writer http.ResponseWriter, path string) error {
+	info, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+
+	writer.Header()["Content-Length"] = []string{strconv.
+		FormatInt(info.Size(), 10)}
+
+	handle, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+
+	reader := bufio.NewReader(handle)
+	readBuffer := make([]byte, 4096)
+
+	for {
+		n, err := reader.Read(readBuffer)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return err
+		}
+
+		buffer := make([]byte, n)
+		for index := 0; index < n; index++ {
+			buffer[index] = readBuffer[index]
+		}
+
+		_, err = writer.Write(buffer)
+		if err != nil {
+			// Client has disconnected, so we don't proceed.
+			break
+		}
+	}
+
+	return nil
+}
+
 func (h handler) handleFileRequest(writer http.ResponseWriter, path string,
 	tail bool) error {
 	if tail {
 		return h.streamFile(writer, path)
 	}
 
-	// TODO(kowshik): Handle non-streaming requests.
-	return nil
+	return h.dumpFile(writer, path)
 }
 
 func (h handler) listPath(request *http.Request, writer http.ResponseWriter,
