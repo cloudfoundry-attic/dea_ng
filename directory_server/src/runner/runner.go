@@ -2,6 +2,7 @@ package main
 
 import (
 	"directoryserver"
+	"fmt"
 	"io/ioutil"
 	"launchpad.net/goyaml"
 	"log"
@@ -58,6 +59,24 @@ func main() {
 	route := config["local_route"]
 	streamingTimeout := config["streaming_timeout"].(int)
 
+	if deaPort <= 0 || deaPort > 65535 {
+		msgFormat := "DEA server port should be between 1 and 65535."
+		msgFormat += " You passed: %d."
+		log.Panic(fmt.Sprintf(msgFormat, deaPort))
+	}
+
+	if dirServerPort <= 0 || dirServerPort > 65535 {
+		msgFormat := "Directory server port should be"
+		msgFormat += " between 1 and 65535. You passed: %d."
+		log.Panic(fmt.Sprintf(msgFormat, dirServerPort))
+	}
+
+	if streamingTimeout < 0 {
+		msgFormat := "Streaming timeout should be"
+		msgFormat += " between 0 and 4294967295. You passed: %d."
+		log.Panic(fmt.Sprintf(msgFormat, streamingTimeout))
+	}
+
 	var localIp *string
 	if route != nil {
 		localIp, err = getLocalIp(route.(string))
@@ -69,8 +88,8 @@ func main() {
 		log.Panic(err)
 	}
 
-	if err := directoryserver.Start(*localIp, deaPort,
-		dirServerPort, uint32(streamingTimeout)); err != nil {
+	if err := directoryserver.Start(*localIp, uint16(deaPort),
+		uint16(dirServerPort), uint32(streamingTimeout)); err != nil {
 		log.Panic(err)
 	}
 }
