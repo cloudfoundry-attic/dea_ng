@@ -51,6 +51,8 @@ module Dea
     end
 
     def validate
+      self.class.schema.validate(config)
+
       validate_executable
       validate_version
       validate_additional_checks
