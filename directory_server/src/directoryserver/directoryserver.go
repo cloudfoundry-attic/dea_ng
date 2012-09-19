@@ -1,11 +1,14 @@
 package directoryserver
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 )
 
@@ -87,6 +90,38 @@ type handler struct {
 	deaClient deaClient
 }
 
+func fileSizeFormat(size int64) string {
+	if size >= (1 << 40) {
+		return fmt.Sprintf("%.1fT", float64(size)/(1<<40))
+	}
+
+	if size >= (1 << 30) {
+		return fmt.Sprintf("%.1fG", float64(size)/(1<<30))
+	}
+
+	if size >= (1 << 20) {
+		return fmt.Sprintf("%.1fM", float64(size)/(1<<20))
+	}
+
+	if size >= (1 << 10) {
+		return fmt.Sprintf("%.1fK", float64(size)/(1<<10))
+	}
+
+	return fmt.Sprintf("%dB", size)
+}
+
+func entityNotFound() (*int, *map[string]string, *string) {
+	statusCode := 404
+
+	body := "Entity not found.\n"
+
+	headers := make(map[string]string)
+	headers["Content-Type"] = "text/plain"
+	headers["X-Cascade"] = "pass"
+
+	return &statusCode, &headers, &body
+}
+
 func (h handler) writeDeaServerError(err *error, w http.ResponseWriter) {
 	msgFormat := "Can't read the body of HTTP response"
 	msgFormat += " from DEA due to error: %s"
@@ -94,6 +129,63 @@ func (h handler) writeDeaServerError(err *error, w http.ResponseWriter) {
 	log.Print(msg)
 	w.WriteHeader(500)
 	fmt.Fprintf(w, msg)
+}
+
+func (h handler) writeServerError(err *error, w http.ResponseWriter) {
+	msgFormat := "Can't serve request due to error: %s"
+	msg := fmt.Sprintf(msgFormat, (*err).Error())
+	log.Print(msg)
+	w.WriteHeader(500)
+	fmt.Fprintf(w, msg)
+}
+
+func (h handler) listDir(dirPath string) (*int, *map[string]string,
+	*string, error) {
+	statusCode := 200
+
+	entries, err := ioutil.ReadDir(dirPath)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	var bodyBuffer bytes.Buffer
+	for _, entry := range entries {
+		basename := entry.Name()
+
+		var size string
+		if entry.IsDir() {
+			size = "-"
+			basename += "/"
+		} else {
+			size = fileSizeFormat(entry.Size())
+		}
+
+		entryStr := fmt.Sprintf("%-35s %10s\n", basename, size)
+		bodyBuffer.WriteString(entryStr)
+	}
+
+	body := bodyBuffer.String()
+
+	headers := make(map[string]string)
+	headers["Content-Type"] = "text/plain"
+
+	return &statusCode, &headers, &body, nil
+}
+
+func (h handler) listPath(path string) (*int, *map[string]string,
+	*string, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		statusCode, headers, body := entityNotFound()
+		return statusCode, headers, body, nil
+	}
+
+	if info.IsDir() {
+		return h.listDir(path)
+	}
+
+	// TODO(kowshik): Streaming files.
+	return nil, nil, nil, nil
 }
 
 func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -118,18 +210,27 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	log.Print(response)
 	if response.StatusCode == 200 {
-		jsonObj := make(map[interface{}]interface{})
+		var jsonObj interface{}
 		err := json.Unmarshal(jsonBlob, &jsonObj)
 		if err != nil {
 			h.writeDeaServerError(&err, w)
 			return
 		}
 
-		// TODO(kowshik): Read contents in the path string
-		// and serve the response.
-		path := jsonObj["instance_path"].(string)
+		path := jsonObj.(map[string]interface{})["instance_path"].(string)
+		statusCode, headers, body, err := h.listPath(path)
+		if err != nil {
+			h.writeServerError(&err, w)
+		}
 
-		fmt.Fprintf(w, path)
+		for header, value := range *headers {
+			w.Header()[header] = []string{value}
+		}
+
+		w.Header()["Content-Length"] = []string{strconv.
+			Itoa(len(*body))}
+		w.WriteHeader(*statusCode)
+		fmt.Fprintf(w, *body)
 	} else {
 		contentLength := []string{strconv.
 			FormatInt(response.ContentLength, 10)}
