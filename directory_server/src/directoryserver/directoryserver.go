@@ -20,15 +20,6 @@ import (
 )
 
 type deaClient interface {
-	Host() string
-	Port() uint16
-	HttpClient() *http.Client
-
-	SetHost(host string)
-	SetPort(port uint16)
-	SetHttpClient(httpClient *http.Client)
-
-	ConstructDeaRequest(path string) (*http.Request, error)
 	Get(path string) (*http.Response, error)
 }
 
@@ -38,32 +29,8 @@ type deaClientImpl struct {
 	httpClient *http.Client
 }
 
-func (dc *deaClientImpl) Host() string {
-	return dc.host
-}
-
-func (dc *deaClientImpl) Port() uint16 {
-	return dc.port
-}
-
-func (dc *deaClientImpl) HttpClient() *http.Client {
-	return dc.httpClient
-}
-
-func (dc *deaClientImpl) SetHost(host string) {
-	dc.host = host
-}
-
-func (dc *deaClientImpl) SetPort(port uint16) {
-	dc.port = port
-}
-
-func (dc *deaClientImpl) SetHttpClient(httpClient *http.Client) {
-	dc.httpClient = httpClient
-}
-
 func (dc *deaClientImpl) ConstructDeaRequest(path string) (*http.Request, error) {
-	url := fmt.Sprintf("http://%s:%d%s", dc.Host(), dc.Port(), path)
+	url := fmt.Sprintf("http://%s:%d%s", dc.host, dc.port, path)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -74,8 +41,8 @@ func (dc *deaClientImpl) ConstructDeaRequest(path string) (*http.Request, error)
 }
 
 func (dc *deaClientImpl) Get(path string) (*http.Response, error) {
-	if dc.HttpClient() == nil {
-		dc.SetHttpClient(&http.Client{})
+	if dc.httpClient == nil {
+		dc.httpClient = &http.Client{}
 	}
 
 	deaRequest, err := dc.ConstructDeaRequest(path)
@@ -84,7 +51,7 @@ func (dc *deaClientImpl) Get(path string) (*http.Response, error) {
 	}
 
 	log.Printf("Sending HTTP request to DEA: %s", deaRequest)
-	return dc.HttpClient().Do(deaRequest)
+	return dc.httpClient.Do(deaRequest)
 }
 
 func newDeaClient(host string, port uint16) deaClientImpl {
@@ -118,17 +85,17 @@ func fileSizeFormat(size int64) string {
 	return fmt.Sprintf("%dB", size)
 }
 
-func (h handler) entityNotFound() (*int, *map[string][]string, *[]byte) {
-	statusCode := 400
+func (h handler) writeEntityNotFound(writer http.ResponseWriter) {
+	response := "Entity not found.\n"
 
-	body := []byte("Entity not found.\n")
+	writer.Header()["Content-Length"] = []string{strconv.
+		Itoa(len(response))}
+	writer.Header()["Content-Type"] = []string{"text/plain"}
+	writer.Header()["X-Cascade"] = []string{"pass"}
 
-	headers := make(map[string][]string)
-	headers["Content-Length"] = []string{strconv.Itoa(len(body))}
-	headers["Content-Type"] = []string{"text/plain"}
-	headers["X-Cascade"] = []string{"pass"}
+	writer.WriteHeader(400)
 
-	return &statusCode, &headers, &body
+	fmt.Fprintf(writer, response)
 }
 
 func (h handler) writeDeaClientError(err *error, w http.ResponseWriter) {
@@ -148,13 +115,11 @@ func (h handler) writeServerError(err *error, w http.ResponseWriter) {
 	fmt.Fprintf(w, msg)
 }
 
-func (h handler) listDir(dirPath string) (*int, *map[string][]string,
-	*[]byte, error) {
-	statusCode := 200
-
+func (h handler) listDir(writer http.ResponseWriter, dirPath string) {
 	entries, err := ioutil.ReadDir(dirPath)
 	if err != nil {
-		return nil, nil, nil, err
+		h.writeServerError(&err, writer)
+		return
 	}
 
 	var bodyBuffer bytes.Buffer
@@ -175,10 +140,11 @@ func (h handler) listDir(dirPath string) (*int, *map[string][]string,
 
 	body := bodyBuffer.Bytes()
 
-	headers := make(map[string][]string)
-	headers["Content-Type"] = []string{"text/plain"}
-	headers["Content-Length"] = []string{strconv.Itoa(len(body))}
-	return &statusCode, &headers, &body, nil
+	writer.Header()["Content-Type"] = []string{"text/plain"}
+	writer.Header()["Content-Length"] = []string{strconv.
+		Itoa(len(body))}
+
+	writer.Write(body)
 }
 
 func set(fdSetPtr *syscall.FdSet, fd int) {
@@ -354,15 +320,6 @@ func (h handler) dumpFile(writer http.ResponseWriter, path string) error {
 	return nil
 }
 
-func (h handler) handleFileRequest(writer http.ResponseWriter, path string,
-	tail bool) error {
-	if tail {
-		return h.streamFile(writer, path)
-	}
-
-	return h.dumpFile(writer, path)
-}
-
 func (h handler) listPath(request *http.Request, writer http.ResponseWriter,
 	deaResponse *http.Response) {
 	path, err := h.getPath(deaResponse)
@@ -373,19 +330,12 @@ func (h handler) listPath(request *http.Request, writer http.ResponseWriter,
 
 	info, err := os.Stat(*path)
 	if err != nil {
-		statusCode, headers, body := h.entityNotFound()
-		h.writeResponse(writer, *statusCode, headers, body)
+		h.writeEntityNotFound(writer)
 		return
 	}
 
 	if info.IsDir() {
-		statusCode, headers, body, err := h.listDir(*path)
-		if err != nil {
-			h.writeServerError(&err, writer)
-			return
-		}
-
-		h.writeResponse(writer, *statusCode, headers, body)
+		h.listDir(writer, *path)
 	} else {
 		tail := false
 		for key, _ := range request.URL.Query() {
@@ -395,7 +345,12 @@ func (h handler) listPath(request *http.Request, writer http.ResponseWriter,
 			}
 		}
 
-		err := h.handleFileRequest(writer, *path, tail)
+		if tail {
+			err = h.streamFile(writer, *path)
+		} else {
+			err = h.dumpFile(writer, *path)
+		}
+
 		if err != nil {
 			h.writeServerError(&err, writer)
 		}
@@ -442,7 +397,7 @@ func (h handler) getPath(deaResponse *http.Response) (*string, error) {
 func (h handler) forwardDeaResponse(w http.ResponseWriter,
 	deaResponse *http.Response) {
 	body := make([]byte, deaResponse.ContentLength)
-	_, err := (*deaResponse).Body.Read(body)
+	_, err := deaResponse.Body.Read(body)
 	if err != nil {
 		h.writeServerError(&err, w)
 		return
@@ -451,27 +406,9 @@ func (h handler) forwardDeaResponse(w http.ResponseWriter,
 	for header, value := range (*deaResponse).Header {
 		w.Header()[header] = value
 	}
-	h.writeResponse(w, (*deaResponse).StatusCode, nil, &body)
-}
 
-func (h handler) writeResponse(w http.ResponseWriter, statusCode int,
-	headers *map[string][]string, body *[]byte) error {
-	if headers != nil {
-		for header, value := range *headers {
-			w.Header()[header] = value
-		}
-	}
-
-	w.WriteHeader(statusCode)
-
-	if body != nil {
-		_, err := w.Write(*body)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	w.WriteHeader(deaResponse.StatusCode)
+	w.Write(body)
 }
 
 func startServer(listener *net.Listener, deaHost string, deaPort uint16,
