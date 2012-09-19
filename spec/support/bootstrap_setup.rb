@@ -16,10 +16,7 @@ shared_context "bootstrap_setup" do
         "advertise" => 0.01,
         "heartbeat" => 0.01,
       },
-      "runtimes"  => {
-        "test1" => {},
-        "test2" => {},
-      },
+      "runtimes" => ["test1", "test2"],
       "directory_server_port" => 12345,
       "domain" => "default",
     }
