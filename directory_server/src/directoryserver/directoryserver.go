@@ -21,11 +21,11 @@ import (
 
 type deaClient interface {
 	Host() string
-	Port() int
+	Port() uint16
 	HttpClient() *http.Client
 
 	SetHost(host string)
-	SetPort(port int)
+	SetPort(port uint16)
 	SetHttpClient(httpClient *http.Client)
 
 	ConstructDeaRequest(path string) (*http.Request, error)
@@ -34,7 +34,7 @@ type deaClient interface {
 
 type deaClientImpl struct {
 	host       string
-	port       int
+	port       uint16
 	httpClient *http.Client
 }
 
@@ -42,7 +42,7 @@ func (dc *deaClientImpl) Host() string {
 	return dc.host
 }
 
-func (dc *deaClientImpl) Port() int {
+func (dc *deaClientImpl) Port() uint16 {
 	return dc.port
 }
 
@@ -54,7 +54,7 @@ func (dc *deaClientImpl) SetHost(host string) {
 	dc.host = host
 }
 
-func (dc *deaClientImpl) SetPort(port int) {
+func (dc *deaClientImpl) SetPort(port uint16) {
 	dc.port = port
 }
 
@@ -87,13 +87,13 @@ func (dc *deaClientImpl) Get(path string) (*http.Response, error) {
 	return dc.HttpClient().Do(deaRequest)
 }
 
-func newDeaClient(host string, port int) deaClientImpl {
+func newDeaClient(host string, port uint16) deaClientImpl {
 	return deaClientImpl{host: host, port: port}
 }
 
 type handler struct {
 	deaHost          string
-	deaPort          int
+	deaPort          uint16
 	deaClient        deaClient
 	streamingTimeout uint32
 }
@@ -434,7 +434,7 @@ func (h handler) writeResponse(w http.ResponseWriter, statusCode int,
 	return nil
 }
 
-func startServer(listener *net.Listener, deaHost string, deaPort int,
+func startServer(listener *net.Listener, deaHost string, deaPort uint16,
 	streamingTimeout uint32) error {
 	h := handler{}
 	h.deaHost = deaHost
@@ -444,8 +444,8 @@ func startServer(listener *net.Listener, deaHost string, deaPort int,
 	return http.Serve(*listener, h)
 }
 
-func Start(host string, port int, deaPort int, streamingTimeout uint32) error {
-	address := host + ":" + strconv.Itoa(port)
+func Start(host string, port uint16, deaPort uint16, streamingTimeout uint32) error {
+	address := host + ":" + strconv.Itoa(int(port))
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		return err
