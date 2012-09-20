@@ -6,12 +6,15 @@ require "steno"
 require "steno/config"
 require "steno/core_ext"
 
+require "thin"
+
 require "vcap/common"
 require "vcap/component"
 
 require "dea/config"
 require "dea/directory_server"
 require "dea/droplet_registry"
+require "dea/file_api"
 require "dea/instance"
 require "dea/instance_registry"
 require "dea/nats"
@@ -61,6 +64,7 @@ module Dea
       setup_resource_manager
       setup_instance_registry
       setup_directory_server
+      setup_file_api
       setup_signal_handlers
       setup_directories
       setup_pid_file
@@ -262,10 +266,24 @@ module Dea
                                                    instance_registry)
     end
 
+    def setup_file_api
+      Dea::FileApi.configure(instance_registry,
+                             VCAP.secure_uuid,
+                             60 * 60)
+
+      @file_api_server = Thin::Server.new("127.0.0.1",
+                                          config["file_api_port"],
+                                          Dea::FileApi)
+    end
+
     def start_directory_server
       @directory_server.start
 
       register_directory_server
+    end
+
+    def start_file_api_server
+      @file_api_server.start
     end
 
     def setup_nats
@@ -313,6 +331,7 @@ module Dea
       start_component
       start_nats
       start_directory_server
+      start_file_api_server
 
       load_snapshot
 
