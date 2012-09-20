@@ -54,7 +54,7 @@ func main() {
 		log.Panic(err)
 	}
 
-	deaPort := config["dea_port"].(int)
+	deaPort := config["file_api_port"].(int)
 	dirServerPort := config["directory_server_port"].(int)
 	route := config["local_route"]
 	streamingTimeout := config["streaming_timeout"].(int)

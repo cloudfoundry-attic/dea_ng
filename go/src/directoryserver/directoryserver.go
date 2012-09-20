@@ -429,5 +429,5 @@ func Start(host string, port uint16, deaPort uint16, streamingTimeout uint32) er
 	}
 
 	log.Printf("Starting HTTP server at host: %s on port: %d", host, port)
-	return startServer(&listener, host, deaPort, streamingTimeout)
+	return startServer(&listener, "127.0.0.1", deaPort, streamingTimeout)
 }
