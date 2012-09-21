@@ -148,7 +148,7 @@ describe Dea::Bootstrap do
       bootstrap.setup_signal_handlers
       bootstrap.setup_instance_registry
       bootstrap.setup_router_client
-      bootstrap.setup_directory_server
+      bootstrap.setup_directory_server_v2
 
       nats_client_mock = mock("nats_client")
       nats_client_mock.should_receive(:flush)
@@ -161,7 +161,7 @@ describe Dea::Bootstrap do
 
         message.should be_an_instance_of Hash
         message["host"].should == bootstrap.local_ip
-        message["port"].should == bootstrap.config["directory_server_port"]
+        message["port"].should == bootstrap.config["directory_server_v2_port"]
         message["uris"].size.should == 1
         message["uris"][0].should match /.*\.#{bootstrap.config["domain"]}$/
       end

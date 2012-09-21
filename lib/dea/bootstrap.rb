@@ -13,6 +13,7 @@ require "vcap/component"
 
 require "dea/config"
 require "dea/directory_server"
+require "dea/directory_server_v2"
 require "dea/droplet_registry"
 require "dea/file_api"
 require "dea/instance"
@@ -64,6 +65,7 @@ module Dea
       setup_resource_manager
       setup_instance_registry
       setup_directory_server
+      setup_directory_server_v2
       setup_file_api
       setup_signal_handlers
       setup_directories
@@ -266,6 +268,13 @@ module Dea
                                                    instance_registry)
     end
 
+    attr_reader :directory_server_v2
+
+    def setup_directory_server_v2
+      @directory_server_v2 = Dea::DirectoryServerV2.new(config["domain"],
+                                                        config["directory_server_v2_port"])
+    end
+
     def setup_file_api
       Dea::FileApi.configure(instance_registry,
                              VCAP.secure_uuid,
@@ -278,8 +287,6 @@ module Dea
 
     def start_directory_server
       @directory_server.start
-
-      register_directory_server
     end
 
     def start_file_api_server
@@ -314,23 +321,24 @@ module Dea
       send_advertise
     end
 
-    def register_directory_server
-      uri = "#{@directory_server.uuid}.#{config["domain"]}"
+    def register_directory_server_v2
+      puts "Registering dsv2"
       @router_client.register_directory_server(local_ip,
-                                               config["directory_server_port"],
-                                               uri)
+                                               directory_server_v2.port,
+                                               directory_server_v2.external_hostname)
     end
 
-    def unregister_directory_server
-      port = config["directory_server_port"]
-      uri = "#{@directory_server.uuid}.#{config["domain"]}"
-      @router_client.unregister_directory_server(local_ip, port, uri)
+    def unregister_directory_server_v2
+      @router_client.unregister_directory_server(local_ip,
+                                                 directory_server_v2.port,
+                                                 directory_server_v2.external_hostname)
     end
 
     def start
       start_component
       start_nats
       start_directory_server
+      register_directory_server_v2
       start_file_api_server
 
       load_snapshot
@@ -502,7 +510,7 @@ module Dea
         router_client.register_instance(instance)
       end
 
-      register_directory_server
+      register_directory_server_v2
     end
 
     def handle_dea_status(message)
@@ -605,7 +613,8 @@ module Dea
       instances_filtered_by_message(message) do |instance|
         response = Dea::Protocol::V1::FindDropletResponse.generate(self,
                                                                    instance,
-                                                                   include_stats)
+                                                                   include_stats,
+                                                                   message.data)
         message.respond(response)
       end
 
@@ -661,7 +670,7 @@ module Dea
 
       nats.stop
 
-      unregister_directory_server
+      unregister_directory_server_v2
 
       pending_stops = Set.new([])
       on_pending_empty = proc do

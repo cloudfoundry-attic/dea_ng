@@ -1,5 +1,6 @@
 # coding: UTF-8
 
+require "dea/file_api"
 require "dea/version"
 
 module Dea
@@ -28,7 +29,7 @@ module Dea::Protocol::V1
   end
 
   class FindDropletResponse
-    def self.generate(bootstrap, instance, include_stats)
+    def self.generate(bootstrap, instance, include_stats, request)
       response = {
         "dea"             => bootstrap.uuid,
         "droplet"         => instance.application_id,
@@ -41,6 +42,13 @@ module Dea::Protocol::V1
         "credentials"     => bootstrap.directory_server.credentials,
         "staged"          => "/#{instance.instance_id}",
       }
+
+      if request.has_key?("path")
+        host = bootstrap.directory_server_v2.external_hostname
+        uri = Dea::FileApi.generate_file_url(instance.instance_id, request["path"])
+
+        response["file_uri_v2"] = "http://#{host}#{uri}"
+      end
 
       if instance.debug
         response.update({

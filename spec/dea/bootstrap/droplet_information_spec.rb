@@ -8,6 +8,7 @@ describe Dea do
 
   before do
     bootstrap.unstub(:setup_directory_server)
+    bootstrap.unstub(:setup_directory_server_v2)
   end
 
   it "should reply to messages on 'droplet.status' with all live droplets" do
@@ -116,6 +117,22 @@ describe Dea do
 
       responses.size.should == 1
       responses[0].should include(expected)
+    end
+
+    it "should include a v2 url if the path key is present" do
+      responses = []
+
+      run do
+        responses = find_droplet(:count => 1) do
+          { "droplet" => @instances[0].application_id,
+            "path"    => "/foo/bar",
+          }
+        end
+      end
+
+      responses.size.should == 1
+      responses[0].has_key?("file_uri_v2").should_not be_nil
+      puts responses[0]["file_uri_v2"]
     end
 
     it "should include 'stats' if requested" do
