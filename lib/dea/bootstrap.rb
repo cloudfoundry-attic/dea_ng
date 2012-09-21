@@ -280,6 +280,7 @@ module Dea
                              VCAP.secure_uuid,
                              60 * 60)
 
+      Thin::Logging.silent = true
       @file_api_server = Thin::Server.new("127.0.0.1",
                                           config["file_api_port"],
                                           Dea::FileApi)
