@@ -8,7 +8,8 @@ describe Dea do
 
   before do
     bootstrap.unstub(:setup_router_client)
-    bootstrap.unstub(:setup_directory_server)
+    bootstrap.unstub(:setup_directory_server_v2)
+    bootstrap.unstub(:register_directory_server_v2)
   end
 
   it "should publish two messages on 'router.register' upon receipt of a message on 'router.start'" do
@@ -54,11 +55,13 @@ describe Dea do
 
     expected_1 = {
       "host" => bootstrap.local_ip,
-      "port" => bootstrap.config["directory_server_port"],
-      "uris" => ["#{bootstrap.directory_server.uuid}.#{bootstrap.config["domain"]}"]
+      "port" => bootstrap.config["directory_server_v2_port"],
+      "uris" => ["#{bootstrap.directory_server_v2.uuid}.#{bootstrap.config["domain"]}"]
     }
 
-    responses.should =~ [expected_0, expected_1]
+    # The directory server is registered at startup, thus we expect two
+    # registrations to arrive
+    responses.should =~ [expected_0, expected_1, expected_1]
   end
 
   describe "upon receipt of a message on 'dea.update'" do

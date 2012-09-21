@@ -34,6 +34,7 @@ module Dea
           "index" => Integer,
 
           "directory_server_port" => Integer,
+          "directory_server_v2_port" => Integer,
           "file_api_port" => Integer,
 
           optional("crash_lifetime_secs") => Integer,
