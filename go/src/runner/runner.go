@@ -3,8 +3,8 @@ package main
 import (
 	"directoryserver"
 	"fmt"
-	"io/ioutil"
 	"github.com/xushiwei/goyaml"
+	"io/ioutil"
 	"log"
 	"net"
 	"os"
@@ -28,7 +28,7 @@ func parseConfig(configPath string) (map[interface{}]interface{}, error) {
 }
 
 func getLocalIp(route string) (*string, error) {
-	conn, err := net.Dial("udp", route + ":1")
+	conn, err := net.Dial("udp", route+":1")
 	if err != nil {
 		return nil, err
 	}
@@ -87,8 +87,8 @@ func main() {
 		log.Panic(err)
 	}
 
-	if err := directoryserver.Start(*localIp, uint16(deaPort),
-		uint16(dirServerPort), uint32(streamingTimeout)); err != nil {
+	if err := directoryserver.Start(*localIp, uint16(dirServerPort),
+		uint16(deaPort), uint32(streamingTimeout)); err != nil {
 		log.Panic(err)
 	}
 }
