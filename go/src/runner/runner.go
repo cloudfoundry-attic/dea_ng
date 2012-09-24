@@ -11,7 +11,6 @@ import (
 	"strings"
 )
 
-// TODO(kowshik): What is the port number?
 const rootServer = "198.41.0.4"
 
 func parseConfig(configPath string) (map[interface{}]interface{}, error) {
@@ -29,7 +28,7 @@ func parseConfig(configPath string) (map[interface{}]interface{}, error) {
 }
 
 func getLocalIp(route string) (*string, error) {
-	conn, err := net.Dial("udp", route)
+	conn, err := net.Dial("udp", route + ":1")
 	if err != nil {
 		return nil, err
 	}
