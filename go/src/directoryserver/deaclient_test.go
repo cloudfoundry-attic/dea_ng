@@ -14,7 +14,7 @@ func TestDeaClientImpl_ConstructDeaRequest(t *testing.T) {
 
 	expRequest, _ := http.NewRequest("GET", "http://host:10/path", nil)
 
-	req, _ := dc.ConstructDeaRequest("/path")
+	req, _ := dc.constructDeaRequest("/path")
 
 	if req.Method != expRequest.Method {
 		t.Fail()
@@ -51,7 +51,7 @@ func TestDeaClientImpl_Get(t *testing.T) {
 		dummyDeaHandler{t, expRequest, &responseBody}) // thread.
 	time.Sleep(2 * time.Millisecond)
 
-	response, err := dc.Get("/path")
+	response, err := dc.get("/path")
 	if err != nil {
 		t.Error(err)
 	}
