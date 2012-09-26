@@ -8,7 +8,7 @@ shared_context "tmpdir" do
   around do |example|
     Dir.mktmpdir do |tmpdir|
       # Store path to tmpdir
-      @tmpdir = tmpdir
+      @tmpdir = File.realpath(tmpdir)
 
       # Run example
       example.run
