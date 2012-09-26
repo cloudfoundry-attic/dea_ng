@@ -27,16 +27,6 @@ import (
 )
 
 /*
- Defines a handler to serve HTTP requests received by the directory server.
-*/
-type handler struct {
-	deaHost          string
-	deaPort          uint16
-	deaClient        deaClient
-	streamingTimeout uint32
-}
-
-/*
  Returns a string representation of the file size.
 */
 func fileSizeFormat(size int64) string {
@@ -57,6 +47,16 @@ func fileSizeFormat(size int64) string {
 	}
 
 	return fmt.Sprintf("%dB", size)
+}
+
+/*
+ Defines a handler to serve HTTP requests received by the directory server.
+*/
+type handler struct {
+	deaHost          string
+	deaPort          uint16
+	deaClient        deaClient
+	streamingTimeout uint32
 }
 
 /*
