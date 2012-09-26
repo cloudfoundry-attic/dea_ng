@@ -1,5 +1,12 @@
 package main
 
+/*
+ Starts the HTTP-based directory server and listens for connections.
+ Reads configuration from the co-located DEA's YAML configuration file.
+
+ Usage:
+   $> runner <DEA config file>
+*/
 import (
 	"directoryserver"
 	"fmt"
@@ -11,6 +18,7 @@ import (
 	"strings"
 )
 
+// Default server to be used for finding the local IP address
 const rootServer = "198.41.0.4"
 
 func parseConfig(configPath string) (map[interface{}]interface{}, error) {
@@ -27,13 +35,16 @@ func parseConfig(configPath string) (map[interface{}]interface{}, error) {
 	return config, nil
 }
 
+/*
+ Returns the local IP address.
+*/
 func getLocalIp(route string) (*string, error) {
 	conn, err := net.Dial("udp", route+":1")
 	if err != nil {
 		return nil, err
 	}
 
-	// conn.LocalAddr().String() returns ip_address:port
+	// The method call: conn.LocalAddr().String() returns ip_address:port
 	return &strings.Split(conn.LocalAddr().String(), ":")[0], nil
 }
 
