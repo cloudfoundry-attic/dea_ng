@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 )
 
 type handler struct {
@@ -162,15 +161,8 @@ func (h handler) listPath(request *http.Request, writer http.ResponseWriter,
 	if info.IsDir() {
 		h.listDir(writer, *path)
 	} else {
-		tail := false
-		for key, _ := range request.URL.Query() {
-			if strings.ToLower(key) == "tail" {
-				tail = true
-				break
-			}
-		}
-
-		if tail {
+		var err error
+		if _, present := request.URL.Query()["tail"]; present {
 			// Errors when writing the response are ignored as it
 			// means that the client has disconnected.
 			err = streamFile(writer, *path, h.streamingTimeout)
