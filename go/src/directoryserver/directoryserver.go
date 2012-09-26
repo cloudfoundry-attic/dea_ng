@@ -208,8 +208,11 @@ func (h handler) streamFile(writer http.ResponseWriter, path string) error {
 
 			_, err = writer.Write(buffer)
 			if err != nil {
-				// Client has disconnected, so we don't proceed.
+				// Client has disconnected.
+				// We don't proceed with streaming the file.
+				// We also ignore the error.
 				canScan = false
+				err = nil
 				break
 			}
 
