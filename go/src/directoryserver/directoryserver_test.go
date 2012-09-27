@@ -113,7 +113,7 @@ func TestHandler_ServeHTTP_RequestDeniedByDea(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if bytes.Compare(*body, responseBody) != 0 {
+	if bytes.Compare(body, responseBody) != 0 {
 		t.Fail()
 	}
 
@@ -171,7 +171,7 @@ func TestHandler_ServeHTTP_EntityNotFound(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if strings.ToLower(string(*body)) != "entity not found.\n" {
+	if strings.ToLower(string(body)) != "entity not found.\n" {
 		t.Fail()
 	}
 
@@ -253,7 +253,7 @@ func TestHandler_ServeHTTP_ReturnDirectoryListing(t *testing.T) {
 		t.Error(err)
 	}
 	pattern := "\\s*testdir_.*/\\s*-\\n\\s*testfile_.*\\s*9\\.8K"
-	matched, _ := regexp.Match(pattern, *body)
+	matched, _ := regexp.Match(pattern, body)
 	if !matched {
 		t.Fail()
 	}
@@ -392,7 +392,7 @@ func TestHandler_ServeHTTP_DumpFile(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if string(*body) != dump.String() {
+	if string(body) != dump.String() {
 		t.Fail()
 	}
 

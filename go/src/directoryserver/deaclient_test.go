@@ -64,7 +64,7 @@ func TestDeaClientImpl_Get(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if bytes.Compare(*body, responseBody) != 0 {
+	if bytes.Compare(body, responseBody) != 0 {
 		t.Fail()
 	}
 
