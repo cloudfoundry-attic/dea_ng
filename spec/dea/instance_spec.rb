@@ -121,8 +121,7 @@ describe Dea::Instance do
 
   describe "validation" do
     before do
-      bootstrap.stub(:runtime).with("ruby19", anything).and_return("runtime")
-      bootstrap.stub(:runtime).with("not_found", anything).and_return(nil)
+      bootstrap.stub(:runtimes).and_return(Hash.new { |*_| "runtime" })
     end
 
     it "should not raise when the attributes are valid" do
@@ -156,7 +155,10 @@ describe Dea::Instance do
     it "should raise when the runtime is not found" do
       attributes = valid_instance_attributes.dup
       attributes["runtime_name"] = "not_found"
+
       instance = Dea::Instance.new(bootstrap, attributes)
+
+      bootstrap.should_receive(:runtimes).and_return({})
 
       expect do
         instance.validate
