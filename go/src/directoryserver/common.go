@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func getBody(response *http.Response) (*[]byte, error) {
+func getBody(response *http.Response) ([]byte, error) {
 	if response.ContentLength <= 0 {
 		return nil, nil
 	}
@@ -18,7 +18,7 @@ func getBody(response *http.Response) (*[]byte, error) {
 		return nil, err
 	}
 
-	return &body, nil
+	return body, nil
 }
 
 func checkRequest(received *http.Request, expected *http.Request) bool {
