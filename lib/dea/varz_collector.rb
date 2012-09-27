@@ -106,13 +106,14 @@ module Dea
     private
 
     # Maintains legacy format used by old DEA.
+    # TODO(kowshik): Eliminate :users as it is deprecated.
     def snapshot_instance(instance)
       { :droplet_id      => instance.application_id,
         :instance_id     => instance.instance_id,
         :instance_index  => instance.instance_index,
         :name            => instance.application_name,
         :uris            => instance.application_uris,
-        :users           => instance.application_users,
+        :users           => [],
         :version         => instance.application_version,
         :runtime         => instance.runtime_name,
         :framework       => instance.framework_name,

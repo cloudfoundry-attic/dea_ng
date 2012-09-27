@@ -135,7 +135,6 @@ module Dea
       attributes["application_version"] ||= attributes.delete("version")
       attributes["application_name"]    ||= attributes.delete("name")
       attributes["application_uris"]    ||= attributes.delete("uris")
-      attributes["application_users"]   ||= attributes.delete("users")
       attributes["application_prod"]    ||= attributes.delete("prod")
 
       attributes["droplet_sha1"]        ||= attributes.delete("sha1")
@@ -194,7 +193,6 @@ module Dea
           "application_version" => String,
           "application_name"    => String,
           "application_uris"    => [String],
-          "application_users"   => [String],
           "application_prod"    => bool,
 
           "droplet_sha1"        => String,

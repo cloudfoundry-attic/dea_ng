@@ -24,7 +24,6 @@ module Helpers
       "application_version" => "some_version",
       "application_name"    => "my_application",
       "application_uris"    => ["foo.com", "bar.com"],
-      "application_users"   => ["john@doe.com"],
 
       "droplet_sha1"        => "deadbeef",
       "droplet_uri"         => "http://foo.com/file.ext",
