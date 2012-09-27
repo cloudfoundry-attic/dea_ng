@@ -29,7 +29,7 @@ module Dea
           "only_production_apps" => bool,
           "nats_uri" => String,
           "pid_filename" => String,
-          "runtimes" => [String],
+          "runtimes" => dict(String, Dea::Runtime.schema),
           "warden_socket" => String,
           "index" => Integer,
 
