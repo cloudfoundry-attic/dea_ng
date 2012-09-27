@@ -38,7 +38,8 @@ module Dea
         verified
       end
 
-      def generate_file_url(instance_id, path)
+      def generate_file_url(instance_id, path = "")
+        path ||= ""
         ts = Time.now.to_i
         hmac = create_hmac_hexdigest(instance_id, path, ts)
         "/instance_paths/#{instance_id}?timestamp=#{ts}&hmac=#{hmac}&path=#{path}"
