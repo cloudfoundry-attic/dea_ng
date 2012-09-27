@@ -141,7 +141,6 @@ module Dea
       attributes["droplet_uri"]         ||= attributes.delete("executableUri")
 
       attributes["runtime_name"]        ||= attributes.delete("runtime")
-      attributes["runtime_info"]        ||= attributes.delete("runtime_info")
       attributes["framework_name"]      ||= attributes.delete("framework")
 
       # Translate environment to dictionary (it is passed as Array with VAR=VAL)
@@ -199,7 +198,6 @@ module Dea
           "droplet_uri"         => String,
 
           "runtime_name"        => String,
-          "runtime_info"        => dict(String, any),
           "framework_name"      => String,
 
           # TODO: use proper schema
@@ -288,7 +286,7 @@ module Dea
     end
 
     def runtime
-      bootstrap.runtime(self.runtime_name, self.runtime_info)
+      bootstrap.runtimes[self.runtime_name]
     end
 
     def memory_limit_in_bytes
