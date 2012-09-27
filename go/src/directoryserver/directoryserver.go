@@ -324,7 +324,7 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.deaClient = &dc
 	}
 
-	deaResponse, err := h.deaClient.Get(r.URL.String())
+	deaResponse, err := h.deaClient.get(r.URL.String())
 	if err != nil {
 		h.writeDeaClientError(&err, w)
 		return

@@ -7,7 +7,7 @@ import (
 )
 
 type deaClient interface {
-	Get(path string) (*http.Response, error)
+	get(path string) (*http.Response, error)
 }
 
 type deaClientImpl struct {
@@ -16,7 +16,7 @@ type deaClientImpl struct {
 	httpClient *http.Client
 }
 
-func (dc *deaClientImpl) ConstructDeaRequest(path string) (*http.Request, error) {
+func (dc *deaClientImpl) constructDeaRequest(path string) (*http.Request, error) {
 	url := fmt.Sprintf("http://%s:%d%s", dc.host, dc.port, path)
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -27,12 +27,12 @@ func (dc *deaClientImpl) ConstructDeaRequest(path string) (*http.Request, error)
 	return req, nil
 }
 
-func (dc *deaClientImpl) Get(path string) (*http.Response, error) {
+func (dc *deaClientImpl) get(path string) (*http.Response, error) {
 	if dc.httpClient == nil {
 		dc.httpClient = &http.Client{}
 	}
 
-	deaRequest, err := dc.ConstructDeaRequest(path)
+	deaRequest, err := dc.constructDeaRequest(path)
 	if err != nil {
 		return nil, err
 	}
