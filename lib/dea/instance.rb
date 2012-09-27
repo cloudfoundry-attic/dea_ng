@@ -135,7 +135,9 @@ module Dea
       attributes["application_version"] ||= attributes.delete("version")
       attributes["application_name"]    ||= attributes.delete("name")
       attributes["application_uris"]    ||= attributes.delete("uris")
-      attributes["application_users"]   ||= attributes.delete("users")
+      if users = attributes.delete("users")
+        attributes["application_users"] ||= users
+      end
       attributes["application_prod"]    ||= attributes.delete("prod")
 
       attributes["droplet_sha1"]        ||= attributes.delete("sha1")
@@ -187,31 +189,31 @@ module Dea
       Membrane::SchemaParser.parse do
         {
           # Static attributes (coming from cloud controller):
-          "instance_id"         => String,
-          "instance_index"      => Integer,
+          "instance_id"                   => String,
+          "instance_index"                => Integer,
 
-          "application_id"      => String,
-          "application_version" => String,
-          "application_name"    => String,
-          "application_uris"    => [String],
-          "application_users"   => [String],
-          "application_prod"    => bool,
+          "application_id"                => String,
+          "application_version"           => String,
+          "application_name"              => String,
+          "application_uris"              => [String],
+          "application_prod"              => bool,
+          optional("application_users")   => [String],
 
-          "droplet_sha1"        => String,
-          "droplet_uri"         => String,
+          "droplet_sha1"                  => String,
+          "droplet_uri"                   => String,
 
-          "runtime_name"        => String,
-          "runtime_info"        => dict(String, any),
-          "framework_name"      => String,
+          "runtime_name"                  => String,
+          "runtime_info"                  => dict(String, any),
+          "framework_name"                => String,
 
           # TODO: use proper schema
-          "limits"              => limits_schema,
-          "environment"         => dict(String, String),
-          "services"            => [service_schema],
-          optional("flapping")  => bool,
+          "limits"                        => limits_schema,
+          "environment"                   => dict(String, String),
+          "services"                      => [service_schema],
+          optional("flapping")            => bool,
 
-          optional("debug")     => enum(nil, String),
-          optional("console")   => enum(nil, bool),
+          optional("debug")               => enum(nil, String),
+          optional("console")             => enum(nil, bool),
         }
       end
     end
