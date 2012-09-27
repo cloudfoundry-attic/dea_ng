@@ -69,12 +69,12 @@ module Dea
         application_version
         application_name
         application_uris
-        application_users
 
         runtime_name
       )
 
-      hash = {}
+      # TODO(kowshik): Eliminate application_users as it is deprecated.
+      hash = { "application_users" => [] }
 
       keys.each do |key|
         hash[key] = instance.send(key)

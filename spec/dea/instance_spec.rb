@@ -58,7 +58,6 @@ describe Dea::Instance do
       its(:application_version) { should == "some_version" }
       its(:application_name)    { should == "my_application" }
       its(:application_uris)    { should == ["foo.com", "bar.com"] }
-      its(:application_users)   { should == ["john@doe.com"] }
     end
 
     describe "droplet attributes" do
