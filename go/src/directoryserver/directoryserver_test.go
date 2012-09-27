@@ -33,51 +33,6 @@ func dump(file *os.File, t *testing.T, numLines int) error {
 	return err
 }
 
-func getBody(response *http.Response) (*[]byte, error) {
-	if response.ContentLength <= 0 {
-		return nil, nil
-	}
-
-	body := make([]byte, response.ContentLength)
-	_, err := response.Body.Read(body)
-	if err != nil {
-		return nil, err
-	}
-
-	return &body, nil
-}
-
-func checkRequest(received *http.Request, expected *http.Request) bool {
-	badMethod := received.Method != expected.Method
-	badUrl := !strings.HasSuffix(expected.URL.String(),
-		received.URL.String())
-	badProto := received.Proto != expected.Proto
-	badHost := received.Host != expected.Host
-
-	if badMethod || badUrl || badProto || badHost {
-		return false
-	}
-
-	return true
-}
-
-type dummyDeaHandler struct {
-	t            *testing.T
-	expRequest   *http.Request
-	responseBody *[]byte
-}
-
-func (handler dummyDeaHandler) ServeHTTP(w http.ResponseWriter,
-	r *http.Request) {
-	if !checkRequest(r, handler.expRequest) {
-		handler.t.Fail()
-	}
-
-	w.Header()["Content-Length"] = []string{strconv.
-		Itoa(len(*(handler.responseBody)))}
-	w.Write(*(handler.responseBody))
-}
-
 type denyingDeaHandler struct {
 	t            *testing.T
 	expRequest   *http.Request
@@ -94,69 +49,6 @@ func (handler denyingDeaHandler) ServeHTTP(w http.ResponseWriter,
 		Itoa(len(*(handler.responseBody)))}
 	w.WriteHeader(400)
 	w.Write(*(handler.responseBody))
-}
-
-func TestDeaClientImpl_ConstructDeaRequest(t *testing.T) {
-	dc := deaClientImpl{host: "host", port: 10}
-
-	expRequest, _ := http.NewRequest("GET", "http://host:10/path", nil)
-
-	req, _ := dc.ConstructDeaRequest("/path")
-
-	if req.Method != expRequest.Method {
-		t.Fail()
-	}
-	if req.URL.String() != expRequest.URL.String() {
-		t.Fail()
-	}
-	if req.Proto != expRequest.Proto {
-		t.Fail()
-	}
-	if req.Body != expRequest.Body {
-		t.Fail()
-	}
-	if req.ContentLength != expRequest.ContentLength {
-		t.Fail()
-	}
-	if req.Host != expRequest.Host {
-		t.Fail()
-	}
-}
-
-func TestDeaClientImpl_Get(t *testing.T) {
-	dc := deaClientImpl{host: "localhost", port: 1234}
-
-	// Start mock DEA server in a separate thread and wait for it to start.
-	l, err := net.Listen("tcp", "localhost:"+strconv.Itoa(1234))
-	if err != nil {
-		t.Error(err)
-	}
-	expRequest, _ := http.NewRequest("GET", "http://localhost:1234/path", nil)
-	responseBody := []byte("{\"instance_path\" : \"dummy\"}")
-
-	go http.Serve(l,
-		dummyDeaHandler{t, expRequest, &responseBody}) // thread.
-	time.Sleep(2 * time.Millisecond)
-
-	response, err := dc.Get("/path")
-	if err != nil {
-		t.Error(err)
-	}
-
-	if response.StatusCode != 200 {
-		t.Fail()
-	}
-
-	body, err := getBody(response)
-	if err != nil {
-		t.Error(err)
-	}
-	if bytes.Compare(*body, responseBody) != 0 {
-		t.Fail()
-	}
-
-	l.Close()
-	time.Sleep(2 * time.Millisecond)
 }
 
 func TestHandler_ServeHTTP_RequestToDeaFailed(t *testing.T) {
