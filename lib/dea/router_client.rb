@@ -50,6 +50,7 @@ module Dea
       { "host" => host,
         "port" => port,
         "uris" => [uri],
+        "tags" => {},
       }
     end
   end
