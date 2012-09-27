@@ -20,7 +20,7 @@ module Helpers
       "instance_id"         => VCAP.secure_uuid,
       "instance_index"      => 37,
 
-      "application_id"      => 37,
+      "application_id"      => "37",
       "application_version" => "some_version",
       "application_name"    => "my_application",
       "application_uris"    => ["foo.com", "bar.com"],

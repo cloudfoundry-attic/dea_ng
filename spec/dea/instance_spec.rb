@@ -54,7 +54,7 @@ describe Dea::Instance do
         }
       end
 
-      its(:application_id)      { should == 37 }
+      its(:application_id)      { should == "37" }
       its(:application_version) { should == "some_version" }
       its(:application_name)    { should == "my_application" }
       its(:application_uris)    { should == ["foo.com", "bar.com"] }
@@ -146,7 +146,7 @@ describe Dea::Instance do
 
     it "should raise when attributes are invalid" do
       attributes = valid_instance_attributes.dup
-      attributes["application_id"] = attributes["application_id"].to_s
+      attributes["application_id"] = attributes["application_id"].to_i
       instance = Dea::Instance.new(bootstrap, attributes)
 
       expect do

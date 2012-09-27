@@ -131,7 +131,7 @@ module Dea
 
       attributes["instance_index"]      ||= attributes.delete("index")
 
-      attributes["application_id"]      ||= attributes.delete("droplet")
+      attributes["application_id"]      ||= attributes.delete("droplet").to_s
       attributes["application_version"] ||= attributes.delete("version")
       attributes["application_name"]    ||= attributes.delete("name")
       attributes["application_uris"]    ||= attributes.delete("uris")
@@ -190,7 +190,7 @@ module Dea
           "instance_id"         => String,
           "instance_index"      => Integer,
 
-          "application_id"      => Integer,
+          "application_id"      => String,
           "application_version" => String,
           "application_name"    => String,
           "application_uris"    => [String],
