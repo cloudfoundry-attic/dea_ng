@@ -56,7 +56,8 @@ describe Dea do
     expected_1 = {
       "host" => bootstrap.local_ip,
       "port" => bootstrap.config["directory_server_v2_port"],
-      "uris" => ["#{bootstrap.directory_server_v2.uuid}.#{bootstrap.config["domain"]}"]
+      "uris" => ["#{bootstrap.directory_server_v2.uuid}.#{bootstrap.config["domain"]}"],
+      "tags" => {},
     }
 
     # The directory server is registered at startup, thus we expect two
