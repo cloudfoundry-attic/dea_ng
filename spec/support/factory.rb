@@ -17,6 +17,8 @@ module Helpers
 
   def valid_instance_attributes
     {
+      "cc_partition"        => "partition",
+
       "instance_id"         => VCAP.secure_uuid,
       "instance_index"      => 37,
 
