@@ -29,6 +29,7 @@ describe Dea do
       # Register instances
       5.times do |ii|
         instance = create_and_register_instance(bootstrap,
+                                                "cc_partition"        => "partition",
                                                 "application_id"      => ii,
                                                 "application_version" => ii,
                                                 "instance_index"      => ii)
@@ -131,8 +132,9 @@ describe Dea do
   end
 
   def verify_instance_heartbeat(hb, instance)
-    hb_keys = %w[droplet version instance index state state_timestamp]
+    hb_keys = %w[cc_partition droplet version instance index state state_timestamp]
     hb.keys.should == hb_keys
+    hb["cc_partition"].should == instance.cc_partition
     hb["droplet"].should == instance.application_id
     hb["version"].should == instance.application_version
     hb["instance"].should == instance.instance_id

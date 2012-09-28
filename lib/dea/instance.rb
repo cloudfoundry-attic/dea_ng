@@ -185,6 +185,8 @@ module Dea
       Membrane::SchemaParser.parse do
         {
           # Static attributes (coming from cloud controller):
+          "cc_partition"        => String,
+
           "instance_id"         => String,
           "instance_index"      => Integer,
 
