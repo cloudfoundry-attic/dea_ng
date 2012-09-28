@@ -24,22 +24,18 @@ func clearAll(fdSetPtr *syscall.FdSet) {
 	}
 }
 
-/*
- Returns true if the current time is behind the specified time by more than
- maxIdleTime seconds. Returns false otherwise.
-*/
+// Returns true if the current time is behind the specified time by more than
+// maxIdleTime seconds. Returns false otherwise.
 func timeout(t time.Time, maxIdleTime uint32) bool {
 	return time.Now().Sub(t).Seconds() > float64(maxIdleTime)
 }
 
-/*
- Uses the inotify linux kernel subsystem to stream a file to the writer.
- When no file modifications occur, the method waits for a maximum idle time of
- maxIdleTime seconds before returning.
+// Uses the inotify linux kernel subsystem to stream a file to the writer.
+// When no file modifications occur, the method waits for a maximum idle time of
+// maxIdleTime seconds before returning.
 
- Returns errors (if any) triggered by the inotify subsystem or when reading
- the file. Errors when writing to the writer are ignored.
-*/
+// Returns errors (if any) triggered by the inotify subsystem or when reading
+// the file. Errors when writing to the writer are ignored.
 func streamFile(writer io.Writer, path string, maxIdleTime uint32) error {
 	handle, err := os.Open(path)
 	if err != nil {
