@@ -2,9 +2,9 @@
  Package directoryserver implements a HTTP-based directory server that can list
  directories and stream/dump files based on the path specified in the HTTP
  request. All HTTP requests are validated with a HTTP end-point in the
- co-located DEA at a specified DEA port. If validation with the DEA is
- successful, the HTTP request is served. Otherwise, the same HTTP response
- from the DEA is served as response to the HTTP request.
+ DEA co-located in the same host at a specified port. If validation with the
+ DEA is successful, the HTTP request is served. Otherwise, the same HTTP
+ response from the DEA is served as response to the HTTP request.
 
  Directory listing lists sub-directories and files contained inside the
  directory along with the file sizes. Streaming of files uses HTTP chunked
