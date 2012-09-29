@@ -169,15 +169,17 @@ module Dea
     def self.service_schema
       Membrane::SchemaParser.parse do
         {
-          "name"         => String,
-          "type"         => String,
-          "label"        => String,
-          "vendor"       => String,
-          "version"      => String,
-          "tags"         => [String],
-          "plan"         => String,
-          "plan_option"  => enum(String, nil),
-          "credentials"  => any,
+          "name"        => String,
+          "label"       => String,
+          "vendor"      => String,
+          "version"     => String,
+          "plan"        => String,
+          "credentials" => any,
+
+          # Deprecated fields
+          optional("type")        => String,
+          optional("tags")        => [String],
+          optional("plan_option") => enum(String, nil),
         }
       end
     end
