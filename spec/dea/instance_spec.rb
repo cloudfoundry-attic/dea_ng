@@ -88,7 +88,7 @@ describe Dea::Instance do
       let(:start_message_data) do
         {
           "limits"   => { "mem" => 1, "disk" => 2, "fds" => 3 },
-          "env"      => ["FOO=BAR"],
+          "env"      => ["FOO=BAR", "BAR=", "QUX"],
           "services" => { "name" => "redis", "type" => "redis" },
           "flapping" => false,
           "debug"    => "debug",
@@ -97,7 +97,7 @@ describe Dea::Instance do
       end
 
       its(:limits)      { should == { "mem" => 1, "disk" => 2, "fds" => 3 } }
-      its(:environment) { should == { "FOO" => "BAR" } }
+      its(:environment) { should == { "FOO" => "BAR", "BAR" => "", "QUX" => "" } }
       its(:services)    { should == { "name" => "redis", "type" => "redis" } }
       its(:flapping)    { should == false }
       its(:debug)       { should == "debug" }

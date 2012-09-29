@@ -146,7 +146,10 @@ module Dea
       # Translate environment to dictionary (it is passed as Array with VAR=VAL)
       env = attributes.delete("env") || []
       attributes["environment"] ||= Hash[env.map do |e|
-        e.split("=", 2)
+        pair = e.split("=", 2)
+        pair[0] = pair[0].to_s
+        pair[1] = pair[1].to_s
+        pair
       end]
 
       attributes
@@ -165,15 +168,17 @@ module Dea
     def self.service_schema
       Membrane::SchemaParser.parse do
         {
-          "name"         => String,
-          "type"         => String,
-          "label"        => String,
-          "vendor"       => String,
-          "version"      => String,
-          "tags"         => [String],
-          "plan"         => String,
-          "plan_option"  => enum(String, nil),
-          "credentials"  => any,
+          "name"        => String,
+          "label"       => String,
+          "vendor"      => String,
+          "version"     => String,
+          "plan"        => String,
+          "credentials" => any,
+
+          # Deprecated fields
+          optional("type")        => String,
+          optional("tags")        => [String],
+          optional("plan_option") => enum(String, nil),
         }
       end
     end
