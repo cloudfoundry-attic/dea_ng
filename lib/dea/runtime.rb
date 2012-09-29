@@ -28,6 +28,13 @@ module Dea
 
     def initialize(config)
       @config = config.dup
+
+      # Stringify environment map
+      if @config["environment"].kind_of?(Hash)
+        @config["environment"].keys.each do |key|
+          @config["environment"][key] ||= ""
+        end
+      end
     end
 
     def executable
@@ -42,7 +49,10 @@ module Dea
       env = (config["debug_env"] || {})[mode] || []
 
       Hash[env.map do |e|
-        e.split("=", 2)
+        pair = e.split("=", 2)
+        pair[0] = pair[0].to_s
+        pair[1] = pair[1].to_s
+        pair
       end]
     end
 
