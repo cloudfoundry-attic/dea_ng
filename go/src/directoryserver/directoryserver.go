@@ -60,10 +60,9 @@ type handler struct {
 func (h handler) writeEntityNotFound(writer http.ResponseWriter) {
 	response := "Entity not found.\n"
 
-	writer.Header()["Content-Length"] = []string{strconv.
-		Itoa(len(response))}
-	writer.Header()["Content-Type"] = []string{"text/plain"}
-	writer.Header()["X-Cascade"] = []string{"pass"}
+	writer.Header().Set("Content-Length", strconv.Itoa(len(response)))
+	writer.Header().Set("Content-Type", "text/plain")
+	writer.Header().Set("X-Cascade", "pass")
 
 	writer.WriteHeader(400)
 
@@ -120,9 +119,8 @@ func (h handler) listDir(writer http.ResponseWriter, dirPath string) {
 
 	body := bodyBuffer.Bytes()
 
-	writer.Header()["Content-Type"] = []string{"text/plain"}
-	writer.Header()["Content-Length"] = []string{strconv.
-		Itoa(len(body))}
+	writer.Header().Set("Content-Type", "text/plain")
+	writer.Header().Set("Content-Length", strconv.Itoa(len(body)))
 
 	writer.Write(body)
 }
@@ -135,8 +133,8 @@ func (h handler) dumpFile(writer http.ResponseWriter, path string) error {
 		return err
 	}
 
-	writer.Header()["Content-Length"] = []string{strconv.
-		FormatInt(info.Size(), 10)}
+	writer.Header().Set("Content-Length",
+		strconv.FormatInt(info.Size(), 10))
 
 	handle, err := os.Open(path)
 	if err != nil {
