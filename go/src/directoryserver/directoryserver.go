@@ -94,8 +94,8 @@ func (h handler) writeServerError(err *error, w http.ResponseWriter) {
 
 // Writes the directory listing of the directory path in the HTTP response.
 // Files in the directory are reported along with their sizes.
-func (h handler) listDir(writer http.ResponseWriter, dirPath string) {
-	entries, err := ioutil.ReadDir(dirPath)
+func (h handler) listDir(writer http.ResponseWriter, dirPath *string) {
+	entries, err := ioutil.ReadDir(*dirPath)
 	if err != nil {
 		h.writeServerError(&err, writer)
 		return
@@ -127,8 +127,8 @@ func (h handler) listDir(writer http.ResponseWriter, dirPath string) {
 
 // Dumps the contents of the specified file in the HTTP response.
 // Returns an error if there is a problem in reading the file.
-func (h handler) dumpFile(writer http.ResponseWriter, path string) error {
-	info, err := os.Stat(path)
+func (h handler) dumpFile(writer http.ResponseWriter, path *string) error {
+	info, err := os.Stat(*path)
 	if err != nil {
 		return err
 	}
@@ -136,7 +136,7 @@ func (h handler) dumpFile(writer http.ResponseWriter, path string) error {
 	writer.Header().Set("Content-Length",
 		strconv.FormatInt(info.Size(), 10))
 
-	handle, err := os.Open(path)
+	handle, err := os.Open(*path)
 	if err != nil {
 		return err
 	}
@@ -150,6 +150,8 @@ func (h handler) dumpFile(writer http.ResponseWriter, path string) error {
 			if err == io.EOF {
 				break
 			}
+
+			handle.Close()
 			return err
 		}
 
@@ -165,11 +167,11 @@ func (h handler) dumpFile(writer http.ResponseWriter, path string) error {
 		}
 	}
 
-	return nil
+	return handle.Close()
 }
 
 func (h handler) writeFile(request *http.Request,
-	writer http.ResponseWriter, path string) {
+	writer http.ResponseWriter, path *string) {
 	var err error
 	if _, present := request.URL.Query()["tail"]; present {
 		err = streamFile(writer, path, h.streamingTimeout)
@@ -205,9 +207,9 @@ func (h handler) listPath(request *http.Request, writer http.ResponseWriter,
 	}
 
 	if info.IsDir() {
-		h.listDir(writer, *path)
+		h.listDir(writer, path)
 	} else {
-		h.writeFile(request, writer, *path)
+		h.writeFile(request, writer, path)
 	}
 }
 
