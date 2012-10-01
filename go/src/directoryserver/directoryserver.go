@@ -168,6 +168,20 @@ func (h handler) dumpFile(writer http.ResponseWriter, path string) error {
 	return nil
 }
 
+func (h handler) writeFile(request *http.Request,
+	writer http.ResponseWriter, path string) {
+	var err error
+	if _, present := request.URL.Query()["tail"]; present {
+		err = streamFile(writer, path, h.streamingTimeout)
+	} else {
+		err = h.dumpFile(writer, path)
+	}
+
+	if err != nil {
+		h.writeServerError(&err, writer)
+	}
+}
+
 // Lists directory, or writes file contents in the HTTP response as per the
 // the response received from the DEA. If the "tail" parameter is part of
 // the HTTP request, then the file contents are streamed through chunked
@@ -193,16 +207,7 @@ func (h handler) listPath(request *http.Request, writer http.ResponseWriter,
 	if info.IsDir() {
 		h.listDir(writer, *path)
 	} else {
-		var err error
-		if _, present := request.URL.Query()["tail"]; present {
-			err = streamFile(writer, *path, h.streamingTimeout)
-		} else {
-			err = h.dumpFile(writer, *path)
-		}
-
-		if err != nil {
-			h.writeServerError(&err, writer)
-		}
+		h.writeFile(request, writer, *path)
 	}
 }
 
