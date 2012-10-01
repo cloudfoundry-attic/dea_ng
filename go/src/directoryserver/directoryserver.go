@@ -10,6 +10,7 @@
  directory along with the file sizes. Streaming of files uses HTTP chunked
  transfer encoding.
 */
+// TODO(kowshik): Fix comments after implementing handler for http range header.
 package directoryserver
 
 import (
@@ -92,6 +93,12 @@ func (h handler) writeServerError(err *error, w http.ResponseWriter) {
 	fmt.Fprintf(w, msg)
 }
 
+func (h handler) writeBadRangeResponse(w http.ResponseWriter, fileSize int64) {
+	contentRange := fmt.Sprintf("bytes */%d", fileSize)
+	w.Header().Set("Content-Range", contentRange)
+	w.WriteHeader(416)
+}
+
 // Writes the directory listing of the directory path in the HTTP response.
 // Files in the directory are reported along with their sizes.
 func (h handler) listDir(writer http.ResponseWriter, dirPath *string) {
@@ -125,21 +132,65 @@ func (h handler) listDir(writer http.ResponseWriter, dirPath *string) {
 	writer.Write(body)
 }
 
+func (h handler) positionHandle(handle *os.File,
+	fileSize uint64, byteRange ByteRange) (*uint64, error) {
+	if byteRange.start != nil {
+		_, err := handle.Seek(int64(*byteRange.start), 0)
+		if err != nil {
+			return nil, err
+		}
+		if byteRange.end == nil {
+			remainingLen := fileSize - *(byteRange.start)
+			return &remainingLen, nil
+		}
+
+		remainingLen := *byteRange.end - *byteRange.start + 1
+		return &remainingLen, nil
+	}
+
+	_, err := handle.Seek(int64(*byteRange.end), 2)
+	if err != nil {
+		return nil, err
+	}
+
+	remainingLen := *byteRange.end
+	return &remainingLen, nil
+}
+
 // Dumps the contents of the specified file in the HTTP response.
 // Returns an error if there is a problem in reading the file.
-func (h handler) dumpFile(writer http.ResponseWriter, path *string) error {
+func (h handler) dumpFile(writer http.ResponseWriter,
+	path *string, byteRange *ByteRange) error {
 	info, err := os.Stat(*path)
 	if err != nil {
 		return err
 	}
 
-	writer.Header().Set("Content-Length",
-		strconv.FormatInt(info.Size(), 10))
+	if byteRange != nil {
+		if byteRange.IsBadRange(uint64(info.Size())) {
+			h.writeBadRangeResponse(writer, info.Size())
+			return nil
+		}
+	}
 
 	handle, err := os.Open(*path)
 	if err != nil {
 		return err
 	}
+
+	if byteRange != nil {
+		_, err := h.positionHandle(handle,
+			uint64(info.Size()), *byteRange)
+		if err != nil {
+			handle.Close()
+			return err
+		}
+	} else {
+		// remainingLen := info.Size()
+	}
+
+	writer.Header().Set("Content-Length",
+		strconv.FormatInt(info.Size(), 10))
 
 	reader := bufio.NewReader(handle)
 	readBuffer := make([]byte, 4096)
@@ -176,7 +227,18 @@ func (h handler) writeFile(request *http.Request,
 	if _, present := request.URL.Query()["tail"]; present {
 		err = streamFile(writer, path, h.streamingTimeout)
 	} else {
-		err = h.dumpFile(writer, path)
+		byteRanges, err := ParseHttpRangeHeader(request)
+		if err != nil {
+			info, err := os.Stat(*path)
+			if err == nil {
+				h.writeBadRangeResponse(writer, info.Size())
+				return
+			}
+		} else if byteRanges != nil {
+			err = h.dumpFile(writer, path, &byteRanges[0])
+		} else {
+			err = h.dumpFile(writer, path, nil)
+		}
 	}
 
 	if err != nil {
