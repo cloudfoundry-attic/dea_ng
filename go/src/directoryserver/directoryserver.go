@@ -10,14 +10,13 @@
  directory along with the file sizes. Streaming of files uses HTTP chunked
  transfer encoding.
 */
+// TODO(kowshik): Fix comments after implementing handler for http range header.
 package directoryserver
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -92,6 +91,12 @@ func (h handler) writeServerError(err *error, w http.ResponseWriter) {
 	fmt.Fprintf(w, msg)
 }
 
+func (h handler) writeBadRangeResponse(w http.ResponseWriter, fileSize int64) {
+	contentRange := fmt.Sprintf("bytes */%d", fileSize)
+	w.Header().Set("Content-Range", contentRange)
+	w.WriteHeader(416)
+}
+
 // Writes the directory listing of the directory path in the HTTP response.
 // Files in the directory are reported along with their sizes.
 func (h handler) listDir(writer http.ResponseWriter, dirPath *string) {
@@ -125,48 +130,47 @@ func (h handler) listDir(writer http.ResponseWriter, dirPath *string) {
 	writer.Write(body)
 }
 
+func (h handler) positionHandle(handle *os.File,
+	fileSize int64, byteRange ByteRange) (int64, error) {
+	if byteRange.start != nil {
+		_, err := handle.Seek(*byteRange.start, 0)
+		if err != nil {
+			return 0, err
+		}
+		if byteRange.end == nil {
+			remainingLen := fileSize - *(byteRange.start)
+			return remainingLen, nil
+		}
+
+		remainingLen := *byteRange.end - *byteRange.start + 1
+		return remainingLen, nil
+	}
+
+	_, err := handle.Seek(*byteRange.end, 2)
+	if err != nil {
+		return 0, err
+	}
+
+	remainingLen := *byteRange.end
+	return remainingLen, nil
+}
+
 // Dumps the contents of the specified file in the HTTP response.
+// Also handles HTTP range requests.
 // Returns an error if there is a problem in reading the file.
-func (h handler) dumpFile(writer http.ResponseWriter, path *string) error {
+func (h handler) dumpFile(request *http.Request, writer http.ResponseWriter,
+	path *string) error {
 	info, err := os.Stat(*path)
 	if err != nil {
 		return err
 	}
-
-	writer.Header().Set("Content-Length",
-		strconv.FormatInt(info.Size(), 10))
 
 	handle, err := os.Open(*path)
 	if err != nil {
 		return err
 	}
 
-	reader := bufio.NewReader(handle)
-	readBuffer := make([]byte, 4096)
-
-	for {
-		n, err := reader.Read(readBuffer)
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-
-			handle.Close()
-			return err
-		}
-
-		buffer := make([]byte, n)
-		for index := 0; index < n; index++ {
-			buffer[index] = readBuffer[index]
-		}
-
-		_, err = writer.Write(buffer)
-		if err != nil {
-			// Client has disconnected, so we don't proceed.
-			break
-		}
-	}
-
+	http.ServeContent(writer, request, "/tmp/test.dat", info.ModTime(), handle)
 	return handle.Close()
 }
 
@@ -176,7 +180,7 @@ func (h handler) writeFile(request *http.Request,
 	if _, present := request.URL.Query()["tail"]; present {
 		err = streamFile(writer, path, h.streamingTimeout)
 	} else {
-		err = h.dumpFile(writer, path)
+		err = h.dumpFile(request, writer, path)
 	}
 
 	if err != nil {
