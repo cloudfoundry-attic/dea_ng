@@ -61,7 +61,7 @@ func main() {
 
 	config, err := parseConfig(os.Args[1])
 	if err != nil {
-		log.Panic(err)
+		log.Panic("Failed reading config file.")
 	}
 
 	deaPort := config["file_api_port"].(int)
