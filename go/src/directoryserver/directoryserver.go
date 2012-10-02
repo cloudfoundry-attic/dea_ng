@@ -150,6 +150,8 @@ func (h handler) dumpFile(writer http.ResponseWriter, path string) error {
 			if err == io.EOF {
 				break
 			}
+
+			handle.Close()
 			return err
 		}
 
@@ -165,7 +167,7 @@ func (h handler) dumpFile(writer http.ResponseWriter, path string) error {
 		}
 	}
 
-	return nil
+	return handle.Close()
 }
 
 func (h handler) writeFile(request *http.Request,
