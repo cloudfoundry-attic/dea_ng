@@ -45,8 +45,8 @@ func (handler denyingDeaHandler) ServeHTTP(w http.ResponseWriter,
 		handler.t.Fail()
 	}
 
-	w.Header()["Content-Length"] = []string{strconv.
-		Itoa(len(*(handler.responseBody)))}
+	w.Header().Set("Content-Length", strconv.
+		Itoa(len(*(handler.responseBody))))
 	w.WriteHeader(400)
 	w.Write(*(handler.responseBody))
 }
@@ -156,13 +156,10 @@ func TestHandler_ServeHTTP_EntityNotFound(t *testing.T) {
 	}
 
 	// Check headers.
-	headerValue := response.Header["Content-Type"]
-	if len(headerValue) != 1 || headerValue[0] != "text/plain" {
+	if response.Header.Get("Content-Type") != "text/plain" {
 		t.Fail()
 	}
-
-	headerValue = response.Header["X-Cascade"]
-	if len(headerValue) != 1 || headerValue[0] != "pass" {
+	if response.Header.Get("X-Cascade") != "pass" {
 		t.Fail()
 	}
 
@@ -242,8 +239,7 @@ func TestHandler_ServeHTTP_ReturnDirectoryListing(t *testing.T) {
 	}
 
 	// Check headers.
-	headerValue := response.Header["Content-Type"]
-	if len(headerValue) != 1 || headerValue[0] != "text/plain" {
+	if response.Header.Get("Content-Type") != "text/plain" {
 		t.Fail()
 	}
 
