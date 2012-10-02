@@ -248,6 +248,7 @@ func TestHandler_ServeHTTP_ReturnDirectoryListing(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+
 	pattern := "\\s*testdir_.*/\\s*-\\n\\s*testfile_.*\\s*9\\.8K"
 	matched, _ := regexp.Match(pattern, body)
 	if !matched {
@@ -389,6 +390,156 @@ func TestHandler_ServeHTTP_DumpFile(t *testing.T) {
 		t.Error(err)
 	}
 	if string(body) != dump.String() {
+		t.Fail()
+	}
+
+	// Clean up.
+	if err = os.Remove(tmpFile.Name()); err != nil {
+		t.Fail()
+	}
+	deaServerListener.Close()
+	dirServerListener.Close()
+	time.Sleep(2 * time.Millisecond)
+}
+
+func TestHandler_ServeHTTP_DumpFile_RangeQuery(t *testing.T) {
+	// Start mock dir server in a separate thread and wait for it to start.
+	address := "localhost:" + strconv.Itoa(1244)
+	dirServerListener, err := net.Listen("tcp", address)
+	if err != nil {
+		t.Error(err)
+	}
+	go startServer(&dirServerListener, "localhost", 1245, 2) // thread.
+	time.Sleep(2 * time.Millisecond)
+
+	// Start mock dea server in a separate thread and wait for it to start.
+	address = "localhost:" + strconv.Itoa(1245)
+	deaServerListener, err := net.Listen("tcp", address)
+	if err != nil {
+		t.Error(err)
+	}
+	expRequest, _ := http.NewRequest("GET", "http://localhost:1245/path", nil)
+
+	// Create temp file for this unit test.
+	tmpFile, err := ioutil.TempFile("", "testfile_")
+	if err != nil {
+		t.Fail()
+	}
+	err = tmpFile.Close()
+	if err != nil {
+		t.Error(err)
+	}
+	var dump bytes.Buffer
+	for index := 0; index < 1000; index++ {
+		dump.WriteString("A")
+	}
+	err = ioutil.WriteFile(tmpFile.Name(), []byte(dump.String()), 0600)
+	if err != nil {
+		t.Fail()
+	}
+
+	responseBody := []byte(fmt.Sprintf("{\"instance_path\" : \"%s\"}", tmpFile.Name()))
+	go http.Serve(deaServerListener,
+		dummyDeaHandler{t, expRequest, &responseBody}) // thread.
+	time.Sleep(2 * time.Millisecond)
+
+	client := &http.Client{}
+	request, err := http.NewRequest("GET", "http://localhost:1244/path", nil)
+	if err != nil {
+		t.Error(err)
+	}
+
+	request.Header.Set("Range", "bytes=5-10")
+	response, err := client.Do(request)
+	if err != nil {
+		t.Error(err)
+	}
+
+	// Check status code.
+	if response.StatusCode != 206 {
+		t.Fail()
+	}
+
+	// Check headers.
+	headerValue := response.Header["Content-Range"]
+	if len(headerValue) != 1 || headerValue[0] != "bytes 5-10/1000" {
+		t.Fail()
+	}
+
+	// Check body.
+	body, err := getBody(response)
+	if err != nil {
+		t.Error(err)
+	}
+	if string(body) != dump.String()[5:11] {
+		t.Log("XX")
+		t.Fail()
+	}
+
+	// Clean up.
+	if err = os.Remove(tmpFile.Name()); err != nil {
+		t.Fail()
+	}
+	deaServerListener.Close()
+	dirServerListener.Close()
+	time.Sleep(2 * time.Millisecond)
+}
+
+func TestHandler_ServeHTTP_DumpFile_FailedRangeQuery(t *testing.T) {
+	// Start mock dir server in a separate thread and wait for it to start.
+	address := "localhost:" + strconv.Itoa(1246)
+	dirServerListener, err := net.Listen("tcp", address)
+	if err != nil {
+		t.Error(err)
+	}
+	go startServer(&dirServerListener, "localhost", 1247, 2) // thread.
+	time.Sleep(2 * time.Millisecond)
+
+	// Start mock dea server in a separate thread and wait for it to start.
+	address = "localhost:" + strconv.Itoa(1247)
+	deaServerListener, err := net.Listen("tcp", address)
+	if err != nil {
+		t.Error(err)
+	}
+	expRequest, _ := http.NewRequest("GET", "http://localhost:1247/path", nil)
+
+	// Create temp file for this unit test.
+	tmpFile, err := ioutil.TempFile("", "testfile_")
+	if err != nil {
+		t.Fail()
+	}
+	err = tmpFile.Close()
+	if err != nil {
+		t.Error(err)
+	}
+	var dump bytes.Buffer
+	for index := 0; index < 1000; index++ {
+		dump.WriteString("A")
+	}
+	err = ioutil.WriteFile(tmpFile.Name(), []byte(dump.String()), 0600)
+	if err != nil {
+		t.Fail()
+	}
+
+	responseBody := []byte(fmt.Sprintf("{\"instance_path\" : \"%s\"}", tmpFile.Name()))
+	go http.Serve(deaServerListener,
+		dummyDeaHandler{t, expRequest, &responseBody}) // thread.
+	time.Sleep(2 * time.Millisecond)
+
+	client := &http.Client{}
+	request, err := http.NewRequest("GET", "http://localhost:1246/path", nil)
+	if err != nil {
+		t.Error(err)
+	}
+
+	request.Header.Set("Range", "bytes=10000-")
+	response, err := client.Do(request)
+	if err != nil {
+		t.Error(err)
+	}
+
+	// Check status code.
+	if response.StatusCode != 416 {
 		t.Fail()
 	}
 
