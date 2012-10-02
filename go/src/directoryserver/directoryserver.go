@@ -8,13 +8,15 @@
 
  Directory listing lists sub-directories and files contained inside the
  directory along with the file sizes. Streaming of files uses HTTP chunked
- transfer encoding.
+ transfer encoding. The server also supports HTTP byte range queries when
+ accessing files.
 */
 package directoryserver
 
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -79,15 +81,19 @@ func (h handler) writeDeaClientError(err *error, w http.ResponseWriter) {
 	fmt.Fprintf(w, msg)
 }
 
-// Prefixes the error message indicating an internal server error.
+// Prefixes the error message (if any) indicating an internal server error.
 // Writes the new error message in the HTTP response and sets the HTTP response
 // status code to 500.
 func (h handler) writeServerError(err *error, w http.ResponseWriter) {
-	msgFormat := "Can't serve request due to error: %s"
-	msg := fmt.Sprintf(msgFormat, (*err).Error())
-	log.Print(msg)
 	w.WriteHeader(500)
-	fmt.Fprintf(w, msg)
+	if err != nil && len((*err).Error()) > 0 {
+		msgFormat := "Can't serve request due to error: %s"
+		msg := fmt.Sprintf(msgFormat, (*err).Error())
+		log.Print(msg)
+		fmt.Fprintf(w, msg)
+	} else {
+		log.Print("Can't serve request.")
+	}
 }
 
 // Writes the directory listing of the directory path in the HTTP response.
@@ -127,33 +133,57 @@ func (h handler) listDir(writer http.ResponseWriter, dirPath string) {
 // Also handles HTTP range requests.
 // Returns an error if there is a problem in reading the file.
 func (h handler) dumpFile(request *http.Request, writer http.ResponseWriter,
-	path string) error {
+	path string) {
 	info, err := os.Stat(path)
 	if err != nil {
-		return err
+		h.writeServerError(&err, writer)
+		return
 	}
 
 	handle, err := os.Open(path)
 	if err != nil {
-		return err
+		h.writeServerError(&err, writer)
+		return
 	}
 
+	// For HTTP range queries, the call to http.ServeContent(...)
+	// takes care of setting status code of 206 on success, or 416 on
+	// failure in the HTTP response.
+	// If there is no range query, then it writes the entire file to the
+	// HTTP response. When it panics, we ensure that we set the status code
+	// in the response to 500.
+	defer func() {
+		if panicError := recover(); panicError != nil {
+			if e, ok := panicError.(fmt.Stringer); ok {
+				error := errors.New(e.String())
+				h.writeServerError(&error, writer)
+				return
+			}
+
+			h.writeServerError(nil, writer)
+		}
+	}()
+
 	http.ServeContent(writer, request, path, info.ModTime(), handle)
-	return handle.Close()
+	err = handle.Close()
+	if err != nil {
+		h.writeServerError(&err, writer)
+		return
+	}
 }
 
 func (h handler) writeFile(request *http.Request,
 	writer http.ResponseWriter, path string) {
-	var err error
 	if _, present := request.URL.Query()["tail"]; present {
-		err = streamFile(writer, path, h.streamingTimeout)
-	} else {
-		err = h.dumpFile(request, writer, path)
+		err := streamFile(writer, path, h.streamingTimeout)
+		if err != nil {
+			h.writeServerError(&err, writer)
+		}
+
+		return
 	}
 
-	if err != nil {
-		h.writeServerError(&err, writer)
-	}
+	h.dumpFile(request, writer, path)
 }
 
 // Lists directory, or writes file contents in the HTTP response as per the
