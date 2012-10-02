@@ -2,9 +2,9 @@
  Package directoryserver implements a HTTP-based directory server that can list
  directories and stream/dump files based on the path specified in the HTTP
  request. All HTTP requests are validated with a HTTP end-point in the
- co-located DEA at a specified DEA port. If validation with the DEA is
- successful, the HTTP request is served. Otherwise, the same HTTP response
- from the DEA is served as response to the HTTP request.
+ DEA co-located in the same host at a specified port. If validation with the
+ DEA is successful, the HTTP request is served. Otherwise, the same HTTP
+ response from the DEA is served as response to the HTTP request.
 
  Directory listing lists sub-directories and files contained inside the
  directory along with the file sizes. Streaming of files uses HTTP chunked
@@ -13,11 +13,9 @@
 package directoryserver
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -26,9 +24,7 @@ import (
 	"strconv"
 )
 
-/*
- Returns a string representation of the file size.
-*/
+// Returns a string representation of the file size.
 func fileSizeFormat(size int64) string {
 	if size >= (1 << 40) {
 		return fmt.Sprintf("%.1fT", float64(size)/(1<<40))
@@ -49,9 +45,7 @@ func fileSizeFormat(size int64) string {
 	return fmt.Sprintf("%dB", size)
 }
 
-/*
- Defines a handler to serve HTTP requests received by the directory server.
-*/
+// Defines a handler to serve HTTP requests received by the directory server.
 type handler struct {
 	deaHost          string
 	deaPort          uint16
@@ -59,28 +53,23 @@ type handler struct {
 	streamingTimeout uint32
 }
 
-/*
- Writes the entity not found response in the HTTP response and sets the HTTP
- response status code to 400.
-*/
+// Writes the entity not found response in the HTTP response and sets the HTTP
+// response status code to 400.
 func (h handler) writeEntityNotFound(writer http.ResponseWriter) {
 	response := "Entity not found.\n"
 
-	writer.Header()["Content-Length"] = []string{strconv.
-		Itoa(len(response))}
-	writer.Header()["Content-Type"] = []string{"text/plain"}
-	writer.Header()["X-Cascade"] = []string{"pass"}
+	writer.Header().Set("Content-Length", strconv.Itoa(len(response)))
+	writer.Header().Set("Content-Type", "text/plain")
+	writer.Header().Set("X-Cascade", "pass")
 
 	writer.WriteHeader(400)
 
 	fmt.Fprintf(writer, response)
 }
 
-/*
- Prefixes the error message indicating that the error arose when a HTTP
- request was sent to the DEA. Writes the new error message in the HTTP
- response and sets the HTTP response status code to 500.
-*/
+// Prefixes the error message indicating that the error arose when a HTTP
+// request was sent to the DEA. Writes the new error message in the HTTP
+// response and sets the HTTP response status code to 500.
 func (h handler) writeDeaClientError(err *error, w http.ResponseWriter) {
 	msgFormat := "Can't read the body of HTTP response"
 	msgFormat += " from DEA due to error: %s"
@@ -90,11 +79,9 @@ func (h handler) writeDeaClientError(err *error, w http.ResponseWriter) {
 	fmt.Fprintf(w, msg)
 }
 
-/*
- Prefixes the error message indicating an internal server error.
- Writes the new error message in the HTTP response and sets the HTTP response
- status code to 500.
-*/
+// Prefixes the error message indicating an internal server error.
+// Writes the new error message in the HTTP response and sets the HTTP response
+// status code to 500.
 func (h handler) writeServerError(err *error, w http.ResponseWriter) {
 	msgFormat := "Can't serve request due to error: %s"
 	msg := fmt.Sprintf(msgFormat, (*err).Error())
@@ -103,10 +90,8 @@ func (h handler) writeServerError(err *error, w http.ResponseWriter) {
 	fmt.Fprintf(w, msg)
 }
 
-/*
- Writes the directory listing of the directory path in the HTTP response.
- Files in the directory are reported along with their sizes.
-*/
+// Writes the directory listing of the directory path in the HTTP response.
+// Files in the directory are reported along with their sizes.
 func (h handler) listDir(writer http.ResponseWriter, dirPath string) {
 	entries, err := ioutil.ReadDir(dirPath)
 	if err != nil {
@@ -132,68 +117,53 @@ func (h handler) listDir(writer http.ResponseWriter, dirPath string) {
 
 	body := bodyBuffer.Bytes()
 
-	writer.Header()["Content-Type"] = []string{"text/plain"}
-	writer.Header()["Content-Length"] = []string{strconv.
-		Itoa(len(body))}
+	writer.Header().Set("Content-Type", "text/plain")
+	writer.Header().Set("Content-Length", strconv.Itoa(len(body)))
 
 	writer.Write(body)
 }
 
-/*
- Dumps the contents of the specified file in the HTTP response.
- Returns an error if there is a problem in reading the file.
-*/
-func (h handler) dumpFile(writer http.ResponseWriter, path string) error {
+// Dumps the contents of the specified file in the HTTP response.
+// Also handles HTTP range requests.
+// Returns an error if there is a problem in reading the file.
+func (h handler) dumpFile(request *http.Request, writer http.ResponseWriter,
+	path string) error {
 	info, err := os.Stat(path)
 	if err != nil {
 		return err
 	}
-
-	writer.Header()["Content-Length"] = []string{strconv.
-		FormatInt(info.Size(), 10)}
 
 	handle, err := os.Open(path)
 	if err != nil {
 		return err
 	}
 
-	reader := bufio.NewReader(handle)
-	readBuffer := make([]byte, 4096)
-
-	for {
-		n, err := reader.Read(readBuffer)
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return err
-		}
-
-		buffer := make([]byte, n)
-		for index := 0; index < n; index++ {
-			buffer[index] = readBuffer[index]
-		}
-
-		_, err = writer.Write(buffer)
-		if err != nil {
-			// Client has disconnected, so we don't proceed.
-			break
-		}
-	}
-
-	return nil
+	http.ServeContent(writer, request, path, info.ModTime(), handle)
+	return handle.Close()
 }
 
-/*
- Lists directory, or writes file contents in the HTTP response as per the
- the response received from the DEA. If the "tail" parameter is part of
- the HTTP request, then the file contents are streamed through chunked
- HTTP transfer encoding. Otherwise, the entire file is dumped in the HTTP
- response.
+func (h handler) writeFile(request *http.Request,
+	writer http.ResponseWriter, path string) {
+	var err error
+	if _, present := request.URL.Query()["tail"]; present {
+		err = streamFile(writer, path, h.streamingTimeout)
+	} else {
+		err = h.dumpFile(request, writer, path)
+	}
 
- Writes appropriate errors and status codes in the HTTP response if there is
- a problem in reading the file or directory.
-*/
+	if err != nil {
+		h.writeServerError(&err, writer)
+	}
+}
+
+// Lists directory, or writes file contents in the HTTP response as per the
+// the response received from the DEA. If the "tail" parameter is part of
+// the HTTP request, then the file contents are streamed through chunked
+// HTTP transfer encoding. Otherwise, the entire file is dumped in the HTTP
+// response.
+//
+// Writes appropriate errors and status codes in the HTTP response if there is
+// a problem in reading the file or directory.
 func (h handler) listPath(request *http.Request, writer http.ResponseWriter,
 	deaResponse *http.Response) {
 	path, err := h.getPath(deaResponse)
@@ -211,24 +181,13 @@ func (h handler) listPath(request *http.Request, writer http.ResponseWriter,
 	if info.IsDir() {
 		h.listDir(writer, *path)
 	} else {
-		var err error
-		if _, present := request.URL.Query()["tail"]; present {
-			err = streamFile(writer, *path, h.streamingTimeout)
-		} else {
-			err = h.dumpFile(writer, *path)
-		}
-
-		if err != nil {
-			h.writeServerError(&err, writer)
-		}
+		h.writeFile(request, writer, *path)
 	}
 }
 
-/*
- If validation with the DEA is successful, the HTTP request is served.
- Otherwise, the same HTTP response from the DEA is served as response to
- the HTTP request.
-*/
+// If validation with the DEA is successful, the HTTP request is served.
+// Otherwise, the same HTTP response from the DEA is served as response to
+// the HTTP request.
 func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if h.deaClient == nil {
 		dc := newDeaClient(h.deaHost, h.deaPort)
@@ -249,10 +208,8 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-/*
- Extracts the path of the file/directory from the JSON response received
- from the DEA. Returns an error if there is a problem.
-*/
+// Extracts the path of the file/directory from the JSON response received
+// from the DEA. Returns an error if there is a problem.
 func (h handler) getPath(deaResponse *http.Response) (*string, error) {
 	jsonBlob := make([]byte, (*deaResponse).ContentLength)
 	_, err := (*deaResponse).Body.Read(jsonBlob)
@@ -270,12 +227,10 @@ func (h handler) getPath(deaResponse *http.Response) (*string, error) {
 	return &path, nil
 }
 
-/*
- Forwards the response received from the DEA as the response of the HTTP
- request. If there is a problem in reading the body of the HTTP response from
- the DEA, then writes an internal server error message in the HTTP response
- and status code to 500.
-*/
+// Forwards the response received from the DEA as the response of the HTTP
+// request. If there is a problem in reading the body of the HTTP response from
+// the DEA, then writes an internal server error message in the HTTP response
+// and status code to 500.
 func (h handler) forwardDeaResponse(w http.ResponseWriter,
 	deaResponse *http.Response) {
 	body := make([]byte, deaResponse.ContentLength)
@@ -303,11 +258,9 @@ func startServer(listener *net.Listener, deaHost string, deaPort uint16,
 	return http.Serve(*listener, h)
 }
 
-/*
- Starts the directory server at the specified host, port. Validates HTTP
- requests with the DEA's HTTP server which serves requests on the same host and
- specified DAE port.
-*/
+// Starts the directory server at the specified host, port. Validates HTTP
+// requests with the DEA's HTTP server which serves requests on the same host and
+// specified DAE port.
 func Start(host string, port uint16, deaPort uint16, streamingTimeout uint32) error {
 	address := host + ":" + strconv.Itoa(int(port))
 	listener, err := net.Listen("tcp", address)

@@ -5,12 +5,34 @@ require "spec_helper"
 require "dea/runtime"
 
 describe Dea::Runtime do
+  describe "#environment" do
+    let(:config) do
+      {
+        "environment" => {
+          "foo" => "bar",
+          "bar" => nil,
+        },
+      }
+    end
+
+    subject(:runtime) do
+      Dea::Runtime.new(config)
+    end
+
+    it "should stringify nil values" do
+      runtime.environment["foo"].should == %{bar}
+      runtime.environment["bar"].should == %{}
+    end
+  end
+
   describe "#debug_environment" do
     let(:config) do
       {
         "debug_env" => {
           "run" => [
             "foo=bar",
+            "bar=",
+            "qux",
           ],
           "suspend" => [
             "foo=\"bar\"",
@@ -24,8 +46,10 @@ describe Dea::Runtime do
     end
 
     it "returns hash with environment for mode" do
-      runtime.debug_environment("run").should have(1).entry
+      runtime.debug_environment("run").should have(3).entries
       runtime.debug_environment("run")["foo"].should == %{bar}
+      runtime.debug_environment("run")["bar"].should == %{}
+      runtime.debug_environment("run")["qux"].should == %{}
     end
 
     it "retains quotation marks around value" do

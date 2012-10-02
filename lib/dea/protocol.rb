@@ -12,7 +12,9 @@ module Dea::Protocol::V1
   class HeartbeatResponse
     def self.generate(bootstrap, instances)
       hbs = instances.map do |instance|
-        { "droplet"         => instance.application_id,
+        {
+          "cc_partition"    => instance.cc_partition,
+          "droplet"         => instance.application_id,
           "version"         => instance.application_version,
           "instance"        => instance.instance_id,
           "index"           => instance.instance_index,
@@ -145,11 +147,12 @@ module Dea::Protocol::V1
   class ExitMessage
     def self.generate(instance, reason)
       msg = {
-        "droplet"  => instance.application_id,
-        "version"  => instance.application_version,
-        "instance" => instance.instance_id,
-        "index"    => instance.instance_index,
-        "reason"   => reason,
+        "cc_partition" => instance.cc_partition,
+        "droplet"      => instance.application_id,
+        "version"      => instance.application_version,
+        "instance"     => instance.instance_id,
+        "index"        => instance.instance_index,
+        "reason"       => reason,
       }
 
       if instance.crashed?
