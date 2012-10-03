@@ -43,7 +43,7 @@ func streamFile(writer io.Writer, path string, maxIdleTime uint32) error {
 	}
 
 	// Seek to EOF.
-	_, err = handle.Seek(0, 2)
+	_, err = handle.Seek(0, os.SEEK_END)
 	if err != nil {
 		handle.Close()
 		return err
