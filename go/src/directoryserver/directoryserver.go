@@ -8,16 +8,14 @@
 
  Directory listing lists sub-directories and files contained inside the
  directory along with the file sizes. Streaming of files uses HTTP chunked
- transfer encoding.
+ transfer encoding. The server also handles HTTP byte range requests.
 */
 package directoryserver
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -60,10 +58,9 @@ type handler struct {
 func (h handler) writeEntityNotFound(writer http.ResponseWriter) {
 	response := "Entity not found.\n"
 
-	writer.Header()["Content-Length"] = []string{strconv.
-		Itoa(len(response))}
-	writer.Header()["Content-Type"] = []string{"text/plain"}
-	writer.Header()["X-Cascade"] = []string{"pass"}
+	writer.Header().Set("Content-Length", strconv.Itoa(len(response)))
+	writer.Header().Set("Content-Type", "text/plain")
+	writer.Header().Set("X-Cascade", "pass")
 
 	writer.WriteHeader(400)
 
@@ -120,54 +117,45 @@ func (h handler) listDir(writer http.ResponseWriter, dirPath string) {
 
 	body := bodyBuffer.Bytes()
 
-	writer.Header()["Content-Type"] = []string{"text/plain"}
-	writer.Header()["Content-Length"] = []string{strconv.
-		Itoa(len(body))}
+	writer.Header().Set("Content-Type", "text/plain")
+	writer.Header().Set("Content-Length", strconv.Itoa(len(body)))
 
 	writer.Write(body)
 }
 
 // Dumps the contents of the specified file in the HTTP response.
-// Returns an error if there is a problem in reading the file.
-func (h handler) dumpFile(writer http.ResponseWriter, path string) error {
+// Also handles HTTP byte range requests.
+// Returns an error if there is a problem in opening/closing the file.
+func (h handler) dumpFile(request *http.Request, writer http.ResponseWriter,
+	path string) error {
 	info, err := os.Stat(path)
 	if err != nil {
 		return err
 	}
-
-	writer.Header()["Content-Length"] = []string{strconv.
-		FormatInt(info.Size(), 10)}
 
 	handle, err := os.Open(path)
 	if err != nil {
 		return err
 	}
 
-	reader := bufio.NewReader(handle)
-	readBuffer := make([]byte, 4096)
+	// This takes care of serving HTTP byte range request if present.
+	// Otherwise dumps the entire file in the HTTP response.
+	http.ServeContent(writer, request, path, info.ModTime(), handle)
+	return handle.Close()
+}
 
-	for {
-		n, err := reader.Read(readBuffer)
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return err
-		}
-
-		buffer := make([]byte, n)
-		for index := 0; index < n; index++ {
-			buffer[index] = readBuffer[index]
-		}
-
-		_, err = writer.Write(buffer)
-		if err != nil {
-			// Client has disconnected, so we don't proceed.
-			break
-		}
+func (h handler) writeFile(request *http.Request,
+	writer http.ResponseWriter, path string) {
+	var err error
+	if _, present := request.URL.Query()["tail"]; present {
+		err = streamFile(writer, path, h.streamingTimeout)
+	} else {
+		err = h.dumpFile(request, writer, path)
 	}
 
-	return nil
+	if err != nil {
+		h.writeServerError(&err, writer)
+	}
 }
 
 // Lists directory, or writes file contents in the HTTP response as per the
@@ -195,16 +183,7 @@ func (h handler) listPath(request *http.Request, writer http.ResponseWriter,
 	if info.IsDir() {
 		h.listDir(writer, *path)
 	} else {
-		var err error
-		if _, present := request.URL.Query()["tail"]; present {
-			err = streamFile(writer, *path, h.streamingTimeout)
-		} else {
-			err = h.dumpFile(writer, *path)
-		}
-
-		if err != nil {
-			h.writeServerError(&err, writer)
-		}
+		h.writeFile(request, writer, *path)
 	}
 }
 

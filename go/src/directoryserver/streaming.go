@@ -45,6 +45,7 @@ func streamFile(writer io.Writer, path string, maxIdleTime uint32) error {
 	// Seek to EOF.
 	_, err = handle.Seek(0, 2)
 	if err != nil {
+		handle.Close()
 		return err
 	}
 
@@ -53,11 +54,15 @@ func streamFile(writer io.Writer, path string, maxIdleTime uint32) error {
 
 	inotifyFd, err := syscall.InotifyInit()
 	if err != nil {
+		handle.Close()
 		return err
 	}
 
-	watchDesc, err := syscall.InotifyAddWatch(inotifyFd, path, syscall.IN_MODIFY)
+	watchDesc, err := syscall.InotifyAddWatch(inotifyFd, path,
+		syscall.IN_MODIFY)
 	if err != nil {
+		syscall.Close(inotifyFd)
+		handle.Close()
 		return err
 	}
 
