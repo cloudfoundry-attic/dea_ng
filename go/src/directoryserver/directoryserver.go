@@ -8,7 +8,7 @@
 
  Directory listing lists sub-directories and files contained inside the
  directory along with the file sizes. Streaming of files uses HTTP chunked
- transfer encoding.
+ transfer encoding. The server also handles HTTP byte range requests.
 */
 package directoryserver
 
@@ -124,8 +124,8 @@ func (h handler) listDir(writer http.ResponseWriter, dirPath string) {
 }
 
 // Dumps the contents of the specified file in the HTTP response.
-// Also handles HTTP range requests.
-// Returns an error if there is a problem in reading the file.
+// Also handles HTTP byte range requests.
+// Returns an error if there is a problem in opening/closing the file.
 func (h handler) dumpFile(request *http.Request, writer http.ResponseWriter,
 	path string) error {
 	info, err := os.Stat(path)
@@ -138,6 +138,8 @@ func (h handler) dumpFile(request *http.Request, writer http.ResponseWriter,
 		return err
 	}
 
+	// This takes care of serving HTTP byte range request if present.
+	// Otherwise dumps the entire file in the HTTP response.
 	http.ServeContent(writer, request, path, info.ModTime(), handle)
 	return handle.Close()
 }
