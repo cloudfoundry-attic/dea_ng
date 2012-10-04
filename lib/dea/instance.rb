@@ -495,17 +495,98 @@ module Dea
           bind_mounts << bind_mount
         end
 
-        create_request = ::Warden::Protocol::CreateRequest.new
-        create_request.bind_mounts = bind_mounts
+        error = nil
+        begin
+          # setup FSS mount by services
+          fss = services.select { |svc| svc['vendor'] == 'filesystem' }
+          fss.each do |svc|
+            fss_mnt = mount_fss_instance(svc)
+            bind_mounts << fss_mnt if fss_mnt
+          end if fss
+        rescue => error
+          logger.warn("Error on mounting FSS");
+          logger.log_exception(error)
+        end
 
-        response = promise_warden_call(:app, create_request).resolve
+        if error
+          p.fail(error)
+        else
+          create_request = ::Warden::Protocol::CreateRequest.new
+          create_request.bind_mounts = bind_mounts
 
-        @attributes["warden_handle"] = response.handle
+          response = promise_warden_call(:app, create_request).resolve
 
-        @logger = logger.tag("warden_handle" => response.handle)
+          @attributes["warden_handle"] = response.handle
 
-        p.deliver
+          @logger = logger.tag("warden_handle" => response.handle)
+
+          p.deliver
+        end
       end
+    end
+
+    def mount_fss_instance(svc)
+      name = svc['credentials']['name']
+      host, export, node_id, quota = %w{host export, node_id, quota}.map { |key| svc['credentials']['internal'][key] }
+      mountpoint = mount_fss_nfs(host, export)
+      nfs_path = File.join(mountpoint, name)
+      raise "nfs_path does not exist" unless Dir.exist?(nfs_path)
+
+      src_path = mount_fss_fuse(nfs_path, node_id, quota, name)
+      dst_path = File.join(bootstrap.config["FSS"]["bind_base"], name);
+      svc['credentials'] = {'path' => dst_path}
+
+      mnt = ::Warden::Protocol::CreateRequest::BindMount.new
+      mnt.src_path = src_path
+      mnt.dst_path = dst_path
+      mnt.mode = BIND_MOUNT_MODE_MAP['rw']
+      mnt
+    rescue => e
+      @logger.error("Error on handle_fss_env: #{e}")
+      raise
+    end
+
+    def get_mnt(name, type)
+      mountpoint = nil
+      if `mount|grep #{name}` =~ /^.* on (.*) type #{type}.*$/
+        mountpoint = $1
+      end
+      mountpoint
+    end
+
+    def mount_fss_fuse(nfs_path, node_id, quota, name)
+      mnt = get_mnt(name, "fuse\.dpxfs")
+      return mnt if mnt
+
+      redis_ip      = bootstrap.config["FSS"]["redis"]["address"]
+      redis_port    = bootstrap.config["FSS"]["redis"]["port"]
+      redis_pass    = bootstrap.config["FSS"]["redis"]["password"]
+      fuse_base     = bootstrap.config["FSS"]["fuse_base"]
+      package_base  = bootstrap.config["FSS"]["package_base"]
+      mountpoint    = File.join(fuse_base, name)
+      FileUtils.mkdir_p(mountpoint)
+      cmd = "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:#{package_base}/packages/fuse/lib/:#{package_base}/packages/hiredis/lib/"
+      cmd << " REDIS_IP=#{redis_ip}"
+      cmd << " REDIS_PORT=#{redis_port}"
+      cmd << " REDIS_PASSWD=#{redis_pass}"
+      cmd << " FSS_NODE_ID=#{node_id}"
+      cmd << " FSS_ID=#{name}"
+      cmd << " QUOTA=#{quota}"
+      cmd << " ROOT_DIR=#{nfs_path}"
+      cmd << " #{package_base}/bin/dpxfs #{mountpoint}"
+      cmd << " -o allow_other"
+      `#{cmd}`
+      return get_mnt(name, "fuse\.dpxfs")
+    end
+
+    def mount_fss_nfs(host, export)
+      mnt = get_mnt(host, "nfs")
+      return mnt if mnt
+
+      mountpoint = File.join(bootstrap.config["FSS"]["nfs_base"], VCAP.secure_uuid)
+      FileUtils.mkdir_p(mountpoint)
+      `mount -t nfs #{host}:#{export} #{mountpoint}`
+      return get_mnt(host, "nfs")
     end
 
     def promise_setup_network
