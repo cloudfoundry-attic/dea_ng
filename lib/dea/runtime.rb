@@ -15,7 +15,7 @@ module Dea
       ::Membrane::SchemaParser.parse do
         {
           "executable"                  => String,
-          "version"                     => String,
+          "version_output"              => String,
           "version_flag"                => String,
           optional("additional_checks") => String,
           optional("environment")       => dict(String, String),
@@ -89,14 +89,14 @@ module Dea
     end
 
     def validate_version
-      version_output = run(executable, config["version_flag"])
+      actual_output = run(executable, config["version_flag"])
       unless $?.success?
         raise VersionError, "Runtime exited with non-zero status #{executable}"
       end
 
-      matcher = Regexp.compile(/#{config["version"]}/m)
-      unless matcher.match(version_output)
-        raise VersionError, "Version mismatch for #{executable} (expected: #{config["version"]}, actual: #{version_output})"
+      expected_output = Regexp.compile(/#{config["version_output"]}/m)
+      unless expected_output.match(actual_output)
+        raise VersionError, "Version mismatch for #{executable} (expected: #{expected_output}, actual: #{actual_output})"
       end
     end
 
