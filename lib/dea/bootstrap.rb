@@ -726,7 +726,7 @@ module Dea
     end
 
     def instances_filtered_by_message(message)
-      app_id = message.data["droplet"]
+      app_id = message.data["droplet"].to_s
 
       if app_id
         logger.debug2("Filter message for app_id: %s" % app_id, :app_id => app_id)
