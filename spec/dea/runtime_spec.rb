@@ -90,7 +90,7 @@ describe Dea::Runtime do
 
   describe "validating the version" do
     it "should work when the actual version matches the version regexp" do
-      config = { "executable" => "/usr/bin/printf", "version_output" => "1\.2\.[1-5]", "version_flag" => "1.2.3\n" }
+      config = { "executable" => "/usr/bin/printf", "version" => "1\.2\.[1-5]", "version_flag" => "1.2.3\n" }
       runtime = Dea::Runtime.new(config)
 
       expect do
@@ -99,7 +99,7 @@ describe Dea::Runtime do
     end
 
     it "should raise when the actual version doesn't match the version regexp" do
-      config = { "executable" => "/usr/bin/printf", "version_output" => "1\.2\.[1-5]", "version_flag" => "1.2.6\n" }
+      config = { "executable" => "/usr/bin/printf", "version" => "1\.2\.[1-5]", "version_flag" => "1.2.6\n" }
       runtime = Dea::Runtime.new(config)
 
       expect do
@@ -108,7 +108,7 @@ describe Dea::Runtime do
     end
 
     it "should raise when the process exits with non-zero status" do
-      config = { "executable" => "/usr/bin/printf", "version_output" => "1\.2\.[1-5]", "version_flag" => "" }
+      config = { "executable" => "/usr/bin/printf", "version" => "1\.2\.[1-5]", "version_flag" => "" }
       runtime = Dea::Runtime.new(config)
 
       expect do
