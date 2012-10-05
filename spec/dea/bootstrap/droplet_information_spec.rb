@@ -54,7 +54,7 @@ describe Dea do
            Dea::Instance::State::STOPPED,
            Dea::Instance::State::STARTING].each_with_index.map do |state, ii|
             instance = create_and_register_instance(bootstrap,
-                                                    "application_id"      => (ii == 0) ? 0 : 1,
+                                                    "application_id"      => ((ii == 0) ? 0 : 1).to_s,
                                                     "application_version" => ii,
                                                     "instance_index"      => ii,
                                                     "application_uris"    => ["foo", "bar"])
