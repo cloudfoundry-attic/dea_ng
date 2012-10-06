@@ -32,7 +32,7 @@ describe Dea do
 
       states.zip(all_uris).each_with_index do |(state, uris), ii|
         instance = create_and_register_instance(bootstrap,
-                                                "application_id"   => ii,
+                                                "application_id"   => ii.to_s,
                                                 "application_uris" => uris)
         instance.state = state
         instances << instance
@@ -84,7 +84,7 @@ describe Dea do
         uris = 2.times.map do |ii|
           uri = "http://www.foo.com/#{ii}"
           create_and_register_instance(bootstrap,
-                                       "application_id"   => ii,
+                                       "application_id"   => ii.to_s,
                                        "application_uris" => [uri])
           uri
         end
@@ -101,8 +101,8 @@ describe Dea do
       end
 
       2.times do |ii|
-        reqs[ii].should_not be_nil
-        reqs[ii]["uris"].should == new_uris[ii]
+        reqs[ii.to_s].should_not be_nil
+        reqs[ii.to_s]["uris"].should == new_uris[ii]
       end
     end
 
@@ -124,14 +124,14 @@ describe Dea do
         2.times do |ii|
           uris = 2.times.map { |jj| "http://www.foo.com/#{ii + jj}" }
           create_and_register_instance(bootstrap,
-                                       "application_id"   => ii,
+                                       "application_id"   => ii.to_s,
                                        "application_uris" => uris)
         end
 
         bootstrap.instance_registry.each do |instance|
           app_id = instance.application_id
-          old_uris[app_id] = instance.application_uris
-          new_uris[app_id] = instance.application_uris.slice(1, 1)
+          old_uris[app_id.to_s] = instance.application_uris
+          new_uris[app_id.to_s] = instance.application_uris.slice(1, 1)
           nats_mock.publish("dea.update",
                             { "droplet" => app_id,
                               "uris"    => new_uris[app_id]})
@@ -140,8 +140,8 @@ describe Dea do
 
       bootstrap.instance_registry.each do |instance|
         app_id = instance.application_id
-        reqs[app_id].should_not be_nil
-        reqs[app_id]["uris"].should == (old_uris[app_id] - new_uris[app_id])
+        reqs[app_id.to_s].should_not be_nil
+        reqs[app_id.to_s]["uris"].should == (old_uris[app_id] - new_uris[app_id])
       end
     end
 
@@ -154,7 +154,7 @@ describe Dea do
         bootstrap.start
 
         instance = create_and_register_instance(bootstrap,
-                                                "application_id"   => 0,
+                                                "application_id"   => 0.to_s,
                                                 "application_uris" => [])
 
         uris = 2.times.map { |ii| "http://www.foo.com/#{ii}" }

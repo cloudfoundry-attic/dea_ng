@@ -561,7 +561,7 @@ module Dea
         return
       end
 
-      delay = calculate_discover_delay(message.data["droplet"])
+      delay = calculate_discover_delay(message.data["droplet"].to_s)
 
       logger.debug("Delaying discover response for #{delay} secs.")
 
@@ -584,7 +584,7 @@ module Dea
     end
 
     def handle_dea_update(message)
-      app_id = message.data["droplet"]
+      app_id = message.data["droplet"].to_s
       uris = message.data["uris"]
 
       instance_registry.instances_for_application(app_id).each do |_, instance|
