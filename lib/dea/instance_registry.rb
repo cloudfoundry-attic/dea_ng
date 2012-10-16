@@ -2,6 +2,7 @@
 
 require "steno"
 require "steno/core_ext"
+require "thread"
 
 module Dea
   class InstanceRegistry
@@ -10,16 +11,21 @@ module Dea
 
     include Enumerable
 
+    attr_reader :config
     attr_reader :crash_lifetime_secs
 
     def initialize(config = {})
+      @config = config
       @instances = {}
       @instances_by_app_id = {}
       @crash_lifetime_secs = config["crash_lifetime_secs"] || DEFAULT_CRASH_LIFETIME_SECS
     end
 
     def start_reaper
-      EM.add_periodic_timer(CRASHES_REAPER_INTERVAL_SECS) { reap_crashes }
+      EM.add_periodic_timer(CRASHES_REAPER_INTERVAL_SECS) do
+        reap_orphaned_crashes
+        reap_crashes
+      end
     end
 
     def register(instance)
@@ -71,8 +77,31 @@ module Dea
       @instances.size
     end
 
+    def reap_orphaned_crashes
+      logger.debug2("Reaping orphaned crashes")
+      t = Time.now
+
+      crashes = Dir[File.join(config.crashes_path, "*")].map do |path|
+        if File.directory?(path)
+          File.basename(path)
+        end
+      end
+
+      crashes.compact.each do |instance_id|
+        instance = lookup_instance(instance_id)
+
+        # Reap if this instance is not referenced
+        if instance.nil?
+          destroy_crash_artifacts(instance_id)
+        end
+      end
+
+      logger.debug2("Reaping orphaned crashes: took %.3f" % (Time.now - t))
+    end
+
     def reap_crashes
       logger.debug2("Reaping crashes")
+      t = Time.now
 
       crashes_by_app = Hash.new { |h, k| h[k] = [] }
 
@@ -91,17 +120,33 @@ module Dea
           if (idx > 0) || (secs_since_crash > crash_lifetime_secs)
             logger.info("Removing crash for #{instance.application_name}")
 
-            instance.destroy_crash_artifacts
+            destroy_crash_artifacts(instance.instance_id)
             unregister(instance)
           end
         end
       end
+
+      logger.debug2("Reaping crashes: took %.3f" % (Time.now - t))
     end
 
     private
 
-    def logger
-      @logger ||= self.class.logger
+    attr_reader :reap_crash_queue
+    attr_reader :reap_crash_thread
+
+    def destroy_crash_artifacts(instance_id)
+      @reap_crash_queue ||= Queue.new
+      @reap_crash_thread ||= Thread.new do
+        while crash_path = @reap_crash_queue.pop
+          if File.directory?(crash_path)
+            logger.debug("Removing path #{crash_path}")
+            FileUtils.rm_rf(crash_path)
+          end
+        end
+      end
+
+      crash_path = File.join(config.crashes_path, instance_id)
+      reap_crash_queue.push(crash_path)
     end
   end
 end
