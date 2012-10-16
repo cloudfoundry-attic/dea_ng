@@ -782,7 +782,7 @@ module Dea
 
     def promise_copy_out
       Promise.new do |p|
-        new_instance_path = File.join(bootstrap.config["base_dir"], "crashes", instance_id)
+        new_instance_path = File.join(bootstrap.config.crashes_path, instance_id)
         new_instance_path = File.expand_path(new_instance_path)
         FileUtils.mkdir_p(new_instance_path)
 
@@ -924,10 +924,6 @@ module Dea
 
         p.deliver
       end
-    end
-
-    def destroy_crash_artifacts
-      # TODO: Fill in
     end
 
     def setup_link
