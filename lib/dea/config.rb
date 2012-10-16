@@ -96,5 +96,9 @@ module Dea
     def only_production_apps?
       self["only_production_apps"]
     end
+
+    def crashes_path
+      @crashes_path ||= File.join(self["base_dir"], "crashes")
+    end
   end
 end
