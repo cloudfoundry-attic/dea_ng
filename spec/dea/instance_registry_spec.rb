@@ -79,6 +79,38 @@ describe Dea::InstanceRegistry do
     end
   end
 
+  describe "crash reaping of orphans" do
+    include_context "tmpdir"
+
+    let(:config) { Dea::Config.new("base_dir" => tmpdir) }
+    let(:instance_registry) { Dea::InstanceRegistry.new(config) }
+    let(:instance_id) { "instance_id" }
+    let(:crash_path) { File.join(config.crashes_path, instance_id) }
+
+    before do
+      FileUtils.mkdir_p(crash_path)
+    end
+
+    it "should remove orphaned crashes" do
+      instance_registry.reap_orphaned_crashes
+
+      sleep 0.01
+
+      File.directory?(crash_path).should be_false
+    end
+
+    it "should ignore referenced crashes" do
+      instance = register_crashed_instance(instance_registry,
+                                           "instance_id" => instance_id)
+
+      instance_registry.reap_orphaned_crashes
+
+      sleep 0.01
+
+      File.directory?(crash_path).should be_true
+    end
+  end
+
   describe "crash reaping" do
     let(:crash_lifetime) { 10 }
     let(:time_of_check) { 20 }
@@ -99,7 +131,9 @@ describe Dea::InstanceRegistry do
 
     it "should reap crashes that are too old" do
       [15, 5].each_with_index do |age, ii|
-        instance = register_crashed_instance(instance_registry, ii, age)
+        instance = register_crashed_instance(instance_registry,
+                                             :application_id => ii,
+                                             :state_timestamp => age)
         expect_reap_if(time_of_check - age > crash_lifetime, instance,
                        instance_registry)
       end
@@ -107,24 +141,30 @@ describe Dea::InstanceRegistry do
 
     it "should reap all but the most recent crash for an app" do
       [15, 14, 13].each_with_index do |age, ii|
-        instance = register_crashed_instance(instance_registry, 0, age)
+        instance = register_crashed_instance(instance_registry,
+                                             :application_id => 0,
+                                             :state_timestamp => age)
         expect_reap_if(ii != 0, instance, instance_registry)
       end
-    end
-
-    def register_crashed_instance(instance_registry, app_id, state_ts)
-      instance = Dea::Instance.new(bootstrap, "application_id" => app_id)
-      instance.state = Dea::Instance::State::CRASHED
-      instance.stub(:state_timestamp).and_return(state_ts)
-      instance_registry.register(instance)
-      instance
     end
 
     def expect_reap_if(pred, instance, instance_registry)
       method = pred ? :should_receive : :should_not_receive
 
-      instance.send(method, :destroy_crash_artifacts)
+      instance_registry.send(method, :destroy_crash_artifacts).with(instance.instance_id)
       instance_registry.send(method, :unregister).with(instance)
     end
+  end
+
+  def register_crashed_instance(instance_registry, options = {})
+    instance = Dea::Instance.new(bootstrap, {})
+    instance.state = Dea::Instance::State::CRASHED
+
+    options.each do |key, value|
+      instance.stub(key).and_return(value)
+    end
+
+    instance_registry.register(instance)
+    instance
   end
 end
