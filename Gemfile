@@ -8,7 +8,6 @@ gem "warden-client", :git => "https://github.com/cloudfoundry/warden.git", :ref 
 gem "warden-protocol", :git => "https://github.com/cloudfoundry/warden.git", :ref => "72fa69ea"
 
 gem "nats", :require => "nats/client"
-gem "em-posix-spawn", :git => "https://github.com/cloudfoundry/common.git",   :ref => "3f6636fc"
 
 gem "rack", :require => ["rack/utils", "rack/mime"]
 gem "rake"
