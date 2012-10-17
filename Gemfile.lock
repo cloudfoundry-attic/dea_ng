@@ -1,13 +1,4 @@
 GIT
-  remote: https://github.com/cloudfoundry/common.git
-  revision: 3f6636fca4fcba81c85db74ff647e15ed3743a81
-  ref: 3f6636fc
-  specs:
-    em-posix-spawn (0.1.0)
-      eventmachine
-      posix-spawn
-
-GIT
   remote: https://github.com/cloudfoundry/eventmachine.git
   revision: 2806c630d8631d5dcf9fb2555f665b829052aabe
   branch: release-0.12.11-cf
@@ -126,7 +117,6 @@ PLATFORMS
 DEPENDENCIES
   ci_reporter
   em-http-request (~> 1.0.0.beta.3)
-  em-posix-spawn!
   em-warden-client!
   eventmachine!
   grape!
