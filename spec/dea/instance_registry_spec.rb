@@ -1,6 +1,7 @@
 # coding: UTF-8
 
 require "spec_helper"
+require "dea/config"
 require "dea/instance"
 require "dea/instance_registry"
 
@@ -82,77 +83,100 @@ describe Dea::InstanceRegistry do
   describe "crash reaping of orphans" do
     include_context "tmpdir"
 
-    let(:config) { Dea::Config.new("base_dir" => tmpdir) }
-    let(:instance_registry) { Dea::InstanceRegistry.new(config) }
-    let(:instance_id) { "instance_id" }
-    let(:crash_path) { File.join(config.crashes_path, instance_id) }
-
-    before do
-      FileUtils.mkdir_p(crash_path)
+    let(:config) do
+      Dea::Config.new({
+        "base_dir" => tmpdir,
+      })
     end
 
-    it "should remove orphaned crashes" do
-      instance_registry.reap_orphaned_crashes
+    let(:instance_registry) { Dea::InstanceRegistry.new(config) }
 
-      sleep 0.01
+    it "should reap orphaned crashes" do
+      instance = register_crashed_instance(nil)
 
-      File.directory?(crash_path).should be_false
+      em do
+        instance_registry.reap_orphaned_crashes
+
+        EM.add_timer(0.01) do
+          instance.should be_reaped
+
+          done
+        end
+      end
     end
 
     it "should ignore referenced crashes" do
-      instance = register_crashed_instance(instance_registry,
-                                           "instance_id" => instance_id)
+      instance = register_crashed_instance(instance_registry)
 
-      instance_registry.reap_orphaned_crashes
+      em do
+        instance_registry.reap_orphaned_crashes
 
-      sleep 0.01
+        EM.add_timer(0.01) do
+          instance.should_not be_reaped
 
-      File.directory?(crash_path).should be_true
+          done
+        end
+      end
     end
   end
 
   describe "crash reaping" do
+    include_context "tmpdir"
+
+    let(:config) do
+      Dea::Config.new({
+        "base_dir" => tmpdir,
+        "crash_lifetime_secs" => crash_lifetime,
+      })
+    end
+
+    let(:instance_registry) { Dea::InstanceRegistry.new(config) }
     let(:crash_lifetime) { 10 }
     let(:time_of_check) { 20 }
 
-    let(:instance_registry) do
-      Dea::InstanceRegistry.new("crash_lifetime_secs" => crash_lifetime)
-    end
-
-    before :each do
+    before do
       x = Time.now
       x.stub(:to_i).and_return(time_of_check)
       Time.stub(:now).and_return(x)
     end
 
-    after :each do
-      instance_registry.reap_crashes
-    end
-
     it "should reap crashes that are too old" do
-      [15, 5].each_with_index do |age, ii|
-        instance = register_crashed_instance(instance_registry,
-                                             :application_id => ii,
-                                             :state_timestamp => age)
-        expect_reap_if(time_of_check - age > crash_lifetime, instance,
-                       instance_registry)
+      instances = [15, 5].each_with_index.map do |age, ii|
+        register_crashed_instance(instance_registry,
+                                  :application_id => ii,
+                                  :state_timestamp => age)
+      end
+
+      em do
+        instance_registry.reap_crashes
+
+        EM.add_timer(0.01) do
+          instances[0].should_not be_reaped
+          instances[1].should be_reaped
+
+          done
+        end
       end
     end
 
     it "should reap all but the most recent crash for an app" do
-      [15, 14, 13].each_with_index do |age, ii|
-        instance = register_crashed_instance(instance_registry,
-                                             :application_id => 0,
-                                             :state_timestamp => age)
-        expect_reap_if(ii != 0, instance, instance_registry)
+      instances = [15, 14, 13].each_with_index.map do |age, ii|
+        register_crashed_instance(instance_registry,
+                                  :application_id => 0,
+                                  :state_timestamp => age)
       end
-    end
 
-    def expect_reap_if(pred, instance, instance_registry)
-      method = pred ? :should_receive : :should_not_receive
+      em do
+        instance_registry.reap_crashes
 
-      instance_registry.send(method, :destroy_crash_artifacts).with(instance.instance_id)
-      instance_registry.send(method, :unregister).with(instance)
+        EM.add_timer(0.01) do
+          instances[0].should_not be_reaped
+          instances[1].should be_reaped
+          instances[2].should be_reaped
+
+          done
+        end
+      end
     end
   end
 
@@ -164,7 +188,16 @@ describe Dea::InstanceRegistry do
       instance.stub(key).and_return(value)
     end
 
-    instance_registry.register(instance)
+    crash_path = File.join(config.crashes_path, instance.instance_id)
+
+    instance.stub(:reaped?) do
+      File.directory?(crash_path) == false
+    end
+
+    FileUtils.mkdir_p(crash_path)
+
+    instance_registry.register(instance) if instance_registry
+
     instance
   end
 end

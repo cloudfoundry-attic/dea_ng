@@ -91,7 +91,7 @@ module Dea
 
         # Reap if this instance is not referenced
         if instance.nil?
-          destroy_crash_artifacts(instance_id)
+          reap_crash(instance_id)
         end
       end
     end
@@ -114,16 +114,24 @@ module Dea
 
           # Remove if not most recent, or too old
           if (idx > 0) || (secs_since_crash > crash_lifetime_secs)
-            logger.info("Removing crash for #{instance.application_name}")
-
-            destroy_crash_artifacts(instance.instance_id)
-            unregister(instance)
+            reap_crash(instance.instance_id)
           end
         end
       end
     end
 
     private
+
+    def reap_crash(instance_id, &blk)
+      instance = lookup_instance(instance_id)
+
+      message = "Removing crash #{instance_id}"
+      message << " (#{instance.application_name})" if instance
+      logger.info(message)
+
+      destroy_crash_artifacts(instance_id, &blk)
+      unregister(instance) if instance
+    end
 
     def destroy_crash_artifacts(instance_id)
       @reap_crash_queue ||= Queue.new
