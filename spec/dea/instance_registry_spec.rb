@@ -180,6 +180,108 @@ describe Dea::InstanceRegistry do
     end
   end
 
+  describe "crash reaping under disk pressure" do
+    include_context "tmpdir"
+
+    let(:config) do
+      Dea::Config.new({
+        "base_dir" => tmpdir,
+      })
+    end
+
+    let(:instance_registry) { Dea::InstanceRegistry.new(config) }
+
+    it "should reap under disk pressure" do
+      instance_registry.should_receive(:disk_pressure?).and_return(true, false)
+
+      instances = 2.times.map do |i|
+        register_crashed_instance(instance_registry,
+                                  :state_timestamp => i)
+      end
+
+      em do
+        instance_registry.reap_crashes_under_disk_pressure
+
+        EM.add_timer(0.01) do
+          instances[0].should be_reaped
+          instances[1].should_not be_reaped
+
+          done
+        end
+      end
+    end
+
+    it "should continue reaping while under disk pressure" do
+      instance_registry.stub(:disk_pressure?).and_return(true)
+
+      instances = 2.times.map do |i|
+        register_crashed_instance(instance_registry,
+                                  :state_timestamp => i)
+      end
+
+      em do
+        instance_registry.reap_crashes_under_disk_pressure
+
+        EM.add_timer(0.01) do
+          instances[0].should be_reaped
+          instances[1].should be_reaped
+
+          done
+        end
+      end
+    end
+  end
+
+  describe "#disk_pressure?" do
+    include_context "tmpdir"
+
+    let(:config) do
+      Dea::Config.new({
+        "base_dir" => tmpdir,
+        "crash_block_usage_ratio_threshold" => 0.5,
+        "crash_inode_usage_ratio_threshold" => 0.5,
+      })
+    end
+
+    let(:instance_registry) { Dea::InstanceRegistry.new(config) }
+
+    it "should return false when #stat raises" do
+      Sys::Filesystem.should_receive(:stat).and_raise("error")
+
+      instance_registry.disk_pressure?.should be_false
+    end
+
+    it "should return false when thresholds are not reached" do
+      stat = double
+      stat.stub(:blocks => 10, :blocks_free => 8)
+      stat.stub(:files => 10, :files_free => 8)
+
+      Sys::Filesystem.should_receive(:stat).and_return(stat)
+
+      instance_registry.disk_pressure?.should be_false
+    end
+
+    it "should return true when block threshold is reached" do
+      stat = double
+      stat.stub(:blocks => 10, :blocks_free => 2)
+      stat.stub(:files => 10, :files_free => 8)
+
+      Sys::Filesystem.should_receive(:stat).and_return(stat)
+
+      instance_registry.disk_pressure?.should be_true
+    end
+
+    it "should return true when inode threshold is reached" do
+      stat = double
+      stat.stub(:blocks => 10, :blocks_free => 8)
+      stat.stub(:files => 10, :files_free => 2)
+
+      Sys::Filesystem.should_receive(:stat).and_return(stat)
+
+      instance_registry.disk_pressure?.should be_true
+    end
+  end
+
   def register_crashed_instance(instance_registry, options = {})
     instance = Dea::Instance.new(bootstrap, {})
     instance.state = Dea::Instance::State::CRASHED

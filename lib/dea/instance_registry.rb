@@ -2,6 +2,7 @@
 
 require "steno"
 require "steno/core_ext"
+require "sys/filesystem"
 require "thread"
 
 module Dea
@@ -25,6 +26,7 @@ module Dea
       EM.add_periodic_timer(CRASHES_REAPER_INTERVAL_SECS) do
         reap_orphaned_crashes
         reap_crashes
+        reap_crashes_under_disk_pressure
       end
     end
 
@@ -120,7 +122,23 @@ module Dea
       end
     end
 
-    private
+    def reap_crashes_under_disk_pressure
+      logger.debug2("Reaping crashes under disk pressure")
+
+      if disk_pressure?
+        instance = select { |i| i.crashed? }.
+          sort_by { |i| i.state_timestamp }.
+          first
+
+        # Remove oldest crash
+        if instance
+          reap_crash(instance.instance_id) do
+            # Continue reaping crashes when done
+            reap_crashes_under_disk_pressure
+          end
+        end
+      end
+    end
 
     def reap_crash(instance_id, &blk)
       instance = lookup_instance(instance_id)
@@ -163,6 +181,29 @@ module Dea
 
       crash_path = File.join(config.crashes_path, instance_id)
       @reap_crash_queue.push([crash_path, callback])
+    end
+
+    def disk_pressure?
+      r = false
+
+      begin
+        stat = Sys::Filesystem.stat(config.crashes_path)
+
+        block_usage_ratio = Float(stat.blocks - stat.blocks_free) / Float(stat.blocks)
+        inode_usage_ratio = Float(stat.files - stat.files_free) / Float(stat.files)
+
+        r ||= block_usage_ratio > config.crash_block_usage_ratio_threshold
+        r ||= inode_usage_ratio > config.crash_inode_usage_ratio_threshold
+
+        if r
+          logger.debug("Disk usage (block/inode): %.3f/%.3f" % [block_usage_ratio, inode_usage_ratio])
+        end
+
+      rescue => e
+        logger.log_exception(e)
+      end
+
+      r
     end
   end
 end
