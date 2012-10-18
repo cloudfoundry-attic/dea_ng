@@ -127,31 +127,45 @@ module Dea
 
       message = "Removing crash #{instance_id}"
       message << " (#{instance.application_name})" if instance
-      logger.info(message)
+      logger.debug(message)
 
-      destroy_crash_artifacts(instance_id, &blk)
+      t = Time.now
+      destroy_crash_artifacts(instance_id) do
+        logger.debug(message + ": took %.3fs" % (Time.now - t))
+
+        blk.call if blk
+      end
+
       unregister(instance) if instance
     end
 
     attr_reader :reap_crash_queue
     attr_reader :reap_crash_thread
 
-    def destroy_crash_artifacts(instance_id)
+    def destroy_crash_artifacts(instance_id, &callback)
       @reap_crash_queue ||= Queue.new
       @reap_crash_thread ||= Thread.new do
-        while crash_path = @reap_crash_queue.pop
-          logger.debug("Removing path #{crash_path}")
+        loop do
+          crash_path, callback = @reap_crash_queue.pop
+
+          if crash_path.nil?
+            break
+          end
+
+          logger.debug2("Removing path #{crash_path}")
 
           begin
             FileUtils.rm_rf(crash_path)
           rescue => e
             logger.log_exception(e)
           end
+
+          EM.next_tick(&callback) if callback
         end
       end
 
       crash_path = File.join(config.crashes_path, instance_id)
-      reap_crash_queue.push(crash_path)
+      reap_crash_queue.push([crash_path, callback])
     end
   end
 end
