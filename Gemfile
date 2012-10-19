@@ -3,9 +3,9 @@ source "https://rubygems.org"
 gem "eventmachine", :git => "https://github.com/cloudfoundry/eventmachine.git", :branch => "release-0.12.11-cf"
 gem "em-http-request", "~> 1.0.0.beta.3", :require => "em-http"
 
-gem "em-warden-client", :git => "https://github.com/cloudfoundry/warden.git", :ref => "72fa69ea"
-gem "warden-client", :git => "https://github.com/cloudfoundry/warden.git", :ref => "72fa69ea"
-gem "warden-protocol", :git => "https://github.com/cloudfoundry/warden.git", :ref => "72fa69ea"
+gem "em-warden-client", :git => "https://github.com/cloudfoundry/warden.git"
+gem "warden-client", :git => "https://github.com/cloudfoundry/warden.git"
+gem "warden-protocol", :git => "https://github.com/cloudfoundry/warden.git"
 
 gem "nats", :require => "nats/client"
 
