@@ -1,4 +1,13 @@
 GIT
+  remote: https://github.com/cloudfoundry/common.git
+  revision: 3f6636fca4fcba81c85db74ff647e15ed3743a81
+  ref: 3f6636fc
+  specs:
+    em-posix-spawn (0.1.0)
+      eventmachine
+      posix-spawn
+
+GIT
   remote: https://github.com/cloudfoundry/eventmachine.git
   revision: 2806c630d8631d5dcf9fb2555f665b829052aabe
   branch: release-0.12.11-cf
@@ -73,7 +82,6 @@ GEM
       http_parser.rb (>= 0.5.1)
     em-socksify (0.1.0)
       eventmachine
-    ffi (1.0.11)
     hashie (1.2.0)
     http_parser.rb (0.5.3)
     httpclient (2.2.7)
@@ -104,8 +112,6 @@ GEM
     rspec-expectations (2.11.1)
       diff-lcs (~> 1.1.3)
     rspec-mocks (2.11.1)
-    sys-filesystem (1.0.0)
-      ffi (>= 1.0.0)
     thin (1.5.0)
       daemons (>= 1.0.9)
       eventmachine (>= 0.12.6)
@@ -120,6 +126,7 @@ PLATFORMS
 DEPENDENCIES
   ci_reporter
   em-http-request (~> 1.0.0.beta.3)
+  em-posix-spawn!
   em-warden-client!
   eventmachine!
   grape!
@@ -130,7 +137,6 @@ DEPENDENCIES
   rcov
   rspec
   steno!
-  sys-filesystem
   thin
   vcap_common!
   warden-client!

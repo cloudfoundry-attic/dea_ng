@@ -8,6 +8,7 @@ gem "warden-client", :git => "https://github.com/cloudfoundry/warden.git", :ref 
 gem "warden-protocol", :git => "https://github.com/cloudfoundry/warden.git", :ref => "72fa69ea"
 
 gem "nats", :require => "nats/client"
+gem "em-posix-spawn", :git => "https://github.com/cloudfoundry/common.git",   :ref => "3f6636fc"
 
 gem "rack", :require => ["rack/utils", "rack/mime"]
 gem "rake"
@@ -17,8 +18,6 @@ gem "grape", :git => "https://github.com/intridea/grape.git"
 
 gem "vcap_common", :git => "https://github.com/cloudfoundry/vcap-common.git"
 gem "steno", :git => "https://github.com/cloudfoundry/steno.git"
-
-gem "sys-filesystem"
 
 group :test do
   gem "rspec"

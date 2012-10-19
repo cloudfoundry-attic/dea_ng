@@ -14,8 +14,6 @@ module Dea
       "evacuation_delay_secs" => 30,
       "bind_mounts" => [],
       "only_production_apps" => false,
-      "crash_block_usage_ratio_threshold" => 0.8,
-      "crash_inode_usage_ratio_threshold" => 0.8,
     }
 
     def self.schema
@@ -40,8 +38,6 @@ module Dea
           "file_api_port" => Integer,
 
           optional("crash_lifetime_secs") => Integer,
-          optional("crash_block_usage_ratio_threshold") => Float,
-          optional("crash_inode_usage_ratio_threshold") => Float,
 
           optional("evacuation_delay_secs") => Integer,
 
@@ -99,18 +95,6 @@ module Dea
 
     def only_production_apps?
       self["only_production_apps"]
-    end
-
-    def crashes_path
-      @crashes_path ||= File.join(self["base_dir"], "crashes")
-    end
-
-    def crash_block_usage_ratio_threshold
-      self["crash_block_usage_ratio_threshold"]
-    end
-
-    def crash_inode_usage_ratio_threshold
-      self["crash_inode_usage_ratio_threshold"]
     end
   end
 end
