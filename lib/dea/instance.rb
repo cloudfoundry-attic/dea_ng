@@ -401,6 +401,20 @@ module Dea
       end
     end
 
+    def close_warden_connections
+      @warden_connections.keys.each do |name|
+        close_warden_connection(name)
+      end
+    end
+
+    def close_warden_connection(name)
+      connection = @warden_connections.delete(name)
+
+      if connection
+        connection.close_connection
+      end
+    end
+
     def promise_warden_connection(name)
       Promise.new do |p|
         connection = @warden_connections[name]
@@ -826,6 +840,8 @@ module Dea
         if attributes["warden_handle"]
           promise_copy_out.resolve
           promise_destroy.resolve
+
+          close_warden_connections
         end
 
         p.deliver
