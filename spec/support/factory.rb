@@ -31,6 +31,7 @@ module Helpers
       "droplet_uri"         => "http://foo.com/file.ext",
 
       "runtime_name"        => "ruby19",
+      "runtime_info"        => { "foo" => "bar" },
       "framework_name"      => "rails",
 
       "limits"              => { "mem" => 1, "disk" => 2, "fds" => 3 },
