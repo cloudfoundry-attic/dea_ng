@@ -141,6 +141,7 @@ module Dea
       attributes["droplet_uri"]         ||= attributes.delete("executableUri")
 
       attributes["runtime_name"]        ||= attributes.delete("runtime")
+      attributes["runtime_info"]        ||= attributes.delete("runtime_info")
       attributes["framework_name"]      ||= attributes.delete("framework")
 
       # Translate environment to dictionary (it is passed as Array with VAR=VAL)
@@ -205,6 +206,7 @@ module Dea
           "droplet_uri"         => String,
 
           "runtime_name"        => String,
+          "runtime_info"        => dict(String, any),
           "framework_name"      => String,
 
           # TODO: use proper schema
@@ -293,7 +295,7 @@ module Dea
     end
 
     def runtime
-      bootstrap.runtimes[self.runtime_name]
+      bootstrap.runtime(self.runtime_name, self.runtime_info)
     end
 
     def memory_limit_in_bytes
@@ -396,6 +398,20 @@ module Dea
             promise_droplet_download.deliver
           end
         end
+      end
+    end
+
+    def close_warden_connections
+      @warden_connections.keys.each do |name|
+        close_warden_connection(name)
+      end
+    end
+
+    def close_warden_connection(name)
+      connection = @warden_connections.delete(name)
+
+      if connection
+        connection.close_connection
       end
     end
 
@@ -780,7 +796,7 @@ module Dea
 
     def promise_copy_out
       Promise.new do |p|
-        new_instance_path = File.join(bootstrap.config["base_dir"], "crashes", instance_id)
+        new_instance_path = File.join(bootstrap.config.crashes_path, instance_id)
         new_instance_path = File.expand_path(new_instance_path)
         FileUtils.mkdir_p(new_instance_path)
 
@@ -824,6 +840,8 @@ module Dea
         if attributes["warden_handle"]
           promise_copy_out.resolve
           promise_destroy.resolve
+
+          close_warden_connections
         end
 
         p.deliver
@@ -922,10 +940,6 @@ module Dea
 
         p.deliver
       end
-    end
-
-    def destroy_crash_artifacts
-      # TODO: Fill in
     end
 
     def setup_link

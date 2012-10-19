@@ -121,7 +121,8 @@ describe Dea::Instance do
 
   describe "validation" do
     before do
-      bootstrap.stub(:runtimes).and_return(Hash.new { |*_| "runtime" })
+      bootstrap.stub(:runtime).with("ruby19", anything).and_return("runtime")
+      bootstrap.stub(:runtime).with("not_found", anything).and_return(nil)
     end
 
     it "should not raise when the attributes are valid" do
@@ -155,10 +156,7 @@ describe Dea::Instance do
     it "should raise when the runtime is not found" do
       attributes = valid_instance_attributes.dup
       attributes["runtime_name"] = "not_found"
-
       instance = Dea::Instance.new(bootstrap, attributes)
-
-      bootstrap.should_receive(:runtimes).and_return({})
 
       expect do
         instance.validate
@@ -1420,6 +1418,17 @@ describe Dea::Instance do
 
       it "should resolve #promise_destroy" do
         instance.should_receive(:promise_destroy).and_return(delivering_promise)
+        expect_crash_handler.to_not raise_error
+      end
+
+      it "should close warden connections" do
+        w1 = double
+        w1.should_receive(:close_connection)
+        w2 = double
+        w2.should_receive(:close_connection)
+
+        instance.instance_variable_set(:@warden_connections, { "w1" => w1, "w2" => w2 })
+
         expect_crash_handler.to_not raise_error
       end
     end

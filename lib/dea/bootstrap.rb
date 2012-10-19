@@ -105,28 +105,37 @@ module Dea
     attr_reader :runtimes
 
     def setup_runtimes
-      runtimes = Hash[config["runtimes"].map do |name, config|
-        [name, Runtime.new(config)]
+      runtimes = Hash[config["runtimes"].map do |name|
+        [name, nil]
       end]
 
-      # Remove invalid runtimes
-      runtimes.keys.each do |name|
-        begin
-          runtimes[name].validate
-        rescue Runtime::BaseError => err
-          logger.warn err.to_s
-          runtimes.delete(name)
-        end
-      end
-
       if runtimes.empty?
-        logger.fatal "No valid runtimes"
+        logger.fatal "No runtimes"
         exit 1
       end
 
       @runtimes = runtimes
 
       nil
+    end
+
+    def runtime(name, options = {})
+      if runtimes.has_key?(name)
+        if runtimes[name].nil?
+          runtime = Runtime.new(options)
+
+          # Only cache runtime if it validates
+          begin
+            runtime.validate
+          rescue Runtime::BaseError => err
+            logger.warn err.to_s
+          else
+            runtimes[name] = runtime
+          end
+        end
+
+        runtimes[name]
+      end
     end
 
     attr_reader :droplet_registry
