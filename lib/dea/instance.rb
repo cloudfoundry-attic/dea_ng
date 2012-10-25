@@ -1056,7 +1056,13 @@ module Dea
     private
 
     def container_relative_path(root, *parts)
-      File.join(root, "rootfs", "home", "vcap", *parts)
+      # This can be removed once warden's wsh branch is merged to master
+      if File.directory?(File.join(root, "rootfs"))
+        return File.join(root, "rootfs", "home", "vcap", *parts)
+      end
+
+      # New path
+      File.join(root, "tmp", "rootfs", "home", "vcap", *parts)
     end
 
     def logger
