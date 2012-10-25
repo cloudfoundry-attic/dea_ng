@@ -335,13 +335,13 @@ module Dea
     end
 
     def start
+      load_snapshot
+
       start_component
       start_nats
       start_directory_server
       register_directory_server_v2
       start_file_api_server
-
-      load_snapshot
 
       unless instance_registry.empty?
         logger.info("Loaded #{instance_registry.size} instances from snapshot")
