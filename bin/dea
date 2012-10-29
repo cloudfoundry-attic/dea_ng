@@ -22,10 +22,13 @@ rescue => e
 end
 
 bootstrap = Dea::Bootstrap.new(config)
+
+EM.epoll
+
 EM.run do
+  # Let threads run on every tick
+  EM.add_periodic_timer(0.050) { Thread.pass }
+
   bootstrap.setup
   bootstrap.start
 end
-
-
-
