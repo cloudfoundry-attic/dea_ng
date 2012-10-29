@@ -13,16 +13,20 @@ module Dea
         def initialize(deferrable)
           super
 
+          @connection_completed = false
+
           @deferrable = deferrable
         end
 
         def connection_completed
+          @connection_completed = true
+
           deferrable.succeed
         end
 
         def unbind
           # ECONNREFUSED, ECONNRESET, etc.
-          deferrable.mark_failure if error?
+          deferrable.mark_failure unless @connection_completed
         end
       end
 
