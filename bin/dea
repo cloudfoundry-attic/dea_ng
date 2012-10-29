@@ -22,10 +22,10 @@ rescue => e
 end
 
 bootstrap = Dea::Bootstrap.new(config)
+
+EM.epoll
+
 EM.run do
   bootstrap.setup
   bootstrap.start
 end
-
-
-
