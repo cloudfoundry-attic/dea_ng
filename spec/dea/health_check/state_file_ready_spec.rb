@@ -16,7 +16,7 @@ describe Dea::HealthCheck::StateFileReady do
     elapsed = Time.now - start
 
     ok.should be_false
-    elapsed.should be_within(0.02).of(0.1)
+    elapsed.should be_within(0.1).of(0.1)
   end
 
   it "should fail if the file exists but the state is never 'RUNNING'" do
@@ -27,7 +27,7 @@ describe Dea::HealthCheck::StateFileReady do
     elapsed = Time.now - start
 
     ok.should be_false
-    elapsed.should be_within(0.02).of(0.1)
+    elapsed.should be_within(0.1).of(0.1)
   end
 
   it "should fail if the state file is corrupted" do
@@ -38,7 +38,7 @@ describe Dea::HealthCheck::StateFileReady do
     elapsed = Time.now - start
 
     ok.should be_false
-    elapsed.should be_within(0.02).of(0.1)
+    elapsed.should be_within(0.1).of(0.1)
   end
 
   it "should succeed if the file exists prior to starting the health check" do
