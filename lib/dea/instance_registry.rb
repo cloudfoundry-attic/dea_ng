@@ -158,29 +158,21 @@ module Dea
     end
 
     def destroy_crash_artifacts(instance_id, &callback)
-      @reap_crash_queue ||= Queue.new
-      @reap_crash_thread ||= Thread.new do
-        loop do
-          crash_path, callback = @reap_crash_queue.pop
+      crash_path = File.join(config.crashes_path, instance_id)
 
-          if crash_path.nil?
-            break
-          end
+      return if crash_path.nil?
 
-          logger.debug2("Removing path #{crash_path}")
+      operation = lambda do
+        logger.debug2("Removing path #{crash_path}")
 
-          begin
-            FileUtils.rm_rf(crash_path)
-          rescue => e
-            logger.log_exception(e)
-          end
-
-          EM.next_tick(&callback) if callback
+        begin
+          FileUtils.rm_rf(crash_path)
+        rescue => e
+          logger.log_exception(e)
         end
       end
 
-      crash_path = File.join(config.crashes_path, instance_id)
-      @reap_crash_queue.push([crash_path, callback])
+      EM.defer(operation, callback)
     end
 
     def disk_pressure?
