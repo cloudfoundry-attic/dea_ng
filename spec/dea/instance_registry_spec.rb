@@ -97,7 +97,7 @@ describe Dea::InstanceRegistry do
       em do
         instance_registry.reap_orphaned_crashes
 
-        EM.add_timer(0.01) do
+        after_defers_finish do
           instance.should be_reaped
 
           done
@@ -111,7 +111,7 @@ describe Dea::InstanceRegistry do
       em do
         instance_registry.reap_orphaned_crashes
 
-        EM.add_timer(0.01) do
+        after_defers_finish do
           instance.should_not be_reaped
 
           done
@@ -150,7 +150,7 @@ describe Dea::InstanceRegistry do
       em do
         instance_registry.reap_crashes
 
-        EM.add_timer(0.01) do
+        after_defers_finish do
           instances[0].should_not be_reaped
           instances[1].should be_reaped
 
@@ -169,7 +169,7 @@ describe Dea::InstanceRegistry do
       em do
         instance_registry.reap_crashes
 
-        EM.add_timer(0.01) do
+        after_defers_finish do
           instances[0].should_not be_reaped
           instances[1].should be_reaped
           instances[2].should be_reaped
@@ -202,7 +202,7 @@ describe Dea::InstanceRegistry do
       em do
         instance_registry.reap_crashes_under_disk_pressure
 
-        EM.add_timer(0.01) do
+        after_defers_finish do
           instances[0].should be_reaped
           instances[1].should_not be_reaped
 
@@ -222,7 +222,7 @@ describe Dea::InstanceRegistry do
       em do
         instance_registry.reap_crashes_under_disk_pressure
 
-        EM.add_timer(0.01) do
+        after_defers_finish do
           instances[0].should be_reaped
           instances[1].should be_reaped
 

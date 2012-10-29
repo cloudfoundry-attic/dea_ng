@@ -2,16 +2,28 @@
 
 require "eventmachine"
 
+module EM
+  def self.defers_finished?
+    return false if @threadqueue and not @threadqueue.empty?
+    return false if @resultqueue and not @resultqueue.empty?
+    return false if @threadpool and @threadqueue.num_waiting != @threadpool.size
+    return true
+  end
+end
+
 module Helpers
   def em(options = {})
     raise "no block given" unless block_given?
-    timeout = options[:timeout] ||= 0.1
+    timeout = options[:timeout] ||= 5.0
+
+    ::EM.epoll
 
     ::EM.run {
       quantum = 0.005
       ::EM.set_quantum(quantum * 1000) # Lowest possible timer resolution
       ::EM.set_heartbeat_interval(quantum) # Timeout connections asap
       ::EM.add_timer(timeout) { raise "timeout" }
+
       yield
     }
   end
@@ -24,6 +36,22 @@ module Helpers
       :done.should == :done
       ::EM.stop_event_loop
     }
+  end
+
+  def after_defers_finish
+    raise "reactor not running" if !::EM.reactor_running?
+
+    timer = nil
+
+    check = lambda do
+      if ::EM.defers_finished?
+        timer.cancel
+
+        yield
+      end
+    end
+
+    timer = ::EM::PeriodicTimer.new(0.01, &check)
   end
 
   module HttpServer
