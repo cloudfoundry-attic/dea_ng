@@ -219,6 +219,8 @@ module Dea
       %W(db droplets instances tmp).each do |dir|
         FileUtils.mkdir_p(File.join(config["base_dir"], dir))
       end
+
+      FileUtils.mkdir_p(config.crashes_path)
     end
 
     def setup_pid_file
