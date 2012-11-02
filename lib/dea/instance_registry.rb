@@ -93,7 +93,7 @@ module Dea
 
         # Reap if this instance is not referenced
         if instance.nil?
-          reap_crash(instance_id)
+          reap_crash(instance_id, "orphaned")
         end
       end
     end
@@ -116,7 +116,7 @@ module Dea
 
           # Remove if not most recent, or too old
           if (idx > 0) || (secs_since_crash > crash_lifetime_secs)
-            reap_crash(instance.instance_id)
+            reap_crash(instance.instance_id, "stale")
           end
         end
       end
@@ -132,7 +132,7 @@ module Dea
 
         # Remove oldest crash
         if instance
-          reap_crash(instance.instance_id) do
+          reap_crash(instance.instance_id, "disk pressure") do
             # Continue reaping crashes when done
             reap_crashes_under_disk_pressure
           end
@@ -140,16 +140,26 @@ module Dea
       end
     end
 
-    def reap_crash(instance_id, &blk)
+    def reap_crash(instance_id, reason = nil, &blk)
       instance = lookup_instance(instance_id)
 
+      data = {
+        :instance_id => instance_id,
+        :reason      => reason,
+      }
+
+      if instance
+        data[:application_id]      = instance.application_id
+        data[:application_version] = instance.application_version
+        data[:application_name]    = instance.application_name
+      end
+
       message = "Removing crash #{instance_id}"
-      message << " (#{instance.application_name})" if instance
-      logger.debug(message)
+      logger.debug(message, data)
 
       t = Time.now
       destroy_crash_artifacts(instance_id) do
-        logger.debug(message + ": took %.3fs" % (Time.now - t))
+        logger.debug(message + ": took %.3fs" % (Time.now - t), data)
 
         blk.call if blk
       end
