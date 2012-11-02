@@ -1,3 +1,5 @@
+# coding: UTF-8
+
 require "vcap/common"
 
 # Dummy class for encapsulating state related to the Go based server.

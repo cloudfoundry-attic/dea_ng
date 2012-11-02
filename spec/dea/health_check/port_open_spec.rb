@@ -8,9 +8,21 @@ describe Dea::HealthCheck::PortOpen do
   let(:host) { "127.0.0.1" }
   let(:port) { VCAP.grab_ephemeral_port }
 
+  def start_server
+    EM.start_server(host, port)
+  end
+
   it "should succed if someone is listening on the port" do
     ok = run_health_check(host, port, 0.1) do
-      ::EM.start_server(host, port)
+      start_server
+    end
+
+    ok.should be_true
+  end
+
+  it "should succed if someone starts listening on the port" do
+    ok = run_health_check(host, port, 0.1) do
+      EM.add_timer(0.04) { start_server }
     end
 
     ok.should be_true

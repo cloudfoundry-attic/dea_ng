@@ -73,7 +73,7 @@ module Dea
       end
     end
 
-    def destroy(&blk)
+    def destroy(&callback)
       dir_to_remove = droplet_dirname + ".deleted." + Time.now.to_i.to_s
 
       # Rename first to both prevent a new instance from referencing a file
@@ -82,11 +82,17 @@ module Dea
       logger.debug("Renaming #{droplet_dirname} to #{dir_to_remove}")
       File.rename(droplet_dirname, dir_to_remove)
 
-      EM.defer do
+      operation = lambda do
         logger.debug("Removing #{dir_to_remove}")
-        FileUtils.rm_rf(dir_to_remove)
-        blk.call if blk
+
+        begin
+          FileUtils.rm_rf(dir_to_remove)
+        rescue => e
+          logger.log_exception(e)
+        end
       end
+
+      EM.defer(operation, callback)
     end
 
     private
