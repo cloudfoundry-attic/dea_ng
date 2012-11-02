@@ -11,12 +11,19 @@ module Dea
 
       def initialize
         setup_callbacks
+
+        @done = false
+      end
+
+      def done?
+        @done
       end
 
       private
 
       def setup_callbacks
         [:callback, :errback].each do |method|
+          send(method) { @done = true }
           send(method) { cleanup }
         end
       end

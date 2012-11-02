@@ -17,7 +17,7 @@ RSpec.configure do |config|
     }
 
     if ENV.has_key?("V")
-      steno_config[:sinks] = [Steno::Sink::IO.new(STDOUT)]
+      steno_config[:sinks] = [Steno::Sink::IO.new(STDERR)]
     end
 
     Steno.init(Steno::Config.new(steno_config))
