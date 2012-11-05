@@ -50,7 +50,8 @@ describe Dea do
       "tags" => {
         "framework" => instances[0].framework_name,
         "runtime"   => instances[0].runtime_name,
-      }
+      },
+      "private_instance_id" => instances[0].private_instance_id,
     }
 
     expected_1 = {

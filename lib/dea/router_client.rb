@@ -41,7 +41,8 @@ module Dea
         "tags" => {
           "framework" => instance.framework_name,
           "runtime"   => instance.runtime_name,
-        }
+        },
+        "private_instance_id" => instance.private_instance_id,
       }
     end
 
