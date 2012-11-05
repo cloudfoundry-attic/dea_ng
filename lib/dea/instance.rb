@@ -634,9 +634,7 @@ module Dea
     def promise_start
       Promise.new do |p|
         script = []
-        script << "renice 0 $$"
-        script << "ulimit -n %d" % self.file_descriptor_limit
-        script << "ulimit -u %d" % 512
+
         script << "umask 077"
 
         env = Env.new(self)
@@ -657,6 +655,11 @@ module Dea
         request = ::Warden::Protocol::SpawnRequest.new
         request.handle = attributes["warden_handle"]
         request.script = script.join("\n")
+
+        request.rlimits = ::Warden::Protocol::ResourceLimits.new
+        request.rlimits.nofile = self.file_descriptor_limit
+        request.rlimits.nproc = 512
+
         response = promise_warden_call(:app, request).resolve
 
         attributes["warden_job_id"] = response.job_id
