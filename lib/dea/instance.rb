@@ -1,6 +1,5 @@
 # coding: UTF-8
 
-require "em/warden/client/connection"
 require "membrane"
 require "steno"
 require "steno/core_ext"
@@ -12,9 +11,10 @@ require "dea/event_emitter"
 require "dea/health_check/port_open"
 require "dea/health_check/state_file_ready"
 require "dea/promise"
+require "dea/task"
 
 module Dea
-  class Instance
+  class Instance < Task
     include EventEmitter
 
     STAT_COLLECTION_INTERVAL_SECS = 1
@@ -87,9 +87,6 @@ module Dea
       end
     end
 
-    class BaseError < StandardError
-    end
-
     class RuntimeNotFoundError < BaseError
       attr_reader :data
 
@@ -121,9 +118,6 @@ module Dea
 
         parts.join(" ")
       end
-    end
-
-    class WardenError < BaseError
     end
 
     def self.translate_attributes(attributes)
@@ -260,7 +254,6 @@ module Dea
       define_state_methods(State.const_get(state))
     end
 
-    attr_reader :bootstrap
     attr_reader :attributes
     attr_reader :start_timestamp
     attr_reader :used_memory_in_bytes
@@ -268,7 +261,8 @@ module Dea
     attr_reader :computed_pcpu    # See `man ps`
 
     def initialize(bootstrap, attributes)
-      @bootstrap  = bootstrap
+      super(bootstrap)
+
       @attributes = attributes.dup
       @attributes["application_uris"] ||= []
 
@@ -282,9 +276,6 @@ module Dea
 
       # Assume non-production app when not specified
       @attributes["application_prod"] ||= false
-
-      # Cache for warden connections for this instance
-      @warden_connections = {}
 
       @used_memory_in_bytes  = 0
       @used_disk_in_bytes    = 0
@@ -407,95 +398,6 @@ module Dea
             promise_droplet_download.deliver
           end
         end
-      end
-    end
-
-    def close_warden_connections
-      @warden_connections.keys.each do |name|
-        close_warden_connection(name)
-      end
-    end
-
-    def close_warden_connection(name)
-      connection = @warden_connections.delete(name)
-
-      if connection
-        connection.close_connection
-      end
-    end
-
-    def promise_warden_connection(name)
-      Promise.new do |p|
-        connection = @warden_connections[name]
-
-        # Deliver cached connection if possible
-        if connection && connection.connected?
-          p.deliver(connection)
-        else
-          socket = bootstrap.config["warden_socket"]
-          klass  = ::EM::Warden::Client::Connection
-
-          begin
-            connection = ::EM.connect_unix_domain(socket, klass)
-          rescue => error
-            p.fail(WardenError.new("Cannot connect to warden on #{socket}: #{error.message}"))
-          end
-
-          if connection
-            connection.on(:connected) do
-              # Cache connection
-              @warden_connections[name] = connection
-
-              p.deliver(connection)
-            end
-
-            connection.on(:disconnected) do
-              p.fail(WardenError.new("Cannot connect to warden on #{socket}"))
-            end
-          end
-        end
-      end
-    end
-
-    def promise_warden_call(connection_name, request)
-      Promise.new do |p|
-        logger.debug2(request.inspect)
-        connection = promise_warden_connection(connection_name).resolve
-        connection.call(request) do |result|
-          logger.debug2(result.inspect)
-
-          error = nil
-
-          begin
-            response = result.get
-          rescue => error
-          end
-
-          if error
-            logger.warn "Request failed: #{request.inspect}"
-            logger.log_exception(error)
-
-            p.fail(error)
-          else
-            p.deliver(response)
-          end
-        end
-      end
-    end
-
-    def promise_warden_call_with_retry(connection_name, request)
-      Promise.new do |p|
-        response = nil
-
-        begin
-          response = promise_warden_call(connection_name, request).resolve
-        rescue ::EM::Warden::Client::ConnectionError => error
-          logger.warn("Request failed: #{request.inspect}, retrying")
-          logger.log_exception(error)
-          retry
-        end
-
-        p.deliver(response)
       end
     end
 
