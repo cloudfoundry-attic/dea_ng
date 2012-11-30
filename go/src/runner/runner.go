@@ -10,8 +10,8 @@ package main
 import (
 	"directoryserver"
 	"fmt"
-	"github.com/xushiwei/goyaml"
 	"io/ioutil"
+	"launchpad.net/goyaml"
 	"log"
 	"net"
 	"os"
