@@ -490,11 +490,21 @@ module Dea
       end
     end
 
-    def promise_warden_run(connection_name, script)
+    def promise_setup_environment
+      Promise.new do |p|
+        script = "mkdir /app; chown vcap:vcap /app; usermod -d /app vcap"
+        promise_warden_run(:app, script, true).resolve
+
+        p.deliver
+      end
+    end
+
+    def promise_warden_run(connection_name, script, privileged=false)
       Promise.new do |p|
         request = ::Warden::Protocol::RunRequest.new
         request.handle = attributes["warden_handle"]
         request.script = script
+        request.privileged = privileged
         response = promise_warden_call(connection_name, request).resolve
 
         if response.exit_status > 0
@@ -604,6 +614,7 @@ module Dea
           promise_setup_network.resolve
           promise_limit_disk.resolve
           promise_limit_memory.resolve
+          promise_setup_environment.resolve
 
           p.deliver
         end
@@ -716,7 +727,7 @@ module Dea
 
         request = ::Warden::Protocol::CopyOutRequest.new
         request.handle = attributes["warden_handle"]
-        request.src_path = "/home/vcap/"
+        request.src_path = "/app"
         request.dst_path = new_instance_path
         request.owner = Process.uid.to_s
 
@@ -972,11 +983,11 @@ module Dea
     def container_relative_path(root, *parts)
       # This can be removed once warden's wsh branch is merged to master
       if File.directory?(File.join(root, "rootfs"))
-        return File.join(root, "rootfs", "home", "vcap", *parts)
+        return File.join(root, "rootfs", "app", *parts)
       end
 
       # New path
-      File.join(root, "tmp", "rootfs", "home", "vcap", *parts)
+      File.join(root, "tmp", "rootfs", "app", *parts)
     end
 
     def logger
