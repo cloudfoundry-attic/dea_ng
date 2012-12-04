@@ -2,3 +2,4 @@ go/src/github.com
 go/pkg
 go/bin
 spec_reports
+.idea

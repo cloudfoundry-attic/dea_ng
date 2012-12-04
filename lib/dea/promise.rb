@@ -26,7 +26,7 @@ module Dea
       f.resume
     end
 
-    attr_reader :elapsed_time
+    attr_reader :elapsed_time, :result
 
     def initialize(&blk)
       @blk = blk
