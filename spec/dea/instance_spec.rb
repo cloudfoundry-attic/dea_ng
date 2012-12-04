@@ -436,6 +436,7 @@ describe Dea::Instance do
       instance.stub(:promise_setup_network).and_return(delivering_promise)
       instance.stub(:promise_limit_disk).and_return(delivering_promise)
       instance.stub(:promise_limit_memory).and_return(delivering_promise)
+      instance.stub(:promise_setup_environment).and_return(delivering_promise)
       instance.stub(:promise_extract_droplet).and_return(delivering_promise)
       instance.stub(:promise_prepare_start_script).and_return(delivering_promise)
       instance.stub(:promise_start).and_return(delivering_promise)
@@ -800,6 +801,51 @@ describe Dea::Instance do
       end
     end
 
+    describe "setting up environment" do
+      before do
+        instance.unstub(:promise_setup_environment)
+      end
+
+      it "should create home dir" do
+       instance.stub(:promise_warden_run) do |_, script|
+          script.should =~ /mkdir \/app/
+
+          delivering_promise
+        end
+
+        expect_start.to_not raise_error
+      end
+
+      it "should chown home dir" do
+        instance.stub(:promise_warden_run) do |_, script|
+          script.should =~ /chown vcap:vcap \/app/
+
+          delivering_promise
+        end
+
+        expect_start.to_not raise_error
+      end
+
+      it "should set user home dir" do
+        instance.stub(:promise_warden_run) do |_, script|
+          script.should =~ /usermod -d \/app vcap/
+
+          delivering_promise
+        end
+
+        expect_start.to_not raise_error
+      end
+
+      it "can fail by run failing" do
+        instance.stub(:promise_warden_run) do |*_|
+          failing_promise(RuntimeError.new("failure"))
+        end
+
+        expect_start.to raise_error("failure")
+      end
+
+    end
+
     describe "preparing the start script" do
       let(:runtime) do
         runtime = mock(:runtime)
@@ -1145,7 +1191,7 @@ describe Dea::Instance do
     end
 
     let(:manifest_path) do
-      File.join(tmpdir, "rootfs", "home", "vcap", "droplet.yaml")
+      File.join(tmpdir, "rootfs", "app", "droplet.yaml")
     end
 
     before :each do
