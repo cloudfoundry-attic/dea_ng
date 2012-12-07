@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"io"
+	"net/http"
 	"os"
 	"syscall"
 	"time"
@@ -30,6 +31,26 @@ func timeout(t time.Time, maxIdleTime uint32) bool {
 	return time.Now().Sub(t).Seconds() > float64(maxIdleTime)
 }
 
+type writeFlusher interface {
+	io.Writer
+	http.Flusher
+}
+
+type writeThenFlush struct {
+	wf writeFlusher
+}
+
+func (w *writeThenFlush) Write(data []byte) (n int, err error) {
+	n, err = w.wf.Write(data)
+	if err != nil {
+		return
+	}
+
+	w.wf.Flush()
+
+	return n, nil
+}
+
 // Uses the inotify linux kernel subsystem to stream a file to the writer.
 // When no file modifications occur, the method waits for a maximum idle time of
 // maxIdleTime seconds before returning.
@@ -37,6 +58,14 @@ func timeout(t time.Time, maxIdleTime uint32) bool {
 // Returns errors (if any) triggered by the inotify subsystem or when reading
 // the file. Errors when writing to the writer are ignored.
 func streamFile(writer io.Writer, path string, maxIdleTime uint32) error {
+	var wf writeFlusher
+	var ok bool
+
+	wf, ok = writer.(writeFlusher)
+	if ok {
+		writer = &writeThenFlush{wf}
+	}
+
 	handle, err := os.Open(path)
 	if err != nil {
 		return err
