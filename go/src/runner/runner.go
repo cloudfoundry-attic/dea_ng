@@ -8,8 +8,9 @@ package main
    $> runner <DEA config file>
 */
 import (
+	"common"
 	"directoryserver"
-	"log"
+	steno "github.com/cloudfoundry/gosteno"
 	"net"
 	"os"
 	"strings"
@@ -39,27 +40,30 @@ func main() {
 	if len(os.Args) != 2 {
 		msg := "Expected only the config file"
 		msg += " to be passed as command-line argument."
-		log.Panic(msg)
+
+		panic(msg)
 	}
 
-	config, err := ConfigFromFile(os.Args[1])
+	config, err := common.ConfigFromFile(os.Args[1])
 	if err != nil {
-		log.Panic(err.Error())
+		panic(err.Error())
 	}
+
+	common.SetupSteno(&config.Logging)
+	log := steno.NewLogger("runner")
 
 	var localIp *string
-	if config.route != "" {
-		localIp, err = getLocalIp(config.route)
+	if config.Route != "" {
+		localIp, err = getLocalIp(config.Route)
 	} else {
 		localIp, err = getLocalIpWithDefaultRoute()
 	}
 
 	if err != nil {
-		log.Panic(err)
+		log.Fatal(err.Error())
 	}
 
-	if err := directoryserver.Start(*localIp, config.dirServerPort,
-		config.deaPort, config.streamingTimeout); err != nil {
-		log.Panic(err)
+	if err := directoryserver.Start(*localIp, config); err != nil {
+		log.Fatal(err.Error())
 	}
 }

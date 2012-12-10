@@ -52,6 +52,8 @@ func (handler denyingDeaHandler) ServeHTTP(w http.ResponseWriter,
 }
 
 func TestHandler_ServeHTTP_RequestToDeaFailed(t *testing.T) {
+	initLoggerInTest()
+
 	// Start mock dir server in a separate thread and wait for it to start.
 	address := "localhost:" + strconv.Itoa(1235)
 	dirServerListener, err := net.Listen("tcp", address)
@@ -77,6 +79,8 @@ func TestHandler_ServeHTTP_RequestToDeaFailed(t *testing.T) {
 }
 
 func TestHandler_ServeHTTP_RequestDeniedByDea(t *testing.T) {
+	initLoggerInTest()
+
 	// Start mock dir server in a separate thread and wait for it to start.
 	address := "localhost:" + strconv.Itoa(1236)
 	dirServerListener, err := net.Listen("tcp", address)
@@ -124,6 +128,8 @@ func TestHandler_ServeHTTP_RequestDeniedByDea(t *testing.T) {
 }
 
 func TestHandler_ServeHTTP_EntityNotFound(t *testing.T) {
+	initLoggerInTest()
+
 	// Start mock dir server in a separate thread and wait for it to start.
 	address := "localhost:" + strconv.Itoa(1238)
 	dirServerListener, err := net.Listen("tcp", address)
@@ -179,6 +185,8 @@ func TestHandler_ServeHTTP_EntityNotFound(t *testing.T) {
 }
 
 func TestHandler_ServeHTTP_ReturnDirectoryListing(t *testing.T) {
+	initLoggerInTest()
+
 	address := "localhost:" + strconv.Itoa(1240)
 	dirServerListener, err := net.Listen("tcp", address)
 	if err != nil {
@@ -265,6 +273,8 @@ func TestHandler_ServeHTTP_ReturnDirectoryListing(t *testing.T) {
 }
 
 func TestHandler_ServeHTTP_StreamFile(t *testing.T) {
+	initLoggerInTest()
+
 	// Start mock dir server in a separate thread and wait for it to start.
 	address := "localhost:" + strconv.Itoa(1242)
 	dirServerListener, err := net.Listen("tcp", address)
@@ -334,6 +344,8 @@ func TestHandler_ServeHTTP_StreamFile(t *testing.T) {
 }
 
 func TestHandler_ServeHTTP_DumpFile(t *testing.T) {
+	initLoggerInTest()
+
 	// Start mock dir server in a separate thread and wait for it to start.
 	address := "localhost:" + strconv.Itoa(1242)
 	dirServerListener, err := net.Listen("tcp", address)
@@ -403,6 +415,8 @@ func TestHandler_ServeHTTP_DumpFile(t *testing.T) {
 }
 
 func TestHandler_ServeHTTP_DumpFile_RangeQuery(t *testing.T) {
+	initLoggerInTest()
+
 	// Start mock dir server in a separate thread and wait for it to start.
 	address := "localhost:" + strconv.Itoa(1244)
 	dirServerListener, err := net.Listen("tcp", address)
@@ -485,6 +499,8 @@ func TestHandler_ServeHTTP_DumpFile_RangeQuery(t *testing.T) {
 }
 
 func TestHandler_ServeHTTP_DumpFile_FailedRangeQuery(t *testing.T) {
+	initLoggerInTest()
+
 	// Start mock dir server in a separate thread and wait for it to start.
 	address := "localhost:" + strconv.Itoa(1246)
 	dirServerListener, err := net.Listen("tcp", address)

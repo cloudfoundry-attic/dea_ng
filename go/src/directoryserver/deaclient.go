@@ -2,7 +2,6 @@ package directoryserver
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 )
 
@@ -43,7 +42,7 @@ func (dc *deaClientImpl) get(path string) (*http.Response, error) {
 		return nil, err
 	}
 
-	log.Printf("Sending HTTP request to DEA: %s", deaRequest)
+	log.Info(fmt.Sprintf("Sending HTTP request to DEA: %s", deaRequest))
 	return dc.httpClient.Do(deaRequest)
 }
 

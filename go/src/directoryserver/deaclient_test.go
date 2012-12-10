@@ -10,6 +10,8 @@ import (
 )
 
 func TestDeaClientImpl_ConstructDeaRequest(t *testing.T) {
+	initLoggerInTest()
+
 	dc := deaClientImpl{host: "host", port: 10}
 
 	expRequest, _ := http.NewRequest("GET", "http://host:10/path", nil)
@@ -37,6 +39,8 @@ func TestDeaClientImpl_ConstructDeaRequest(t *testing.T) {
 }
 
 func TestDeaClientImpl_Get(t *testing.T) {
+	initLoggerInTest()
+
 	dc := deaClientImpl{host: "localhost", port: 1234}
 
 	// Start mock DEA server in a separate thread and wait for it to start.
