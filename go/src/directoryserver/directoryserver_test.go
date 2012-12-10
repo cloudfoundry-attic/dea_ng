@@ -472,7 +472,6 @@ func TestHandler_ServeHTTP_DumpFile_RangeQuery(t *testing.T) {
 		t.Error(err)
 	}
 	if string(body) != dump.String()[5:11] {
-		t.Log("XX")
 		t.Fail()
 	}
 
