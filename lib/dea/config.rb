@@ -35,9 +35,11 @@ module Dea
           "warden_socket" => String,
           "index" => Integer,
 
-          "directory_server_port" => Integer,
-          "directory_server_v2_port" => Integer,
-          "file_api_port" => Integer,
+          "directory_server" => {
+            "v1_port" => Integer,
+            "v2_port" => Integer,
+            "file_api_port" => Integer,
+          },
 
           optional("crash_lifetime_secs") => Integer,
           optional("crash_block_usage_ratio_threshold") => Float,

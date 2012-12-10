@@ -10,7 +10,9 @@ describe Dea::Bootstrap do
   before do
     @config = {
       "base_dir" => tmpdir,
-      "directory_server_port" => 12345,
+      "directory_server" => {
+        "v1_port" => 12345,
+      },
       "domain" => "default",
       "runtimes" => ["ruby", "java"],
     }
@@ -161,7 +163,7 @@ describe Dea::Bootstrap do
 
         message.should be_an_instance_of Hash
         message["host"].should == bootstrap.local_ip
-        message["port"].should == bootstrap.config["directory_server_v2_port"]
+        message["port"].should == bootstrap.config["directory_server"]["v2_port"]
         message["uris"].size.should == 1
         message["uris"][0].should match /.*\.#{bootstrap.config["domain"]}$/
       end

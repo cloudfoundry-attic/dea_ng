@@ -125,6 +125,11 @@ runtimes:
 #  password: thin
 
 # For Go-based directory server
-file_api_port: 1234
-directory_server_v2_port: 5678
-streaming_timeout: 10
+directory_server:
+  v1_port: 789
+  v2_port: 5678
+  file_api_port: 1234
+  streaming_timeout: 10
+  logging:
+    level: info
+

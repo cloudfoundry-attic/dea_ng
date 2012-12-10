@@ -11,6 +11,13 @@ type Config struct {
 	dirServerPort    uint16
 	streamingTimeout uint32
 	route            string
+	logging          LogConfig
+}
+
+type LogConfig struct {
+	level  string
+	file   string
+	syslog string
 }
 
 type ConfigError struct {
@@ -32,7 +39,9 @@ func ConfigFromFile(configPath string) (*Config, error) {
 		return nil, err
 	}
 
-	return constructConfig(&config)
+	dirServerConfig := config["directory_server"].
+		(map[interface{}]interface{})
+	return constructConfig(&dirServerConfig)
 }
 
 func constructConfig(c *map[interface{}]interface{}) (*Config, error) {
@@ -47,7 +56,7 @@ func constructConfig(c *map[interface{}]interface{}) (*Config, error) {
 	}
 	config.deaPort = uint16(deaPort)
 
-	dirServerPort := (*c)["directory_server_v2_port"].(int)
+	dirServerPort := (*c)["v2_port"].(int)
 	if dirServerPort <= 0 || dirServerPort > 65535 {
 		msgFormat := "Directory server port should be"
 		msgFormat += " between 1 and 65535. You passed: %d."
@@ -68,9 +77,21 @@ func constructConfig(c *map[interface{}]interface{}) (*Config, error) {
 
 	if (*c)["local_route"] != nil {
 		config.route = (*c)["local_route"].(string)
-	} else {
-		config.route = ""
 	}
 
+	logging := (*c)["logging"].(map[interface{}]interface{})
+	config.logging = LogConfig{}
+	if logging["level"] != nil {
+		config.logging.level = logging["level"].(string)		
+	}
+
+	if logging["syslog"] != nil {
+		config.logging.syslog = logging["syslog"].(string)
+	}
+
+	if logging["file"] != nil {
+		config.logging.file = logging["file"].(string)
+	}
+	
 	return &config, nil
 }
