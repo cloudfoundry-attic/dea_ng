@@ -52,7 +52,7 @@ func fileSizeFormat(size int64) string {
 type handler struct {
 	deaHost          string
 	deaPort          uint16
-	deaClient        deaClient
+	deaClient        *deaClient
 	streamingTimeout uint32
 }
 
@@ -195,8 +195,8 @@ func (h handler) listPath(request *http.Request, writer http.ResponseWriter,
 // the HTTP request.
 func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if h.deaClient == nil {
-		dc := newDeaClient(h.deaHost, h.deaPort)
-		h.deaClient = &dc
+		h.deaClient = &deaClient{host: h.deaHost, port: h.deaPort,
+			httpClient: &http.Client{}}
 	}
 
 	deaResponse, err := h.deaClient.get(r.URL.String())

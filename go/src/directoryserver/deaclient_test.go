@@ -12,7 +12,7 @@ import (
 func TestDeaClientImpl_ConstructDeaRequest(t *testing.T) {
 	initLoggerInTest()
 
-	dc := deaClientImpl{host: "host", port: 10}
+	dc := deaClient{host: "host", port: 10, httpClient: &http.Client{}}
 
 	expRequest, _ := http.NewRequest("GET", "http://host:10/path", nil)
 
@@ -41,7 +41,8 @@ func TestDeaClientImpl_ConstructDeaRequest(t *testing.T) {
 func TestDeaClientImpl_Get(t *testing.T) {
 	initLoggerInTest()
 
-	dc := deaClientImpl{host: "localhost", port: 1234}
+	dc := deaClient{host: "localhost", port: 1234,
+		httpClient: &http.Client{}}
 
 	// Start mock DEA server in a separate thread and wait for it to start.
 	l, err := net.Listen("tcp", "localhost:"+strconv.Itoa(1234))
