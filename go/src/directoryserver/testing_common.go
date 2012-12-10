@@ -12,5 +12,5 @@ func initLoggerInTest() {
 		Level: steno.LOG_ALL,
 	}
 	steno.Init(stenoConfig)
-	log = steno.NewLogger("test")
+	log = steno.NewLogger("test_directory_server")
 }
