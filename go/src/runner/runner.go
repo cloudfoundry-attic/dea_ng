@@ -10,9 +10,9 @@ package main
 import (
 	"common"
 	"directoryserver"
+	"flag"
 	steno "github.com/cloudfoundry/gosteno"
 	"net"
-	"os"
 	"strings"
 )
 
@@ -37,14 +37,13 @@ func getLocalIpWithDefaultRoute() (*string, error) {
 }
 
 func main() {
-	if len(os.Args) != 2 {
-		msg := "Expected only the config file"
-		msg += " to be passed as command-line argument."
+	var configPath string
+	flag.StringVar(&configPath,
+		"conf",
+		"", "Path of the YAML configuration of the co-located DEA.")
+	flag.Parse()
 
-		panic(msg)
-	}
-
-	config, err := common.ConfigFromFile(os.Args[1])
+	config, err := common.ConfigFromFile(configPath)
 	if err != nil {
 		panic(err.Error())
 	}
