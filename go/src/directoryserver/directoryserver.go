@@ -269,7 +269,7 @@ func startServer(listener *net.Listener, deaHost string, deaPort uint16,
 func Start(host string, config *common.Config) error {
 	log = steno.NewLogger("directory_server")
 
-	address := host + ":" + strconv.Itoa(int(config.DirServerPort))
+	address := host + ":" + strconv.Itoa(int(config.Server.DirServerPort))
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		return err
@@ -277,9 +277,9 @@ func Start(host string, config *common.Config) error {
 
 	msg := fmt.Sprintf("Starting HTTP server at host: %s on port: %d",
 		host,
-		config.DirServerPort)
+		config.Server.DirServerPort)
 	log.Info(msg)
 
-	return startServer(&listener, "127.0.0.1", config.DeaPort,
-		config.StreamingTimeout)
+	return startServer(&listener, "127.0.0.1", config.Server.DeaPort,
+		config.Server.StreamingTimeout)
 }

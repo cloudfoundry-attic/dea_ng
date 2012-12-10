@@ -49,7 +49,7 @@ func main() {
 		panic(err.Error())
 	}
 
-	common.SetupSteno(&config.Logging)
+	common.SetupSteno(&config.Server.Logging)
 	log := steno.NewLogger("runner")
 
 	var localIp *string
