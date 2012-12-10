@@ -1,4 +1,4 @@
-package main
+package common
 
 import (
 	"fmt"
@@ -7,17 +7,17 @@ import (
 )
 
 type Config struct {
-	deaPort          uint16
-	dirServerPort    uint16
-	streamingTimeout uint32
-	route            string
-	logging          LogConfig
+	DeaPort          uint16
+	DirServerPort    uint16
+	StreamingTimeout uint32
+	Route            string
+	Logging          LogConfig
 }
 
 type LogConfig struct {
-	level  string
-	file   string
-	syslog string
+	Level  string
+	File   string
+	Syslog string
 }
 
 type ConfigError struct {
@@ -39,8 +39,7 @@ func ConfigFromFile(configPath string) (*Config, error) {
 		return nil, err
 	}
 
-	dirServerConfig := config["directory_server"].
-		(map[interface{}]interface{})
+	dirServerConfig := config["directory_server"].(map[interface{}]interface{})
 	return constructConfig(&dirServerConfig)
 }
 
@@ -54,7 +53,7 @@ func constructConfig(c *map[interface{}]interface{}) (*Config, error) {
 
 		return nil, &ConfigError{fmt.Sprintf(msgFormat, deaPort)}
 	}
-	config.deaPort = uint16(deaPort)
+	config.DeaPort = uint16(deaPort)
 
 	dirServerPort := (*c)["v2_port"].(int)
 	if dirServerPort <= 0 || dirServerPort > 65535 {
@@ -63,7 +62,7 @@ func constructConfig(c *map[interface{}]interface{}) (*Config, error) {
 
 		return nil, &ConfigError{fmt.Sprintf(msgFormat, dirServerPort)}
 	}
-	config.dirServerPort = uint16(dirServerPort)
+	config.DirServerPort = uint16(dirServerPort)
 
 	streamingTimeout := (*c)["streaming_timeout"].(int)
 	if streamingTimeout < 0 {
@@ -71,27 +70,25 @@ func constructConfig(c *map[interface{}]interface{}) (*Config, error) {
 		msgFormat += " between 0 and 4294967295. You passed: %d."
 
 		return nil, &ConfigError{fmt.Sprintf(msgFormat,
-				streamingTimeout)}
+			streamingTimeout)}
 	}
-	config.streamingTimeout = uint32(streamingTimeout)
+	config.StreamingTimeout = uint32(streamingTimeout)
 
 	if (*c)["local_route"] != nil {
-		config.route = (*c)["local_route"].(string)
+		config.Route = (*c)["local_route"].(string)
 	}
 
 	logging := (*c)["logging"].(map[interface{}]interface{})
-	config.logging = LogConfig{}
+	config.Logging = LogConfig{}
 	if logging["level"] != nil {
-		config.logging.level = logging["level"].(string)		
+		config.Logging.Level = logging["level"].(string)
 	}
-
 	if logging["syslog"] != nil {
-		config.logging.syslog = logging["syslog"].(string)
+		config.Logging.Syslog = logging["syslog"].(string)
+	}
+	if logging["file"] != nil {
+		config.Logging.File = logging["file"].(string)
 	}
 
-	if logging["file"] != nil {
-		config.logging.file = logging["file"].(string)
-	}
-	
 	return &config, nil
 }

@@ -14,15 +14,18 @@ package directoryserver
 
 import (
 	"bytes"
+	"common"
 	"encoding/json"
 	"fmt"
+	steno "github.com/cloudfoundry/gosteno"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"os"
 	"strconv"
 )
+
+var log steno.Logger
 
 // Returns a string representation of the file size.
 func fileSizeFormat(size int64) string {
@@ -74,7 +77,7 @@ func (h handler) writeDeaClientError(err *error, w http.ResponseWriter) {
 	msgFormat := "Can't read the body of HTTP response"
 	msgFormat += " from DEA due to error: %s"
 	msg := fmt.Sprintf(msgFormat, (*err).Error())
-	log.Print(msg)
+	log.Info(msg)
 	w.WriteHeader(500)
 	fmt.Fprintf(w, msg)
 }
@@ -85,7 +88,7 @@ func (h handler) writeDeaClientError(err *error, w http.ResponseWriter) {
 func (h handler) writeServerError(err *error, w http.ResponseWriter) {
 	msgFormat := "Can't serve request due to error: %s"
 	msg := fmt.Sprintf(msgFormat, (*err).Error())
-	log.Print(msg)
+	log.Info(msg)
 	w.WriteHeader(500)
 	fmt.Fprintf(w, msg)
 }
@@ -202,7 +205,7 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Print("HTTP response from DEA: ", deaResponse)
+	log.Info(fmt.Sprintf("HTTP response from DEA: %s", deaResponse))
 	if deaResponse.StatusCode == 200 {
 		h.listPath(r, w, deaResponse)
 	} else {
@@ -263,13 +266,20 @@ func startServer(listener *net.Listener, deaHost string, deaPort uint16,
 // Starts the directory server at the specified host, port. Validates HTTP
 // requests with the DEA's HTTP server which serves requests on the same host and
 // specified DAE port.
-func Start(host string, port uint16, deaPort uint16, streamingTimeout uint32) error {
-	address := host + ":" + strconv.Itoa(int(port))
+func Start(host string, config *common.Config) error {
+	log = steno.NewLogger("directory_server")
+
+	address := host + ":" + strconv.Itoa(int(config.DirServerPort))
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		return err
 	}
 
-	log.Printf("Starting HTTP server at host: %s on port: %d", host, port)
-	return startServer(&listener, "127.0.0.1", deaPort, streamingTimeout)
+	msg := fmt.Sprintf("Starting HTTP server at host: %s on port: %d",
+		host,
+		config.DirServerPort)
+	log.Info(msg)
+
+	return startServer(&listener, "127.0.0.1", config.DeaPort,
+		config.StreamingTimeout)
 }
