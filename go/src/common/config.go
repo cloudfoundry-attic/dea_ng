@@ -23,14 +23,6 @@ type LogConfig struct {
 	Syslog string "syslog"
 }
 
-type ConfigError struct {
-	message string
-}
-
-func (e *ConfigError) Error() string {
-	return e.message
-}
-
 func ConfigFromFile(configPath string) (*Config, error) {
 	configBytes, err := ioutil.ReadFile(configPath)
 	if err != nil {

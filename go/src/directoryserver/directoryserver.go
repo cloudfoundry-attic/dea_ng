@@ -205,7 +205,7 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Info(fmt.Sprintf("HTTP response from DEA: %s", deaResponse))
+	log.Infof("HTTP response from DEA: %s", deaResponse)
 	if deaResponse.StatusCode == 200 {
 		h.listPath(r, w, deaResponse)
 	} else {

@@ -32,6 +32,6 @@ func (dc *deaClient) get(path string) (*http.Response, error) {
 		return nil, err
 	}
 
-	log.Info(fmt.Sprintf("Sending HTTP request to DEA: %s", deaRequest))
+	log.Infof("Sending HTTP request to DEA: %s", deaRequest)
 	return dc.httpClient.Do(deaRequest)
 }
