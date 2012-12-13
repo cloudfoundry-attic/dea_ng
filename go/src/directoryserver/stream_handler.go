@@ -52,27 +52,28 @@ func (x *StreamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Write header before starting stream
 	w.WriteHeader(200)
 
-	for ok := true; ok && err == nil; {
-		var ev *fsnotify.FileEvent
-
+	for stop := false; !stop; {
 		select {
-		case ev, ok = <-watcher.Event:
+		case ev, ok := <-watcher.Event:
 			if !ok {
+				stop = true
 				break
 			}
 
 			// Break on rename
 			if ev.IsRename() {
-				ok = false
+				stop = true
 				break
 			}
 
 			_, err = io.Copy(u, x.File)
 			if err != nil {
+				stop = true
 				break
 			}
-		case err, ok = <-watcher.Error:
+		case _, ok := <-watcher.Error:
 			if !ok {
+				stop = true
 				break
 			}
 		}
