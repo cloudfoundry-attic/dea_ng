@@ -44,7 +44,8 @@ type maxLatencyWriter struct {
 	dst     writeFlusher
 	latency time.Duration
 
-	lk   sync.Mutex // protects Write + Flush
+	wlk  sync.Mutex // protects Write + Flush
+	slk  sync.Mutex // protects Stop
 	done chan bool
 }
 
@@ -55,31 +56,37 @@ func NewMaxLatencyWriter(dst writeFlusher, latency time.Duration) *maxLatencyWri
 		done:    make(chan bool),
 	}
 
-	go m.flushLoop()
+	go m.flushLoop(m.done)
 
 	return m
 }
 
 func (m *maxLatencyWriter) Write(p []byte) (int, error) {
-	m.lk.Lock()
-	defer m.lk.Unlock()
+	m.wlk.Lock()
+	defer m.wlk.Unlock()
 	return m.dst.Write(p)
 }
 
-func (m *maxLatencyWriter) flushLoop() {
+func (m *maxLatencyWriter) flushLoop(d chan bool) {
 	t := time.NewTicker(m.latency)
 	defer t.Stop()
 	for {
 		select {
 		case <-t.C:
-			m.lk.Lock()
+			m.wlk.Lock()
 			m.dst.Flush()
-			m.lk.Unlock()
-		case <-m.done:
+			m.wlk.Unlock()
+		case <-d:
 			return
 		}
 	}
 	panic("unreached")
 }
 
-func (m *maxLatencyWriter) Stop() { m.done <- true }
+func (m *maxLatencyWriter) Stop() {
+	m.slk.Lock()
+	defer m.slk.Unlock()
+
+	m.done <- true
+	m.done = nil
+}
