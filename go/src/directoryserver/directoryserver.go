@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 )
 
 var log steno.Logger
@@ -151,7 +152,18 @@ func (h handler) writeFile(request *http.Request,
 	writer http.ResponseWriter, path string) {
 	var err error
 	if _, present := request.URL.Query()["tail"]; present {
-		err = streamFile(writer, path, h.streamingTimeout)
+		f, err := os.Open(path)
+		if err == nil {
+			_, err = f.Seek(0, os.SEEK_END)
+			if err == nil {
+				s := &StreamHandler{
+					File:          f,
+					FlushInterval: 50 * time.Millisecond,
+					IdleTimeout:   time.Duration(h.streamingTimeout) * time.Second,
+				}
+				s.ServeHTTP(writer, request)
+			}
+		}
 	} else {
 		err = h.dumpFile(request, writer, path)
 	}
