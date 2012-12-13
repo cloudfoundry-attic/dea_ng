@@ -44,22 +44,26 @@ type maxLatencyWriter struct {
 	dst     writeFlusher
 	latency time.Duration
 
-	lk   sync.Mutex // protects init of done, as well Write + Flush
+	lk   sync.Mutex // protects Write + Flush
 	done chan bool
 }
 
-func (m *maxLatencyWriter) Write(p []byte) (n int, err error) {
+func NewMaxLatencyWriter(dst writeFlusher, latency time.Duration) *maxLatencyWriter {
+	m := &maxLatencyWriter{
+		dst:     dst,
+		latency: latency,
+		done:    make(chan bool),
+	}
+
+	go m.flushLoop()
+
+	return m
+}
+
+func (m *maxLatencyWriter) Write(p []byte) (int, error) {
 	m.lk.Lock()
 	defer m.lk.Unlock()
-	if m.done == nil {
-		m.done = make(chan bool)
-		go m.flushLoop()
-	}
-	n, err = m.dst.Write(p)
-	if err != nil {
-		m.done <- true
-	}
-	return
+	return m.dst.Write(p)
 }
 
 func (m *maxLatencyWriter) flushLoop() {
@@ -77,3 +81,5 @@ func (m *maxLatencyWriter) flushLoop() {
 	}
 	panic("unreached")
 }
+
+func (m *maxLatencyWriter) Stop() { m.done <- true }

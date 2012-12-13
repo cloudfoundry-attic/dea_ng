@@ -43,12 +43,14 @@ func (x *StreamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var u io.Writer = w
 	if x.FlushInterval != 0 {
 		if v, ok := w.(writeFlusher); ok {
-			u = &maxLatencyWriter{dst: v, latency: x.FlushInterval}
+			mlw := NewMaxLatencyWriter(v, x.FlushInterval)
+			defer mlw.Stop()
+			u = mlw
 		}
 	}
 
-	// Kickstart max latency writer
-	u.Write(nil)
+	// Write header before starting stream
+	w.WriteHeader(200)
 
 	for ok := true; ok && err == nil; {
 		var ev *fsnotify.FileEvent
