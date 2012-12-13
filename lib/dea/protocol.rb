@@ -3,6 +3,9 @@
 require "dea/file_api"
 require "dea/version"
 
+require "schemata/dea"
+require "schemata/router"
+
 module Dea
   module Protocol
   end
@@ -126,6 +129,8 @@ module Dea::Protocol::V1
   class DeaStatusResponse
     def self.generate(bootstrap)
       hello = HelloMessage.generate(bootstrap)
+      hello = Schemata::DEA::HelloMessage.decode(Yajl::Encoder.encode(hello))
+      hello = hello.contents
 
       used_memory = bootstrap.instance_registry.inject(0) do |a, i|
         a + (i.used_memory_in_bytes / (1024 * 1024))
@@ -140,7 +145,9 @@ module Dea::Protocol::V1
         "num_clients"     => rm.resources["num_instances"].used,
       }
 
-      hello.merge(extra)
+      hello.merge!(extra)
+      json = Schemata::DEA::DeaStatusResponse::V1.new(hello).encode
+      Yajl::Parser.parse(json)
     end
   end
 
