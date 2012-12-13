@@ -102,7 +102,7 @@ describe Dea do
 
         new_uris.each_with_index do |uri, ii|
           nats_mock.publish("dea.update",
-                            { "droplet" => ii,
+                            { "droplet" => ii.to_s,
                               "uris"    => [uris[ii], new_uris[ii]].flatten })
         end
       end

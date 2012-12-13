@@ -607,6 +607,10 @@ module Dea
     end
 
     def handle_dea_update(message)
+      msg_obj = Schemata::DEA::UpdateRequest.decode(
+        Yajl::Encoder.encode(message.data)
+      )
+
       app_id = message.data["droplet"].to_s
       uris = message.data["uris"]
 
