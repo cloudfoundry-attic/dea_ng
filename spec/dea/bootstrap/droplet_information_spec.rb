@@ -55,7 +55,7 @@ describe Dea do
            Dea::Instance::State::STARTING].each_with_index.map do |state, ii|
             instance = create_and_register_instance(bootstrap,
                                                     "application_id"      => ((ii == 0) ? 0 : 1).to_s,
-                                                    "application_version" => ii,
+                                                    "application_version" => ii.to_s,
                                                     "instance_index"      => ii,
                                                     "application_uris"    => ["foo", "bar"])
             instance.state = state
@@ -194,7 +194,7 @@ describe Dea do
         responses = find_droplet(:count => 1) do
           {
             "droplet" => @instances[1].application_id,
-            "version" => @instances[1].application_version,
+            "version" => @instances[1].application_version.to_s,
           }
         end
       end
