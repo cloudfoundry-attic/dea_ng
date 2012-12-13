@@ -635,6 +635,10 @@ module Dea
     end
 
     def handle_dea_find_droplet(message)
+      msg_obj = Schemata::DEA::FindDropletRequest.decode(
+        Yajl::Encoder.encode(message.data)
+      )
+
       instances_filtered_by_message(message) do |instance|
         response = Dea::Protocol::V1::FindDropletResponse.generate(self,
                                                                    instance,
