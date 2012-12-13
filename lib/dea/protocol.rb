@@ -90,7 +90,8 @@ module Dea::Protocol::V1
         }
       end
 
-      response
+      msg_obj = Schemata::DEA::FindDropletResponse::V1.new(response)
+      Yajl::Parser.parse(msg_obj.encode)
     end
   end
 
