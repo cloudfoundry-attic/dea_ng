@@ -103,7 +103,7 @@ GEM
       membrane
       vcap_common
       yajl-ruby
-    schemata-router (0.0.1.beta5)
+    schemata-router (0.0.1.beta6)
       membrane
       yajl-ruby
     sys-filesystem (1.0.0)
@@ -132,7 +132,7 @@ DEPENDENCIES
   rcov
   rspec
   schemata-dea (= 0.0.1.beta7)
-  schemata-router (= 0.0.1.beta5)
+  schemata-router (= 0.0.1.beta6)
   steno!
   sys-filesystem
   thin

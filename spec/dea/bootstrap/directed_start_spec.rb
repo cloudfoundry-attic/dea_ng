@@ -12,7 +12,8 @@ describe Dea do
         bootstrap.setup
         bootstrap.start
 
-        nats_mock.publish("dea.#{bootstrap.uuid}.start", {})
+        req = Schemata::DEA.mock_start_request
+        nats_mock.publish("dea.#{bootstrap.uuid}.start", req.contents)
 
         EM.next_tick do
           done
