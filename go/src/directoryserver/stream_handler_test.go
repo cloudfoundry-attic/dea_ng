@@ -23,7 +23,7 @@ func (s *StreamHandlerSuite) SetUpTest(c *C) {
 	s.CreateTempFile(c)
 }
 
-func (s *StreamHandlerSuite) TeardownTest(c *C) {
+func (s *StreamHandlerSuite) TearDownTest(c *C) {
 	s.RemoveTempFile(c)
 
 	if s.Handler != nil {
