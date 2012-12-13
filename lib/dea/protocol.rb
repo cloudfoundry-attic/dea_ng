@@ -97,13 +97,16 @@ module Dea::Protocol::V1
 
   class DropletStatusResponse
     def self.generate(instance)
-      { "name" => instance.application_name,
+      response = {
+        "name" => instance.application_name,
         "uris" => instance.application_uris,
         # TODO: Fill in when available
         # host
         # port
         # uptime
       }
+      msg_obj = Schemata::DEA::DropletStatusResponse::V1.new(response)
+      Yajl::Parser.parse(msg_obj.encode)
     end
   end
 
