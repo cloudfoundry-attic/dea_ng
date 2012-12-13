@@ -3,6 +3,7 @@ package directoryserver
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"io/ioutil"
 	. "launchpad.net/gocheck"
 	"net"
@@ -32,7 +33,7 @@ func (s *StreamHandlerSuite) TeardownTest(c *C) {
 }
 
 func (s *StreamHandlerSuite) CreateTempFile(c *C) {
-	f, err := ioutil.TempFile("", "stream-handler-suite")
+	f, err := os.OpenFile(s.TempFileName(c), os.O_RDWR, 0600)
 	c.Assert(err, IsNil)
 
 	s.File = f
@@ -41,6 +42,13 @@ func (s *StreamHandlerSuite) CreateTempFile(c *C) {
 func (s *StreamHandlerSuite) RemoveTempFile(c *C) {
 	s.File.Close()
 	os.Remove(s.File.Name())
+}
+
+func (s *StreamHandlerSuite) TempFileName(c *C) string {
+	f, err := ioutil.TempFile("", "stream-handler-suite")
+	c.Assert(err, IsNil)
+	f.Close()
+	return f.Name()
 }
 
 func (s *StreamHandlerSuite) Get(c *C) *http.Response {
@@ -93,4 +101,34 @@ func (s *StreamHandlerSuite) TestStreamFromCurrentPosition(c *C) {
 	l, err := r.ReadString('\n')
 	c.Check(err, IsNil)
 	c.Check(l, Equals, "world\n")
+}
+
+func (s *StreamHandlerSuite) TestStreamUntilRename(c *C) {
+	var l string
+	var err error
+
+	res := s.Get(c)
+	c.Check(res.StatusCode, Equals, 200)
+
+	r := bufio.NewReader(res.Body)
+
+	// Write before rename
+	fmt.Fprintf(s.File, "hello\n")
+
+	// Read bytes written before rename
+	l, err = r.ReadString('\n')
+	c.Check(err, IsNil)
+	c.Check(l, Equals, "hello\n")
+
+	// Rename
+	err = os.Rename(s.File.Name(), s.TempFileName(c))
+	c.Assert(err, IsNil)
+
+	// Write after rename
+	fmt.Fprintf(s.File, "world\n")
+
+	// Read EOF
+	l, err = r.ReadString('\n')
+	c.Check(err, Equals, io.EOF)
+	c.Check(l, Equals, "")
 }

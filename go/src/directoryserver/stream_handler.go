@@ -51,9 +51,17 @@ func (x *StreamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	u.Write(nil)
 
 	for ok := true; ok && err == nil; {
+		var ev *fsnotify.FileEvent
+
 		select {
-		case _, ok = <-watcher.Event:
+		case ev, ok = <-watcher.Event:
 			if !ok {
+				break
+			}
+
+			// Break on rename
+			if ev.IsRename() {
+				ok = false
 				break
 			}
 
