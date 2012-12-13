@@ -112,11 +112,15 @@ module Dea::Protocol::V1
 
   class AdvertiseMessage
     def self.generate(bootstrap)
-      { "id"       => bootstrap.uuid,
+      msg = {
+        "id"       => bootstrap.uuid,
         "runtimes" => bootstrap.runtimes.keys,
         "available_memory" => bootstrap.resource_manager.resources["memory"].remain,
         "prod"     => bootstrap.config.only_production_apps?,
       }
+
+      msg_obj = Schemata::DEA::AdvertiseMessage::V1.new(msg)
+      Yajl::Parser.parse(msg_obj.encode)
     end
   end
 
