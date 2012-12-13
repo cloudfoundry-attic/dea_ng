@@ -6,7 +6,7 @@ require "dea/bootstrap"
 describe "Dea::Bootstrap#handle_dea_stop" do
   include_context "bootstrap_setup"
 
-  def publish(message = {})
+  def publish(message = Schemata::DEA.mock_stop_request.contents)
     em do
       bootstrap.setup
       bootstrap.start

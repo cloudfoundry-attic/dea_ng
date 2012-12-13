@@ -555,6 +555,10 @@ module Dea
     end
 
     def handle_dea_stop(message)
+      msg_obj = Schemata::DEA::StopRequest.decode(
+        Yajl::Encoder.encode(message.data)
+      )
+
       instances_filtered_by_message(message) do |instance|
         next if !instance.running?
 
