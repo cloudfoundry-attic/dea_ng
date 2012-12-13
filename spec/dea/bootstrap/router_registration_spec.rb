@@ -2,6 +2,9 @@
 
 require "spec_helper"
 require "dea/bootstrap"
+require "schemata/dea"
+require "schemata/router"
+
 
 describe Dea do
   include_context "bootstrap_setup"
@@ -38,7 +41,8 @@ describe Dea do
         instances << instance
       end
 
-      nats_mock.publish("router.start")
+      nats_mock.publish("router.start",
+                        Schemata::Router.mock_start_message.encode)
     end
 
     expected_0 = {
