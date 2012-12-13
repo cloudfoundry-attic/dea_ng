@@ -18,6 +18,9 @@ gem "grape", :git => "https://github.com/intridea/grape.git"
 gem "vcap_common", :git => "https://github.com/cloudfoundry/vcap-common.git"
 gem "steno", :git => "https://github.com/cloudfoundry/steno.git"
 
+gem "schemata-router", "0.0.1.beta5"
+gem "schemata-dea", "0.0.1.beta7"
+
 gem "sys-filesystem"
 
 group :test do

@@ -23,6 +23,9 @@ require "dea/protocol"
 require "dea/resource_manager"
 require "dea/router_client"
 
+require "schemata/dea"
+require "schemata/router"
+
 module Dea
   class Bootstrap
     DEFAULT_HEARTBEAT_INTERVAL     = 10 # In secs
@@ -510,6 +513,9 @@ module Dea
     end
 
     def handle_router_start(message)
+      msg_obj = Schemata::Router::StartMessage.decode(
+        Yajl::Encoder.encode(message.data)
+      )
       instance_registry.each do |instance|
         next if !instance.running? || instance.application_uris.empty?
         router_client.register_instance(instance)
