@@ -1,10 +1,10 @@
 package directoryserver
 
 import (
+	. "launchpad.net/gocheck"
 	"net/http"
 	"strconv"
 	"strings"
-	"testing"
 )
 
 func getBody(response *http.Response) ([]byte, error) {
@@ -36,7 +36,7 @@ func checkRequest(received *http.Request, expected *http.Request) bool {
 }
 
 type dummyDeaHandler struct {
-	t            *testing.T
+	t            *C
 	expRequest   *http.Request
 	responseBody *[]byte
 }

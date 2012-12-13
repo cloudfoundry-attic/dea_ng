@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	. "launchpad.net/gocheck"
 	"net"
 	"net/http"
 	"os"
@@ -11,11 +12,10 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
-	"testing"
 	"time"
 )
 
-func dump(file *os.File, t *testing.T, numLines int) error {
+func dump(file *os.File, t *C, numLines int) error {
 	handle, err := os.OpenFile(file.Name(), syscall.O_WRONLY, 0666)
 	if err != nil {
 		t.Error(err)
@@ -34,7 +34,7 @@ func dump(file *os.File, t *testing.T, numLines int) error {
 }
 
 type denyingDeaHandler struct {
-	t            *testing.T
+	t            *C
 	expRequest   *http.Request
 	responseBody *[]byte
 }
@@ -51,7 +51,11 @@ func (handler denyingDeaHandler) ServeHTTP(w http.ResponseWriter,
 	w.Write(*(handler.responseBody))
 }
 
-func TestHandler_ServeHTTP_RequestToDeaFailed(t *testing.T) {
+type DirectoryServerSuite struct{}
+
+var _ = Suite(&DirectoryServerSuite{})
+
+func (s *DirectoryServerSuite) TestHandler_ServeHTTP_RequestToDeaFailed(t *C) {
 	initLoggerInTest()
 
 	// Start mock dir server in a separate thread and wait for it to start.
@@ -78,7 +82,7 @@ func TestHandler_ServeHTTP_RequestToDeaFailed(t *testing.T) {
 	time.Sleep(2 * time.Millisecond)
 }
 
-func TestHandler_ServeHTTP_RequestDeniedByDea(t *testing.T) {
+func (s *DirectoryServerSuite) TestHandler_ServeHTTP_RequestDeniedByDea(t *C) {
 	initLoggerInTest()
 
 	// Start mock dir server in a separate thread and wait for it to start.
@@ -127,7 +131,7 @@ func TestHandler_ServeHTTP_RequestDeniedByDea(t *testing.T) {
 	time.Sleep(2 * time.Millisecond)
 }
 
-func TestHandler_ServeHTTP_EntityNotFound(t *testing.T) {
+func (s *DirectoryServerSuite) TestHandler_ServeHTTP_EntityNotFound(t *C) {
 	initLoggerInTest()
 
 	// Start mock dir server in a separate thread and wait for it to start.
@@ -184,7 +188,7 @@ func TestHandler_ServeHTTP_EntityNotFound(t *testing.T) {
 	time.Sleep(2 * time.Millisecond)
 }
 
-func TestHandler_ServeHTTP_ReturnDirectoryListing(t *testing.T) {
+func (s *DirectoryServerSuite) TestHandler_ServeHTTP_ReturnDirectoryListing(t *C) {
 	initLoggerInTest()
 
 	address := "localhost:" + strconv.Itoa(1240)
@@ -272,7 +276,7 @@ func TestHandler_ServeHTTP_ReturnDirectoryListing(t *testing.T) {
 	time.Sleep(2 * time.Millisecond)
 }
 
-func TestHandler_ServeHTTP_StreamFile(t *testing.T) {
+func (s *DirectoryServerSuite) TestHandler_ServeHTTP_StreamFile(t *C) {
 	initLoggerInTest()
 
 	// Start mock dir server in a separate thread and wait for it to start.
@@ -343,7 +347,7 @@ func TestHandler_ServeHTTP_StreamFile(t *testing.T) {
 	time.Sleep(2 * time.Millisecond)
 }
 
-func TestHandler_ServeHTTP_DumpFile(t *testing.T) {
+func (s *DirectoryServerSuite) TestHandler_ServeHTTP_DumpFile(t *C) {
 	initLoggerInTest()
 
 	// Start mock dir server in a separate thread and wait for it to start.
@@ -414,7 +418,7 @@ func TestHandler_ServeHTTP_DumpFile(t *testing.T) {
 	time.Sleep(2 * time.Millisecond)
 }
 
-func TestHandler_ServeHTTP_DumpFile_RangeQuery(t *testing.T) {
+func (s *DirectoryServerSuite) TestHandler_ServeHTTP_DumpFile_RangeQuery(t *C) {
 	initLoggerInTest()
 
 	// Start mock dir server in a separate thread and wait for it to start.
@@ -498,7 +502,7 @@ func TestHandler_ServeHTTP_DumpFile_RangeQuery(t *testing.T) {
 	time.Sleep(2 * time.Millisecond)
 }
 
-func TestHandler_ServeHTTP_DumpFile_FailedRangeQuery(t *testing.T) {
+func (s *DirectoryServerSuite) TestHandler_ServeHTTP_DumpFile_FailedRangeQuery(t *C) {
 	initLoggerInTest()
 
 	// Start mock dir server in a separate thread and wait for it to start.

@@ -2,14 +2,18 @@ package directoryserver
 
 import (
 	"bytes"
+	. "launchpad.net/gocheck"
 	"net"
 	"net/http"
 	"strconv"
-	"testing"
 	"time"
 )
 
-func TestDeaClientImpl_ConstructDeaRequest(t *testing.T) {
+type DeaClientSuite struct{}
+
+var _ = Suite(&DeaClientSuite{})
+
+func (s *DeaClientSuite) TestDeaClientImpl_ConstructDeaRequest(t *C) {
 	initLoggerInTest()
 
 	dc := deaClient{host: "host", port: 10, httpClient: &http.Client{}}
@@ -38,7 +42,7 @@ func TestDeaClientImpl_ConstructDeaRequest(t *testing.T) {
 	}
 }
 
-func TestDeaClientImpl_Get(t *testing.T) {
+func (s *DeaClientSuite) TestDeaClientImpl_Get(t *C) {
 	initLoggerInTest()
 
 	dc := deaClient{host: "localhost", port: 1234,
