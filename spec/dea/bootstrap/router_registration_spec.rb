@@ -67,7 +67,9 @@ describe Dea do
 
     # The directory server is registered at startup, thus we expect two
     # registrations to arrive
-    responses.should =~ [expected_0, expected_1, expected_1]
+    responses.map do |x|
+      Schemata::Router::RegisterRequest::V1.new(x).contents
+    end.should =~ [expected_0, expected_1, expected_1]
   end
 
   describe "upon receipt of a message on 'dea.update'" do

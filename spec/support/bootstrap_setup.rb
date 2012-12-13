@@ -74,6 +74,12 @@ shared_context "bootstrap_setup" do
   end
 
   def create_and_register_instance(bootstrap, instance_attributes = {})
+    base_attributes = {
+      "framework_name"      => "rails",
+      "runtime_name"        => "ruby18",
+      "application_uris"    => ["foo.com"],
+    }
+    instance_attributes = base_attributes.merge(instance_attributes)
     instance = Dea::Instance.new(bootstrap, instance_attributes)
     bootstrap.instance_registry.register(instance)
     instance

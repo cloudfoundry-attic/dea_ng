@@ -33,7 +33,8 @@ module Dea
 
     # Same format is used for both registration and unregistration
     def generate_instance_request(instance, opts = {})
-      { "dea"  => bootstrap.uuid,
+      req = {
+        "dea"  => bootstrap.uuid,
         "app"  => instance.application_id,
         "uris" => opts[:uris] || instance.application_uris,
         "host" => bootstrap.local_ip,
@@ -44,6 +45,9 @@ module Dea
         },
         "private_instance_id" => instance.private_instance_id,
       }
+
+      req = Schemata::Router::RegisterRequest::V1.new(req)
+      Yajl::Parser.parse(req.encode)
     end
 
     # Same format is used for both registration and unregistration
