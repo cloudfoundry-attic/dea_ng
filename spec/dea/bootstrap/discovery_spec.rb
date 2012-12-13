@@ -107,7 +107,7 @@ describe Dea do
         bootstrap.setup
         bootstrap.start
 
-        req = discover_message("droplet" => 1)
+        req = discover_message("droplet" => "1")
         nats_mock.request("dea.discover", req) do |msg|
           hello = Yajl::Parser.parse(msg)
           done
@@ -129,7 +129,7 @@ describe Dea do
           create_and_register_instance(bootstrap, "application_id" => 0)
         end
 
-        req = discover_message("droplet" => 0)
+        req = discover_message("droplet" => "0")
         nats_mock.request("dea.discover", req) do |msg|
           hello = Yajl::Parser.parse(msg)
           done
@@ -158,7 +158,7 @@ describe Dea do
         resources = { "memory" => mem_mock }
         bootstrap.resource_manager.stub(:resources).and_return(resources)
 
-        req = discover_message("droplet" => 0)
+        req = discover_message("droplet" => "0")
         nats_mock.request("dea.discover", req) do |msg|
           hello = Yajl::Parser.parse(msg)
           done
@@ -188,7 +188,7 @@ describe Dea do
                  .stub(:instances_for_application) \
                  .and_return(instances)
 
-        req = discover_message("droplet" => 0)
+        req = discover_message("droplet" => "0")
         nats_mock.request("dea.discover", req) do |msg|
           hello = Yajl::Parser.parse(msg)
           done
@@ -204,13 +204,9 @@ describe Dea do
   end
 
   def discover_message(opts = {})
-    { "runtime" => "test1",
-      "droplet" => 0,
-      "limits"  => {
-        "mem"  => 10,
-        "disk" => 10,
-      }
-    }.merge(opts)
+    req = Schemata::DEA.mock_discover_request
+    req.runtime = "test1"
+    req.contents.merge(opts)
   end
 
   def verify_hello_message(bootstrap, hello)
