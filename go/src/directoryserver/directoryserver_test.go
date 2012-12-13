@@ -56,8 +56,6 @@ type DirectoryServerSuite struct{}
 var _ = Suite(&DirectoryServerSuite{})
 
 func (s *DirectoryServerSuite) TestHandler_ServeHTTP_RequestToDeaFailed(t *C) {
-	initLoggerInTest()
-
 	// Start mock dir server in a separate thread and wait for it to start.
 	address := "localhost:" + strconv.Itoa(1235)
 	dirServerListener, err := net.Listen("tcp", address)
@@ -83,8 +81,6 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_RequestToDeaFailed(t *C) {
 }
 
 func (s *DirectoryServerSuite) TestHandler_ServeHTTP_RequestDeniedByDea(t *C) {
-	initLoggerInTest()
-
 	// Start mock dir server in a separate thread and wait for it to start.
 	address := "localhost:" + strconv.Itoa(1236)
 	dirServerListener, err := net.Listen("tcp", address)
@@ -132,8 +128,6 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_RequestDeniedByDea(t *C) {
 }
 
 func (s *DirectoryServerSuite) TestHandler_ServeHTTP_EntityNotFound(t *C) {
-	initLoggerInTest()
-
 	// Start mock dir server in a separate thread and wait for it to start.
 	address := "localhost:" + strconv.Itoa(1238)
 	dirServerListener, err := net.Listen("tcp", address)
@@ -189,8 +183,6 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_EntityNotFound(t *C) {
 }
 
 func (s *DirectoryServerSuite) TestHandler_ServeHTTP_ReturnDirectoryListing(t *C) {
-	initLoggerInTest()
-
 	address := "localhost:" + strconv.Itoa(1240)
 	dirServerListener, err := net.Listen("tcp", address)
 	if err != nil {
@@ -277,8 +269,6 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_ReturnDirectoryListing(t *C
 }
 
 func (s *DirectoryServerSuite) TestHandler_ServeHTTP_StreamFile(t *C) {
-	initLoggerInTest()
-
 	// Start mock dir server in a separate thread and wait for it to start.
 	address := "localhost:" + strconv.Itoa(1242)
 	dirServerListener, err := net.Listen("tcp", address)
@@ -348,8 +338,6 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_StreamFile(t *C) {
 }
 
 func (s *DirectoryServerSuite) TestHandler_ServeHTTP_DumpFile(t *C) {
-	initLoggerInTest()
-
 	// Start mock dir server in a separate thread and wait for it to start.
 	address := "localhost:" + strconv.Itoa(1242)
 	dirServerListener, err := net.Listen("tcp", address)
@@ -419,8 +407,6 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_DumpFile(t *C) {
 }
 
 func (s *DirectoryServerSuite) TestHandler_ServeHTTP_DumpFile_RangeQuery(t *C) {
-	initLoggerInTest()
-
 	// Start mock dir server in a separate thread and wait for it to start.
 	address := "localhost:" + strconv.Itoa(1244)
 	dirServerListener, err := net.Listen("tcp", address)
@@ -503,8 +489,6 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_DumpFile_RangeQuery(t *C) {
 }
 
 func (s *DirectoryServerSuite) TestHandler_ServeHTTP_DumpFile_FailedRangeQuery(t *C) {
-	initLoggerInTest()
-
 	// Start mock dir server in a separate thread and wait for it to start.
 	address := "localhost:" + strconv.Itoa(1246)
 	dirServerListener, err := net.Listen("tcp", address)

@@ -17,7 +17,6 @@ import (
 	"common"
 	"encoding/json"
 	"fmt"
-	steno "github.com/cloudfoundry/gosteno"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -25,8 +24,6 @@ import (
 	"strconv"
 	"time"
 )
-
-var log steno.Logger
 
 // Returns a string representation of the file size.
 func fileSizeFormat(size int64) string {
@@ -279,8 +276,6 @@ func startServer(listener *net.Listener, deaHost string, deaPort uint16,
 // requests with the DEA's HTTP server which serves requests on the same host and
 // specified DAE port.
 func Start(host string, config *common.Config) error {
-	log = steno.NewLogger("directory_server")
-
 	address := host + ":" + strconv.Itoa(int(config.Server.DirServerPort))
 	listener, err := net.Listen("tcp", address)
 	if err != nil {

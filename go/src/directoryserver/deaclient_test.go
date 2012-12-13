@@ -14,8 +14,6 @@ type DeaClientSuite struct{}
 var _ = Suite(&DeaClientSuite{})
 
 func (s *DeaClientSuite) TestDeaClientImpl_ConstructDeaRequest(t *C) {
-	initLoggerInTest()
-
 	dc := deaClient{host: "host", port: 10, httpClient: &http.Client{}}
 
 	expRequest, _ := http.NewRequest("GET", "http://host:10/path", nil)
@@ -43,8 +41,6 @@ func (s *DeaClientSuite) TestDeaClientImpl_ConstructDeaRequest(t *C) {
 }
 
 func (s *DeaClientSuite) TestDeaClientImpl_Get(t *C) {
-	initLoggerInTest()
-
 	dc := deaClient{host: "localhost", port: 1234,
 		httpClient: &http.Client{}}
 

@@ -5,12 +5,12 @@ import (
 	"os"
 )
 
-func initLoggerInTest() {
-	stenoConfig := &steno.Config{
+func init() {
+	steno.Init(&steno.Config{
 		Sinks: []steno.Sink{steno.NewIOSink(os.Stderr)},
 		Codec: steno.NewJsonCodec(),
 		Level: steno.LOG_ALL,
-	}
-	steno.Init(stenoConfig)
-	log = steno.NewLogger("test_directory_server")
+	})
+
+	log = steno.NewLogger("directory_server_test")
 }
