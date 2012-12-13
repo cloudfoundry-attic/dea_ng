@@ -13,18 +13,18 @@ import (
 )
 
 type StreamHandlerSuite struct {
-	File    *os.File
-	Handler *StreamHandler
+	FileName string
+	Handler  *StreamHandler
 }
 
 var _ = Suite(&StreamHandlerSuite{})
 
 func (s *StreamHandlerSuite) SetUpTest(c *C) {
-	s.CreateTempFile(c)
+	s.FileName = s.TempFileName(c)
 }
 
 func (s *StreamHandlerSuite) TearDownTest(c *C) {
-	s.RemoveTempFile(c)
+	os.Remove(s.FileName)
 
 	if s.Handler != nil {
 		s.Handler.File.Close()
@@ -32,16 +32,14 @@ func (s *StreamHandlerSuite) TearDownTest(c *C) {
 	}
 }
 
-func (s *StreamHandlerSuite) CreateTempFile(c *C) {
-	f, err := os.OpenFile(s.TempFileName(c), os.O_RDWR, 0600)
+func (s *StreamHandlerSuite) Printf(c *C, format string, a ...interface{}) {
+	f, err := os.OpenFile(s.FileName, os.O_RDWR|os.O_APPEND, 0600)
 	c.Assert(err, IsNil)
 
-	s.File = f
-}
+	fmt.Fprintf(f, format, a...)
 
-func (s *StreamHandlerSuite) RemoveTempFile(c *C) {
-	s.File.Close()
-	os.Remove(s.File.Name())
+	f.Sync()
+	f.Close()
 }
 
 func (s *StreamHandlerSuite) TempFileName(c *C) string {
@@ -52,7 +50,7 @@ func (s *StreamHandlerSuite) TempFileName(c *C) string {
 }
 
 func (s *StreamHandlerSuite) Get(c *C) *http.Response {
-	f, err := os.Open(s.File.Name())
+	f, err := os.Open(s.FileName)
 	c.Assert(err, IsNil)
 
 	_, err = f.Seek(0, os.SEEK_END)
@@ -81,7 +79,7 @@ func (s *StreamHandlerSuite) TestStream(c *C) {
 	c.Check(res.StatusCode, Equals, 200)
 
 	// The header was already sent, now write something to the file
-	fmt.Fprintf(s.File, "hello\n")
+	s.Printf(c, "hello\n")
 
 	r := bufio.NewReader(res.Body)
 	l, err := r.ReadString('\n')
@@ -90,12 +88,12 @@ func (s *StreamHandlerSuite) TestStream(c *C) {
 }
 
 func (s *StreamHandlerSuite) TestStreamFromCurrentPosition(c *C) {
-	fmt.Fprintf(s.File, "hello\n")
+	s.Printf(c, "hello\n")
 
 	res := s.Get(c)
 	c.Check(res.StatusCode, Equals, 200)
 
-	fmt.Fprintf(s.File, "world\n")
+	s.Printf(c, "world\n")
 
 	r := bufio.NewReader(res.Body)
 	l, err := r.ReadString('\n')
@@ -113,7 +111,7 @@ func (s *StreamHandlerSuite) TestStreamUntilRename(c *C) {
 	r := bufio.NewReader(res.Body)
 
 	// Write before rename
-	fmt.Fprintf(s.File, "hello\n")
+	s.Printf(c, "hello\n")
 
 	// Read bytes written before rename
 	l, err = r.ReadString('\n')
@@ -121,11 +119,9 @@ func (s *StreamHandlerSuite) TestStreamUntilRename(c *C) {
 	c.Check(l, Equals, "hello\n")
 
 	// Rename
-	err = os.Rename(s.File.Name(), s.TempFileName(c))
+	y := s.TempFileName(c)
+	err = os.Rename(s.FileName, y)
 	c.Assert(err, IsNil)
-
-	// Write after rename
-	fmt.Fprintf(s.File, "world\n")
 
 	// Read EOF
 	l, err = r.ReadString('\n')
