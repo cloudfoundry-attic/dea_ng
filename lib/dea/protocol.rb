@@ -178,7 +178,8 @@ module Dea::Protocol::V1
         msg["crash_timestamp"] = instance.state_timestamp.to_i
       end
 
-      msg
+      msg_obj = Schemata::DEA::ExitMessage::V1.new(msg)
+      Yajl::Parser.parse(msg_obj.encode)
     end
   end
 end
