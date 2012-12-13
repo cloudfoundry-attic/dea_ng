@@ -529,6 +529,10 @@ module Dea
     end
 
     def handle_dea_directed_start(message)
+      msg_obj = Schemata::DEA::StartRequest.decode(
+        Yajl::Encoder.encode(message.data)
+      )
+
       instance = create_instance(message.data)
 
       if config.only_production_apps? && !instance.production_app?
