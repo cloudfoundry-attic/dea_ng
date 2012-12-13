@@ -126,11 +126,15 @@ module Dea::Protocol::V1
 
   class HelloMessage
     def self.generate(bootstrap)
-      { "id"   => bootstrap.uuid,
+      msg = {
+        "id"   => bootstrap.uuid,
         "ip"   => bootstrap.local_ip,
         "port" => bootstrap.directory_server.port,
         "version" => Dea::VERSION,
       }
+
+      msg_obj = Schemata::DEA::HelloMessage::V1.new(msg)
+      Yajl::Parser.parse(msg_obj.encode)
     end
   end
 
