@@ -58,6 +58,8 @@ shared_context "bootstrap_setup" do
     @bootstrap.stub(:start_directory_server)
     @bootstrap.stub(:register_directory_server_v2)
     @bootstrap.stub(:start_finish)
+
+    @bootstrap.stub(:uuid) { "UUID" }
   end
 
   before do
