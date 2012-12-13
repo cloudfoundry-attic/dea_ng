@@ -569,6 +569,10 @@ module Dea
     end
 
     def handle_dea_discover(message)
+      msg_obj = Schemata::DEA::DiscoverRequest.decode(
+        Yajl::Encoder.encode(message.data)
+      )
+
       runtime = message.data["runtime"]
       rs = message.data["limits"]
 
