@@ -59,6 +59,7 @@ func (s *StreamHandlerSuite) Get(c *C) *http.Response {
 	s.Handler = &StreamHandler{
 		File:          f,
 		FlushInterval: 1 * time.Millisecond,
+		IdleTimeout:   20 * time.Millisecond,
 	}
 
 	l, err := net.Listen("tcp", "localhost:")
@@ -99,6 +100,32 @@ func (s *StreamHandlerSuite) TestStreamFromCurrentPosition(c *C) {
 	l, err := r.ReadString('\n')
 	c.Check(err, IsNil)
 	c.Check(l, Equals, "world\n")
+}
+
+func (s *StreamHandlerSuite) TestStreamWithIdleTimeout(c *C) {
+	var l string
+	var err error
+
+	res := s.Get(c)
+	c.Check(res.StatusCode, Equals, 200)
+
+	r := bufio.NewReader(res.Body)
+
+	// Write before timing out
+	time.Sleep(15 * time.Millisecond)
+	s.Printf(c, "hi there!\n")
+
+	// Read the write
+	l, _ = r.ReadString('\n')
+	c.Check(l, Equals, "hi there!\n")
+
+	// Write after timing out
+	time.Sleep(25 * time.Millisecond)
+	s.Printf(c, "what?\n")
+
+	// Read an unexepected EOF
+	_, err = r.ReadString('\n')
+	c.Check(err, Equals, io.ErrUnexpectedEOF)
 }
 
 func (s *StreamHandlerSuite) TestStreamUntilRename(c *C) {
