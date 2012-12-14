@@ -59,7 +59,7 @@ func (s *DeaClientSuite) Get(path string) *http.Response {
 	l, hx, px := startTestServer(http.HandlerFunc(f))
 	defer l.Close()
 
-	r, err := http.Get(fmt.Sprintf("http://%s:%d/", hx, px))
+	r, err := http.Get(fmt.Sprintf("http://%s:%d%s", hx, px, path))
 	if err != nil {
 		panic(err)
 	}
@@ -111,6 +111,19 @@ func (s *DeaClientSuite) TestDeaStatus500(c *C) {
 	r := s.Get("/")
 	c.Check(r.StatusCode, Equals, http.StatusInternalServerError)
 	c.Check(readBody(r), Matches, "internal server error")
+}
+
+func (s *DeaClientSuite) TestDeaRequestPath(c *C) {
+	f := func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, `{ "instance_path": "%s" }`, r.URL.String())
+	}
+
+	s.StartDea(http.HandlerFunc(f))
+
+	r := s.Get("/some/path/?query")
+	c.Check(r.StatusCode, Equals, http.StatusOK)
+	c.Check(readBody(r), Equals, "/some/path/?query")
 }
 
 func (s *DeaClientSuite) TestDeaInvalidJson(c *C) {
