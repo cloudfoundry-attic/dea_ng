@@ -22,6 +22,7 @@ require "dea/nats"
 require "dea/protocol"
 require "dea/resource_manager"
 require "dea/router_client"
+require "dea/staging"
 
 module Dea
   class Bootstrap
@@ -225,7 +226,7 @@ module Dea
     end
 
     def setup_directories
-      %W(db droplets instances tmp).each do |dir|
+      %W(db droplets instances tmp staging).each do |dir|
         FileUtils.mkdir_p(File.join(config["base_dir"], dir))
       end
 
@@ -547,6 +548,22 @@ module Dea
 
         instance.stop do |error|
           logger.warn("Failed stopping #{instance}: #{error}") if error
+        end
+      end
+    end
+
+    def handle_dea_stage(message)
+      logger.info("<staging> Got staging request with #{message.data.inspect}")
+      staging = Staging.new(self, message.data)
+      staging.start do |error|
+        unless error
+          result = {
+            "task_id"  => "123",
+            "task_log" => "",
+          }
+
+          response = Yajl::Encoder.encode(result)
+          message.respond(response)
         end
       end
     end

@@ -116,6 +116,15 @@ runtimes:
     version_flag: '--version'
     environment:
 
+# Staging
+staging:
+  max_staging_duration: 120
+  max_active_tasks: 10
+  staging_base_dir: /var/vcap/data/dea_next/staging
+  platform_config:
+    cache: /var/vcap/data/stager/package_cache/ruby
+    insight_agent: /var/vcap/packages/insight_agent/insight-agent.zip
+
 # Used for /healthz and /vars endpoints. If not provided random
 # values will be generated on component start. Uncomment to use
 # static values.
