@@ -24,20 +24,9 @@ func (s *DeaClientSuite) TearDownTest(c *C) {
 	s.StopDea()
 }
 
-func startTestServer(h http.Handler) net.Listener {
-	l, err := net.Listen("tcp", "localhost:")
-	if err != nil {
-		panic(err)
-	}
-
-	x := http.Server{Handler: h}
-	go x.Serve(l)
-
-	return l
-}
-
 func (s *DeaClientSuite) StartDea(h http.Handler) {
-	s.DeaListener = startTestServer(h)
+	l, _, _ := startTestServer(h)
+	s.DeaListener = l
 }
 
 func (s *DeaClientSuite) StopDea() {
@@ -67,10 +56,10 @@ func (s *DeaClientSuite) Get(path string) *http.Response {
 		fmt.Fprintln(w, p)
 	}
 
-	l := startTestServer(http.HandlerFunc(f))
+	l, hx, px := startTestServer(http.HandlerFunc(f))
 	defer l.Close()
 
-	r, err := http.Get(fmt.Sprintf("http://%s/", l.Addr()))
+	r, err := http.Get(fmt.Sprintf("http://%s:%d/", hx, px))
 	if err != nil {
 		panic(err)
 	}
