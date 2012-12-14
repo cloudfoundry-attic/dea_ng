@@ -33,7 +33,7 @@ module Dea::Protocol::V1
       }
 
       msg_obj = Schemata::DEA::HeartbeatResponse::V1.new(response)
-      Yajl::Parser.parse(msg_obj.encode)
+      msg_obj.encode
     end
   end
 
@@ -95,7 +95,7 @@ module Dea::Protocol::V1
       end
 
       msg_obj = Schemata::DEA::FindDropletResponse::V1.new(response)
-      Yajl::Parser.parse(msg_obj.encode)
+      msg_obj.encode
     end
   end
 
@@ -110,7 +110,7 @@ module Dea::Protocol::V1
         # uptime
       }
       msg_obj = Schemata::DEA::DropletStatusResponse::V1.new(response)
-      Yajl::Parser.parse(msg_obj.encode)
+      msg_obj.encode
     end
   end
 
@@ -124,7 +124,7 @@ module Dea::Protocol::V1
       }
 
       msg_obj = Schemata::DEA::AdvertiseMessage::V1.new(msg)
-      Yajl::Parser.parse(msg_obj.encode)
+      msg_obj.encode
     end
   end
 
@@ -138,14 +138,14 @@ module Dea::Protocol::V1
       }
 
       msg_obj = Schemata::DEA::HelloMessage::V1.new(msg)
-      Yajl::Parser.parse(msg_obj.encode)
+      msg_obj.encode
     end
   end
 
   class DeaStatusResponse
     def self.generate(bootstrap)
       hello = HelloMessage.generate(bootstrap)
-      hello = Schemata::DEA::HelloMessage.decode(Yajl::Encoder.encode(hello))
+      hello = Schemata::DEA::HelloMessage.decode(hello)
       hello = hello.contents
 
       used_memory = bootstrap.instance_registry.inject(0) do |a, i|
@@ -162,8 +162,8 @@ module Dea::Protocol::V1
       }
 
       hello.merge!(extra)
-      json = Schemata::DEA::DeaStatusResponse::V1.new(hello).encode
-      Yajl::Parser.parse(json)
+      msg_obj = Schemata::DEA::DeaStatusResponse::V1.new(hello)
+      msg_obj.encode
     end
   end
 
@@ -183,7 +183,7 @@ module Dea::Protocol::V1
       end
 
       msg_obj = Schemata::DEA::ExitMessage::V1.new(msg)
-      Yajl::Parser.parse(msg_obj.encode)
+      msg_obj.encode
     end
   end
 end
