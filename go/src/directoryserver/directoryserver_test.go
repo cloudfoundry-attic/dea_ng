@@ -270,21 +270,21 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_ReturnDirectoryListing(t *C
 
 func (s *DirectoryServerSuite) TestHandler_ServeHTTP_StreamFile(t *C) {
 	// Start mock dir server in a separate thread and wait for it to start.
-	address := "localhost:" + strconv.Itoa(1242)
+	address := "localhost:" + strconv.Itoa(1252)
 	dirServerListener, err := net.Listen("tcp", address)
 	if err != nil {
 		t.Error(err)
 	}
-	go startServer(&dirServerListener, "localhost", 1243, 2) // thread.
+	go startServer(&dirServerListener, "localhost", 1253, 2) // thread.
 	time.Sleep(2 * time.Millisecond)
 
 	// Start mock dea server in a separate thread and wait for it to start.
-	address = "localhost:" + strconv.Itoa(1243)
+	address = "localhost:" + strconv.Itoa(1253)
 	deaServerListener, err := net.Listen("tcp", address)
 	if err != nil {
 		t.Error(err)
 	}
-	expRequest, _ := http.NewRequest("GET", "http://localhost:1243/path?tail", nil)
+	expRequest, _ := http.NewRequest("GET", "http://localhost:1253/path?tail", nil)
 
 	// Create temp file for this unit test.
 	tmpFile, err := ioutil.TempFile("", "testfile_")
@@ -297,6 +297,7 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_StreamFile(t *C) {
 	}
 
 	responseBody := []byte(fmt.Sprintf("{\"instance_path\" : \"%s\"}", tmpFile.Name()))
+
 	go http.Serve(deaServerListener,
 		dummyDeaHandler{t, expRequest, &responseBody}) // thread.
 	time.Sleep(2 * time.Millisecond)
@@ -305,7 +306,7 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_StreamFile(t *C) {
 	go dump(tmpFile, t, 10) // thread.
 	time.Sleep(1 * time.Second)
 
-	response, err := http.Get("http://localhost:1242/path?tail")
+	response, err := http.Get("http://localhost:1252/path?tail")
 	if err != nil {
 		t.Error(err)
 	}

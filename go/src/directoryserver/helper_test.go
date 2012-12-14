@@ -1,6 +1,7 @@
 package directoryserver
 
 import (
+	"io/ioutil"
 	. "launchpad.net/gocheck"
 	"net/http"
 	"strconv"
@@ -11,17 +12,8 @@ import (
 func Test(t *testing.T) { TestingT(t) }
 
 func getBody(response *http.Response) ([]byte, error) {
-	if response.ContentLength <= 0 {
-		return nil, nil
-	}
-
-	body := make([]byte, response.ContentLength)
-	_, err := response.Body.Read(body)
-	if err != nil {
-		return nil, err
-	}
-
-	return body, nil
+	defer response.Body.Close()
+	return ioutil.ReadAll(response.Body)
 }
 
 func checkRequest(received *http.Request, expected *http.Request) bool {
