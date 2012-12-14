@@ -266,16 +266,18 @@ module Dea
     attr_reader :directory_server
 
     def setup_directory_server
+      v1_port = config["directory_server"]["v1_port"]
       @directory_server = Dea::DirectoryServer.new(local_ip,
-                                                   config["directory_server_port"],
+                                                   v1_port,
                                                    instance_registry)
     end
 
     attr_reader :directory_server_v2
 
     def setup_directory_server_v2
+      v2_port = config["directory_server"]["v2_port"]
       @directory_server_v2 = Dea::DirectoryServerV2.new(config["domain"],
-                                                        config["directory_server_v2_port"])
+                                                        v2_port)
     end
 
     def setup_file_api
@@ -284,8 +286,9 @@ module Dea
                              60 * 60)
 
       Thin::Logging.silent = true
+      file_api_port = config["directory_server"]["file_api_port"]
       @file_api_server = Thin::Server.new("127.0.0.1",
-                                          config["file_api_port"],
+                                          file_api_port,
                                           Dea::FileApi)
     end
 

@@ -8,32 +8,16 @@ package main
    $> runner <DEA config file>
 */
 import (
+	"common"
 	"directoryserver"
-	"fmt"
-	"io/ioutil"
-	"launchpad.net/goyaml"
-	"log"
+	"flag"
+	steno "github.com/cloudfoundry/gosteno"
 	"net"
-	"os"
 	"strings"
 )
 
 // Default server to be used for finding the local IP address
 const rootServer = "198.41.0.4"
-
-func parseConfig(configPath string) (map[interface{}]interface{}, error) {
-	configBytes, err := ioutil.ReadFile(configPath)
-	if err != nil {
-		return nil, err
-	}
-
-	config := make(map[interface{}]interface{})
-	if err := goyaml.Unmarshal(configBytes, &config); err != nil {
-		return nil, err
-	}
-
-	return config, nil
-}
 
 /*
  Returns the local IP address.
@@ -53,53 +37,32 @@ func getLocalIpWithDefaultRoute() (*string, error) {
 }
 
 func main() {
-	if len(os.Args) != 2 {
-		msg := "Expected only the config file"
-		msg += " to be passed as command-line argument."
-		log.Panic(msg)
-	}
+	var configPath string
+	flag.StringVar(&configPath,
+		"conf",
+		"", "Path of the YAML configuration of the co-located DEA.")
+	flag.Parse()
 
-	config, err := parseConfig(os.Args[1])
+	config, err := common.ConfigFromFile(configPath)
 	if err != nil {
-		log.Panic("Failed reading config file.")
+		panic(err.Error())
 	}
 
-	deaPort := config["file_api_port"].(int)
-	dirServerPort := config["directory_server_v2_port"].(int)
-	route := config["local_route"]
-	streamingTimeout := config["streaming_timeout"].(int)
-
-	if deaPort <= 0 || deaPort > 65535 {
-		msgFormat := "DEA server port should be between 1 and 65535."
-		msgFormat += " You passed: %d."
-		log.Panic(fmt.Sprintf(msgFormat, deaPort))
-	}
-
-	if dirServerPort <= 0 || dirServerPort > 65535 {
-		msgFormat := "Directory server port should be"
-		msgFormat += " between 1 and 65535. You passed: %d."
-		log.Panic(fmt.Sprintf(msgFormat, dirServerPort))
-	}
-
-	if streamingTimeout < 0 {
-		msgFormat := "Streaming timeout should be"
-		msgFormat += " between 0 and 4294967295. You passed: %d."
-		log.Panic(fmt.Sprintf(msgFormat, streamingTimeout))
-	}
+	common.SetupSteno(&config.Server.Logging)
+	log := steno.NewLogger("runner")
 
 	var localIp *string
-	if route != nil {
-		localIp, err = getLocalIp(route.(string))
+	if config.Route != "" {
+		localIp, err = getLocalIp(config.Route)
 	} else {
 		localIp, err = getLocalIpWithDefaultRoute()
 	}
 
 	if err != nil {
-		log.Panic(err)
+		log.Fatal(err.Error())
 	}
 
-	if err := directoryserver.Start(*localIp, uint16(dirServerPort),
-		uint16(deaPort), uint32(streamingTimeout)); err != nil {
-		log.Panic(err)
+	if err := directoryserver.Start(*localIp, config); err != nil {
+		log.Fatal(err.Error())
 	}
 }
