@@ -530,7 +530,7 @@ module Dea
     def handle_dea_directed_start(message)
       msg_obj = Schemata::DEA::StartRequest.decode(message.data)
 
-      instance = create_instance(Yajl::Parser.parse(message.data))
+      instance = create_instance(msg_obj.contents)
 
       if config.only_production_apps? && !instance.production_app?
         logger.info("Ignoring instance for non-production app: #{instance}")
@@ -554,7 +554,7 @@ module Dea
     def handle_dea_stop(message)
       msg_obj = Schemata::DEA::StopRequest.decode(message.data)
 
-      instances_filtered_by_message(message) do |instance|
+      instances_filtered_by_message(msg_obj) do |instance|
         next if !instance.running?
 
         instance.stop do |error|
@@ -566,10 +566,8 @@ module Dea
     def handle_dea_discover(message)
       msg_obj = Schemata::DEA::DiscoverRequest.decode(message.data)
 
-      data = Yajl::Parser.parse(message.data)
-
-      runtime = data["runtime"]
-      rs = data["limits"]
+      runtime = msg_obj.runtime
+      rs = msg_obj.limits
 
       if !runtimes.has_key?(runtime)
         logger.info("Unsupported runtime '#{runtime}'")
@@ -579,7 +577,7 @@ module Dea
         return
       end
 
-      delay = calculate_discover_delay(data["droplet"].to_s)
+      delay = calculate_discover_delay(msg_obj.droplet.to_s)
 
       logger.debug("Delaying discover response for #{delay} secs.")
 
@@ -604,10 +602,8 @@ module Dea
     def handle_dea_update(message)
       msg_obj = Schemata::DEA::UpdateRequest.decode(message.data)
 
-      data = Yajl::Parser.parse(message.data)
-
-      app_id = data["droplet"].to_s
-      uris = data["uris"]
+      app_id = msg_obj.droplet.to_s
+      uris = msg_obj.uris
 
       instance_registry.instances_for_application(app_id).each do |_, instance|
         current_uris = instance.application_uris
@@ -632,10 +628,10 @@ module Dea
     def handle_dea_find_droplet(message)
       msg_obj = Schemata::DEA::FindDropletRequest.decode(message.data)
 
-      instances_filtered_by_message(message) do |instance|
+      instances_filtered_by_message(msg_obj) do |instance|
         response = Dea::Protocol::V1::FindDropletResponse.generate(self,
                                                                    instance,
-                                                                   Yajl::Parser.parse(message.data))
+                                                                   msg_obj.contents)
         message.respond(response)
       end
 
@@ -759,8 +755,7 @@ module Dea
     end
 
     def instances_filtered_by_message(message)
-      data = Yajl::Parser.parse(message.data)
-      app_id = data["droplet"].to_s
+      app_id = message.droplet.to_s
 
       if app_id
         logger.debug2("Filter message for app_id: %s" % app_id, :app_id => app_id)
@@ -778,11 +773,10 @@ module Dea
       set_or_nil = lambda { |h, k| h.has_key?(k) ? Set.new(h[k]) : nil }
 
       # Optional search filters
-      version        = data["version"]
-      instance_ids   = set_or_nil.call(data, "instances")
-      instance_ids ||= set_or_nil.call(data, "instance_ids")
-      indices        = set_or_nil.call(data, "indices")
-      states         = set_or_nil.call(data, "states")
+      version        = message.version
+      instance_ids ||= message.instance_ids
+      indices        = message.indices
+      states         = message.states
       states         = states.map { |e| Dea::Instance::State.from_external(e) } unless states.nil?
 
       instances.each do |_, instance|
