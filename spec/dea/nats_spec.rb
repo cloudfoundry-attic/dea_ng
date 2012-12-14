@@ -52,7 +52,7 @@ describe Dea::Nats do
 
         bootstrap.should_receive(method).with(kind_of(Dea::Nats::Message)) do |message|
           message.subject.should == subject
-          message.data.should == data
+          message.data.should == Yajl::Encoder.encode(data)
         end
 
         nats_client.receive_message(subject, data)
@@ -71,7 +71,7 @@ describe Dea::Nats do
   describe "message" do
     it "should be able to respond" do
       nats.subscribe("echo") do |message|
-        message.respond(message.data)
+        message.respond(Yajl::Parser.parse(message.data))
       end
 
       nats_client.should_receive(:publish).with("echo.reply", %{{"hello":"world"}})
