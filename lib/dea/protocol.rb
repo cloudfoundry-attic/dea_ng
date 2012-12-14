@@ -26,10 +26,14 @@ module Dea::Protocol::V1
         }
       end
 
-      { "droplets" => hbs,
+      response = {
+        "droplets" => hbs,
         "dea"      => bootstrap.uuid,
         "prod"     => bootstrap.config.only_production_apps?,
       }
+
+      msg_obj = Schemata::DEA::HeartbeatResponse::V1.new(response)
+      Yajl::Parser.parse(msg_obj.encode)
     end
   end
 
