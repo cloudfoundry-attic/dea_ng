@@ -47,16 +47,19 @@ module Dea
       }
 
       req = Schemata::Router::RegisterRequest::V1.new(req)
-      Yajl::Parser.parse(req.encode)
+      req.encode
     end
 
     # Same format is used for both registration and unregistration
     def generate_directory_server_request(host, port, uri)
-      { "host" => host,
+      req = {
+        "host" => host,
         "port" => port,
         "uris" => [uri],
         "tags" => {},
       }
+      req = Schemata::Router::RegisterRequest::V1.new(req)
+      req.encode
     end
   end
 end

@@ -65,7 +65,7 @@ module Dea
     end
 
     def publish(subject, data)
-      client.publish(subject, Yajl::Encoder.encode(data))
+      client.publish(subject, data)
     end
 
     def subscribe(subject)

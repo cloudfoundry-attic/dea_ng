@@ -161,7 +161,10 @@ describe Dea::Bootstrap do
       nats_mock.should_receive(:publish) do |subject, message|
         subject.should == "router.unregister"
 
-        message.should be_an_instance_of Hash
+        message.should be_an_instance_of(String)
+
+        message = Yajl::Parser.parse(message)
+
         message["host"].should == bootstrap.local_ip
         message["port"].should == bootstrap.config["directory_server"]["v2_port"]
         message["uris"].size.should == 1
