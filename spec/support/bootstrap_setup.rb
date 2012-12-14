@@ -76,6 +76,9 @@ shared_context "bootstrap_setup" do
   def create_and_register_instance(bootstrap, instance_attributes = {})
     base_attributes = {
       "application_name"    => "foo",
+      "application_id"      => "deadbeef",
+      "application_version" => "deadbeef",
+      "instance_index"      => 0,
       "framework_name"      => "rails",
       "runtime_name"        => "ruby18",
       "application_uris"    => ["foo.com"],
