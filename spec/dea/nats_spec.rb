@@ -71,7 +71,7 @@ describe Dea::Nats do
   describe "message" do
     it "should be able to respond" do
       nats.subscribe("echo") do |message|
-        message.respond(Yajl::Parser.parse(message.data))
+        message.respond(message.data)
       end
 
       nats_client.should_receive(:publish).with("echo.reply", %{{"hello":"world"}})
