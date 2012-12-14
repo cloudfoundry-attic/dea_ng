@@ -30,8 +30,8 @@ describe Dea do
       5.times do |ii|
         instance = create_and_register_instance(bootstrap,
                                                 "cc_partition"        => "partition",
-                                                "application_id"      => ii,
-                                                "application_version" => ii,
+                                                "application_id"      => ii.to_s,
+                                                "application_version" => ii.to_s,
                                                 "instance_index"      => ii)
         instance.state = Dea::Instance::State::RUNNING
         instances << instance
@@ -63,7 +63,7 @@ describe Dea do
 
       # Register instances
       2.times do |ii|
-        instance = create_and_register_instance(bootstrap, "application_id" => ii)
+        instance = create_and_register_instance(bootstrap, "application_id" => ii.to_s)
         instance.state = Dea::Instance::State::RUNNING
       end
 
