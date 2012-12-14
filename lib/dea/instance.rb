@@ -727,7 +727,7 @@ module Dea
 
         request = ::Warden::Protocol::CopyOutRequest.new
         request.handle = attributes["warden_handle"]
-        request.src_path = "/app"
+        request.src_path = "/app/"
         request.dst_path = new_instance_path
         request.owner = Process.uid.to_s
 
