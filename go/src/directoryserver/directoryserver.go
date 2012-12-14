@@ -205,17 +205,6 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.listPath(w, r, p)
 }
 
-func startServer(listener *net.Listener, deaHost string, deaPort uint16,
-	streamingTimeout uint32) error {
-	h := handler{}
-	h.deaHost = deaHost
-	h.deaPort = deaPort
-	h.streamingTimeout = streamingTimeout
-	h.deaClient = &DeaClient{Host: h.deaHost, Port: h.deaPort}
-
-	return http.Serve(*listener, h)
-}
-
 // Starts the directory server at the specified host, port. Validates HTTP
 // requests with the DEA's HTTP server which serves requests on the same host and
 // specified DAE port.
@@ -231,6 +220,13 @@ func Start(host string, config *common.Config) error {
 		config.Server.DirServerPort)
 	log.Info(msg)
 
-	return startServer(&listener, "127.0.0.1", config.Server.DeaPort,
-		config.Server.StreamingTimeout)
+	h := handler{
+		deaHost:          "127.0.0.1",
+		deaPort:          config.Server.DeaPort,
+		streamingTimeout: config.Server.StreamingTimeout,
+	}
+
+	h.deaClient = &DeaClient{Host: h.deaHost, Port: h.deaPort}
+
+	return http.Serve(listener, h)
 }
