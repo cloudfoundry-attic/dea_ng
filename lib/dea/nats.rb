@@ -89,8 +89,7 @@ module Dea
 
     class Message
       def self.decode(nats, subject, raw_data, respond_to)
-        data = Yajl::Parser.parse(raw_data)
-        new(nats, subject, data, respond_to)
+        new(nats, subject, raw_data, respond_to)
       end
 
       attr_reader :nats

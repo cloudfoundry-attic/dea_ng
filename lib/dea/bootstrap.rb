@@ -513,9 +513,8 @@ module Dea
     end
 
     def handle_router_start(message)
-      msg_obj = Schemata::Router::StartMessage.decode(
-        Yajl::Encoder.encode(message.data)
-      )
+      msg_obj = Schemata::Router::StartMessage.decode(message.data)
+
       instance_registry.each do |instance|
         next if !instance.running? || instance.application_uris.empty?
         router_client.register_instance(instance)
@@ -529,11 +528,9 @@ module Dea
     end
 
     def handle_dea_directed_start(message)
-      msg_obj = Schemata::DEA::StartRequest.decode(
-        Yajl::Encoder.encode(message.data)
-      )
+      msg_obj = Schemata::DEA::StartRequest.decode(message.data)
 
-      instance = create_instance(message.data)
+      instance = create_instance(Yajl::Parser.parse(message.data))
 
       if config.only_production_apps? && !instance.production_app?
         logger.info("Ignoring instance for non-production app: #{instance}")
@@ -555,9 +552,7 @@ module Dea
     end
 
     def handle_dea_stop(message)
-      msg_obj = Schemata::DEA::StopRequest.decode(
-        Yajl::Encoder.encode(message.data)
-      )
+      msg_obj = Schemata::DEA::StopRequest.decode(message.data)
 
       instances_filtered_by_message(message) do |instance|
         next if !instance.running?
@@ -569,12 +564,12 @@ module Dea
     end
 
     def handle_dea_discover(message)
-      msg_obj = Schemata::DEA::DiscoverRequest.decode(
-        Yajl::Encoder.encode(message.data)
-      )
+      msg_obj = Schemata::DEA::DiscoverRequest.decode(message.data)
 
-      runtime = message.data["runtime"]
-      rs = message.data["limits"]
+      data = Yajl::Parser.parse(message.data)
+
+      runtime = data["runtime"]
+      rs = data["limits"]
 
       if !runtimes.has_key?(runtime)
         logger.info("Unsupported runtime '#{runtime}'")
@@ -584,7 +579,7 @@ module Dea
         return
       end
 
-      delay = calculate_discover_delay(message.data["droplet"].to_s)
+      delay = calculate_discover_delay(data["droplet"].to_s)
 
       logger.debug("Delaying discover response for #{delay} secs.")
 
@@ -607,12 +602,12 @@ module Dea
     end
 
     def handle_dea_update(message)
-      msg_obj = Schemata::DEA::UpdateRequest.decode(
-        Yajl::Encoder.encode(message.data)
-      )
+      msg_obj = Schemata::DEA::UpdateRequest.decode(message.data)
 
-      app_id = message.data["droplet"].to_s
-      uris = message.data["uris"]
+      data = Yajl::Parser.parse(message.data)
+
+      app_id = data["droplet"].to_s
+      uris = data["uris"]
 
       instance_registry.instances_for_application(app_id).each do |_, instance|
         current_uris = instance.application_uris
@@ -635,14 +630,12 @@ module Dea
     end
 
     def handle_dea_find_droplet(message)
-      msg_obj = Schemata::DEA::FindDropletRequest.decode(
-        Yajl::Encoder.encode(message.data)
-      )
+      msg_obj = Schemata::DEA::FindDropletRequest.decode(message.data)
 
       instances_filtered_by_message(message) do |instance|
         response = Dea::Protocol::V1::FindDropletResponse.generate(self,
                                                                    instance,
-                                                                   message.data)
+                                                                   Yajl::Parser.parse(message.data))
         message.respond(response)
       end
 
@@ -766,7 +759,8 @@ module Dea
     end
 
     def instances_filtered_by_message(message)
-      app_id = message.data["droplet"].to_s
+      data = Yajl::Parser.parse(message.data)
+      app_id = data["droplet"].to_s
 
       if app_id
         logger.debug2("Filter message for app_id: %s" % app_id, :app_id => app_id)
@@ -784,11 +778,11 @@ module Dea
       set_or_nil = lambda { |h, k| h.has_key?(k) ? Set.new(h[k]) : nil }
 
       # Optional search filters
-      version        = message.data["version"]
-      instance_ids   = set_or_nil.call(message.data, "instances")
-      instance_ids ||= set_or_nil.call(message.data, "instance_ids")
-      indices        = set_or_nil.call(message.data, "indices")
-      states         = set_or_nil.call(message.data, "states")
+      version        = data["version"]
+      instance_ids   = set_or_nil.call(data, "instances")
+      instance_ids ||= set_or_nil.call(data, "instance_ids")
+      indices        = set_or_nil.call(data, "indices")
+      states         = set_or_nil.call(data, "states")
       states         = states.map { |e| Dea::Instance::State.from_external(e) } unless states.nil?
 
       instances.each do |_, instance|
