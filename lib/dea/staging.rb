@@ -63,7 +63,7 @@ module Dea
     end
 
     def start(&callback)
-     p = Promise.new do
+      p = Promise.new do
         logger.info("<staging> Starting staging task")
         logger.info("<staging> Setting up temporary directories")
         logger.info("<staging> Working dir in #{workspace_dir}")
@@ -81,7 +81,7 @@ module Dea
         ].each(&:resolve)
 
         p.deliver
-     end
+      end
 
       resolve(p, "stage app") do |error, _|
         logger.info("<staging> Finished with error: #{error.to_s}") if error
@@ -119,7 +119,7 @@ module Dea
 
     def promise_pack_app
       Promise.new do |p|
-        script = "cd #{WARDEN_STAGED_DIR} && COPYFILE_DISABLE=true tar -czf #{WARDEN_STAGED_DROPLET} *"
+        script = "cd #{WARDEN_STAGED_DIR} && COPYFILE_DISABLE=true tar -czf #{WARDEN_STAGED_DROPLET} ."
         promise_warden_run(:app, script).resolve
 
         p.deliver
@@ -232,8 +232,8 @@ Content-Type: application/octet-stream
       boundary, multipart_file_path = create_multipart_file(staged_droplet_path)
 
       http = EM::HttpRequest.new(attributes["upload_uri"]).post(
-        head: {"Content-Type" => "multipart/form-data; boundary=#{boundary}"},
-        file: multipart_file_path
+          head: {"Content-Type" => "multipart/form-data; boundary=#{boundary}"},
+          file: multipart_file_path
       )
 
       logger.info("<staging> Sent upload request")
@@ -362,8 +362,12 @@ Content-Type: application/octet-stream
 
     def staging_environment
       {
-        "GEM_PATH" => shared_gems_dir,
-        "PLATFORM_CONFIG" => platform_config_path
+          "GEM_PATH" => shared_gems_dir,
+          "PLATFORM_CONFIG" => platform_config_path,
+          "C_INCLUDE_PATH" => "/var/vcap/packages/mysqlclient/include/mysql:/var/vcap/packages/sqlite/include:/var/vcap/packages/libpq/include:/var/vcap/packages/imagemagick/include/ImageMagick:#{ENV['C_INCLUDE_PATH']}",
+          "LIBRARY_PATH" => "/var/vcap/packages/mysqlclient/lib/mysql:/var/vcap/packages/sqlite/lib:/var/vcap/packages/libpq/lib:/var/vcap/packages/imagemagick/lib",
+          "LD_LIBRARY_PATH" => "/var/vcap/packages/mysqlclient/lib/mysql:/var/vcap/packages/sqlite/lib:/var/vcap/packages/libpq/lib:/var/vcap/packages/imagemagick/lib",
+          "PATH" => ENV['PATH']
       }
     end
   end
