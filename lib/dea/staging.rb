@@ -15,6 +15,7 @@ module Dea
     WARDEN_UNSTAGED_DIR = "/tmp/unstaged"
     WARDEN_STAGED_DIR = "/tmp/staged"
     WARDEN_STAGED_DROPLET = "/tmp/#{DROPLET_FILE}"
+    WARDEN_CACHE = "/tmp/cache"
 
     class DownloadError < StandardError
       attr_reader :data
@@ -59,7 +60,10 @@ module Dea
 
       StagingPlugin::Config.to_file(plugin_config, plugin_config_path)
 
-      File.open(platform_config_path, "w") { |f| YAML.dump(config["platform_config"], f) }
+      platform_config = config["platform_config"]
+      platform_config["cache"] = WARDEN_CACHE
+
+      File.open(platform_config_path, "w") { |f| YAML.dump(platform_config, f) }
     end
 
     def start(&callback)
@@ -95,7 +99,6 @@ module Dea
     def promise_stage
       Promise.new do |p|
         script = "mkdir #{WARDEN_STAGED_DIR} && "
-        script << "mkdir -p #{config["platform_config"]["cache"]} && "
         script += [staging_environment.map {|k, v| "#{k}=#{v}"}.join(" "),
                    bootstrap.config["dea_ruby"], run_plugin_path,
                    attributes["properties"]["framework_info"]["name"],
