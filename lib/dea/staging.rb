@@ -51,6 +51,36 @@ module Dea
       @logger ||= self.class.logger.tag(tags)
     end
 
+    def start(&callback)
+      staging_promise = Promise.new do |p|
+        logger.info("<staging> Starting staging task")
+        logger.info("<staging> Setting up temporary directories")
+        logger.info("<staging> Working dir in #{workspace_dir}")
+
+        prepare_workspace
+
+        [ promise_app_download, promise_create_container ].each(&:run).each(&:resolve)
+
+        [
+            promise_unpack_app,
+            promise_stage,
+            promise_pack_app,
+            promise_copy_out,
+            promise_app_upload
+        ].each(&:resolve)
+
+        p.deliver
+      end
+
+      resolve(staging_promise, "stage app") do |error, _|
+        logger.info("<staging> Finished with error: #{error.to_s}") if error
+        callback.call(error) unless callback.nil?
+      end
+    ensure
+      # TODO: destroy opened container
+      # TODO: Remove tmpdir
+    end
+
     def prepare_workspace
       plugin_config = {
         "source_dir"   => WARDEN_UNSTAGED_DIR,
@@ -64,36 +94,6 @@ module Dea
       platform_config["cache"] = WARDEN_CACHE
 
       File.open(platform_config_path, "w") { |f| YAML.dump(platform_config, f) }
-    end
-
-    def start(&callback)
-      p = Promise.new do
-        logger.info("<staging> Starting staging task")
-        logger.info("<staging> Setting up temporary directories")
-        logger.info("<staging> Working dir in #{workspace_dir}")
-
-        prepare_workspace
-
-        logger.info("<staging> Downloading application from #{attributes["download_uri"]}")
-
-        # Concurrently download app and setup container
-        [promise_app_download, promise_create_container].each(&:run).each(&:resolve)
-
-        [
-          promise_unpack_app,promise_stage, promise_pack_app,
-          promise_copy_out, promise_app_upload
-        ].each(&:resolve)
-
-        p.deliver
-      end
-
-      resolve(p, "stage app") do |error, _|
-        logger.info("<staging> Finished with error: #{error.to_s}") if error
-        callback.call(error) unless callback.nil?
-      end
-    ensure
-      # TODO: destroy opened container
-      # TODO: Remove tmpdir
     end
 
     def promise_stage
@@ -131,8 +131,18 @@ module Dea
 
     def promise_app_download
       Promise.new do |p|
-        download_app do |error|
-          error ? p.fail(error) : p.deliver
+        logger.info("<staging> Downloading application from #{attributes["download_uri"]}")
+
+        get_app do |err, path|
+          if !err
+            File.rename(path, downloaded_droplet_path)
+            File.chmod(0744, downloaded_droplet_path)
+
+            logger.debug "<staging> Moved droplet to #{downloaded_droplet_path}"
+            p.deliver
+          else
+            p.fail(err)
+          end
         end
       end
     end
@@ -173,29 +183,6 @@ module Dea
           end
 
           while blk = @upload_waiting.shift
-            blk.call(err)
-          end
-        end
-      end
-    end
-
-    def download_app(&blk)
-      @download_waiting ||= []
-      @download_waiting << blk
-
-      logger.debug "<staging> Waiting for download to complete"
-
-      if @download_waiting.size == 1
-        # Fire off request when this is the first call to #download
-        get_app do |err, path|
-          if !err
-            File.rename(path, downloaded_droplet_path)
-            File.chmod(0744, downloaded_droplet_path)
-
-            logger.debug "<staging> Moved droplet to #{downloaded_droplet_path}"
-          end
-
-          while blk = @download_waiting.shift
             blk.call(err)
           end
         end

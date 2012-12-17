@@ -14,6 +14,7 @@ describe Dea::Staging do
   end
   let(:logger) do
     mock = mock("logger")
+    mock.stub(:debug)
     mock.stub(:debug2)
     mock.stub(:info)
     mock.stub(:warn)
@@ -25,53 +26,49 @@ describe Dea::Staging do
   before do
     staging.stub(:workspace_dir) { workspace_dir }
     staging.stub(:staged_droplet_path) { __FILE__ }
+    staging.stub(:downloaded_droplet_path) { "/path/to/downloaded/droplet" }
     staging.stub(:logger) { logger }
-  end
-
-  describe '#start' do
-    it 'should be delivered' do
-
-    end
-  end
-
-  describe '#promise_stage' do
-
-  end
-
-  describe '#promise_unpack_app' do
-  end
-
-  describe '#promise_pack_app' do
   end
 
   describe '#promise_app_download' do
     subject do
       promise = staging.promise_app_download
-      promise.run
+      promise.resolve
       promise
     end
 
     context 'when there is an error' do
-      before { staging.stub(:download_app).and_yield("This is an error") }
-      its(:result) { should == [:fail, "This is an error"] }
+      before { staging.stub(:get_app).and_yield("This is an error", nil) }
+      it { expect { subject }.to raise_error(RuntimeError, "This is an error") }
     end
 
     context 'when there is no error' do
-      before { staging.stub(:download_app).and_yield(nil) }
+      before do
+        File.stub(:rename)
+        File.stub(:chmod)
+        staging.stub(:get_app).and_yield(nil, "/path/to/file")
+      end
       its(:result) { should == [:deliver, nil]}
+
+      it "should rename the file" do
+        File.should_receive(:rename).with("/path/to/file", "/path/to/downloaded/droplet")
+        File.should_receive(:chmod).with(0744, "/path/to/downloaded/droplet")
+        subject
+      end
     end
+
   end
 
   describe '#promise_app_upload' do
     subject do
       promise = staging.promise_app_upload
-      promise.run
+      promise.resolve
       promise
     end
 
     context 'when there is an error' do
       before { staging.stub(:upload_app).and_yield("This is an error") }
-      its(:result) { should == [:fail, "This is an error"] }
+      it { expect { subject }.to raise_error(RuntimeError, "This is an error") }
     end
 
     context 'when there is no error' do
@@ -83,26 +80,23 @@ describe Dea::Staging do
   describe '#promise_copy_out' do
     subject do
       promise = staging.promise_copy_out
-      promise.run
+      promise.resolve
       promise
     end
 
     it 'should print out some info' do
+      staging.stub(:copy_out_request)
       logger.should_receive(:info).with(anything)
       subject
     end
 
-    it "should send copying out request" do
+    it 'should send copying out request' do
       staging.should_receive(:copy_out_request).with(Dea::Staging::WARDEN_STAGED_DROPLET, /.{5,}/)
       subject
     end
   end
 
-  describe '#upload_app' do
-  end
 
-  describe '#download_app' do
-  end
 
   describe '#create_multipart_file' do
     let(:source) { __FILE__ }
