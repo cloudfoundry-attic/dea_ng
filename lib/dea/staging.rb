@@ -16,6 +16,7 @@ module Dea
     WARDEN_STAGED_DIR = "/tmp/staged"
     WARDEN_STAGED_DROPLET = "/tmp/#{DROPLET_FILE}"
     WARDEN_CACHE = "/tmp/cache"
+    BUFFER_SIZE = (1024 * 1024).freeze
 
     class DownloadError < StandardError
       attr_reader :data
@@ -66,7 +67,8 @@ module Dea
             promise_stage,
             promise_pack_app,
             promise_copy_out,
-            promise_app_upload
+            promise_app_upload,
+            promise_destroy
         ].each(&:resolve)
 
         p.deliver
@@ -74,11 +76,9 @@ module Dea
 
       resolve(staging_promise, "stage app") do |error, _|
         logger.info("<staging> Finished with error: #{error.to_s}") if error
+        clean_workspace
         callback.call(error) unless callback.nil?
       end
-    ensure
-      # TODO: destroy opened container
-      # TODO: Remove tmpdir
     end
 
     def prepare_workspace
@@ -189,8 +189,6 @@ module Dea
       end
     end
 
-    BUFFER_SIZE = (1024 * 1024).freeze
-
     def create_multipart_file(source)
       boundary = "mutipart-boundary-#{SecureRandom.uuid}"
 
@@ -222,8 +220,8 @@ Content-Type: application/octet-stream
       boundary, multipart_file_path = create_multipart_file(staged_droplet_path)
 
       http = EM::HttpRequest.new(attributes["upload_uri"]).post(
-          head: {"Content-Type" => "multipart/form-data; boundary=#{boundary}"},
-          file: multipart_file_path
+        head: {"Content-Type" => "multipart/form-data; boundary=#{boundary}"},
+        file: multipart_file_path
       )
 
       logger.info("<staging> Sent upload request")
@@ -300,7 +298,7 @@ Content-Type: application/octet-stream
     end
 
     def clean_workspace
-      FileUtils.rm_rf(workspace_dir) if workspace_dir
+      FileUtils.rm_rf(@workspace_dir) if @workspace_dir
     end
 
     def paths_to_bind
@@ -354,9 +352,9 @@ Content-Type: application/octet-stream
       {
           "GEM_PATH" => shared_gems_dir,
           "PLATFORM_CONFIG" => platform_config_path,
-          "C_INCLUDE_PATH" => "/var/vcap/packages/mysqlclient/include/mysql:/var/vcap/packages/sqlite/include:/var/vcap/packages/libpq/include:/var/vcap/packages/imagemagick/include/ImageMagick:#{ENV['C_INCLUDE_PATH']}",
-          "LIBRARY_PATH" => "/var/vcap/packages/mysqlclient/lib/mysql:/var/vcap/packages/sqlite/lib:/var/vcap/packages/libpq/lib:/var/vcap/packages/imagemagick/lib",
-          "LD_LIBRARY_PATH" => "/var/vcap/packages/mysqlclient/lib/mysql:/var/vcap/packages/sqlite/lib:/var/vcap/packages/libpq/lib:/var/vcap/packages/imagemagick/lib",
+          "C_INCLUDE_PATH" => "#{config["environment"]["C_INCLUDE_PATH"]}:#{ENV['C_INCLUDE_PATH']}",
+          "LIBRARY_PATH" => config["environment"]["LIBRARY_PATH"],
+          "LD_LIBRARY_PATH" => config["environment"]["LD_LIBRARY_PATH"],
           "PATH" => ENV['PATH']
       }
     end

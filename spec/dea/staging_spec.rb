@@ -186,14 +186,18 @@ HEADER
       end
     end
 
-    xit "should call the error callback when a connection error occurs" do
-      EM.stub(:bind_connect).and_raise(EM::ConnectionError)
+    it "should call the error callback when a connection error occurs" do
+      ::EM.stub(:bind_connect).and_raise(::EM::ConnectionError)
 
-      staging.put_app do |err, _|
-        err.should be_a Dea::Staging::UploadError
-        err.data.should == {upload_uri: "http://127.0.0.1:12346/upload"}
+      em do
+        em_start
 
-        done
+        staging.put_app do |err, _|
+          err.should be_a Dea::Staging::UploadError
+          err.data.should == {upload_uri: "http://127.0.0.1:12346/upload"}
+
+          done
+        end
       end
     end
   end

@@ -196,6 +196,38 @@ module Dea
       end
     end
 
+    def promise_destroy
+      Promise.new do |p|
+        request = ::Warden::Protocol::DestroyRequest.new
+        request.handle = attributes["warden_handle"]
+
+        begin
+          response = promise_warden_call_with_retry(:app, request).resolve
+        rescue ::EM::Warden::Client::Error => error
+          logger.warn("Error destroying container: #{error.message}")
+        end
+
+        # Remove container handle from attributes now that it can no longer be used
+        attributes.delete("warden_handle")
+
+        p.deliver
+      end
+    end
+
+    def destroy(&callback)
+      p = Promise.new do
+        logger.info("Destroying instance")
+
+        promise_destroy.resolve
+
+        p.deliver
+      end
+
+      resolve(p, "destroy instance") do |error, _|
+        callback.call(error) unless callback.nil?
+      end
+    end
+
     # Resolve a promise making sure that only one runs at a time.
     def resolve(p, name)
       if @busy
