@@ -55,11 +55,14 @@ type DirectoryServerSuite struct{}
 var _ = Suite(&DirectoryServerSuite{})
 
 func (s *DirectoryServerSuite) TestHandler_ServeHTTP_RequestToDeaFailed(t *C) {
+	lc, hc, pc := startTestServer(http.NotFoundHandler())
+	lc.Close()
+
 	h := handler{
-		deaHost:          "badhost",
-		deaPort:          0,
+		deaHost:          hc,
+		deaPort:          pc,
 		streamingTimeout: 1,
-		deaClient:        &DeaClient{Host: "badhost", Port: 0},
+		deaClient:        &DeaClient{Host: hc, Port: pc},
 	}
 
 	ld, hd, pd := startTestServer(h)
