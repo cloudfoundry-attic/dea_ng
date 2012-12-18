@@ -3,6 +3,7 @@ require "tmpdir"
 require "yaml"
 
 require "vcap/staging"
+require "dea/download"
 require "dea/promise"
 require "dea/task"
 
@@ -17,16 +18,6 @@ module Dea
     WARDEN_STAGED_DROPLET = "/tmp/#{DROPLET_FILE}"
     WARDEN_CACHE = "/tmp/cache"
     BUFFER_SIZE = (1024 * 1024).freeze
-
-    class DownloadError < StandardError
-      attr_reader :data
-
-      def initialize(msg, data = {})
-        @data = data
-        uri = data[:uri] || "(unknown)"
-        super("<staging> Error downloading: %s (%s)" % [uri, msg])
-      end
-    end
 
     class UploadError < StandardError
       attr_reader :data
@@ -74,11 +65,10 @@ module Dea
         p.deliver
       end
 
-      resolve(staging_promise, "stage app") do |error, _|
-        logger.info("<staging> Finished with error: #{error.to_s}") if error
-        clean_workspace
-        callback.call(error) unless callback.nil?
-      end
+      staging_promise.resolve
+
+    ensure
+      clean_workspace
     end
 
     def prepare_workspace
@@ -133,7 +123,7 @@ module Dea
       Promise.new do |p|
         logger.info("<staging> Downloading application from #{attributes["download_uri"]}")
 
-        get_app do |err, path|
+        Download.new(attributes["download_uri"], workspace_dir).download! do |err, path|
           if !err
             File.rename(path, downloaded_droplet_path)
             File.chmod(0744, downloaded_droplet_path)
@@ -249,44 +239,6 @@ Content-Type: application/octet-stream
       end
     end
 
-    def get_app(&blk)
-      file = Tempfile.new("unstaged", workspace_dir)
-      uri = attributes["download_uri"]
-
-      http = EM::HttpRequest.new(uri).get
-
-      http.stream do |chunk|
-        file << chunk
-      end
-
-      context = { :download_uri => uri }
-
-      http.errback do
-        cleanup file do
-          error = DownloadError.new("<staging> Response status: unknown", context)
-          logger.warn(error.message, error.data)
-          blk.call(error)
-        end
-      end
-
-      http.callback do
-        cleanup file do
-          http_status = http.response_header.status
-
-          context[:droplet_http_status] = http_status
-
-          if http_status == 200
-            logger.info("<staging> Downloaded temp app in #{file.path}")
-            blk.call(nil, file.path)
-          else
-            error = DownloadError.new("<staging> HTTP status: #{http_status}", context)
-            logger.warn(error.message, error.data)
-            blk.call(error)
-          end
-        end
-      end
-    end
-
     private
 
     def config
@@ -298,7 +250,7 @@ Content-Type: application/octet-stream
     end
 
     def clean_workspace
-      FileUtils.rm_rf(@workspace_dir) if @workspace_dir
+      FileUtils.rm_rf(workspace_dir)
     end
 
     def paths_to_bind

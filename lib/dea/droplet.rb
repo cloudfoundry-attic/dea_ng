@@ -9,20 +9,6 @@ require "tempfile"
 
 module Dea
   class Droplet
-    class DownloadError < StandardError
-      attr_reader :data
-
-      def initialize(msg, data = {})
-        @data = data
-
-        super("Error downloading: %s (%s)" % [uri, msg])
-      end
-
-      def uri
-        data[:uri] || "(unknown)"
-      end
-    end
-
     attr_reader :base_dir
     attr_reader :sha1
 
@@ -58,7 +44,7 @@ module Dea
 
       if @download_waiting.size == 1
         # Fire off request when this is the first call to #download
-        get(uri) do |err, path|
+        Download.new(uri, droplet_dirname, sha1).download! do |err, path|
           if !err
             File.rename(path, droplet_path)
             File.chmod(0744, droplet_path)
@@ -102,65 +88,7 @@ module Dea
     end
 
     def get(uri, &blk)
-      FileUtils.mkdir_p(droplet_dirname)
 
-      file = Tempfile.new("droplet", droplet_dirname)
-      sha1 = Digest::SHA1.new
-
-      http = EM::HttpRequest.new(uri).get
-
-      http.stream do |chunk|
-        file << chunk
-        sha1 << chunk
-      end
-
-      cleanup = lambda do |&inner|
-        file.close
-
-        begin
-          inner.call
-        ensure
-          File.unlink(file.path) if File.exist?(file.path)
-        end
-      end
-
-      context = { :droplet_uri => uri }
-
-      http.errback do
-        cleanup.call do
-          error = DownloadError.new("Response status: unknown", context)
-          logger.warn(error.message, error.data)
-          blk.call(error)
-        end
-      end
-
-      http.callback do
-        cleanup.call do
-          http_status = http.response_header.status
-
-          context[:droplet_http_status] = http_status
-
-          if http_status == 200
-            sha1_expected = self.sha1
-            sha1_actual   = sha1.hexdigest
-
-            if sha1_expected == sha1_actual
-              blk.call(nil, file.path)
-            else
-              context[:droplet_sha1_expected] = sha1_expected
-              context[:droplet_sha1_actual]   = sha1_actual
-
-              error = DownloadError.new("SHA1 mismatch", context)
-              logger.warn(error.message, error.data)
-              blk.call(error)
-            end
-          else
-            error = DownloadError.new("HTTP status: #{http_status}", context)
-            logger.warn(error.message, error.data)
-            blk.call(error)
-          end
-        end
-      end
     end
   end
 end

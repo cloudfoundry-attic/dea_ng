@@ -3,3 +3,4 @@ go/pkg
 go/bin
 spec_reports
 .idea
+.rvmrc
