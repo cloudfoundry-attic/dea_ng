@@ -1,8 +1,0 @@
-# .pairs - configuration for 'git pair'
-pairs:
-  ms: Maria Shaldybina; mariash
-  tl: Tim Labeeuw; tim
-email:
-  prefix: pair
-  domain: rbcon.com
-  # no_solo_prefix: true
