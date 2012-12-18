@@ -5,11 +5,9 @@ require "dea/staging"
 require "em-http"
 
 describe Dea::Staging do
-  include_context "tmpdir"
-
   let(:bootstrap) do
     mock = mock("bootstrap")
-    mock.stub(:config) { {"base_dir" => ".", "staging" => {}} }
+    mock.stub(:config) { {"base_dir" => ".", "staging" => {"environment" => {}}} }
     mock
   end
   let(:logger) do
@@ -21,13 +19,36 @@ describe Dea::Staging do
     mock
   end
   let(:staging) { Dea::Staging.new(bootstrap, valid_staging_attributes) }
-  let(:workspace_dir) { tmpdir }
+  let(:workspace_dir) { Dir.mktmpdir("somewhere") }
 
   before do
     staging.stub(:workspace_dir) { workspace_dir }
     staging.stub(:staged_droplet_path) { __FILE__ }
     staging.stub(:downloaded_droplet_path) { "/path/to/downloaded/droplet" }
     staging.stub(:logger) { logger }
+  end
+
+  describe "#start" do
+    it "should clean up after itself" do
+      staging.stub(:prepare_workspace).and_raise("Error")
+
+      expect { staging.start }.to raise_error(/Error/)
+
+      File.exists?(workspace_dir).should be_false
+    end
+  end
+
+  describe "#promise_stage" do
+    it "assembles a shell command" do
+      staging.should_receive(:promise_warden_run) do |connection_name, cmd|
+        cmd.should include("mkdir /tmp/staged")
+        cmd.should include("bin/run_plugin")
+        cmd.should include("plugin_config")
+        mock("promise", :resolve => nil)
+      end
+
+      staging.promise_stage.resolve
+    end
   end
 
   describe '#promise_app_download' do
@@ -38,7 +59,7 @@ describe Dea::Staging do
     end
 
     context 'when there is an error' do
-      before { staging.stub(:get_app).and_yield("This is an error", nil) }
+      before { Download.any_instance.stub(:download!).and_yield("This is an error", nil) }
       it { expect { subject }.to raise_error(RuntimeError, "This is an error") }
     end
 
@@ -46,7 +67,7 @@ describe Dea::Staging do
       before do
         File.stub(:rename)
         File.stub(:chmod)
-        staging.stub(:get_app).and_yield(nil, "/path/to/file")
+        Download.any_instance.stub(:download!).and_yield(nil, "/path/to/file")
       end
       its(:result) { should == [:deliver, nil]}
 
@@ -95,8 +116,6 @@ describe Dea::Staging do
       subject
     end
   end
-
-
 
   describe '#create_multipart_file' do
     let(:source) { __FILE__ }
@@ -195,37 +214,6 @@ HEADER
         staging.put_app do |err, _|
           err.should be_a Dea::Staging::UploadError
           err.data.should == {upload_uri: "http://127.0.0.1:12346/upload"}
-
-          done
-        end
-      end
-    end
-  end
-
-  describe '#get_app' do
-    it "should call callback without error" do
-      em do
-        em_start
-
-        staging.get_app do |err, path|
-          err.should be nil
-          path.should =~ /#{workspace_dir}/
-
-          done
-        end
-      end
-    end
-
-    it "should call callback with a HTTP 400+ error" do
-      em do
-        em_start(422)
-
-        staging.get_app do |err, _|
-          err.should be_a Dea::Staging::DownloadError
-          err.data.should == {
-            download_uri: "http://127.0.0.1:12346/download",
-            droplet_http_status: 422
-          }
 
           done
         end
