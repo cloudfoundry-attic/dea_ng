@@ -87,6 +87,8 @@ func (m *maxLatencyWriter) Stop() {
 	m.slk.Lock()
 	defer m.slk.Unlock()
 
-	m.done <- true
-	m.done = nil
+	if m.done != nil {
+		m.done <- true
+		m.done = nil
+	}
 }

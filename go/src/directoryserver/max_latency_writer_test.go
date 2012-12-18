@@ -48,3 +48,30 @@ func (s *MaxLatencyWriterSuite) TestFlush(c *C) {
 
 	y.Stop()
 }
+
+func (s *MaxLatencyWriterSuite) TestStop(c *C) {
+	x := &testWriteFlusher{}
+	y := NewMaxLatencyWriter(x, 10*time.Millisecond)
+
+	c.Check(x.F, Equals, 0)
+
+	y.Stop()
+
+	time.Sleep(15 * time.Millisecond)
+
+	c.Check(x.F, Equals, 0)
+}
+
+func (s *MaxLatencyWriterSuite) TestDoubleStop(c *C) {
+	x := &testWriteFlusher{}
+	y := NewMaxLatencyWriter(x, 10*time.Millisecond)
+
+	c.Check(x.F, Equals, 0)
+
+	y.Stop()
+	y.Stop()
+
+	time.Sleep(15 * time.Millisecond)
+
+	c.Check(x.F, Equals, 0)
+}
