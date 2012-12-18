@@ -39,9 +39,9 @@ func (x *DeaClient) LookupPath(w http.ResponseWriter, r *http.Request) (string, 
 	if res.StatusCode != 200 {
 		// Forward DEA response
 		for h, i := range res.Header {
-			r.Header.Del(h)
+			w.Header().Del(h)
 			for _, j := range i {
-				r.Header.Add(h, j)
+				w.Header().Add(h, j)
 			}
 		}
 

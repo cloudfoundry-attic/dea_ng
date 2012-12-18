@@ -87,7 +87,7 @@ func (s *DeaClientSuite) TestDeaNotStarted(c *C) {
 	c.Check(readBody(r), Matches, ".*unreachable")
 }
 
-func (s *DeaClientSuite) TestDeaStatus200(c *C) {
+func (s *DeaClientSuite) TestDeaStatusOK(c *C) {
 	f := func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintln(w, `{ "instance_path": "/tmp/fuz" }`)
@@ -100,7 +100,7 @@ func (s *DeaClientSuite) TestDeaStatus200(c *C) {
 	c.Check(readBody(r), Equals, "/tmp/fuz")
 }
 
-func (s *DeaClientSuite) TestDeaStatus500(c *C) {
+func (s *DeaClientSuite) TestDeaStatusInternalServerError(c *C) {
 	f := func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintln(w, `internal server error`)
@@ -111,6 +111,19 @@ func (s *DeaClientSuite) TestDeaStatus500(c *C) {
 	r := s.Get("/")
 	c.Check(r.StatusCode, Equals, http.StatusInternalServerError)
 	c.Check(readBody(r), Matches, "internal server error")
+}
+
+func (s *DeaClientSuite) TestDeaStatusInternalServerErrorHeader(c *C) {
+	f := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Hello", "World")
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+
+	s.StartDea(http.HandlerFunc(f))
+
+	r := s.Get("/")
+	c.Check(r.StatusCode, Equals, http.StatusInternalServerError)
+	c.Check(r.Header.Get("X-Hello"), Equals, "World")
 }
 
 func (s *DeaClientSuite) TestDeaRequestPath(c *C) {
