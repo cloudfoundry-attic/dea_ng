@@ -215,6 +215,8 @@ func Start(host string, config *common.Config) error {
 		return err
 	}
 
+	initializeLogger()
+
 	msg := fmt.Sprintf("Starting HTTP server at host: %s on port: %d",
 		host,
 		config.Server.DirServerPort)
