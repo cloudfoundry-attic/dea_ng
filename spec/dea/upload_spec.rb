@@ -3,7 +3,7 @@ require 'dea/upload'
 
 describe Upload do
   around do |example|
-    em do
+    em(timeout: 1) do
       example.call
     end
   end

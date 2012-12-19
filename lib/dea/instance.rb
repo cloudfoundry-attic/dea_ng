@@ -634,7 +634,7 @@ module Dea
       Promise.new do |p|
         new_instance_path = File.join(bootstrap.config.crashes_path, instance_id)
         new_instance_path = File.expand_path(new_instance_path)
-        copy_out_request("/app", new_instance_path)
+        copy_out_request("/app/", new_instance_path)
 
         attributes["instance_path"] = new_instance_path
 

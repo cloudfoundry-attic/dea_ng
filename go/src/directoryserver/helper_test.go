@@ -1,24 +1,20 @@
 package directoryserver
 
 import (
+	"io/ioutil"
+	. "launchpad.net/gocheck"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
 	"testing"
 )
 
+func Test(t *testing.T) { TestingT(t) }
+
 func getBody(response *http.Response) ([]byte, error) {
-	if response.ContentLength <= 0 {
-		return nil, nil
-	}
-
-	body := make([]byte, response.ContentLength)
-	_, err := response.Body.Read(body)
-	if err != nil {
-		return nil, err
-	}
-
-	return body, nil
+	defer response.Body.Close()
+	return ioutil.ReadAll(response.Body)
 }
 
 func checkRequest(received *http.Request, expected *http.Request) bool {
@@ -36,7 +32,7 @@ func checkRequest(received *http.Request, expected *http.Request) bool {
 }
 
 type dummyDeaHandler struct {
-	t            *testing.T
+	t            *C
 	expRequest   *http.Request
 	responseBody *[]byte
 }
@@ -50,4 +46,24 @@ func (handler dummyDeaHandler) ServeHTTP(w http.ResponseWriter,
 	w.Header()["Content-Length"] = []string{strconv.
 		Itoa(len(*(handler.responseBody)))}
 	w.Write(*(handler.responseBody))
+}
+
+func startTestServer(h http.Handler) (net.Listener, string, uint16) {
+	l, err := net.Listen("tcp", "localhost:")
+	if err != nil {
+		panic(err)
+	}
+
+	x := http.Server{Handler: h}
+	go x.Serve(l)
+
+	hs, ps, err := net.SplitHostPort(l.Addr().String())
+	if err != nil {
+		panic(err)
+	}
+
+	hx := hs
+	px, _ := strconv.Atoi(ps)
+
+	return l, hx, uint16(px)
 }
