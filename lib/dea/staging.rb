@@ -4,6 +4,7 @@ require "yaml"
 
 require "vcap/staging"
 require "dea/download"
+require "dea/upload"
 require "dea/promise"
 require "dea/task"
 
@@ -17,17 +18,6 @@ module Dea
     WARDEN_STAGED_DIR = "/tmp/staged"
     WARDEN_STAGED_DROPLET = "/tmp/#{DROPLET_FILE}"
     WARDEN_CACHE = "/tmp/cache"
-    BUFFER_SIZE = (1024 * 1024).freeze
-
-    class UploadError < StandardError
-      attr_reader :data
-
-      def initialize(msg, data = {})
-        @data = data
-        uri = data[:uri] || "(unknown)"
-        super("<staging> Error uploading: %s (%s)" % [uri, msg])
-      end
-    end
 
     attr_reader :attributes
 
@@ -123,15 +113,15 @@ module Dea
       Promise.new do |p|
         logger.info("<staging> Downloading application from #{attributes["download_uri"]}")
 
-        Download.new(attributes["download_uri"], workspace_dir).download! do |err, path|
-          if !err
+        Download.new(attributes["download_uri"], workspace_dir).download! do |error, path|
+          if !error
             File.rename(path, downloaded_droplet_path)
             File.chmod(0744, downloaded_droplet_path)
 
             logger.debug "<staging> Moved droplet to #{downloaded_droplet_path}"
             p.deliver
           else
-            p.fail(err)
+            p.fail(error)
           end
         end
       end
@@ -139,11 +129,12 @@ module Dea
 
     def promise_app_upload
       Promise.new do |p|
-        upload_app do |error|
-          if error
-            p.fail(error)
-          else
+        Upload.new(staged_droplet_path, attributes["upload_uri"]).upload! do |error|
+          if !error
+            logger.info("<staging> Uploaded app to #{attributes["upload_uri"]}")
             p.deliver
+          else
+            p.fail(error)
           end
         end
       end
@@ -156,86 +147,6 @@ module Dea
         copy_out_request(WARDEN_STAGED_DROPLET, staged_droplet_dir)
 
         p.deliver
-      end
-    end
-
-    def upload_app(&blk)
-      @upload_waiting ||= []
-      @upload_waiting << blk
-
-      logger.debug "<staging> Waiting for upload to complete"
-
-      if @upload_waiting.size == 1
-        # Fire off request when this is the first call to #upload
-        put_app do |err, path|
-          if !err
-            logger.debug "<staging> Uploaded droplet"
-          end
-
-          while blk = @upload_waiting.shift
-            blk.call(err)
-          end
-        end
-      end
-    end
-
-    def create_multipart_file(source)
-      boundary = "mutipart-boundary-#{SecureRandom.uuid}"
-
-      multipart_header = <<-DATA
---#{boundary}
-Content-Disposition: form-data; name="upload[droplet]"; filename="droplet.tgz"
-Content-Type: application/octet-stream
-
-      DATA
-      multipart_file = Tempfile.new("droplet", workspace_dir)
-
-      File.open(source, "r") do |source_file|
-        File.open(multipart_file.path, "a") do |dest_file|
-          dest_file.write(multipart_header)
-
-          while (record = source_file.read(BUFFER_SIZE))
-            dest_file.write(record)
-          end
-
-          dest_file.write("\r\n--#{boundary}--")
-        end
-      end
-
-      [boundary, multipart_file.path]
-    end
-
-    def put_app(&blk)
-      logger.info("<staging> Starting upload")
-      boundary, multipart_file_path = create_multipart_file(staged_droplet_path)
-
-      http = EM::HttpRequest.new(attributes["upload_uri"]).post(
-        head: {"Content-Type" => "multipart/form-data; boundary=#{boundary}"},
-        file: multipart_file_path
-      )
-
-      logger.info("<staging> Sent upload request")
-
-      context = { :upload_uri => attributes["upload_uri"] }
-
-      http.errback do
-        logger.info("<staging> Got upload error")
-        error = UploadError.new("<staging> Response status: unknown", context)
-        logger.warn(error.message, error.data)
-        blk.call(error)
-      end
-
-      http.callback do
-        logger.info("<staging> Got upload callback")
-        http_status = http.response_header.status
-        if http_status == 200
-          logger.info("<staging> Uploaded app to #{attributes["upload_uri"]}")
-          blk.call(nil, staged_droplet_path)
-        else
-          error = UploadError.new("<staging> HTTP status: #{http_status}", context)
-          logger.warn(error.message, error.data)
-          blk.call(error)
-        end
       end
     end
 
