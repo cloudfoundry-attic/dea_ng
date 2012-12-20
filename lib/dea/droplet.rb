@@ -86,9 +86,5 @@ module Dea
     def logger
       @logger ||= self.class.logger.tag(:droplet_sha1 => sha1)
     end
-
-    def get(uri, &blk)
-
-    end
   end
 end

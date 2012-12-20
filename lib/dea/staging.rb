@@ -33,7 +33,7 @@ module Dea
       @logger ||= self.class.logger.tag(tags)
     end
 
-    def start
+    def start(&callback)
       staging_promise = Promise.new do |p|
         logger.info("<staging> Starting staging task")
         logger.info("<staging> Setting up temporary directories")
@@ -57,6 +57,7 @@ module Dea
 
       Promise.resolve(staging_promise) do |error, _|
         clean_workspace
+        callback.call(error) unless callback.nil?
         raise error if error
       end
     end
