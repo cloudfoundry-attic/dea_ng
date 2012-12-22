@@ -58,9 +58,10 @@ module Dea
         bootstrap.handle_droplet_status(message)
       end
 
-      #TODO stager allowed subscription to multiple queues. Do we need?
-      subscribe("staging") do |message|
-        bootstrap.handle_dea_stage(message)
+      if config["staging"] && config["staging"]["enabled"]
+        subscribe("staging") do |message|
+          bootstrap.handle_dea_stage(message)
+        end
       end
     end
 

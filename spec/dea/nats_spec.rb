@@ -6,7 +6,7 @@ require "dea/nats"
 describe Dea::Nats do
   before do
     @config = {
-      "nats_uri" => "nats://something:4222",
+      "nats_uri" => "nats://something:4222"
     }
   end
 
@@ -45,7 +45,7 @@ describe Dea::Nats do
       "dea.stop"            => :handle_dea_stop,
       "dea.update"          => :handle_dea_update,
       "dea.find.droplet"    => :handle_dea_find_droplet,
-      "droplet.status"      => :handle_droplet_status,
+      "droplet.status"      => :handle_droplet_status
     }.each do |subject, method|
       it "should subscribe to #{subject.inspect}" do
         data = { "subject" => subject }
@@ -56,6 +56,43 @@ describe Dea::Nats do
         end
 
         nats_client.receive_message(subject, data)
+      end
+    end
+
+    describe "#staging" do
+      it "does not listen to staging by default" do
+        data = { "subject" => "staging"}
+
+        bootstrap.should_not_receive(:handle_dea_stage)
+
+        nats_client.receive_message("staging", data)
+      end
+
+      context "when the config says to stage things" do
+        before do
+          @config.merge!({"staging" => {"enabled" => true}})
+
+          new_nats = Dea::Nats.new(bootstrap, @config)
+
+          NATS.stub(:connect) do |options|
+            options[:uri].should match(/^nats:/)
+            @new_nats_client = NatsClientMock.new(options)
+          end
+
+          new_nats.start
+        end
+
+
+        it "responds to the staging message" do
+          data = { "subject" => "staging" }
+
+          bootstrap.should_receive(:handle_dea_stage).with(kind_of(Dea::Nats::Message)) do |message|
+            message.subject.should == "staging"
+            message.data.should == data
+          end
+
+          @new_nats_client.receive_message("staging", data)
+        end
       end
     end
   end
