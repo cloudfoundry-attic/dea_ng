@@ -23,7 +23,7 @@ require "dea/nats"
 require "dea/protocol"
 require "dea/resource_manager"
 require "dea/router_client"
-require "dea/staging"
+require "dea/staging_task"
 
 module Dea
   class Bootstrap
@@ -558,12 +558,12 @@ module Dea
 
     def handle_dea_stage(message)
       logger.info("<staging> Got staging request with #{message.data.inspect}")
-      staging = Staging.new(self, message.data)
-      staging.start do |error|
+      staging_task = StagingTask.new(self, message.data)
+      staging_task.start do |error|
         unless error
           result = {
-            "task_id"  => "123",
-            "task_log" => "",
+            "task_id"  => staging_task.task_id,
+            "task_log" => ""
           }
 
           response = Yajl::Encoder.encode(result)

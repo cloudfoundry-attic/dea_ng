@@ -9,7 +9,7 @@ require "dea/promise"
 require "dea/task"
 
 module Dea
-  class Staging < Task
+  class StagingTask < Task
 
     MAX_STAGING_DURATION = 120
 
@@ -31,6 +31,10 @@ module Dea
       tags = {}
 
       @logger ||= self.class.logger.tag(tags)
+    end
+
+    def task_id
+      @task_id ||= VCAP.secure_uuid
     end
 
     def start(&callback)

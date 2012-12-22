@@ -1,10 +1,10 @@
 # coding: UTF-8
 
 require "spec_helper"
-require "dea/staging"
+require "dea/staging_task"
 require "em-http"
 
-describe Dea::Staging do
+describe Dea::StagingTask do
   let(:bootstrap) do
     mock = mock("bootstrap")
     mock.stub(:config) { {"base_dir" => ".", "staging" => {"environment" => {}}} }
@@ -18,7 +18,7 @@ describe Dea::Staging do
     mock.stub(:warn)
     mock
   end
-  let(:staging) { Dea::Staging.new(bootstrap, valid_staging_attributes) }
+  let(:staging) { Dea::StagingTask.new(bootstrap, valid_staging_attributes) }
   let(:workspace_dir) { Dir.mktmpdir("somewhere") }
 
   before do
@@ -26,16 +26,6 @@ describe Dea::Staging do
     staging.stub(:staged_droplet_path) { __FILE__ }
     staging.stub(:downloaded_droplet_path) { "/path/to/downloaded/droplet" }
     staging.stub(:logger) { logger }
-  end
-
-  describe "#start" do
-    it "should clean up after itself" do
-      staging.stub(:prepare_workspace).and_raise("Error")
-
-      expect { staging.start }.to raise_error(/Error/)
-
-      File.exists?(workspace_dir).should be_false
-    end
   end
 
   describe "#promise_stage" do
@@ -48,6 +38,29 @@ describe Dea::Staging do
       end
 
       staging.promise_stage.resolve
+    end
+  end
+
+  describe "#task_id" do
+    it "generates a guid" do
+      VCAP.should_receive(:secure_uuid).and_return("the_uuid")
+      staging.task_id.should == "the_uuid"
+    end
+
+    it "persists" do
+      VCAP.should_receive(:secure_uuid).once.and_return("the_uuid")
+      staging.task_id.should == "the_uuid"
+      staging.task_id.should == "the_uuid"
+    end
+  end
+
+  describe "#start" do
+    it "should clean up after itself" do
+      staging.stub(:prepare_workspace).and_raise("Error")
+
+      expect { staging.start }.to raise_error(/Error/)
+
+      File.exists?(workspace_dir).should be_false
     end
   end
 
@@ -134,7 +147,7 @@ describe Dea::Staging do
     end
 
     it 'should send copying out request' do
-      staging.should_receive(:copy_out_request).with(Dea::Staging::WARDEN_STAGED_DROPLET, /.{5,}/)
+      staging.should_receive(:copy_out_request).with(Dea::StagingTask::WARDEN_STAGED_DROPLET, /.{5,}/)
       subject
     end
   end

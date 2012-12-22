@@ -22,6 +22,33 @@ describe Dea::Bootstrap do
     Dea::Bootstrap.new(@config)
   end
 
+  describe "#handle_dea_stage" do
+    let(:nats) { stub(:nats) }
+    let(:message) { Dea::Nats::Message.new(nats, nil, {}, nil) }
+
+    before do
+      Dea::StagingTask.any_instance.should_receive(:start).and_yield(nil)
+    end
+
+    it "responds to the message when staging is finished" do
+      Dea::StagingTask.any_instance.stub(:task_id)
+      Dea::StagingTask.any_instance.stub(:task_log)
+
+      nats.should_receive(:publish)
+
+      bootstrap.handle_dea_stage(message)
+    end
+
+    it "responds to the message when staging is finished" do
+      Dea::StagingTask.any_instance.should_receive(:task_id).and_return("the_uuid")
+
+      expected_message = {"task_id" => "the_uuid", "task_log" => ""}.to_json
+      nats.should_receive(:publish).with(nil, expected_message)
+
+      bootstrap.handle_dea_stage(message)
+    end
+  end
+
   describe "logging setup" do
     after do
       bootstrap.setup_logging
