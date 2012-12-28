@@ -860,8 +860,16 @@ describe Dea::Instance do
 
       it "should run sed" do
         instance.stub(:promise_warden_run) do |_, script|
-          script.should =~ /^sed /
+          script.should =~ /sed /
+          delivering_promise
+        end
 
+        expect_start.to_not raise_error
+      end
+
+      it "should use startup script from correct location" do
+        instance.stub(:promise_warden_run) do |_, script|
+          script.should =~ /#{Regexp.escape("if [ -d .cloudfoundry ]; then START_SCRIPT='.cloudfoundry/startup'; else START_SCRIPT='startup'; fi")}/
           delivering_promise
         end
 

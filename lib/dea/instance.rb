@@ -535,7 +535,7 @@ module Dea
 
     def promise_prepare_start_script
       Promise.new do |p|
-        script = "sed -i 's@%VCAP_LOCAL_RUNTIME%@#{runtime.executable}@g' startup"
+        script = "#{start_script_command} && sed -i 's@%VCAP_LOCAL_RUNTIME%@#{runtime.executable}@g' $START_SCRIPT"
 
         promise_warden_run(:app, script).resolve
 
@@ -554,7 +554,9 @@ module Dea
           script << "export %s=%s" % [key, value]
         end
 
-        startup = "./startup"
+        script << start_script_command
+
+        startup = "./$START_SCRIPT"
 
         # Pass port to `startup` if we have one
         if self.instance_host_port
@@ -1027,6 +1029,10 @@ module Dea
           end
         end
       end
+    end
+
+    def start_script_command
+      "if [ -d .cloudfoundry ]; then START_SCRIPT='.cloudfoundry/startup'; else START_SCRIPT='startup'; fi"
     end
   end
 end
