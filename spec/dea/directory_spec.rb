@@ -88,6 +88,23 @@ describe Dea::Directory do
     last_response.body.should match(/sentinel\s+\d+\.?\d?K/)
   end
 
+  it "should list directories excluding .cloudfoundry" do
+    cloudfoundry_dir = File.join(@home_dir, ".cloudfoundry")
+    FileUtils.mkdir(cloudfoundry_dir)
+    FileUtils.touch(File.join(cloudfoundry_dir, "stop"))
+
+    get "#{instance.instance_id}"
+
+    last_response.should be_ok
+
+    last_response.body.should match(/app\//)
+    last_response.body.should match(/logs\//)
+    last_response.body.should_not match(/\.cloudfoundry/)
+
+    get "#{instance.instance_id}/app"
+    last_response.body.should match(/sentinel\s+\d+\.?\d?K/)
+  end
+
   it "should forbid requests containing relative path operators" do
     get "#{instance.instance_id}/../.."
 
@@ -124,7 +141,6 @@ describe Dea::Directory do
     FileUtils.symlink(src_path, File.join(@app_dir, "valid_symlink"))
 
     get "#{instance.instance_id}/app/valid_symlink"
-
     last_response.should be_ok
   end
 end

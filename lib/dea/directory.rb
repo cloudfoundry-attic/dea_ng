@@ -137,14 +137,18 @@ module Dea
       glob = F.join(@path, '*')
       root = @path_info.sub(/^\/+/,'').empty?
 
+      new_app_structure = true if File.exists?(F.join(@path, ".cloudfoundry"))
+
       Dir[glob].sort.each do |node|
         stat = stat(node)
         next unless stat
 
         basename = F.basename(node)
 
-        # ignore B29 control files, only return defaults
-        next if root && (basename != 'app' && basename != 'logs' && basename != 'tomcat')
+        unless new_app_structure
+          # ignore B29 control files, only return defaults
+          next if root && (basename != 'app' && basename != 'logs' && basename != 'tomcat')
+        end
         size = stat.directory? ? '-' : filesize_format(stat.size)
         basename << '/'  if stat.directory?
         @files << [ basename, size ]
