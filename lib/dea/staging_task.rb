@@ -14,10 +14,12 @@ module Dea
     MAX_STAGING_DURATION = 120
 
     DROPLET_FILE = "droplet.tgz"
+    STAGING_LOG = "staging.log"
     WARDEN_UNSTAGED_DIR = "/tmp/unstaged"
     WARDEN_STAGED_DIR = "/tmp/staged"
     WARDEN_STAGED_DROPLET = "/tmp/#{DROPLET_FILE}"
     WARDEN_CACHE = "/tmp/cache"
+    WARDEN_STAGING_LOG = "#{WARDEN_STAGED_DIR}/logs/#{STAGING_LOG}"
 
     attr_reader :attributes
 
@@ -37,6 +39,10 @@ module Dea
       @task_id ||= VCAP.secure_uuid
     end
 
+    def task_log
+      File.read(staging_log_path) if File.exists?(staging_log_path)
+    end
+
     def start(&callback)
       staging_promise = Promise.new do |p|
         logger.info("<staging> Starting staging task")
@@ -50,6 +56,7 @@ module Dea
         [
             promise_unpack_app,
             promise_stage,
+            promise_task_log,
             promise_pack_app,
             promise_copy_out,
             promise_app_upload,
@@ -60,10 +67,14 @@ module Dea
       end
 
       Promise.resolve(staging_promise) do |error, _|
-        clean_workspace
-        callback.call(error) unless callback.nil?
-        raise error if error
+        finish_task(error, &callback)
       end
+    end
+
+    def finish_task(error)
+      yield(error) if block_given?
+      clean_workspace
+      raise error if error
     end
 
     def prepare_workspace
@@ -91,6 +102,13 @@ module Dea
         logger.info("<staging> Running #{script}")
         promise_warden_run(:app, script).resolve
 
+        p.deliver
+      end
+    end
+
+    def promise_task_log
+      Promise.new do |p|
+        copy_out_request(WARDEN_STAGING_LOG, File.dirname(staging_log_path))
         p.deliver
       end
     end
@@ -187,6 +205,10 @@ module Dea
 
     def staged_droplet_path
       @staged_droplet_path ||= File.join(workspace_dir, "staged", DROPLET_FILE)
+    end
+
+    def staging_log_path
+      @staging_log_path ||= File.join(workspace_dir, STAGING_LOG)
     end
 
     def plugin_config_path

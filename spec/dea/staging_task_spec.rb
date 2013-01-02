@@ -54,6 +54,26 @@ describe Dea::StagingTask do
     end
   end
 
+  describe "#task_log" do
+    subject { staging.task_log }
+
+    describe "when staging has not yet started" do
+      it { should be_nil }
+    end
+
+    describe "once staging has started" do
+      before do
+        File.open(File.join(workspace_dir, "staging.log"), "w") do |f|
+          f.write "some log content"
+        end
+      end
+
+      it "reads the staging log file" do
+        staging.task_log.should == "some log content"
+      end
+    end
+  end
+
   describe "#start" do
     it "should clean up after itself" do
       staging.stub(:prepare_workspace).and_raise("Error")
@@ -61,6 +81,34 @@ describe Dea::StagingTask do
       expect { staging.start }.to raise_error(/Error/)
 
       File.exists?(workspace_dir).should be_false
+    end
+  end
+
+  describe "#finish_task" do
+    context "when an error is passed" do
+      let(:fake_error) { StandardError.new("fake error") }
+
+      it "calls the callback with the error, then raises the error" do
+        expect {
+          staging.finish_task(fake_error) do |error|
+            error.should == fake_error
+          end
+        }.to raise_error(fake_error)
+      end
+    end
+
+    context "when no error is passed" do
+      it "cleans up the workspace after calling the callback" do
+        callback_called = false
+
+        staging.finish_task(nil) do
+          callback_called = true
+          File.exists?(workspace_dir).should be_true
+        end
+
+        callback_called.should be_true
+        File.exists?(workspace_dir).should be_false
+      end
     end
   end
 
@@ -148,6 +196,19 @@ describe Dea::StagingTask do
 
     it 'should send copying out request' do
       staging.should_receive(:copy_out_request).with(Dea::StagingTask::WARDEN_STAGED_DROPLET, /.{5,}/)
+      subject
+    end
+  end
+
+  describe "#promise_task_log" do
+    subject do
+      promise = staging.promise_task_log
+      promise.resolve
+      promise
+    end
+
+    it 'should send copying out request' do
+      staging.should_receive(:copy_out_request).with(Dea::StagingTask::WARDEN_STAGING_LOG, /#{workspace_dir}/)
       subject
     end
   end

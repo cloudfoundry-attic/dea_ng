@@ -563,11 +563,10 @@ module Dea
         unless error
           result = {
             "task_id"  => staging_task.task_id,
-            "task_log" => ""
+            "task_log" => staging_task.task_log
           }
 
-          response = Yajl::Encoder.encode(result)
-          message.respond(response)
+          message.respond(result)
         end
       end
     end
