@@ -15,17 +15,14 @@ package directoryserver
 import (
 	"bytes"
 	"common"
-	"encoding/json"
 	"fmt"
-	steno "github.com/cloudfoundry/gosteno"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 )
-
-var log steno.Logger
 
 // Returns a string representation of the file size.
 func fileSizeFormat(size int64) string {
@@ -52,7 +49,7 @@ func fileSizeFormat(size int64) string {
 type handler struct {
 	deaHost          string
 	deaPort          uint16
-	deaClient        *deaClient
+	deaClient        *DeaClient
 	streamingTimeout uint32
 }
 
@@ -151,7 +148,18 @@ func (h handler) writeFile(request *http.Request,
 	writer http.ResponseWriter, path string) {
 	var err error
 	if _, present := request.URL.Query()["tail"]; present {
-		err = streamFile(writer, path, h.streamingTimeout)
+		f, err := os.Open(path)
+		if err == nil {
+			_, err = f.Seek(0, os.SEEK_END)
+			if err == nil {
+				s := &StreamHandler{
+					File:          f,
+					FlushInterval: 50 * time.Millisecond,
+					IdleTimeout:   time.Duration(h.streamingTimeout) * time.Second,
+				}
+				s.ServeHTTP(writer, request)
+			}
+		}
 	} else {
 		err = h.dumpFile(request, writer, path)
 	}
@@ -169,24 +177,18 @@ func (h handler) writeFile(request *http.Request,
 //
 // Writes appropriate errors and status codes in the HTTP response if there is
 // a problem in reading the file or directory.
-func (h handler) listPath(request *http.Request, writer http.ResponseWriter,
-	deaResponse *http.Response) {
-	path, err := h.getPath(deaResponse)
+func (h handler) listPath(w http.ResponseWriter, r *http.Request, path string) {
+	info, err := os.Stat(path)
 	if err != nil {
-		h.writeDeaClientError(&err, writer)
-		return
-	}
-
-	info, err := os.Stat(*path)
-	if err != nil {
-		h.writeEntityNotFound(writer)
+		log.Warnf("%s", err)
+		h.writeEntityNotFound(w)
 		return
 	}
 
 	if info.IsDir() {
-		h.listDir(writer, *path)
+		h.listDir(w, path)
 	} else {
-		h.writeFile(request, writer, *path)
+		h.writeFile(r, w, path)
 	}
 }
 
@@ -194,92 +196,39 @@ func (h handler) listPath(request *http.Request, writer http.ResponseWriter,
 // Otherwise, the same HTTP response from the DEA is served as response to
 // the HTTP request.
 func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if h.deaClient == nil {
-		h.deaClient = &deaClient{host: h.deaHost, port: h.deaPort,
-			httpClient: &http.Client{}}
-	}
-
-	deaResponse, err := h.deaClient.get(r.URL.String())
+	p, err := h.deaClient.LookupPath(w, r)
 	if err != nil {
-		h.writeDeaClientError(&err, w)
+		log.Warnf("Error in LookupPath: %s", err)
 		return
 	}
 
-	log.Infof("HTTP response from DEA: %s", deaResponse)
-	if deaResponse.StatusCode == 200 {
-		h.listPath(r, w, deaResponse)
-	} else {
-		h.forwardDeaResponse(w, deaResponse)
-	}
-}
-
-// Extracts the path of the file/directory from the JSON response received
-// from the DEA. Returns an error if there is a problem.
-func (h handler) getPath(deaResponse *http.Response) (*string, error) {
-	jsonBlob := make([]byte, (*deaResponse).ContentLength)
-	_, err := (*deaResponse).Body.Read(jsonBlob)
-	if err != nil {
-		return nil, err
-	}
-
-	var jsonObj interface{}
-	err = json.Unmarshal(jsonBlob, &jsonObj)
-	if err != nil {
-		return nil, err
-	}
-
-	path := jsonObj.(map[string]interface{})["instance_path"].(string)
-	return &path, nil
-}
-
-// Forwards the response received from the DEA as the response of the HTTP
-// request. If there is a problem in reading the body of the HTTP response from
-// the DEA, then writes an internal server error message in the HTTP response
-// and status code to 500.
-func (h handler) forwardDeaResponse(w http.ResponseWriter,
-	deaResponse *http.Response) {
-	body := make([]byte, deaResponse.ContentLength)
-	_, err := deaResponse.Body.Read(body)
-	if err != nil {
-		h.writeServerError(&err, w)
-		return
-	}
-
-	for header, value := range (*deaResponse).Header {
-		w.Header()[header] = value
-	}
-
-	w.WriteHeader(deaResponse.StatusCode)
-	w.Write(body)
-}
-
-func startServer(listener *net.Listener, deaHost string, deaPort uint16,
-	streamingTimeout uint32) error {
-	h := handler{}
-	h.deaHost = deaHost
-	h.deaPort = deaPort
-	h.streamingTimeout = streamingTimeout
-
-	return http.Serve(*listener, h)
+	h.listPath(w, r, p)
 }
 
 // Starts the directory server at the specified host, port. Validates HTTP
 // requests with the DEA's HTTP server which serves requests on the same host and
 // specified DAE port.
 func Start(host string, config *common.Config) error {
-	log = steno.NewLogger("directory_server")
-
 	address := host + ":" + strconv.Itoa(int(config.Server.DirServerPort))
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		return err
 	}
 
+	initializeLogger()
+
 	msg := fmt.Sprintf("Starting HTTP server at host: %s on port: %d",
 		host,
 		config.Server.DirServerPort)
 	log.Info(msg)
 
-	return startServer(&listener, "127.0.0.1", config.Server.DeaPort,
-		config.Server.StreamingTimeout)
+	h := handler{
+		deaHost:          "127.0.0.1",
+		deaPort:          config.Server.DeaPort,
+		streamingTimeout: config.Server.StreamingTimeout,
+	}
+
+	h.deaClient = &DeaClient{Host: h.deaHost, Port: h.deaPort}
+
+	return http.Serve(listener, h)
 }

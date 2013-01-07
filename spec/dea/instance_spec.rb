@@ -1277,5 +1277,21 @@ describe Dea::Instance do
         expect_crash_handler.to_not raise_error
       end
     end
+
+    describe "#promise_copy_out" do
+      before do
+        instance.unstub(:promise_copy_out)
+      end
+
+      it "should copy the contents of a directory" do
+       instance.stub(:promise_warden_call) do |_, request|
+         request.src_path.should =~ %r!/$!
+
+          delivering_promise
+        end
+
+        expect_crash_handler.to_not raise_error
+      end
+    end
   end
 end

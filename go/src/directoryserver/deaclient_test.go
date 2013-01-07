@@ -1,78 +1,166 @@
 package directoryserver
 
 import (
-	"bytes"
+	"fmt"
+	"io/ioutil"
+	. "launchpad.net/gocheck"
 	"net"
 	"net/http"
 	"strconv"
-	"testing"
-	"time"
+	"strings"
 )
 
-func TestDeaClientImpl_ConstructDeaRequest(t *testing.T) {
-	initLoggerInTest()
+type DeaClientSuite struct {
+	DeaListener net.Listener
+}
 
-	dc := deaClient{host: "host", port: 10, httpClient: &http.Client{}}
+var _ = Suite(&DeaClientSuite{})
 
-	expRequest, _ := http.NewRequest("GET", "http://host:10/path", nil)
+func (s *DeaClientSuite) SetUpTest(c *C) {
+	// Nothing to see...
+}
 
-	req, _ := dc.constructDeaRequest("/path")
+func (s *DeaClientSuite) TearDownTest(c *C) {
+	s.StopDea()
+}
 
-	if req.Method != expRequest.Method {
-		t.Fail()
-	}
-	if req.URL.String() != expRequest.URL.String() {
-		t.Fail()
-	}
-	if req.Proto != expRequest.Proto {
-		t.Fail()
-	}
-	if req.Body != expRequest.Body {
-		t.Fail()
-	}
-	if req.ContentLength != expRequest.ContentLength {
-		t.Fail()
-	}
-	if req.Host != expRequest.Host {
-		t.Fail()
+func (s *DeaClientSuite) StartDea(h http.Handler) {
+	l, _, _ := startTestServer(h)
+	s.DeaListener = l
+}
+
+func (s *DeaClientSuite) StopDea() {
+	if s.DeaListener != nil {
+		s.DeaListener.Close()
 	}
 }
 
-func TestDeaClientImpl_Get(t *testing.T) {
-	initLoggerInTest()
-
-	dc := deaClient{host: "localhost", port: 1234,
-		httpClient: &http.Client{}}
-
-	// Start mock DEA server in a separate thread and wait for it to start.
-	l, err := net.Listen("tcp", "localhost:"+strconv.Itoa(1234))
+func (s *DeaClientSuite) Get(path string) *http.Response {
+	hs, ps, err := net.SplitHostPort(s.DeaListener.Addr().String())
 	if err != nil {
-		t.Error(err)
+		panic(err)
 	}
-	expRequest, _ := http.NewRequest("GET", "http://localhost:1234/path", nil)
-	responseBody := []byte("{\"instance_path\" : \"dummy\"}")
 
-	go http.Serve(l,
-		dummyDeaHandler{t, expRequest, &responseBody}) // thread.
-	time.Sleep(2 * time.Millisecond)
+	h := hs
+	p, _ := strconv.Atoi(ps)
+	d := &DeaClient{Host: h, Port: uint16(p)}
 
-	response, err := dc.get("/path")
+	f := func(w http.ResponseWriter, r *http.Request) {
+		p, err := d.LookupPath(w, r)
+		if err != nil {
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintln(w, p)
+	}
+
+	l, hx, px := startTestServer(http.HandlerFunc(f))
+	defer l.Close()
+
+	r, err := http.Get(fmt.Sprintf("http://%s:%d%s", hx, px, path))
 	if err != nil {
-		t.Error(err)
+		panic(err)
 	}
 
-	if response.StatusCode != 200 {
-		t.Fail()
-	}
+	return r
+}
 
-	body, err := getBody(response)
+func readBody(r *http.Response) string {
+	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		t.Error(err)
-	}
-	if bytes.Compare(body, responseBody) != 0 {
-		t.Fail()
+		panic(err)
 	}
 
-	l.Close()
-	time.Sleep(2 * time.Millisecond)
+	r.Body.Close()
+
+	return strings.TrimSpace(string(b))
+}
+
+func (s *DeaClientSuite) TestDeaNotStarted(c *C) {
+	s.StartDea(http.NotFoundHandler())
+	s.StopDea()
+
+	r := s.Get("/")
+	c.Check(r.StatusCode, Equals, http.StatusInternalServerError)
+	c.Check(readBody(r), Matches, ".*unreachable")
+}
+
+func (s *DeaClientSuite) TestDeaStatusOK(c *C) {
+	f := func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintln(w, `{ "instance_path": "/tmp/fuz" }`)
+	}
+
+	s.StartDea(http.HandlerFunc(f))
+
+	r := s.Get("/")
+	c.Check(r.StatusCode, Equals, http.StatusOK)
+	c.Check(readBody(r), Equals, "/tmp/fuz")
+}
+
+func (s *DeaClientSuite) TestDeaStatusInternalServerError(c *C) {
+	f := func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintln(w, `internal server error`)
+	}
+
+	s.StartDea(http.HandlerFunc(f))
+
+	r := s.Get("/")
+	c.Check(r.StatusCode, Equals, http.StatusInternalServerError)
+	c.Check(readBody(r), Matches, "internal server error")
+}
+
+func (s *DeaClientSuite) TestDeaStatusInternalServerErrorHeader(c *C) {
+	f := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Hello", "World")
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+
+	s.StartDea(http.HandlerFunc(f))
+
+	r := s.Get("/")
+	c.Check(r.StatusCode, Equals, http.StatusInternalServerError)
+	c.Check(r.Header.Get("X-Hello"), Equals, "World")
+}
+
+func (s *DeaClientSuite) TestDeaRequestPath(c *C) {
+	f := func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, `{ "instance_path": "%s" }`, r.URL.String())
+	}
+
+	s.StartDea(http.HandlerFunc(f))
+
+	r := s.Get("/some/path/?query")
+	c.Check(r.StatusCode, Equals, http.StatusOK)
+	c.Check(readBody(r), Equals, "/some/path/?query")
+}
+
+func (s *DeaClientSuite) TestDeaInvalidJson(c *C) {
+	f := func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintln(w, `{ "instance_path": xxxx }`)
+	}
+
+	s.StartDea(http.HandlerFunc(f))
+
+	r := s.Get("/")
+	c.Check(r.StatusCode, Equals, http.StatusInternalServerError)
+	c.Check(readBody(r), Matches, ".*invalid JSON")
+}
+
+func (s *DeaClientSuite) TestDeaInvalidJsonField(c *C) {
+	f := func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintln(w, `{ "other_instance_path": "/tmp/fuz" }`)
+	}
+
+	s.StartDea(http.HandlerFunc(f))
+
+	r := s.Get("/")
+	c.Check(r.StatusCode, Equals, http.StatusInternalServerError)
+	c.Check(readBody(r), Matches, ".*invalid JSON")
 }
