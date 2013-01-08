@@ -8,7 +8,7 @@ class NatsClientMock
     @subscriptions = Hash.new { |h, k| h[k] = [] }
   end
 
-  def subscribe(subject, &blk)
+  def subscribe(subject, opts={}, &blk)
     @subscriptions[subject] << blk
   end
 
