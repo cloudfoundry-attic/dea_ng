@@ -446,11 +446,9 @@ module Dea
           promise_warden_call(:app, request).resolve
         end
 
-        if !attributes["application_uris"].empty?
-          response = net_in.call
-          attributes["instance_host_port"]      = response.host_port
-          attributes["instance_container_port"] = response.container_port
-        end
+        response = net_in.call
+        attributes["instance_host_port"]      = response.host_port
+        attributes["instance_container_port"] = response.container_port
 
         if attributes["debug"]
           response = net_in.call
