@@ -1,0 +1,4 @@
+before_install:
+  - git submodule update --init
+
+script: "bin/test"
