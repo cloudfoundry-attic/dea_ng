@@ -26,7 +26,6 @@ set -e
 
 # Test Ruby
 (
-  rvm use 1.9.3
   bundle install
   bundle exec rake spec
 )
