@@ -29,8 +29,15 @@ describe Dea::StagingTask do
   end
 
   describe "#promise_stage" do
+    let(:staging_env) { { "PATH" => "x", "FOO" => "y" } }
     it "assembles a shell command" do
+      staging.should_receive(:staging_environment).and_return(staging_env)
+
       staging.should_receive(:promise_warden_run) do |connection_name, cmd|
+        staging_env.each do |k, v|
+          cmd.should include("#{k}=#{v}")
+        end
+
         cmd.should include("mkdir /tmp/staged")
         cmd.should include("bin/run_plugin")
         cmd.should include("plugin_config")

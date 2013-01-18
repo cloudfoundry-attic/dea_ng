@@ -240,12 +240,12 @@ module Dea
 
     def staging_environment
       {
-          "GEM_PATH" => shared_gems_dir,
-          "PLATFORM_CONFIG" => platform_config_path,
-          "C_INCLUDE_PATH" => "#{config["environment"]["C_INCLUDE_PATH"]}:#{ENV['C_INCLUDE_PATH']}",
-          "LIBRARY_PATH" => config["environment"]["LIBRARY_PATH"],
-          "LD_LIBRARY_PATH" => config["environment"]["LD_LIBRARY_PATH"],
-          "PATH" => ENV['PATH']
+        "GEM_PATH" => shared_gems_dir,
+        "PLATFORM_CONFIG" => platform_config_path,
+        "C_INCLUDE_PATH" => "#{config["environment"]["C_INCLUDE_PATH"]}:#{ENV["C_INCLUDE_PATH"]}",
+        "LIBRARY_PATH" => config["environment"]["LIBRARY_PATH"],
+        "LD_LIBRARY_PATH" => config["environment"]["LD_LIBRARY_PATH"],
+        "PATH" => "#{config["environment"]["PATH"]}:#{ENV["PATH"]}"
       }
     end
   end
