@@ -195,6 +195,7 @@ describe Dea::Bootstrap do
         should_receive(:send_exited_message).
         with(instance, Dea::Bootstrap::EXIT_REASON_EVACUATION)
 
+      bootstrap.should_receive(:stop_sweepers)
       bootstrap.evacuate
     end
 

@@ -247,11 +247,11 @@ module Dea
     def setup_sweepers
       # Heartbeats of instances we're managing
       hb_interval = config["intervals"]["heartbeat"] || DEFAULT_HEARTBEAT_INTERVAL
-      EM.add_periodic_timer(hb_interval) { send_heartbeat(instance_registry.to_a) }
+      @heartbeat_timer = EM.add_periodic_timer(hb_interval) { send_heartbeat(instance_registry.to_a) }
 
       # Notifications for CloudControllers looking to place droplets
       advertise_interval = config["intervals"]["advertise"] || DEFAULT_ADVERTISE_INTERVAL
-      EM.add_periodic_timer(advertise_interval) { send_advertise }
+      @advertise_timer = EM.add_periodic_timer(advertise_interval) { send_advertise }
 
       # Ensure we keep around only the most recent crash for short amount of time
       instance_registry.start_reaper
@@ -260,6 +260,13 @@ module Dea
       EM.add_periodic_timer(DROPLET_REAPER_INTERVAL_SECS) do
         reap_unreferenced_droplets
       end
+    end
+
+    def stop_sweepers
+      # Only need to stop nats-talking sweepers
+      # No need to check the timers, EM code is robust enough
+      EM.cancel_timer(@heartbeat_timer)
+      EM.cancel_timer(@advertise_timer)
     end
 
     attr_reader :directory_server
@@ -645,6 +652,7 @@ module Dea
       end
 
       ignore_signals
+      stop_sweepers
 
       instance_registry.each do |instance|
         next unless instance.running? || instance.starting?
