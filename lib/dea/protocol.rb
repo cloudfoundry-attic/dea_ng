@@ -77,7 +77,7 @@ module Dea::Protocol::V1
           "disk_quota" => instance.disk_limit_in_bytes,
           "fds_quota"  => instance.file_descriptor_limit,
           "usage"      => {
-            "time" => Time.now,
+            "time" => Time.now.to_s,
             "cpu"  => instance.computed_pcpu,
             "mem"  => instance.used_memory_in_bytes / 1024,
             "disk" => instance.used_disk_in_bytes,

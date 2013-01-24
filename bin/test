@@ -1,0 +1,31 @@
+#!/bin/bash
+
+set -x
+set -e
+
+## Bootstrap Go
+#(
+#  cd go
+#  bin/go test -i directoryserver
+#) &
+
+## Bootstrap Ruby
+#(
+#  rvm use 1.9.3
+#  bundle install
+#) &
+
+#wait
+
+# Test Go
+(
+  cd go
+  bin/go test -i directoryserver
+  bin/go test -v directoryserver
+)
+
+# Test Ruby
+(
+  bundle install
+  bundle exec rake spec
+)

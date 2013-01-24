@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/cloudfoundry/dea_ng.png)](https://travis-ci.org/cloudfoundry/dea_ng)
+
 # dea_ng
 
 This repository contains the code for the Droplet Execution Agent (DEA)
