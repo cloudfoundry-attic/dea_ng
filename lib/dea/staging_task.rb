@@ -29,10 +29,7 @@ module Dea
     end
 
     def logger
-      # TODO: add staging info
-      tags = {}
-
-      @logger ||= self.class.logger.tag(tags)
+      @logger ||= self.class.logger.tag({})
     end
 
     def task_id
@@ -56,7 +53,6 @@ module Dea
         [
             promise_unpack_app,
             promise_stage,
-            promise_task_log,
             promise_pack_app,
             promise_copy_out,
             promise_app_upload,
@@ -100,8 +96,12 @@ module Dea
                    attributes["properties"]["framework_info"]["name"],
                    plugin_config_path].join(" ")
         logger.info("<staging> Running #{script}")
-        promise_warden_run(:app, script).resolve
 
+        begin
+          promise_warden_run(:app, script).resolve
+        ensure
+          promise_task_log.resolve
+        end
         p.deliver
       end
     end
@@ -109,6 +109,7 @@ module Dea
     def promise_task_log
       Promise.new do |p|
         copy_out_request(WARDEN_STAGING_LOG, File.dirname(staging_log_path))
+        logger.info "Staging task log: #{task_log}"
         p.deliver
       end
     end

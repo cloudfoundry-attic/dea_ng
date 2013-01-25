@@ -30,7 +30,7 @@ describe Dea::StagingTask do
 
   describe "#promise_stage" do
     let(:staging_env) { { "PATH" => "x", "FOO" => "y" } }
-    it "assembles a shell command" do
+    it "assembles a shell command and initiates collection of task log" do
       staging.should_receive(:staging_environment).and_return(staging_env)
 
       staging.should_receive(:promise_warden_run) do |connection_name, cmd|
@@ -44,7 +44,19 @@ describe Dea::StagingTask do
         mock("promise", :resolve => nil)
       end
 
+      staging.should_receive(:promise_task_log) { mock("promise", :resolve => nil) }
+
       staging.promise_stage.resolve
+    end
+
+    it "initiates collection of task log if script fails to run" do
+      staging.should_receive(:staging_environment).and_return(staging_env)
+
+      staging.should_receive(:promise_warden_run) { raise RuntimeError.new("Script Failed") }
+
+      staging.should_receive(:promise_task_log) { mock("promise", :resolve => nil) }
+
+      expect { staging.promise_stage.resolve }.to raise_error "Script Failed"
     end
   end
 
@@ -215,6 +227,12 @@ describe Dea::StagingTask do
     end
 
     it 'should send copying out request' do
+      staging.should_receive(:copy_out_request).with(Dea::StagingTask::WARDEN_STAGING_LOG, /#{workspace_dir}/)
+      subject
+    end
+
+    it "should write the staging log to the main logger" do
+      logger.should_receive(:info).with(anything)
       staging.should_receive(:copy_out_request).with(Dea::StagingTask::WARDEN_STAGING_LOG, /#{workspace_dir}/)
       subject
     end
