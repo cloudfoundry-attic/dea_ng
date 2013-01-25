@@ -26,24 +26,23 @@ describe Dea::Bootstrap do
     let(:nats) { stub(:nats) }
     let(:message) { Dea::Nats::Message.new(nats, nil, {}, nil) }
 
-    before do
+    it "responds to the message when staging is finished" do
       Dea::StagingTask.any_instance.should_receive(:start).and_yield(nil)
-    end
-
-    it "responds to the message when staging is finished" do
-      Dea::StagingTask.any_instance.stub(:task_id)
-      Dea::StagingTask.any_instance.stub(:task_log)
-
-      nats.should_receive(:publish)
-
-      bootstrap.handle_dea_stage(message)
-    end
-
-    it "responds to the message when staging is finished" do
       Dea::StagingTask.any_instance.should_receive(:task_id).and_return("the_uuid")
       Dea::StagingTask.any_instance.should_receive(:task_log).and_return("some log here")
 
       expected_message = {"task_id" => "the_uuid", "task_log" => "some log here"}
+      nats.should_receive(:publish).with(nil, expected_message)
+
+      bootstrap.handle_dea_stage(message)
+    end
+
+    it "responds to the message when staging raises an error" do
+      Dea::StagingTask.any_instance.should_receive(:start).and_yield(RuntimeError.new("Staging Failed"))
+      Dea::StagingTask.any_instance.should_receive(:task_id).and_return("the_uuid")
+      Dea::StagingTask.any_instance.should_receive(:task_log).and_return("some log here")
+
+      expected_message = {"task_id" => "the_uuid", "task_log" => "some log here", "error" => "Staging Failed"}
       nats.should_receive(:publish).with(nil, expected_message)
 
       bootstrap.handle_dea_stage(message)

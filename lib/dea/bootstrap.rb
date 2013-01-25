@@ -567,14 +567,12 @@ module Dea
       logger.info("<staging> Got staging request with #{message.data.inspect}")
       staging_task = StagingTask.new(self, message.data)
       staging_task.start do |error|
-        unless error
-          result = {
-            "task_id"  => staging_task.task_id,
-            "task_log" => staging_task.task_log
-          }
-
-          message.respond(result)
-        end
+        result = {
+          "task_id"  => staging_task.task_id,
+          "task_log" => staging_task.task_log
+        }
+        result["error"] = error.to_s if error
+        message.respond(result)
       end
     end
 
