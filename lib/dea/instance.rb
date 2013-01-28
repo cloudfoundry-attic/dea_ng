@@ -607,15 +607,15 @@ module Dea
       p = Promise.new do
         logger.info("Stopping instance")
 
+        promise_exec_hook_script('before_stop').resolve
+
         promise_state(State::RUNNING, State::STOPPING).resolve
 
-        promise_exec_hook_script('before_stop').resolve
+        promise_exec_hook_script('after_stop').resolve
 
         promise_stop.resolve
 
         promise_state(State::STOPPING, State::STOPPED).resolve
-
-        promise_exec_hook_script('after_stop').resolve
 
         p.deliver
       end
