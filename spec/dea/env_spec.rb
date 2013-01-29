@@ -199,7 +199,7 @@ describe Dea::Env do
 
     it "includes the time the instance was started" do
       application_for_json["started_at"].should be_a(Time)
-      application_for_json["started_at_timestamp"].should be_a(Fixnum)
+      application_for_json["started_at_timestamp"].should be_a(Integer)
     end
 
     it "includes the host and port the instance should listen on" do
