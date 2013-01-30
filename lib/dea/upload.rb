@@ -45,7 +45,7 @@ class Upload
   private
 
   def create_multipart_file(source)
-    multipart_file = Tempfile.new("droplet")
+    multipart_file = Tempfile.new("multipart", File.dirname(source))
 
     File.open(source, "r") do |source_file|
       File.open(multipart_file.path, "a") do |dest_file|
