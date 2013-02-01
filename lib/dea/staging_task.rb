@@ -14,7 +14,7 @@ module Dea
     MAX_STAGING_DURATION = 120
 
     DROPLET_FILE = "droplet.tgz"
-    STAGING_LOG = "staging.log"
+    STAGING_LOG = "staging_task.log"
     WARDEN_UNSTAGED_DIR = "/tmp/unstaged"
     WARDEN_STAGED_DIR = "/tmp/staged"
     WARDEN_STAGED_DROPLET = "/tmp/#{DROPLET_FILE}"
@@ -90,11 +90,11 @@ module Dea
 
     def promise_stage
       Promise.new do |p|
-        script = "mkdir #{WARDEN_STAGED_DIR} && "
+        script = "mkdir -p #{WARDEN_STAGED_DIR}/logs && "
         script += [staging_environment.map {|k, v| "#{k}=#{v}"}.join(" "),
                    bootstrap.config["dea_ruby"], run_plugin_path,
                    attributes["properties"]["framework_info"]["name"],
-                   plugin_config_path].join(" ")
+                   plugin_config_path, "> #{WARDEN_STAGING_LOG} 2>&1"].join(" ")
         logger.info("<staging> Running #{script}")
 
         begin
