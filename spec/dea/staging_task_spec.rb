@@ -38,7 +38,7 @@ describe Dea::StagingTask do
           cmd.should include("#{k}=#{v}")
         end
 
-        cmd.should include("mkdir /tmp/staged")
+        cmd.should include("mkdir -p /tmp/staged/logs")
         cmd.should include("bin/run_plugin")
         cmd.should include("plugin_config")
         mock("promise", :resolve => nil)
@@ -82,7 +82,7 @@ describe Dea::StagingTask do
 
     describe "once staging has started" do
       before do
-        File.open(File.join(workspace_dir, "staging.log"), "w") do |f|
+        File.open(File.join(workspace_dir, "staging_task.log"), "w") do |f|
           f.write "some log content"
         end
       end
