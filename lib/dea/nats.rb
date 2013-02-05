@@ -57,6 +57,12 @@ module Dea
       subscribe("droplet.status") do |message|
         bootstrap.handle_droplet_status(message)
       end
+
+      if config["staging"] && config["staging"]["enabled"]
+        subscribe("staging", :queue => "staging") do |message|
+          bootstrap.handle_dea_stage(message)
+        end
+      end
     end
 
     def stop
@@ -68,8 +74,8 @@ module Dea
       client.publish(subject, Yajl::Encoder.encode(data))
     end
 
-    def subscribe(subject)
-      sid = client.subscribe(subject) do |raw_data, respond_to|
+    def subscribe(subject, opts={})
+      sid = client.subscribe(subject, opts) do |raw_data, respond_to|
         message = Message.decode(self, subject, raw_data, respond_to)
         logger.debug "Received on #{subject.inspect}: #{message.data.inspect}"
         yield message

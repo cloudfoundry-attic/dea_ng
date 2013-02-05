@@ -40,4 +40,19 @@ module Helpers
       "flapping"            => false,
     }
   end
+
+  def valid_staging_attributes
+    {
+      "properties" => {
+        "runtime" => "ruby",
+        "runtime_info" => "",
+        "framework_info" => {
+          "name" => "sinatra"
+        }
+      },
+      "download_uri" => "http://127.0.0.1:12346/download",
+      "upload_uri" => "http://127.0.0.1:12346/upload",
+      "staged_path" => ""
+    }
+  end
 end

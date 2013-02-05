@@ -17,6 +17,7 @@ gem "grape", :git => "https://github.com/intridea/grape.git"
 
 gem "vcap_common", :git => "https://github.com/cloudfoundry/vcap-common.git"
 gem "steno", :git => "https://github.com/cloudfoundry/steno.git"
+gem "vcap_staging", :git => "https://github.com/cloudfoundry/vcap-staging.git", :submodules => true
 
 gem "sys-filesystem"
 

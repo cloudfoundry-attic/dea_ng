@@ -14,6 +14,7 @@ require "vcap/component"
 require "dea/config"
 require "dea/directory_server"
 require "dea/directory_server_v2"
+require "dea/download"
 require "dea/droplet_registry"
 require "dea/file_api"
 require "dea/instance"
@@ -22,6 +23,7 @@ require "dea/nats"
 require "dea/protocol"
 require "dea/resource_manager"
 require "dea/router_client"
+require "dea/staging_task"
 
 module Dea
   class Bootstrap
@@ -225,7 +227,7 @@ module Dea
     end
 
     def setup_directories
-      %W(db droplets instances tmp).each do |dir|
+      %W(db droplets instances tmp staging).each do |dir|
         FileUtils.mkdir_p(File.join(config["base_dir"], dir))
       end
 
@@ -558,6 +560,19 @@ module Dea
         instance.stop do |error|
           logger.warn("Failed stopping #{instance}: #{error}") if error
         end
+      end
+    end
+
+    def handle_dea_stage(message)
+      logger.info("<staging> Got staging request with #{message.data.inspect}")
+      staging_task = StagingTask.new(self, message.data)
+      staging_task.start do |error|
+        result = {
+          "task_id"  => staging_task.task_id,
+          "task_log" => staging_task.task_log
+        }
+        result["error"] = error.to_s if error
+        message.respond(result)
       end
     end
 
