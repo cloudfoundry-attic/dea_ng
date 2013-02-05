@@ -790,9 +790,9 @@ describe Dea::Instance do
         instance.unstub(:promise_setup_environment)
       end
 
-      it "should create home dir" do
+      it "should create the app dir" do
        instance.stub(:promise_warden_run) do |_, script|
-          script.should =~ /mkdir \/app/
+          script.should =~ %r{mkdir -p home/vcap/app}
 
           delivering_promise
         end
@@ -800,9 +800,9 @@ describe Dea::Instance do
         expect_start.to_not raise_error
       end
 
-      it "should chown home dir" do
+      it "should chown the app dir" do
         instance.stub(:promise_warden_run) do |_, script|
-          script.should =~ /chown vcap:vcap \/app/
+          script.should =~ %r{chown vcap:vcap home/vcap/app}
 
           delivering_promise
         end
@@ -810,9 +810,9 @@ describe Dea::Instance do
         expect_start.to_not raise_error
       end
 
-      it "should set user home dir" do
+      it "should symlink the app dir" do
         instance.stub(:promise_warden_run) do |_, script|
-          script.should =~ /usermod -d \/app vcap/
+          script.should =~ %r{ln -s home/vcap/app /app}
 
           delivering_promise
         end
@@ -1175,7 +1175,7 @@ describe Dea::Instance do
     end
 
     let(:manifest_path) do
-      File.join(tmpdir, "rootfs", "app", "droplet.yaml")
+      File.join(tmpdir, "rootfs", "home", "vcap", "droplet.yaml")
     end
 
     before :each do

@@ -457,7 +457,7 @@ module Dea
 
     def promise_setup_environment
       Promise.new do |p|
-        script = "mkdir /app; chown vcap:vcap /app; usermod -d /app vcap"
+        script = "cd / && mkdir -p home/vcap/app && chown vcap:vcap home/vcap/app && ln -s home/vcap/app /app"
         promise_warden_run(:app, script, true).resolve
 
         p.deliver
@@ -632,7 +632,7 @@ module Dea
       Promise.new do |p|
         new_instance_path = File.join(bootstrap.config.crashes_path, instance_id)
         new_instance_path = File.expand_path(new_instance_path)
-        copy_out_request("/app/", new_instance_path)
+        copy_out_request("/home/vcap/", new_instance_path)
 
         attributes["instance_path"] = new_instance_path
 
@@ -880,11 +880,11 @@ module Dea
     def container_relative_path(root, *parts)
       # This can be removed once warden's wsh branch is merged to master
       if File.directory?(File.join(root, "rootfs"))
-        return File.join(root, "rootfs", "app", *parts)
+        return File.join(root, "rootfs", "home", "vcap", *parts)
       end
 
       # New path
-      File.join(root, "tmp", "rootfs", "app", *parts)
+      File.join(root, "tmp", "rootfs", "home", "vcap", *parts)
     end
 
     def logger
