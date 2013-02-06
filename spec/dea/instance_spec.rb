@@ -331,6 +331,7 @@ describe Dea::Instance do
       bootstrap.stub(:local_ip).and_return("127.0.0.1")
       instance.stub(:promise_container_info).and_return(delivering_promise(info_response))
       instance.stub(:promise_read_instance_manifest).and_return(delivering_promise({}))
+      instance.stub(:instance_host_port).and_return(1234)
     end
 
     def execute_health_check
@@ -376,14 +377,13 @@ describe Dea::Instance do
       end
     end
 
-    describe "via port" do
+    describe "when the application has URIs" do
       before do
-        instance.stub(:instance_host_port).and_return(1234)
-
+        instance.attributes["application_uris"] = ["some-test-app.my-cloudfoundry.com"]
         Dea::HealthCheck::PortOpen.stub(:new).and_yield(deferrable)
       end
 
-      it "can succeed" do
+      it "succeeds when the port is open" do
         result = execute_health_check do
           deferrable.succeed
         end
@@ -391,7 +391,7 @@ describe Dea::Instance do
         result.should be_true
       end
 
-      it "can fail" do
+      it "fails when the port is not open" do
         result = execute_health_check do
           deferrable.fail
         end
@@ -400,7 +400,9 @@ describe Dea::Instance do
       end
     end
 
-    describe "without ability to do a health check" do
+    describe "when the application does not have any URIs" do
+      before { instance.attributes["application_uris"] = [] }
+
       it "should succeed" do
         result = execute_health_check
         result.should be_true

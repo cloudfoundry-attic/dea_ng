@@ -867,7 +867,7 @@ module Dea
         if manifest["state_file"]
           manifest_path = container_relative_path(info.container_path, manifest["state_file"])
           p.deliver(promise_state_file_ready(manifest_path).resolve)
-        elsif instance_host_port
+        elsif !application_uris.empty?
           p.deliver(promise_port_open(instance_host_port).resolve)
         else
           p.deliver(true)
