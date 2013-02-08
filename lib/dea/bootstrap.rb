@@ -314,6 +314,9 @@ module Dea
 
     def start_nats
       @nats.start
+
+      @responders = [Dea::Responders::Stage.new(nats, self, config)]
+      @responders.map(&:start)
     end
 
     def start_component
@@ -563,19 +566,6 @@ module Dea
       end
     end
 
-    def handle_dea_stage(message)
-      logger.info("<staging> Got staging request with #{message.data.inspect}")
-      staging_task = StagingTask.new(self, message.data)
-      staging_task.start do |error|
-        result = {
-          "task_id"  => staging_task.task_id,
-          "task_log" => staging_task.task_log
-        }
-        result["error"] = error.to_s if error
-        message.respond(result)
-      end
-    end
-
     def handle_dea_discover(message)
       runtime = message.data["runtime"]
       rs = message.data["limits"]
@@ -693,6 +683,7 @@ module Dea
 
       ignore_signals
 
+      @responders.map(&:stop) if @responders
       nats.stop
 
       unregister_directory_server_v2

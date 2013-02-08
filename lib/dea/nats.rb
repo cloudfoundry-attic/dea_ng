@@ -57,12 +57,6 @@ module Dea
       subscribe("droplet.status") do |message|
         bootstrap.handle_droplet_status(message)
       end
-
-      if config["staging"] && config["staging"]["enabled"]
-        subscribe("staging", :queue => "staging") do |message|
-          bootstrap.handle_dea_stage(message)
-        end
-      end
     end
 
     def stop
@@ -75,13 +69,18 @@ module Dea
     end
 
     def subscribe(subject, opts={})
+      # Do not track subscription option is used with responders
+      # since we want them to be responsible for subscribe/unsubscribe.
+      do_not_track_subscription = opts.delete(:do_not_track_subscription)
+
       sid = client.subscribe(subject, opts) do |raw_data, respond_to|
         message = Message.decode(self, subject, raw_data, respond_to)
         logger.debug "Received on #{subject.inspect}: #{message.data.inspect}"
         yield message
       end
 
-      @sids[subject] = sid
+      @sids[subject] = sid unless do_not_track_subscription
+      sid
     end
 
     def client

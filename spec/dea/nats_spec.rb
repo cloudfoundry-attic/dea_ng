@@ -58,43 +58,6 @@ describe Dea::Nats do
         nats_client.receive_message(subject, data)
       end
     end
-
-    describe "#staging" do
-      it "does not listen to staging by default" do
-        data = { "subject" => "staging"}
-
-        bootstrap.should_not_receive(:handle_dea_stage)
-
-        nats_client.receive_message("staging", data)
-      end
-
-      context "when the config says to stage things" do
-        before do
-          @config.merge!({"staging" => {"enabled" => true}})
-
-          new_nats = Dea::Nats.new(bootstrap, @config)
-
-          NATS.stub(:connect) do |options|
-            options[:uri].should match(/^nats:/)
-            @new_nats_client = NatsClientMock.new(options)
-          end
-
-          new_nats.start
-        end
-
-
-        it "responds to the staging message" do
-          data = { "subject" => "staging" }
-
-          bootstrap.should_receive(:handle_dea_stage).with(kind_of(Dea::Nats::Message)) do |message|
-            message.subject.should == "staging"
-            message.data.should == data
-          end
-
-          @new_nats_client.receive_message("staging", data)
-        end
-      end
-    end
   end
 
   describe "subscription teardown" do
@@ -113,6 +76,19 @@ describe Dea::Nats do
 
       nats_client.should_receive(:publish).with("echo.reply", %{{"hello":"world"}})
       nats_client.receive_message("echo", { "hello" => "world" }, "echo.reply")
+    end
+  end
+
+  describe "#subscribe" do
+    it "returns subscription id" do
+      sids = [nats.subscribe("subject-2"), nats.subscribe("subject-1")]
+      sids.uniq.should == sids
+    end
+
+    it "does not unsubscribe if subscribed with do-not-track-subscription option" do
+      nats.subscribe("subject-1", :do_not_track_subscription => true)
+      nats_client.should_not_receive(:unsubscribe)
+      nats.stop
     end
   end
 end
