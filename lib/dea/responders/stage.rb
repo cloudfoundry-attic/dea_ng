@@ -25,6 +25,7 @@ module Dea::Responders
       logger.info("<staging> Got staging request with #{message.data.inspect}")
 
       task = Dea::StagingTask.new(@bootstrap, message.data)
+
       task.start do |error|
         result = {
           "task_id"  => task.task_id,

@@ -5,19 +5,15 @@ require "dea/staging_task"
 require "em-http"
 
 describe Dea::StagingTask do
-  let(:bootstrap) do
-    mock = mock("bootstrap")
-    mock.stub(:config) { {"base_dir" => ".", "staging" => {"environment" => {}}} }
-    mock
-  end
+  let(:config) { {"base_dir" => ".", "staging" => {"environment" => {}}} }
+  let(:bootstrap) { mock(:bootstrap, :config => config) }
+
   let(:logger) do
-    mock = mock("logger")
-    mock.stub(:debug)
-    mock.stub(:debug2)
-    mock.stub(:info)
-    mock.stub(:warn)
-    mock
+    mock("logger").tap do |l|
+      %w(debug debug2 info warn).each { |m| l.stub(m) }
+    end
   end
+
   let(:staging) { Dea::StagingTask.new(bootstrap, valid_staging_attributes) }
   let(:workspace_dir) { Dir.mktmpdir("somewhere") }
 
@@ -96,9 +92,7 @@ describe Dea::StagingTask do
   describe "#start" do
     it "should clean up after itself" do
       staging.stub(:prepare_workspace).and_raise("Error")
-
       expect { staging.start }.to raise_error(/Error/)
-
       File.exists?(workspace_dir).should be_false
     end
   end
@@ -157,7 +151,6 @@ describe Dea::StagingTask do
         subject
       end
     end
-
   end
 
   describe "#promise_unpack_app" do
