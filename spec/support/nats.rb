@@ -10,6 +10,13 @@ class NatsClientMock
 
   def subscribe(subject, opts={}, &blk)
     @subscriptions[subject] << blk
+    blk # Consider block a subscription id
+  end
+
+  def unsubscribe(sid)
+    @subscriptions.each do |_, blks|
+      blks.delete(sid)
+    end
   end
 
   # Block omitted until needed
