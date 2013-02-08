@@ -12,6 +12,7 @@ module Dea
   class StagingTask < Task
     DROPLET_FILE = "droplet.tgz"
     STAGING_LOG = "staging_task.log"
+
     WARDEN_UNSTAGED_DIR = "/tmp/unstaged"
     WARDEN_STAGED_DIR = "/tmp/staged"
     WARDEN_STAGED_DROPLET = "/tmp/#{DROPLET_FILE}"

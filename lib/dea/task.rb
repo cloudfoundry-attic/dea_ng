@@ -8,19 +8,16 @@ require "dea/promise"
 
 module Dea
   class Task
+    class BaseError < StandardError; end
+    class WardenError < BaseError; end
+    class NotImplemented < StandardError; end
 
     BIND_MOUNT_MODE_MAP = {
       "ro" =>  ::Warden::Protocol::CreateRequest::BindMount::Mode::RO,
       "rw" =>  ::Warden::Protocol::CreateRequest::BindMount::Mode::RW,
     }
 
-    class BaseError < StandardError
-    end
 
-    class WardenError < BaseError
-    end
-
-    class NotImplemented < StandardError; end
 
     attr_reader :bootstrap
 

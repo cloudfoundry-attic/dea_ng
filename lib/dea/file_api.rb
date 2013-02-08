@@ -84,6 +84,7 @@ module Dea
         requires :timestamp, :type => Integer
         requires :path,      :type => String
       end
+
       get "/:instance_id" do
         instance_id = params[:instance_id]
         path = params[:path]
