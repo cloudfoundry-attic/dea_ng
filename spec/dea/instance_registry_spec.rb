@@ -6,7 +6,7 @@ require "dea/instance"
 require "dea/instance_registry"
 
 describe Dea::InstanceRegistry do
-  let (:bootstrap) { mock("bootstrap") }
+  let (:bootstrap) { mock("bootstrap", :config => {}) }
   let (:instance_registry) { Dea::InstanceRegistry.new }
   let (:instance) { Dea::Instance.new(bootstrap, { "application_id" => 1 }) }
   let (:instance1) { Dea::Instance.new(bootstrap, { "application_id" => 1}) }

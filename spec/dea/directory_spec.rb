@@ -10,7 +10,8 @@ require "dea/instance_registry"
 describe Dea::Directory do
   include Rack::Test::Methods
 
-  let(:instance) { Dea::Instance.new(nil, {}) }
+  let(:bootstrap) { mock(:bootstrap, :config => {}) }
+  let(:instance) { Dea::Instance.new(bootstrap, {}) }
 
   let(:instance_registry) do
     instance_registry = Dea::InstanceRegistry.new

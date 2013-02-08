@@ -6,20 +6,11 @@ require "dea/task"
 describe Dea::Task do
   include_context "tmpdir"
 
-  let(:bootstrap) do
-    mock("bootstrap")
-  end
-
-  subject(:task) do
-    Dea::Task.new(bootstrap)
-  end
+  let(:config) { Hash.new }
+  subject(:task) { Dea::Task.new(config) }
 
   describe "#promise_warden_connection" do
     let(:warden_socket) { File.join(tmpdir, "warden.sock") }
-
-    before do
-      bootstrap.stub(:config).and_return("warden_socket" => warden_socket)
-    end
 
     let(:dumb_connection) do
       dumb_connection = Class.new(::EM::Connection) do
@@ -33,6 +24,8 @@ describe Dea::Task do
         end
       end
     end
+
+    let(:config) { {"warden_socket" => warden_socket} }
 
     it "succeeds when connecting succeeds" do
       em do

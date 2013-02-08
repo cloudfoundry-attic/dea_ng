@@ -19,10 +19,11 @@ module Dea
     WARDEN_CACHE = "/tmp/cache"
     WARDEN_STAGING_LOG = "#{WARDEN_STAGED_DIR}/logs/#{STAGING_LOG}"
 
-    attr_reader :attributes
+    attr_reader :bootstrap, :attributes
 
     def initialize(bootstrap, attributes)
-      super(bootstrap)
+      super(bootstrap.config)
+      @bootstrap = bootstrap
       @attributes = attributes.dup
     end
 
@@ -80,7 +81,7 @@ module Dea
 
       StagingPlugin::Config.to_file(plugin_config, plugin_config_path)
 
-      platform_config = config["platform_config"]
+      platform_config = staging_config["platform_config"]
       platform_config["cache"] = WARDEN_CACHE
 
       File.open(platform_config_path, "w") { |f| YAML.dump(platform_config, f) }
@@ -90,7 +91,7 @@ module Dea
       Promise.new do |p|
         script = "mkdir -p #{WARDEN_STAGED_DIR}/logs && "
         script += [staging_environment.map {|k, v| "#{k}=#{v}"}.join(" "),
-                   bootstrap.config["dea_ruby"], run_plugin_path,
+                   config["dea_ruby"], run_plugin_path,
                    attributes["properties"]["framework_info"]["name"],
                    plugin_config_path, "> #{WARDEN_STAGING_LOG} 2>&1"].join(" ")
         logger.info("<staging> Running #{script}")
@@ -174,10 +175,6 @@ module Dea
 
     private
 
-    def config
-      bootstrap.config["staging"]
-    end
-
     def runtime
       bootstrap.runtime(attributes["properties"]["runtime"], attributes["properties"]["runtime_info"])
     end
@@ -187,12 +184,12 @@ module Dea
     end
 
     def paths_to_bind
-      [workspace_dir, shared_gems_dir, File.dirname(config["platform_config"]["insight_agent"])]
+      [workspace_dir, shared_gems_dir, File.dirname(staging_config["platform_config"]["insight_agent"])]
     end
 
     def workspace_dir
       return @workspace_dir if @workspace_dir
-      staging_base_dir = File.join(bootstrap.config["base_dir"], "staging")
+      staging_base_dir = File.join(config["base_dir"], "staging")
       @workspace_dir = Dir.mktmpdir(nil, staging_base_dir)
       File.chmod(0755, @workspace_dir)
       @workspace_dir
@@ -241,11 +238,15 @@ module Dea
       {
         "GEM_PATH" => shared_gems_dir,
         "PLATFORM_CONFIG" => platform_config_path,
-        "C_INCLUDE_PATH" => "#{config["environment"]["C_INCLUDE_PATH"]}:#{ENV["C_INCLUDE_PATH"]}",
-        "LIBRARY_PATH" => config["environment"]["LIBRARY_PATH"],
-        "LD_LIBRARY_PATH" => config["environment"]["LD_LIBRARY_PATH"],
-        "PATH" => "#{config["environment"]["PATH"]}:#{ENV["PATH"]}"
+        "C_INCLUDE_PATH" => "#{staging_config["environment"]["C_INCLUDE_PATH"]}:#{ENV["C_INCLUDE_PATH"]}",
+        "LIBRARY_PATH" => staging_config["environment"]["LIBRARY_PATH"],
+        "LD_LIBRARY_PATH" => staging_config["environment"]["LD_LIBRARY_PATH"],
+        "PATH" => "#{staging_config["environment"]["PATH"]}:#{ENV["PATH"]}"
       }
+    end
+
+    def staging_config
+      config["staging"]
     end
   end
 end

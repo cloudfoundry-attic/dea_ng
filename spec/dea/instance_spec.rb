@@ -7,7 +7,7 @@ describe Dea::Instance do
   include_context "tmpdir"
 
   let(:bootstrap) do
-    mock("bootstrap")
+    mock("bootstrap", :config => {})
   end
 
   subject(:instance) do

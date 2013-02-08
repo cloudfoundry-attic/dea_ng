@@ -254,6 +254,7 @@ module Dea
       define_state_methods(State.const_get(state))
     end
 
+    attr_reader :bootstrap
     attr_reader :attributes
     attr_reader :start_timestamp
     attr_reader :used_memory_in_bytes
@@ -261,7 +262,8 @@ module Dea
     attr_reader :computed_pcpu    # See `man ps`
 
     def initialize(bootstrap, attributes)
-      super(bootstrap)
+      super(bootstrap.config)
+      @bootstrap = bootstrap
 
       @attributes = attributes.dup
       @attributes["application_uris"] ||= []
@@ -630,7 +632,7 @@ module Dea
 
     def promise_copy_out
       Promise.new do |p|
-        new_instance_path = File.join(bootstrap.config.crashes_path, instance_id)
+        new_instance_path = File.join(config.crashes_path, instance_id)
         new_instance_path = File.expand_path(new_instance_path)
         copy_out_request("/home/vcap/", new_instance_path)
 

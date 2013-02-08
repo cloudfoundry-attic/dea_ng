@@ -17,14 +17,10 @@ module Dea
       "rw" =>  ::Warden::Protocol::CreateRequest::BindMount::Mode::RW,
     }
 
+    attr_reader :config
 
-
-    attr_reader :bootstrap
-
-    def initialize(bootstrap)
-      @bootstrap = bootstrap
-
-      # Cache warden connections
+    def initialize(config)
+      @config = config
       @warden_connections = {}
     end
 
@@ -47,9 +43,7 @@ module Dea
     end
 
     def close_warden_connection(name)
-      connection = @warden_connections.delete(name)
-
-      if connection
+      if connection = @warden_connections.delete(name)
         connection.close_connection
       end
     end
@@ -62,7 +56,7 @@ module Dea
         if connection && connection.connected?
           p.deliver(connection)
         else
-          socket = bootstrap.config["warden_socket"]
+          socket = config["warden_socket"]
           klass  = ::EM::Warden::Client::Connection
 
           begin
@@ -144,7 +138,7 @@ module Dea
         end
 
         # Extra mounts (these typically include libs like pq, mysql, etc)
-        bootstrap.config["bind_mounts"].each do |bm|
+        config["bind_mounts"].each do |bm|
           bind_mount = ::Warden::Protocol::CreateRequest::BindMount.new
 
           bind_mount.src_path = bm["src_path"]
