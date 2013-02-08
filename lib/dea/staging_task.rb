@@ -10,9 +10,6 @@ require "dea/task"
 
 module Dea
   class StagingTask < Task
-
-    MAX_STAGING_DURATION = 120
-
     DROPLET_FILE = "droplet.tgz"
     STAGING_LOG = "staging_task.log"
     WARDEN_UNSTAGED_DIR = "/tmp/unstaged"
