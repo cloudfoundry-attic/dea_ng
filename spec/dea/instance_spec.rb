@@ -441,7 +441,9 @@ describe Dea::Instance do
       instance.stub(:promise_setup_environment).and_return(delivering_promise)
       instance.stub(:promise_extract_droplet).and_return(delivering_promise)
       instance.stub(:promise_prepare_start_script).and_return(delivering_promise)
+      instance.stub(:promise_exec_hook_script).with('before_start').and_return(delivering_promise)
       instance.stub(:promise_start).and_return(delivering_promise)
+      instance.stub(:promise_exec_hook_script).with('after_start').and_return(delivering_promise)
       instance.stub(:promise_health_check).and_return(delivering_promise(true))
       instance.stub(:droplet).and_return(droplet)
       instance.stub(:runtime).and_return(runtime)
@@ -863,6 +865,36 @@ describe Dea::Instance do
       end
     end
 
+    describe "before_start hook" do
+      let(:runtime) do
+        runtime = mock(:runtime)
+        runtime.stub(:environment).and_return({})
+        runtime
+      end
+
+      before do
+        bootstrap.stub(:config).and_return({
+          "hooks" => {
+            "before_start" => File.join(File.dirname(__FILE__), 'hooks/before_start')
+          }
+        })
+        instance.stub(:runtime).and_return(runtime)
+        instance.unstub(:promise_exec_hook_script)
+      end
+
+      it "should execute script file" do
+        instance.stub(:promise_warden_run) do |_, script|
+          script.should_not be_empty
+          lines = script.split("\n")
+          lines[-2].should == 'echo "before_start"'  # file contents
+          lines[-1].should == 'exit'
+          delivering_promise
+        end
+
+        expect_start.to_not raise_error
+      end
+    end
+
     describe "starting the application" do
       let(:runtime) do
         runtime = mock("Dea::Runtime")
@@ -936,6 +968,36 @@ describe Dea::Instance do
         expect_start.to raise_error
       end
     end
+
+    describe "after_start hook" do
+      let(:runtime) do
+        runtime = mock(:runtime)
+        runtime.stub(:environment).and_return({})
+        runtime
+      end
+
+      before do
+        bootstrap.stub(:config).and_return({
+          "hooks" => {
+            "after_start" => File.join(File.dirname(__FILE__), 'hooks/after_start')
+          }
+        })
+        instance.stub(:runtime).and_return(runtime)
+        instance.unstub(:promise_exec_hook_script)
+      end
+
+      it "should execute the script file" do
+        instance.stub(:promise_warden_run) do |_, script|
+          script.should_not be_empty
+          lines = script.split("\n")
+          lines[-2].should == 'echo "after_start"'  # file contents
+          lines[-1].should == 'exit'
+          delivering_promise
+        end
+
+        expect_start.to_not raise_error
+      end
+    end
   end
 
   describe "stop transition" do
@@ -944,6 +1006,7 @@ describe Dea::Instance do
     end
 
     before do
+      bootstrap.stub(:config).and_return({})
       instance.stub(:promise_state).and_return(delivering_promise)
       instance.stub(:promise_warden_connection).and_return(delivering_promise(warden_connection))
       instance.stub(:promise_stop).and_return(delivering_promise)

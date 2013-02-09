@@ -73,6 +73,13 @@ module Dea
             optional("dst_path") => String,
             optional("mode")     => enum("ro", "rw"),
           }],
+
+          optional('hooks') => {
+            optional('before_start') => String,
+            optional('after_start')  => String,
+            optional('before_stop')  => String,
+            optional('after_stop')   => String
+          },
         }
       end
     end
