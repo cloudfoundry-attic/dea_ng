@@ -1225,8 +1225,7 @@ describe Dea::Instance do
       end
     end
 
-    [
-      Dea::Instance::State::RESUMING,
+    [ Dea::Instance::State::RESUMING,
       Dea::Instance::State::RUNNING,
     ].each do |state|
       it "is triggered link when transitioning from #{state.inspect}" do

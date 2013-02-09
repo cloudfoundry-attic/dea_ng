@@ -301,4 +301,20 @@ describe Dea::Bootstrap do
       r1.should == r2
     end
   end
+
+  describe "#start_nats" do
+    let(:nats) { mock("nats", :start => nil) }
+    before { bootstrap.stub(:nats => nats) }
+
+    it "starts nats" do
+      nats.should_receive(:start)
+      bootstrap.start_nats
+    end
+
+    it "sets up staging responder" do
+      bootstrap.start_nats
+      responders = bootstrap.responders.select { |r| r.is_a?(Dea::Responders::Stage) }
+      responders.should have_exactly(1).responder
+    end
+  end
 end

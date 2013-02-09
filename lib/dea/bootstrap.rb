@@ -24,6 +24,7 @@ require "dea/protocol"
 require "dea/resource_manager"
 require "dea/router_client"
 require "dea/staging_task"
+Dir[File.join(File.dirname(__FILE__), "responders/*.rb")].each { |f| require(f) }
 
 module Dea
   class Bootstrap
@@ -43,7 +44,7 @@ module Dea
     SIGNALS_OF_INTEREST            = %W(TERM INT QUIT USR1 USR2)
 
     attr_reader :config
-    attr_reader :nats
+    attr_reader :nats, :responders
     attr_reader :uuid
 
     def initialize(config = {})
@@ -313,7 +314,7 @@ module Dea
     end
 
     def start_nats
-      @nats.start
+      nats.start
 
       @responders = [Dea::Responders::Stage.new(nats, self, config)]
       @responders.map(&:start)
@@ -340,15 +341,19 @@ module Dea
     end
 
     def register_directory_server_v2
-      @router_client.register_directory_server(local_ip,
-                                               directory_server_v2.port,
-                                               directory_server_v2.external_hostname)
+      @router_client.register_directory_server(
+        local_ip,
+        directory_server_v2.port,
+        directory_server_v2.external_hostname
+      )
     end
 
     def unregister_directory_server_v2
-      @router_client.unregister_directory_server(local_ip,
-                                                 directory_server_v2.port,
-                                                 directory_server_v2.external_hostname)
+      @router_client.unregister_directory_server(
+        local_ip,
+        directory_server_v2.port,
+        directory_server_v2.external_hostname
+      )
     end
 
     def start
