@@ -45,19 +45,8 @@ module Dea
         logger.info("<staging> Setting up temporary directories")
         logger.info("<staging> Working dir in #{workspace_dir}")
 
-        prepare_workspace
-
-        [ promise_app_download, promise_create_container ].each(&:run).each(&:resolve)
-
-        [
-            promise_unpack_app,
-            promise_stage,
-            promise_pack_app,
-            promise_copy_out,
-            promise_app_upload,
-            promise_destroy
-        ].each(&:resolve)
-
+        resolve_staging_setup
+        resolve_staging
         p.deliver
       end
 
@@ -66,10 +55,19 @@ module Dea
       end
     end
 
-    def finish_task(error)
-      yield(error) if block_given?
+    def after_setup(&blk)
+      @after_setup = blk
+    end
+
+    def trigger_after_setup(error)
+      @after_setup.call(error) if @after_setup
+    end
+    private :trigger_after_setup
+
+    def finish_task(error, &callback)
+      callback.call(error) if callback
       clean_workspace
-      raise error if error
+      raise(error) if error
     end
 
     def prepare_workspace
@@ -174,6 +172,30 @@ module Dea
     end
 
     private
+
+    def resolve_staging_setup
+      prepare_workspace
+
+      [ promise_app_download,
+        promise_create_container
+      ].each(&:run).each(&:resolve)
+
+      trigger_after_setup(nil)
+
+    rescue => e
+      trigger_after_setup(e)
+      raise
+    end
+
+    def resolve_staging
+      [ promise_unpack_app,
+        promise_stage,
+        promise_pack_app,
+        promise_copy_out,
+        promise_app_upload,
+        promise_destroy
+      ].each(&:resolve)
+    end
 
     def runtime
       bootstrap.runtime(attributes["properties"]["runtime"], attributes["properties"]["runtime_info"])

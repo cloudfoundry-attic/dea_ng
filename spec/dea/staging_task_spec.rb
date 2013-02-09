@@ -95,6 +95,61 @@ describe Dea::StagingTask do
       expect { staging.start }.to raise_error(/Error/)
       File.exists?(workspace_dir).should be_false
     end
+
+    describe "after_setup callback" do
+      let(:successful_promise) { Dea::Promise.new {|p| p.deliver } }
+      let(:failing_promise) { Dea::Promise.new {|p| raise "some-error" } }
+
+      def stub_staging_setup
+        staging.stub(:prepare_workspace)
+        staging.stub(:promise_app_download).and_return(successful_promise)
+        staging.stub(:promise_create_container).and_return(successful_promise)
+      end
+
+      def stub_staging
+        staging.stub(:promise_unpack_app).and_return(successful_promise)
+        staging.stub(:promise_stage).and_return(successful_promise)
+        staging.stub(:promise_pack_app).and_return(successful_promise)
+        staging.stub(:promise_copy_out).and_return(successful_promise)
+        staging.stub(:promise_app_upload).and_return(successful_promise)
+        staging.stub(:promise_destroy).and_return(successful_promise)
+      end
+
+      before do
+        stub_staging_setup
+        stub_staging
+      end
+
+      context "when there is no callback registered" do
+        it "doesn't not try to call registered callback" do
+          staging.start
+        end
+      end
+
+      context "when there is callback registered" do
+        before do
+          @received = [false, nil]
+          staging.after_setup { |error| @received = [true, error] }
+        end
+
+        context "when staging task succeeds finishing setup" do
+          it "calls registered callback without an error" do
+            staging.start
+            @received.should == [true, nil]
+          end
+        end
+
+        context "when staging task fails before finishing setup" do
+          before { staging.stub(:promise_app_download).and_return(failing_promise) }
+
+          it "calls registered callback with an error" do
+            staging.start rescue nil
+            @received[0].should be_true
+            @received[1].to_s.should == "some-error"
+          end
+        end
+      end
+    end
   end
 
   describe "#finish_task" do
