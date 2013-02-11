@@ -70,6 +70,18 @@ describe Dea::Bootstrap do
     end
   end
 
+  describe "staging task registry setup" do
+    it "creates staging task registry" do
+      expect {
+        bootstrap.setup_staging_task_registry
+      }.to change { bootstrap.staging_task_registry }.from(nil)
+
+      bootstrap.staging_task_registry.tap do |r|
+        r.should be_a(Dea::StagingTaskRegistry)
+      end
+    end
+  end
+
   describe "signal handlers" do
     def send_signal(signal)
       Process.kill(signal, Process.pid)
@@ -266,9 +278,22 @@ describe Dea::Bootstrap do
     end
 
     it "sets up staging responder" do
+      bootstrap.setup_staging_task_registry
+      bootstrap.setup_directory_server_v2
       bootstrap.start_nats
-      responders = bootstrap.responders.select { |r| r.is_a?(Dea::Responders::Stage) }
-      responders.should have_exactly(1).responder
+
+      responder = bootstrap.responders.detect { |r| r.is_a?(Dea::Responders::Stage) }
+      responder.should_not be_nil
+
+      responder.tap do |r|
+        r.nats.should == nats
+        r.bootstrap.should == bootstrap
+
+        r.staging_task_registry.should == bootstrap.staging_task_registry
+        r.dir_server.should == bootstrap.directory_server_v2
+
+        r.config.should == bootstrap.config
+      end
     end
   end
 end

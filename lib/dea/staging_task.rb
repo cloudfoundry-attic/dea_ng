@@ -7,7 +7,6 @@ require "dea/utils/download"
 require "dea/utils/upload"
 require "dea/promise"
 require "dea/task"
-require "dea/directory_server_v2"
 
 module Dea
   class StagingTask < Task

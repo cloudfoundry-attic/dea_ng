@@ -18,6 +18,7 @@ require "dea/utils/download"
 require "dea/droplet_registry"
 require "dea/instance"
 require "dea/instance_registry"
+require "dea/staging_task_registry"
 require "dea/nats"
 require "dea/protocol"
 require "dea/resource_manager"
@@ -46,6 +47,7 @@ module Dea
     attr_reader :nats, :responders
     attr_reader :directory_server
     attr_reader :directory_server_v2
+    attr_reader :staging_task_registry
     attr_reader :uuid
 
     def initialize(config = {})
@@ -67,6 +69,7 @@ module Dea
       setup_droplet_registry
       setup_resource_manager
       setup_instance_registry
+      setup_staging_task_registry
       setup_directory_server
       setup_directory_server_v2
       setup_signal_handlers
@@ -120,6 +123,10 @@ module Dea
 
     def setup_instance_registry
       @instance_registry = Dea::InstanceRegistry.new(config)
+    end
+
+    def setup_staging_task_registry
+      @staging_task_registry = Dea::StagingTaskRegistry.new
     end
 
     attr_reader :router_client
@@ -256,8 +263,9 @@ module Dea
     def start_nats
       nats.start
 
-      @responders = [Dea::Responders::Stage.new(nats, self, config)]
-      @responders.map(&:start)
+      @responders = [
+        Dea::Responders::Stage.new(nats, self, staging_task_registry, directory_server_v2, config)
+      ].each(&:start)
     end
 
     def start_component
