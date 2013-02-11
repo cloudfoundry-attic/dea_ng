@@ -20,6 +20,7 @@ module Dea
     WARDEN_STAGING_LOG = "#{WARDEN_STAGED_DIR}/logs/#{STAGING_LOG}"
 
     attr_reader :bootstrap, :dir_server, :attributes
+    attr_reader :container_path
 
     def initialize(bootstrap, dir_server, attributes)
       super(bootstrap.config)
@@ -177,14 +178,36 @@ module Dea
       end
     end
 
+    def promise_container_info
+      Promise.new do |p|
+        raise ArgumentError, "container handle must not be nil" unless container_handle
+
+        request = ::Warden::Protocol::InfoRequest.new(:handle => container_handle)
+        response = promise_warden_call(:info, request).resolve
+
+        raise RuntimeError, "container path is not available" \
+          unless @container_path = response.container_path
+
+        p.deliver(response)
+      end
+    end
+
+    def path_in_container(path)
+      File.join(container_path, path) if container_path
+    end
+
     private
 
     def resolve_staging_setup
       prepare_workspace
 
       [ promise_app_download,
-        promise_create_container
+        promise_create_container,
       ].each(&:run).each(&:resolve)
+
+      promise_container_info.resolve
+      trigger_after_setup(nil)
+
     rescue => e
       trigger_after_setup(e)
       raise
@@ -198,7 +221,7 @@ module Dea
         promise_pack_app,
         promise_copy_out,
         promise_app_upload,
-        promise_destroy
+        promise_destroy,
       ].each(&:resolve)
     end
 

@@ -161,6 +161,10 @@ module Dea
       end
     end
 
+    def container_handle
+      @attributes["warden_handle"]
+    end
+
     def promise_warden_run(connection_name, script, privileged=false)
       Promise.new do |p|
         request = ::Warden::Protocol::RunRequest.new

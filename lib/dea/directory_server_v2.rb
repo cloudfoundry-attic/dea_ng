@@ -64,3 +64,4 @@ module Dea
 end
 
 require "dea/directory_server/instance_paths"
+require "dea/directory_server/staging_tasks"

@@ -139,32 +139,67 @@ describe Dea::StagingTask do
     end
   end
 
+  describe "#path_in_container" do
+    context "when container path is set" do
+      before { staging.stub(:container_path => "/container/path") }
+      it "returns path inside warden container" do
+        staging.path_in_container("path/to/file").should == "/container/path/path/to/file"
+      end
+    end
+
+    context "when container path is not set" do
+      before { staging.stub(:container_path => nil) }
+      it "returns nil" do
+        staging.path_in_container("path/to/file").should be_nil
+      end
+    end
+  end
+
   describe "#start" do
+    let(:successful_promise) { Dea::Promise.new {|p| p.deliver } }
+    let(:failing_promise) { Dea::Promise.new {|p| raise "failing promise" } }
+
+    def stub_staging_setup
+      staging.stub(:prepare_workspace)
+      staging.stub(:promise_app_download).and_return(successful_promise)
+      staging.stub(:promise_create_container).and_return(successful_promise)
+      staging.stub(:promise_container_info).and_return(successful_promise)
+    end
+
+    def stub_staging
+      staging.stub(:promise_unpack_app).and_return(successful_promise)
+      staging.stub(:promise_stage).and_return(successful_promise)
+      staging.stub(:promise_pack_app).and_return(successful_promise)
+      staging.stub(:promise_copy_out).and_return(successful_promise)
+      staging.stub(:promise_app_upload).and_return(successful_promise)
+      staging.stub(:promise_destroy).and_return(successful_promise)
+    end
+
     it "should clean up after itself" do
       staging.stub(:prepare_workspace).and_raise("Error")
       expect { staging.start }.to raise_error(/Error/)
       File.exists?(workspace_dir).should be_false
     end
 
+    it "prepare workspace, download app source, creates container and then obtains container info" do
+      %w(prepare_workspace promise_app_download promise_create_container promise_container_info).each do |step|
+        staging.should_receive(step).ordered.and_return(successful_promise)
+      end
+
+      stub_staging
+      staging.start
+    end
+
+    it "unpacks, stages, repacks, copies files out of container, upload staged app and then destroys" do
+      %w(unpack_app stage pack_app copy_out app_upload destroy).each do |step|
+        staging.should_receive("promise_#{step}").ordered.and_return(successful_promise)
+      end
+
+      stub_staging_setup
+      staging.start
+    end
+
     describe "after_setup callback" do
-      let(:successful_promise) { Dea::Promise.new {|p| p.deliver } }
-      let(:failing_promise) { Dea::Promise.new {|p| raise "failing promise" } }
-
-      def stub_staging_setup
-        staging.stub(:prepare_workspace)
-        staging.stub(:promise_app_download).and_return(successful_promise)
-        staging.stub(:promise_create_container).and_return(successful_promise)
-      end
-
-      def stub_staging
-        staging.stub(:promise_unpack_app).and_return(successful_promise)
-        staging.stub(:promise_stage).and_return(successful_promise)
-        staging.stub(:promise_pack_app).and_return(successful_promise)
-        staging.stub(:promise_copy_out).and_return(successful_promise)
-        staging.stub(:promise_app_upload).and_return(successful_promise)
-        staging.stub(:promise_destroy).and_return(successful_promise)
-      end
-
       before do
         stub_staging_setup
         stub_staging
@@ -238,6 +273,65 @@ describe Dea::StagingTask do
 
         callback_called.should be_true
         File.exists?(workspace_dir).should be_false
+      end
+    end
+  end
+
+  describe "#promise_container_info" do
+    def resolve_promise
+      staging.promise_container_info.resolve
+    end
+
+    context "when container handle is set" do
+      let(:warden_info_response) do
+        Warden::Protocol::InfoResponse.new(:container_path => "/container/path")
+      end
+
+      before { staging.stub(:container_handle => "container-handle") }
+
+      it "makes warden info request" do
+        staging.should_receive(:promise_warden_call).and_return do |type, request|
+          type.should == :info
+          request.handle.should == "container-handle"
+          mock(:promise, :resolve => warden_info_response)
+        end
+
+        resolve_promise
+      end
+
+      context "when container_path is provided" do
+        it "sets container_path" do
+          staging.stub(:promise_warden_call).and_return do
+            mock(:promise, :resolve => warden_info_response)
+          end
+
+          expect {
+            resolve_promise
+          }.to change { staging.container_path }.from(nil).to("/container/path")
+        end
+      end
+
+      context "when container_path is not provided" do
+        it "raises error" do
+          staging.stub(:promise_warden_call).and_return do
+            response = Warden::Protocol::InfoResponse.new
+            mock(:promise, :resolve => response)
+          end
+
+          expect {
+            resolve_promise
+          }.to raise_error(RuntimeError, /container path is not available/)
+        end
+      end
+    end
+
+    context "when container handle is not set" do
+      before { staging.stub(:container_handle => nil) }
+
+      it "raises error" do
+        expect {
+          resolve_promise
+        }.to raise_error(ArgumentError, /container handle must not be nil/)
       end
     end
   end
