@@ -1,23 +1,7 @@
----
+# See src/lib/dea/config.rb for optional config values.
+
 # Base directory for dea, application directories, dea temp files, etc. are all relative to this.
-base_dir: /var/vcap.local/dea2
-
-#the pid file, created at startup, used for job managment.
-pid_filename: /var/vcap/sys/run/dea2.pid
-
-#where the NATS message bus is located
-nats_uri: nats://localhost:4222/
-
-# Local_route is the IP address of a well known server on your network, it
-# is used to choose the right ip address (think of hosts that have multiple nics
-# and IP addresses assigned to them) of the host running the DEA. Default
-# value of nil, should work in most cases.
-local_route:
-
-#where the server that provides access to application home directories (log files, etc.) lives.
-file_viewer_port: 12345
-
-domain: vcap.me
+base_dir: /tmp/dea_ng
 
 logging:
   level: debug
@@ -26,116 +10,17 @@ logging:
 # production apps. (default: false)
 only_production_apps: false
 
-#helpful for development
-reset_at_startup: true
+nats_uri: nats://localhost:4222/
 
-#where we expect the warden to live
-warden_socket_path: /tmp/warden.sock
-
-#resource limits - node limits indicate limits for this dea node.
-#app quotas are limits imposed on a per-application basis.
-resources:
-  node_limits:
-    max_memory: 4096
-    max_disk:   409600
-    max_instances: 100
-  default_app_quota:
-    mem_quota: 512
-    disk_quota: 256
-
-#use this to specify mount points that will always be included in the container.
-#useful, for example, if you want to just put all your runtimes under one common
-#tree.
-#mounts:
-#  - /tmp, /tmp/outside-tmp, ro
-#  - /var/vcap, /var/vcap, ro
-
-#allow disabling of mounting runtimes, can be used in combination with mounts
-#to provide an alternate means of supplying runtimes.
-mount_runtimes: true
-
-# This is where the execution agent determines its available runtimes.
-# version flags are assumed to be '-v' unless noted below.
+pid_filename: /tmp/dea_ng.pid
 
 runtimes:
-  ruby18:
-    executable: /usr/bin/ruby
-    version: 1.8.7
-    version_flag: "-e 'puts RUBY_VERSION'"
-    additional_checks: "-e 'puts RUBY_PATCHLEVEL >= 174'"
-    environment:
-  ruby19:
-    executable: ruby
-    version: 1.9.2
-    version_flag: "-e 'puts RUBY_VERSION'"
-    additional_checks: "-e 'puts RUBY_PATCHLEVEL >= 180'"
-    environment:
-  node:
-    executable: node
-    version: 0.4.12
-    version_flag: '-v'
-    environment:
-    debug_env:
-      run:
-        - NODE_ARGS="--debug=$VCAP_DEBUG_PORT"
-      suspend:
-        - NODE_ARGS="--debug-brk=$VCAP_DEBUG_PORT"
-  node06:
-    executable: node
-    version: 0.6.8
-    version_flag: '-v'
-    environment:
-    debug_env:
-      run:
-        - NODE_ARGS="--debug=$VCAP_DEBUG_PORT"
-      suspend:
-        - NODE_ARGS="--debug-brk=$VCAP_DEBUG_PORT"
-  java:
-    executable: java
-    version: 1.6.0
-    version_flag: '-version'
-    environment:
-    debug_env:
-      run:
-        - JAVA_OPTS="$JAVA_OPTS -Xdebug -Xrunjdwp:transport=dt_socket,address=$VCAP_DEBUG_PORT,server=y,suspend=n"
-      suspend:
-        - JAVA_OPTS="$JAVA_OPTS -Xdebug -Xrunjdwp:transport=dt_socket,address=$VCAP_DEBUG_PORT,server=y,suspend=y"
-  php:
-    executable: php
-    version: 5.3.[2-6]
-    version_flag: '-v'
-    environment:
-  erlangR14B02:
-    executable: /var/vcap/runtimes/erlang-R14B02/bin/erl
-    version: ".* 5.8.3"
-    version_flag: '-version'
-    environment:
-  python2:
-    executable: python
-    version: 2.6.5
-    version_flag: '--version'
-    environment:
+  - ruby18
+  - ruby19
 
-# Staging
-staging:
-  max_staging_duration: 120
-  max_active_tasks: 10
-  staging_base_dir: /var/vcap/data/dea_next/staging
-  platform_config:
-    cache: /var/vcap/data/stager/package_cache/ruby
-    insight_agent: /var/vcap/packages/insight_agent/insight-agent.zip
-  environment:
-    C_INCLUDE_PATH: "/var/vcap/packages/mysqlclient/include/mysql:/var/vcap/packages/sqlite/include:/var/vcap/packages/libpq/include:/var/vcap/packages/imagemagick/include/ImageMagick"
-    LIBRARY_PATH: "/var/vcap/packages/mysqlclient/lib/mysql:/var/vcap/packages/sqlite/lib:/var/vcap/packages/libpq/lib:/var/vcap/packages/imagemagick/lib"
-    LD_LIBRARY_PATH: "/var/vcap/packages/mysqlclient/lib/mysql:/var/vcap/packages/sqlite/lib:/var/vcap/packages/libpq/lib:/var/vcap/packages/imagemagick/lib"
+warden_socket: /tmp/warden.sock
 
-# Used for /healthz and /vars endpoints. If not provided random
-# values will be generated on component start. Uncomment to use
-# static values.
-#status:
-#  port: 34501
-#  user: thin
-#  password: thin
+index: 0
 
 # For Go-based directory server
 directory_server:
@@ -144,4 +29,3 @@ directory_server:
   streaming_timeout: 10
   logging:
     level: info
-
