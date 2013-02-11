@@ -2,6 +2,7 @@ class HMACHelper
   attr_reader :key
 
   def initialize(key)
+    raise ArgumentError, "key must not be nil" unless key
     @key = key
   end
 

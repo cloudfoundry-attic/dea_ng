@@ -5,8 +5,16 @@ require "dea/staging_task"
 require "em-http"
 
 describe Dea::StagingTask do
-  let(:config) { {"base_dir" => ".", "staging" => {"environment" => {}}} }
+  let(:config) do
+    {
+      "base_dir" => ".",
+      "directory_server" => {"file_api_port" => 1234},
+      "staging" => {"environment" => {}},
+    }
+  end
+
   let(:bootstrap) { mock(:bootstrap, :config => config) }
+  let(:dir_server) { Dea::DirectoryServerV2.new("domain", 1234, nil, config) }
 
   let(:logger) do
     mock("logger").tap do |l|
@@ -14,7 +22,7 @@ describe Dea::StagingTask do
     end
   end
 
-  let(:staging) { Dea::StagingTask.new(bootstrap, valid_staging_attributes) }
+  let(:staging) { Dea::StagingTask.new(bootstrap, dir_server, valid_staging_attributes) }
   let(:workspace_dir) { Dir.mktmpdir("somewhere") }
 
   before do
@@ -86,6 +94,22 @@ describe Dea::StagingTask do
       it "reads the staging log file" do
         staging.task_log.should == "some log content"
       end
+    end
+  end
+
+  describe "#streaming_log_url" do
+    let(:url) { staging.streaming_log_url }
+
+    it "returns url for staging log" do
+      url.should include("/tasks/#{staging.task_id}/file_path", )
+    end
+
+    it "includes path to staging task output" do
+      url.should include "path=/tmp/staged/logs/staging_task.log"
+    end
+
+    it "hmacs url" do
+      url.should match(/hmac=.*/)
     end
   end
 

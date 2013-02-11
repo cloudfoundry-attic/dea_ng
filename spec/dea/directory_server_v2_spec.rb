@@ -2,12 +2,35 @@ require "spec_helper"
 require "dea/directory_server_v2"
 
 describe Dea::DirectoryServerV2 do
-  let(:config) { {:path_key => "path_key"} }
-  subject { Dea::DirectoryServerV2.new("domain", 1234, config) }
+  let(:instance_registry) { mock(:instance_registry) }
+  let(:config) { {"directory_server" => {"file_api_port" => 2345}} }
+  subject { Dea::DirectoryServerV2.new("domain", 1234, instance_registry, config) }
 
   describe "#initialize" do
     it "sets up hmac helper with correct key" do
-      subject.hmac_helper.key.should == config[:path_key]
+      subject.hmac_helper.key.should be_a(String)
+    end
+
+    it "sets up file api server" do
+      subject.file_api_server.tap do |s|
+        s.should be_an_instance_of Thin::Server
+        s.host.should == "127.0.0.1"
+        s.port.should == 2345
+        s.app.should == Dea::FileApi
+      end
+
+      Dea::FileApi.settings.tap do |s|
+        s[:directory_server].should == subject
+        s[:instance_registry].should == instance_registry
+        s[:max_url_age_secs].should == 3600
+      end
+    end
+  end
+
+  describe "#start" do
+    it "starts the file api server" do
+      subject.file_api_server.should_receive(:start)
+      subject.start
     end
   end
 

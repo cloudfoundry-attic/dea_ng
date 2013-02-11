@@ -1,61 +1,47 @@
 # coding: UTF-8
 
+require "spec_helper"
 require "json"
 require "rack/test"
-require "spec_helper"
 
 require "dea/file_api"
+require "dea/directory_server_v2"
 
 describe Dea::FileApi do
   include Rack::Test::Methods
   include_context "tmpdir"
 
-  let(:instance) do
-    instance_mock = mock("instance_mock")
-    instance_mock.stub(:instance_id).and_return("test_instance")
-    instance_mock.stub(:instance_path).and_return(tmpdir)
-    instance_mock
-  end
-
   let(:instance_registry) do
-    registry = mock("instance_registry")
-    registry.
-      stub(:lookup_instance).
-      with(instance.instance_id).
-      and_return(instance)
-    registry
-  end
-
-  let(:path_key) { "secret" }
-  let(:max_url_age_secs) { 1 }
-
-  before do
-    Dea::FileApi.configure(instance_registry, path_key, max_url_age_secs)
-  end
-
-  def app
-    Dea::FileApi
-  end
-
-  describe "verify_hmac_hexdigest" do
-    it "should return true if the hmacs match" do
-      Dea::FileApi.verify_hmac_hexdigest("foo", "foo").should be_true
-    end
-
-    it "should return false if the hmacs don't match" do
-      Dea::FileApi.verify_hmac_hexdigest("foo", "bar").should be_false
+    mock("instance_registry").tap do |r|
+      r.stub(:lookup_instance).with(instance.instance_id).and_return(instance)
     end
   end
+
+  let(:instance) do
+    mock("instance_mock").tap do |i|
+      i.stub(:instance_id => "test_instance", :instance_path => tmpdir)
+    end
+  end
+
+  let(:config) { {"directory_server" => {"file_api_port" => 1234}} }
+  let(:directory_server) { Dea::DirectoryServerV2.new("example.org", 1234, instance_registry, config) }
+
+  before { Dea::FileApi.configure(directory_server, instance_registry, 1) }
 
   describe "GET /instance_paths/<instance_id>" do
     it "returns a 401 if the hmac is missing" do
-      get_instance_path(:hmac => "")
+      get instance_path(:hmac => "")
       last_response.status.should == 401
       last_error.should == "Invalid HMAC"
     end
 
     it "returns a 400 if the timestamp is too old" do
-      get_instance_path(:timestamp => Time.now.to_i - 60)
+      Time.stub(:now => Time.at(10))
+      url = instance_path
+
+      Time.stub(:now => Time.at(12))
+      get url
+
       last_response.status.should == 400
       last_error.should == "Url expired"
     end
@@ -66,27 +52,27 @@ describe Dea::FileApi do
         with("nonexistant").
         and_return(nil)
 
-      get_instance_path(:instance_id => "nonexistant")
+      get instance_path(:instance_id => "nonexistant")
       last_response.status.should == 404
       last_error.should == "Unknown instance"
     end
 
     it "returns a 503 if the instance path is unavailable" do
       instance.stub(:instance_path_available?).and_return(false)
-      get_instance_path
+      get instance_path
       last_response.status.should == 503
       last_error.should == "Instance unavailable"
     end
 
     it "returns 404 if the requested file doesn't exist" do
       instance.stub(:instance_path_available?).and_return(true)
-      get_instance_path
+      get instance_path
       last_response.status.should == 404
     end
 
     it "returns 403 if the file points outside the instance directory" do
       instance.stub(:instance_path_available?).and_return(true)
-      get_instance_path(:path => "/..")
+      get instance_path(:path => "/..")
       last_response.status.should == 403
     end
 
@@ -96,17 +82,26 @@ describe Dea::FileApi do
       path = File.join(tmpdir, "test")
       FileUtils.touch(path)
 
-      get_instance_path(:path => "/test")
+      get instance_path(:path => "/test")
       json_body["instance_path"].should == File.join(instance.instance_path, "test")
     end
   end
 
-  def get_instance_path(opts = {})
-    path = opts[:path] || "/nonexistant"
-    instance_id = opts[:instance_id] || instance.instance_id
-    ts = opts[:timestamp] || Time.now
-    hmac = opts[:hmac] || Dea::FileApi.create_hmac_hexdigest(instance_id, path, ts)
-    get "/instance_paths/#{instance_id}?hmac=#{hmac}&timestamp=#{ts.to_i}&path=#{path}"
+  def app
+    Dea::FileApi
+  end
+
+  def instance_path(opts = {})
+    hmaced_url = directory_server.file_url_for(
+      opts[:instance_id] || instance.instance_id,
+      opts[:path] || "/nonexistant"
+    )
+
+    if opts[:hmac]
+      hmaced_url.gsub!(/hmac=.+([^\&]|$)/, "hmac=#{opts[:hmac]}")
+    end
+
+    hmaced_url
   end
 
   def json_body

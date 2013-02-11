@@ -9,6 +9,7 @@ describe Dea do
   before do
     bootstrap.unstub(:setup_router_client)
     bootstrap.unstub(:setup_directory_server_v2)
+    bootstrap.unstub(:directory_server_v2)
     bootstrap.unstub(:register_directory_server_v2)
   end
 

@@ -15,7 +15,6 @@ require "dea/config"
 require "dea/directory_server_v2"
 require "dea/download"
 require "dea/droplet_registry"
-require "dea/file_api"
 require "dea/instance"
 require "dea/instance_registry"
 require "dea/nats"
@@ -44,6 +43,7 @@ module Dea
 
     attr_reader :config
     attr_reader :nats, :responders
+    attr_reader :directory_server_v2
     attr_reader :uuid
 
     def initialize(config = {})
@@ -67,7 +67,6 @@ module Dea
       setup_resource_manager
       setup_instance_registry
       setup_directory_server_v2
-      setup_file_api
       setup_signal_handlers
       setup_directories
       setup_pid_file
@@ -270,23 +269,9 @@ module Dea
       EM.cancel_timer(@advertise_timer)
     end
 
-    attr_reader :directory_server_v2
-
     def setup_directory_server_v2
       v2_port = config["directory_server"]["v2_port"]
-      @directory_server_v2 = Dea::DirectoryServerV2.new(config["domain"], v2_port)
-    end
-
-    def setup_file_api
-      Dea::FileApi.configure(instance_registry, VCAP.secure_uuid, 60 * 60)
-
-      Thin::Logging.silent = true
-      file_api_port = config["directory_server"]["file_api_port"]
-      @file_api_server = Thin::Server.new("127.0.0.1", file_api_port, Dea::FileApi)
-    end
-
-    def start_file_api_server
-      @file_api_server.start
+      @directory_server_v2 = Dea::DirectoryServerV2.new(config["domain"], v2_port, instance_registry, config)
     end
 
     def setup_nats
@@ -342,7 +327,7 @@ module Dea
       start_component
       start_nats
       register_directory_server_v2
-      start_file_api_server
+      directory_server_v2.start
 
       unless instance_registry.empty?
         logger.info("Loaded #{instance_registry.size} instances from snapshot")

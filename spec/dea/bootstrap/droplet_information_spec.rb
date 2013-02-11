@@ -8,6 +8,7 @@ describe Dea do
 
   before do
     bootstrap.unstub(:setup_directory_server_v2)
+    bootstrap.unstub(:directory_server_v2)
   end
 
   it "should reply to messages on 'droplet.status' with all live droplets" do

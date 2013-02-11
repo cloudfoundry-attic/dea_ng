@@ -46,7 +46,6 @@ shared_context "bootstrap_setup" do
     @bootstrap.stub(:setup_directories)
     @bootstrap.stub(:setup_pid_file)
     @bootstrap.stub(:setup_sweepers)
-    @bootstrap.stub(:setup_directory_server_v2)
     @bootstrap.stub(:setup_nats)
     @bootstrap.stub(:setup_router_client)
 
@@ -55,6 +54,11 @@ shared_context "bootstrap_setup" do
     @bootstrap.stub(:start_nats)
     @bootstrap.stub(:register_directory_server_v2)
     @bootstrap.stub(:start_finish)
+  end
+
+  before do
+    @bootstrap.stub(:setup_directory_server_v2)
+    @bootstrap.stub(:directory_server_v2 => mock(:directory_server, :start => nil))
   end
 
   before do

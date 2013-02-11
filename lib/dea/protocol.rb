@@ -49,10 +49,7 @@ module Dea::Protocol::V1
       }
 
       if request.has_key?("path")
-        host = bootstrap.directory_server_v2.external_hostname
-        uri = Dea::FileApi.generate_file_url(instance.instance_id, request["path"])
-
-        response["file_uri_v2"] = "http://#{host}#{uri}"
+        response["file_uri_v2"] = bootstrap.directory_server_v2.file_url_for(instance.instance_id, request["path"])
       end
 
       if instance.debug

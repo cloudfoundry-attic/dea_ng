@@ -2,9 +2,10 @@ require "dea/staging_task"
 
 module Dea::Responders
   class AsyncStage
-    def initialize(nats, bootstrap, config)
+    def initialize(nats, bootstrap, dir_server, config)
       @nats = nats
       @bootstrap = bootstrap
+      @dir_server = dir_server
       @config = config
     end
 
@@ -24,7 +25,7 @@ module Dea::Responders
     def handle(message)
       logger.info("<staging> Got async staging request with #{message.data.inspect}")
 
-      task = Dea::StagingTask.new(@bootstrap, message.data)
+      task = Dea::StagingTask.new(@bootstrap, @dir_server, message.data)
 
       task.after_setup do |error|
         message.respond(

@@ -7,6 +7,7 @@ require "dea/download"
 require "dea/upload"
 require "dea/promise"
 require "dea/task"
+require "dea/directory_server_v2"
 
 module Dea
   class StagingTask < Task
@@ -19,11 +20,12 @@ module Dea
     WARDEN_CACHE = "/tmp/cache"
     WARDEN_STAGING_LOG = "#{WARDEN_STAGED_DIR}/logs/#{STAGING_LOG}"
 
-    attr_reader :bootstrap, :attributes
+    attr_reader :bootstrap, :dir_server, :attributes
 
-    def initialize(bootstrap, attributes)
+    def initialize(bootstrap, dir_server, attributes)
       super(bootstrap.config)
       @bootstrap = bootstrap
+      @dir_server = dir_server
       @attributes = attributes.dup
     end
 
@@ -37,6 +39,10 @@ module Dea
 
     def task_log
       File.read(staging_log_path) if File.exists?(staging_log_path)
+    end
+
+    def streaming_log_url
+      @dir_server.url_for("/tasks/#{task_id}/file_path?path=#{WARDEN_STAGING_LOG}")
     end
 
     def start(&callback)
@@ -71,17 +77,14 @@ module Dea
     end
 
     def prepare_workspace
-      plugin_config = {
+      StagingPlugin::Config.to_file({
         "source_dir"   => WARDEN_UNSTAGED_DIR,
         "dest_dir"     => WARDEN_STAGED_DIR,
         "environment"  => attributes["properties"]
-      }
-
-      StagingPlugin::Config.to_file(plugin_config, plugin_config_path)
+      }, plugin_config_path)
 
       platform_config = staging_config["platform_config"]
       platform_config["cache"] = WARDEN_CACHE
-
       File.open(platform_config_path, "w") { |f| YAML.dump(platform_config, f) }
     end
 

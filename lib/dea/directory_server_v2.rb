@@ -2,23 +2,32 @@
 
 require "vcap/common"
 require "dea/hmac_helper"
+require "dea/file_api"
 
 module Dea
   class DirectoryServerV2
-    attr_reader :domain
-    attr_reader :port
-    attr_reader :uuid
+    attr_reader :uuid, :domain, :port
     attr_reader :hmac_helper
+    attr_reader :file_api_server
 
-    def initialize(domain, port, config={})
+    def initialize(domain, port, instance_registry, config={})
       @uuid   = VCAP.secure_uuid
       @domain = domain
       @port   = port
-      @hmac_helper = HMACHelper.new(config[:path_key])
+
+      @instance_registry = instance_registry
+      @config = config
+
+      @hmac_helper = HMACHelper.new(VCAP.secure_uuid)
+      configure_file_api_server
     end
 
     def external_hostname
       "#{uuid}.#{domain}"
+    end
+
+    def start
+      @file_api_server.start
     end
 
     def file_url_for(instance_id, file_path)
@@ -41,6 +50,12 @@ module Dea
     end
 
     private
+
+    def configure_file_api_server
+      Dea::FileApi.configure(self, @instance_registry, 60 * 60)
+      Thin::Logging.silent = true
+      @file_api_server = Thin::Server.new("127.0.0.1", @config["directory_server"]["file_api_port"], Dea::FileApi)
+    end
 
     def params_to_s(params)
       Rack::Utils.build_query(params.sort)

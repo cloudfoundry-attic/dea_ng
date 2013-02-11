@@ -1,18 +1,21 @@
 require "spec_helper"
 require "dea/nats"
 require "dea/responders/async_stage"
+require "dea/directory_server_v2"
 
 describe Dea::Responders::AsyncStage do
   let(:nats) { mock(:nats) }
-  let(:config) { {} }
+  let(:config) { {"directory_server" => {"file_api_port" => 2345}} }
   let(:bootstrap) { mock(:bootstrap, :config => config) }
-  subject { described_class.new(nats, bootstrap, config) }
+  let(:dir_server) { Dea::DirectoryServerV2.new("domain", 1234, nil, config) }
+
+  subject { described_class.new(nats, bootstrap, dir_server, config) }
 
   describe "#start" do
     let(:nats) { NatsClientMock.new }
 
     context "when config does not allow staging operations" do
-      let(:config) { {} }
+      before { config.delete("staging") }
 
       it "does not listen to staging" do
         subject.start
@@ -22,7 +25,7 @@ describe Dea::Responders::AsyncStage do
     end
 
     context "when the config allows staging operation" do
-      let(:config) { {"staging" => {"enabled" => true}} }
+      before { config["staging"] = {"enabled" => true} }
 
       it "subscribes to staging message" do
         subject.start
@@ -44,7 +47,7 @@ describe Dea::Responders::AsyncStage do
 
   describe "#stop" do
     let(:nats) { NatsClientMock.new }
-    let(:config) { {"staging" => {"enabled" => true}} }
+    before { config["staging"] = {"enabled" => true} }
 
     context "when subscription was made" do
       before { subject.start }
@@ -81,7 +84,7 @@ describe Dea::Responders::AsyncStage do
     it "starts staging task" do
       Dea::StagingTask
         .should_receive(:new)
-        .with(bootstrap, message.data)
+        .with(bootstrap, dir_server, message.data)
         .and_return(staging_task)
       staging_task.should_receive(:start)
       subject.handle(message)
