@@ -1,37 +1,40 @@
 require "spec_helper"
 require "dea/nats"
+require "dea/directory_server_v2"
 require "dea/responders/stage"
 
 describe Dea::Responders::Stage do
-  let(:nats) { mock(:nats) }
-  let(:config) { {} }
+  stub_nats
+
+  let(:nats) { Dea::Nats.new(bootstrap, config) }
   let(:bootstrap) { mock(:bootstrap, :config => config) }
   subject { described_class.new(nats, bootstrap, config) }
+  let(:dir_server) { Dea::DirectoryServerV2.new("domain", 1234, nil, config) }
+  let(:config) { {"directory_server" => {"file_api_port" => 2345}} }
+
 
   describe "#start" do
-    let(:nats) { NatsClientMock.new }
-
     context "when config does not allow staging operations" do
-      let(:config) { {} }
+      before { config.delete("staging") }
 
       it "does not listen to staging" do
         subject.start
         subject.should_not_receive(:handle)
-        nats.publish("staging")
+        nats_mock.publish("staging")
       end
     end
 
     context "when the config allows staging operation" do
-      let(:config) { {"staging" => {"enabled" => true}} }
+      before { config["staging"] = {"enabled" => true} }
 
       it "subscribes to staging message" do
         subject.start
         subject.should_receive(:handle)
-        nats.publish("staging")
+        nats_mock.publish("staging")
       end
 
       it "subscribes to staging message as part of the queue group" do
-        nats.should_receive(:subscribe).with("staging", hash_including(:queue => "staging"))
+        nats_mock.should_receive(:subscribe).with("staging", :queue => "staging")
         subject.start
       end
 
@@ -43,19 +46,18 @@ describe Dea::Responders::Stage do
   end
 
   describe "#stop" do
-    let(:nats) { NatsClientMock.new }
-    let(:config) { {"staging" => {"enabled" => true}} }
+    before { config["staging"] = {"enabled" => true} }
 
     context "when subscription was made" do
       before { subject.start }
 
       it "unsubscribes to staging message" do
         subject.should_receive(:handle) # sanity check
-        nats.publish("staging")
+        nats_mock.publish("staging")
 
         subject.stop
         subject.should_not_receive(:handle)
-        nats.publish("staging")
+        nats_mock.publish("staging")
       end
     end
 
@@ -86,10 +88,10 @@ describe Dea::Responders::Stage do
       before { staging_task.stub(:start).and_yield(nil) }
 
       it "responds with successful message" do
-        nats.should_receive(:publish).with("respond-to", {
+        nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
           "task_id" => "task-id",
           "task_log" => "task-log",
-        })
+        ))
         subject.handle(message)
       end
     end
@@ -98,11 +100,11 @@ describe Dea::Responders::Stage do
       before { staging_task.stub(:start).and_yield(RuntimeError.new("error-description")) }
 
       it "responds with error message" do
-        nats.should_receive(:publish).with("respond-to", {
+        nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
           "task_id" => "task-id",
           "task_log" => "task-log",
           "error" => "error-description",
-        })
+        ))
         subject.handle(message)
       end
     end

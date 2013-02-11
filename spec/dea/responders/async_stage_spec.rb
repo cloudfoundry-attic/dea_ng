@@ -4,7 +4,9 @@ require "dea/responders/async_stage"
 require "dea/directory_server_v2"
 
 describe Dea::Responders::AsyncStage do
-  let(:nats) { mock(:nats) }
+  stub_nats
+
+  let(:nats) { Dea::Nats.new(bootstrap, config) }
   let(:config) { {"directory_server" => {"file_api_port" => 2345}} }
   let(:bootstrap) { mock(:bootstrap, :config => config) }
   let(:dir_server) { Dea::DirectoryServerV2.new("domain", 1234, nil, config) }
@@ -12,15 +14,13 @@ describe Dea::Responders::AsyncStage do
   subject { described_class.new(nats, bootstrap, dir_server, config) }
 
   describe "#start" do
-    let(:nats) { NatsClientMock.new }
-
     context "when config does not allow staging operations" do
       before { config.delete("staging") }
 
       it "does not listen to staging" do
         subject.start
         subject.should_not_receive(:handle)
-        nats.publish("staging.async")
+        nats_mock.publish("staging.async")
       end
     end
 
@@ -30,7 +30,7 @@ describe Dea::Responders::AsyncStage do
       it "subscribes to staging message" do
         subject.start
         subject.should_receive(:handle)
-        nats.publish("staging.async")
+        nats_mock.publish("staging.async")
       end
 
       it "subscribes to staging message as part of the queue group" do
@@ -46,7 +46,6 @@ describe Dea::Responders::AsyncStage do
   end
 
   describe "#stop" do
-    let(:nats) { NatsClientMock.new }
     before { config["staging"] = {"enabled" => true} }
 
     context "when subscription was made" do
@@ -54,11 +53,11 @@ describe Dea::Responders::AsyncStage do
 
       it "unsubscribes to staging message" do
         subject.should_receive(:handle) # sanity check
-        nats.publish("staging.async")
+        nats_mock.publish("staging.async")
 
         subject.stop
         subject.should_not_receive(:handle)
-        nats.publish("staging.async")
+        nats_mock.publish("staging.async")
       end
     end
 
@@ -97,11 +96,11 @@ describe Dea::Responders::AsyncStage do
       end
 
       it "responds with successful message" do
-        nats.should_receive(:publish).with("respond-to", {
+        nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
           "task_id" => "task-id",
           "streaming_log_url" => "streaming-log-url",
           "error" => nil
-        })
+        ))
         subject.handle(message)
       end
     end
@@ -113,11 +112,11 @@ describe Dea::Responders::AsyncStage do
       end
 
       it "responds with error message" do
-        nats.should_receive(:publish).with("respond-to", {
+        nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
           "task_id" => "task-id",
           "streaming_log_url" => nil,
           "error" => "error-description",
-        })
+        ))
         subject.handle(message)
       end
     end

@@ -22,9 +22,7 @@ describe Dea::Bootstrap do
   end
 
   describe "logging setup" do
-    after do
-      bootstrap.setup_logging
-    end
+    after { bootstrap.setup_logging }
 
     it "should use a file sink when specified" do
       @config = { "logging" => { "file" => File.join(tmpdir, "out.log") } }
@@ -56,9 +54,7 @@ describe Dea::Bootstrap do
   end
 
   describe "droplet registry setup" do
-    before do
-      bootstrap.setup_droplet_registry
-    end
+    before { bootstrap.setup_droplet_registry }
 
     it "should create a new droplet registry" do
       bootstrap.droplet_registry.should be_a(Dea::DropletRegistry)
@@ -67,9 +63,7 @@ describe Dea::Bootstrap do
   end
 
   describe "instance registry setup" do
-    before do
-      bootstrap.setup_instance_registry
-    end
+    before { bootstrap.setup_instance_registry }
 
     it "should create a new instance registry" do
       bootstrap.instance_registry.should be_a(Dea::InstanceRegistry)

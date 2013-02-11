@@ -4,37 +4,15 @@ require "spec_helper"
 require "dea/nats"
 
 describe Dea::Nats do
-  before do
-    @config = {
-      "nats_uri" => "nats://something:4222"
-    }
-  end
+  stub_nats
 
-  before do
-    NATS.stub(:connect) do |options|
-      options[:uri].should match(/^nats:/)
-      @nats_client = NatsClientMock.new(options)
-    end
-  end
-
-  attr_reader :nats_client
-
-  let(:bootstrap) do
-    mock("bootstrap")
-  end
-
-  subject(:nats) do
-    Dea::Nats.new(bootstrap, @config)
-  end
+  let(:bootstrap) { mock("bootstrap") }
+  let(:config) { {"nats_uri" => "nats://something:4222"} }
+  subject(:nats) { Dea::Nats.new(bootstrap, config) }
 
   describe "subscription setup" do
-    before do
-      bootstrap.stub(:uuid).and_return("UUID")
-    end
-
-    before do
-      nats.start
-    end
+    before { bootstrap.stub(:uuid).and_return("UUID") }
+    before { nats.start }
 
     {
       "healthmanager.start" => :handle_health_manager_start,
@@ -55,14 +33,14 @@ describe Dea::Nats do
           message.data.should == data
         end
 
-        nats_client.receive_message(subject, data)
+        nats_mock.receive_message(subject, data)
       end
     end
   end
 
   describe "subscription teardown" do
     it "should unsubscribe from everything when stop is called" do
-      nats.sids.each { |_, sid| nats_client.should_receive(:unsubscribe).with(sid) }
+      nats.sids.each { |_, sid| nats_mock.should_receive(:unsubscribe).with(sid) }
 
       nats.stop
     end
@@ -74,8 +52,8 @@ describe Dea::Nats do
         message.respond(message.data)
       end
 
-      nats_client.should_receive(:publish).with("echo.reply", %{{"hello":"world"}})
-      nats_client.receive_message("echo", { "hello" => "world" }, "echo.reply")
+      nats_mock.should_receive(:publish).with("echo.reply", %{{"hello":"world"}})
+      nats_mock.receive_message("echo", { "hello" => "world" }, "echo.reply")
     end
   end
 
@@ -87,7 +65,7 @@ describe Dea::Nats do
 
     it "does not unsubscribe if subscribed with do-not-track-subscription option" do
       nats.subscribe("subject-1", :do_not_track_subscription => true)
-      nats_client.should_not_receive(:unsubscribe)
+      nats_mock.should_not_receive(:unsubscribe)
       nats.stop
     end
   end

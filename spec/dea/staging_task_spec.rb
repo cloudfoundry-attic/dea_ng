@@ -2,6 +2,7 @@
 
 require "spec_helper"
 require "dea/staging_task"
+require "dea/directory_server_v2"
 require "em-http"
 
 describe Dea::StagingTask do

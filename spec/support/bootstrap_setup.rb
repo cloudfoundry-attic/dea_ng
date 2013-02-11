@@ -3,13 +3,11 @@
 require "rspec"
 
 shared_context "bootstrap_setup" do
+  stub_nats
+
   attr_reader :bootstrap
-  attr_reader :nats_mock
 
   before do
-    @nats_mock = NatsClientMock.new
-    NATS.stub(:connect).and_return(@nats_mock)
-
     config = {
       "base_dir" => Dir.mktmpdir,
       "intervals" => {

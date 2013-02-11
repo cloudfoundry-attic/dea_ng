@@ -1,40 +1,47 @@
 # coding: UTF-8
 
-class NatsClientMock
-  attr_reader :options
+require "nats/client"
 
-  def initialize(options = {})
+# Defined specifically for NatsClientMock
+class NatsInstance
+  # NATS is actually a module which gets made into a class
+  # and then instantiated by one of the EM.connect* methods
+  include NATS
+end
+
+MockClass.define(:NatsClientMock, NatsInstance) do
+  overrides :initialize do |options|
     @options = options
     @subscriptions = Hash.new { |h, k| h[k] = [] }
   end
 
-  def subscribe(subject, opts={}, &blk)
-    @subscriptions[subject] << blk
-    blk # Consider block a subscription id
+  overrides :subscribe do |subject, opts={}, &callback|
+    @subscriptions[subject] << callback
+    callback # Consider block a subscription id
   end
 
-  def unsubscribe(sid)
+  overrides :unsubscribe do |sid, opt_max=nil|
     @subscriptions.each do |_, blks|
       blks.delete(sid)
     end
   end
 
-  # Block omitted until needed
-  def publish(*args)
-    receive_message(*args)
+  overrides :publish do |subject, msg=nil, opt_reply=nil, &blk|
+    receive_message(subject, msg, opt_reply)
   end
 
-  def request(subject, data = {}, &blk)
+  overrides :request do |subject, data=nil, opts={}, &cb|
     inbox = nil
-    if block_given?
+
+    if cb
       inbox = "nats_mock_request_#{Time.now.nsec}"
-      subscribe(inbox, &blk)
+      subscribe(inbox, &cb)
     end
 
     publish(subject, data, inbox)
   end
 
-  def receive_message(subject, data = {}, respond_to = nil)
+  add :receive_message do |subject, data = {}, respond_to = nil|
     if data.kind_of?(String)
       raw_data = data
     else
@@ -45,4 +52,19 @@ class NatsClientMock
       blk.call(raw_data, respond_to)
     end
   end
+end
+
+module NatsClientMockHelpers
+  def stub_nats
+    before do
+      @nats_mock = NatsClientMock.new({})
+      NATS.stub(:connect => nats_mock)
+    end
+
+    attr_reader :nats_mock
+  end
+end
+
+RSpec.configure do |rspec_config|
+  rspec_config.extend NatsClientMockHelpers
 end

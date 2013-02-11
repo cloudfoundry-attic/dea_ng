@@ -83,6 +83,10 @@ module Dea
       sid
     end
 
+    def unsubscribe(sid)
+      client.unsubscribe(sid)
+    end
+
     def client
       @client ||= create_nats_client
     end
