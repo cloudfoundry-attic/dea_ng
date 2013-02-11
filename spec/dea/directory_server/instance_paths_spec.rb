@@ -22,7 +22,7 @@ describe Dea::DirectoryServerV2::InstancePaths do
   end
 
   let(:config) { {"directory_server" => {"file_api_port" => 1234}} }
-  let(:directory_server) { Dea::DirectoryServerV2.new("example.org", 1234, instance_registry, config) }
+  let(:directory_server) { Dea::DirectoryServerV2.new("example.org", 1234, config) }
 
   before { Dea::DirectoryServerV2::InstancePaths.configure(directory_server, instance_registry, 1) }
 

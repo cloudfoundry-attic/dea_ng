@@ -15,7 +15,7 @@ describe Dea::StagingTask do
   end
 
   let(:bootstrap) { mock(:bootstrap, :config => config) }
-  let(:dir_server) { Dea::DirectoryServerV2.new("domain", 1234, nil, config) }
+  let(:dir_server) { Dea::DirectoryServerV2.new("domain", 1234, config) }
 
   let(:logger) do
     mock("logger").tap do |l|

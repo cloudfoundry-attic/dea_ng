@@ -10,7 +10,7 @@ describe Dea::Responders::Stage do
   let(:nats) { Dea::Nats.new(bootstrap, config) }
   let(:bootstrap) { mock(:bootstrap, :config => config) }
   let(:staging_task_registry) { Dea::StagingTaskRegistry.new }
-  let(:dir_server) { Dea::DirectoryServerV2.new("domain", 1234, nil, config) }
+  let(:dir_server) { Dea::DirectoryServerV2.new("domain", 1234, config) }
   let(:config) { {"directory_server" => {"file_api_port" => 2345}} }
 
   subject { described_class.new(nats, bootstrap, staging_task_registry, dir_server, config) }

@@ -1,36 +1,95 @@
 require "spec_helper"
 require "dea/directory_server_v2"
+require "dea/instance_registry"
+require "dea/staging_task_registry"
 
 describe Dea::DirectoryServerV2 do
-  let(:instance_registry) { mock(:instance_registry) }
+  let(:instance_registry) { Dea::InstanceRegistry.new({}) }
+  let(:staging_task_registry) { Dea::StagingTaskRegistry.new }
+
   let(:config) { {"directory_server" => {"file_api_port" => 2345}} }
-  subject { Dea::DirectoryServerV2.new("domain", 1234, instance_registry, config) }
+  subject { Dea::DirectoryServerV2.new("domain", 1234, config) }
 
   describe "#initialize" do
     it "sets up hmac helper with correct key" do
       subject.hmac_helper.key.should be_a(String)
     end
+  end
+
+  describe "#configure_endpoints" do
+    before { subject.configure_endpoints(instance_registry, staging_task_registry) }
 
     it "sets up file api server" do
       subject.file_api_server.tap do |s|
         s.should be_an_instance_of Thin::Server
         s.host.should == "127.0.0.1"
         s.port.should == 2345
-        s.app.should == Dea::DirectoryServerV2::InstancePaths
+        s.app.should_not be_nil
       end
+    end
 
+    it "configures instance paths resource endpoints" do
       Dea::DirectoryServerV2::InstancePaths.settings.tap do |s|
         s[:directory_server].should == subject
         s[:instance_registry].should == instance_registry
         s[:max_url_age_secs].should == 3600
       end
     end
+
+    it "configures staging tasks resource endpoints" do
+      Dea::DirectoryServerV2::StagingTasks.settings.tap do |s|
+        s[:directory_server].should == subject
+        s[:staging_task_registry].should == staging_task_registry
+        s[:max_url_age_secs].should == 3600
+      end
+    end
   end
 
   describe "#start" do
-    it "starts the file api server" do
-      subject.file_api_server.should_receive(:start)
-      subject.start
+    context "when file api server was configured" do
+      before { subject.configure_endpoints(instance_registry, staging_task_registry) }
+
+      # For debugging you can do 'Thin::Logging.silent = false'
+      def make_request(url)
+        response = nil
+        em(:timeout => 1) do
+          subject.start
+
+          http = EM::HttpRequest.new(url).get
+          on_response = lambda do |*args|
+            response = http.response
+            done
+          end
+
+          http.errback(&on_response)
+          http.callback(&on_response)
+        end
+        response
+      end
+
+      def localize_url(url)
+        url.sub(subject.external_hostname, "localhost:2345")
+      end
+
+      it "can handle instance paths requests" do
+        url = subject.url_for("/instance_paths/instance-id", :path => "some-file-path", :timestamp => Time.now.to_i)
+        response = make_request(localize_url(url))
+        response.should include("Unknown instance")
+      end
+
+      it "can handle staging tasks requests" do
+        url = subject.url_for("/staging_tasks/task-id/file_path", :path => "some-file-path", :timestamp => Time.now.to_i)
+        response = make_request(localize_url(url))
+        response.should include("Unknown staging task")
+      end
+    end
+
+    context "when file api server was not configured" do
+      it "starts the file api server" do
+        expect {
+          subject.start
+        }.to raise_error(ArgumentError, /file api server must be configured/)
+      end
     end
   end
 

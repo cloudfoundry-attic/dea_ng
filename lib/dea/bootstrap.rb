@@ -244,7 +244,8 @@ module Dea
 
     def setup_directory_server_v2
       v2_port = config["directory_server"]["v2_port"]
-      @directory_server_v2 = Dea::DirectoryServerV2.new(config["domain"], v2_port, instance_registry, config)
+      @directory_server_v2 = Dea::DirectoryServerV2.new(config["domain"], v2_port, config)
+      @directory_server_v2.configure_endpoints(instance_registry, staging_task_registry)
     end
 
     def setup_directory_server
