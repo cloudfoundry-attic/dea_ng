@@ -18,7 +18,6 @@ shared_context "bootstrap_setup" do
       },
       "runtimes" => ["test1", "test2"],
       "directory_server" => {
-        "v1_port" => 12345,
         "v2_port" => 23456,
       },
       "domain" => "default",
@@ -47,7 +46,6 @@ shared_context "bootstrap_setup" do
     @bootstrap.stub(:setup_directories)
     @bootstrap.stub(:setup_pid_file)
     @bootstrap.stub(:setup_sweepers)
-    @bootstrap.stub(:setup_directory_server)
     @bootstrap.stub(:setup_directory_server_v2)
     @bootstrap.stub(:setup_nats)
     @bootstrap.stub(:setup_router_client)
@@ -55,7 +53,6 @@ shared_context "bootstrap_setup" do
     # No start (explicitly unstub)
     @bootstrap.stub(:start_component)
     @bootstrap.stub(:start_nats)
-    @bootstrap.stub(:start_directory_server)
     @bootstrap.stub(:register_directory_server_v2)
     @bootstrap.stub(:start_finish)
   end

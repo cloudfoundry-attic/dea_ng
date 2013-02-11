@@ -14,7 +14,6 @@ module Helpers
       ::EM.set_quantum(quantum * 1000) # Lowest possible timer resolution
       ::EM.set_heartbeat_interval(quantum) # Timeout connections asap
       ::EM.add_timer(timeout) { raise "timeout" }
-
       yield
     }
   end

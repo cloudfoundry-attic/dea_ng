@@ -12,7 +12,6 @@ require "vcap/common"
 require "vcap/component"
 
 require "dea/config"
-require "dea/directory_server"
 require "dea/directory_server_v2"
 require "dea/download"
 require "dea/droplet_registry"
@@ -67,7 +66,6 @@ module Dea
       setup_droplet_registry
       setup_resource_manager
       setup_instance_registry
-      setup_directory_server
       setup_directory_server_v2
       setup_file_api
       setup_signal_handlers
@@ -272,37 +270,19 @@ module Dea
       EM.cancel_timer(@advertise_timer)
     end
 
-    attr_reader :directory_server
-
-    def setup_directory_server
-      v1_port = config["directory_server"]["v1_port"]
-      @directory_server = Dea::DirectoryServer.new(local_ip,
-                                                   v1_port,
-                                                   instance_registry)
-    end
-
     attr_reader :directory_server_v2
 
     def setup_directory_server_v2
       v2_port = config["directory_server"]["v2_port"]
-      @directory_server_v2 = Dea::DirectoryServerV2.new(config["domain"],
-                                                        v2_port)
+      @directory_server_v2 = Dea::DirectoryServerV2.new(config["domain"], v2_port)
     end
 
     def setup_file_api
-      Dea::FileApi.configure(instance_registry,
-                             VCAP.secure_uuid,
-                             60 * 60)
+      Dea::FileApi.configure(instance_registry, VCAP.secure_uuid, 60 * 60)
 
       Thin::Logging.silent = true
       file_api_port = config["directory_server"]["file_api_port"]
-      @file_api_server = Thin::Server.new("127.0.0.1",
-                                          file_api_port,
-                                          Dea::FileApi)
-    end
-
-    def start_directory_server
-      @directory_server.start
+      @file_api_server = Thin::Server.new("127.0.0.1", file_api_port, Dea::FileApi)
     end
 
     def start_file_api_server
@@ -361,7 +341,6 @@ module Dea
 
       start_component
       start_nats
-      start_directory_server
       register_directory_server_v2
       start_file_api_server
 
