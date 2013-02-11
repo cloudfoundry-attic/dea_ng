@@ -24,7 +24,7 @@ GIT
 
 GIT
   remote: https://github.com/cloudfoundry/vcap-staging.git
-  revision: 9f6cef74f8869befeaa702d7913b7e4fd3e28339
+  revision: 945dcc20739052ca61f2a188d83ab161548a7a54
   submodules: true
   specs:
     vcap_staging (0.1.64)
