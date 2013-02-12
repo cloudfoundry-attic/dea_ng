@@ -2,7 +2,6 @@
 
 require "vcap/common"
 require "dea/hmac_helper"
-require "dea/file_api"
 
 module Dea
   class DirectoryServerV2
@@ -52,9 +51,9 @@ module Dea
     private
 
     def configure_file_api_server
-      Dea::FileApi.configure(self, @instance_registry, 60 * 60)
+      Dea::DirectoryServerV2::FileApi.configure(self, @instance_registry, 60 * 60)
       Thin::Logging.silent = true
-      @file_api_server = Thin::Server.new("127.0.0.1", @config["directory_server"]["file_api_port"], Dea::FileApi)
+      @file_api_server = Thin::Server.new("127.0.0.1", @config["directory_server"]["file_api_port"], FileApi)
     end
 
     def params_to_s(params)
@@ -62,3 +61,5 @@ module Dea
     end
   end
 end
+
+require "dea/directory_server/file_api"

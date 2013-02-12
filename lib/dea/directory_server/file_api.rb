@@ -4,7 +4,7 @@ require "grape"
 require "openssl"
 require "steno"
 
-module Dea
+class Dea::DirectoryServerV2
   class FileApi < Grape::API
     class << self
       def configure(directory_server, instance_registry, max_url_age_secs)
@@ -26,7 +26,7 @@ module Dea
 
       def check_url_age!(timestamp)
         url_age_secs = Time.now.to_i - timestamp.to_i
-        max_age_secs = Dea::FileApi.settings[:max_url_age_secs]
+        max_age_secs = settings[:max_url_age_secs]
 
         if url_age_secs > max_age_secs
           logger.warn("Url too old (age=#{url_age_secs}s, max=#{max_age_secs})")
@@ -39,7 +39,7 @@ module Dea
       end
 
       def settings
-        Dea::FileApi.settings
+        FileApi.settings
       end
     end
 

@@ -16,10 +16,10 @@ describe Dea::DirectoryServerV2 do
         s.should be_an_instance_of Thin::Server
         s.host.should == "127.0.0.1"
         s.port.should == 2345
-        s.app.should == Dea::FileApi
+        s.app.should == Dea::DirectoryServerV2::FileApi
       end
 
-      Dea::FileApi.settings.tap do |s|
+      Dea::DirectoryServerV2::FileApi.settings.tap do |s|
         s[:directory_server].should == subject
         s[:instance_registry].should == instance_registry
         s[:max_url_age_secs].should == 3600
