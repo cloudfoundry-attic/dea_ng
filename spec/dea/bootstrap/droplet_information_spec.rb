@@ -7,6 +7,7 @@ describe Dea do
   include_context "bootstrap_setup"
 
   before do
+    bootstrap.unstub(:setup_directory_server)
     bootstrap.unstub(:setup_directory_server_v2)
     bootstrap.unstub(:directory_server_v2)
   end

@@ -6,6 +6,10 @@ require "dea/bootstrap"
 describe Dea do
   include_context "bootstrap_setup"
 
+  before do
+    bootstrap.unstub(:setup_directory_server)
+  end
+
   it "should publish a message on 'vcap.component.announce' on startup" do
     bootstrap.unstub(:start_component)
 
@@ -213,7 +217,7 @@ describe Dea do
     hello.should_not be_nil
     hello["id"].should == bootstrap.uuid
     hello["ip"].should == bootstrap.local_ip
-    hello["port"].should == 0
+    hello["port"].should == bootstrap.directory_server.port
     hello["version"].should == Dea::VERSION
   end
 

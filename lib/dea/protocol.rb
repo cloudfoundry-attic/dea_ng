@@ -38,11 +38,8 @@ module Dea::Protocol::V1
         "index"           => instance.instance_index,
         "state"           => Dea::Instance::State.to_external(instance.state),
         "state_timestamp" => instance.state_timestamp,
-
-        # Set to nil because they were used by legacy cloud controller.
-        "file_uri"        => nil,
-        "credentials"     => nil,
-
+        "file_uri"        => bootstrap.directory_server.uri,
+        "credentials"     => bootstrap.directory_server.credentials,
         "staged"          => "/#{instance.instance_id}",
       }
 
@@ -115,11 +112,7 @@ module Dea::Protocol::V1
     def self.generate(bootstrap)
       { "id"   => bootstrap.uuid,
         "ip"   => bootstrap.local_ip,
-
-        # Was bootstrap.directory_server.port but directory_server isn't used anymore
-        # (This message is used by legacy cloud_controller.)
-        "port" => 0,
-
+        "port" => bootstrap.directory_server.port,
         "version" => Dea::VERSION,
       }
     end

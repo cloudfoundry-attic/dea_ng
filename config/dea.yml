@@ -24,6 +24,7 @@ index: 0
 
 # For Go-based directory server
 directory_server:
+  v1_port: 4385
   v2_port: 5678
   file_api_port: 1234
   streaming_timeout: 10

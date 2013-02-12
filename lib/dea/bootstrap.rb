@@ -12,6 +12,7 @@ require "vcap/common"
 require "vcap/component"
 
 require "dea/config"
+require "dea/directory_server"
 require "dea/directory_server_v2"
 require "dea/download"
 require "dea/droplet_registry"
@@ -43,6 +44,7 @@ module Dea
 
     attr_reader :config
     attr_reader :nats, :responders
+    attr_reader :directory_server
     attr_reader :directory_server_v2
     attr_reader :uuid
 
@@ -66,6 +68,7 @@ module Dea
       setup_droplet_registry
       setup_resource_manager
       setup_instance_registry
+      setup_directory_server
       setup_directory_server_v2
       setup_signal_handlers
       setup_directories
@@ -274,6 +277,15 @@ module Dea
       @directory_server_v2 = Dea::DirectoryServerV2.new(config["domain"], v2_port, instance_registry, config)
     end
 
+    def setup_directory_server
+      v1_port = config["directory_server"]["v1_port"]
+      @directory_server = Dea::DirectoryServer.new(local_ip, v1_port, instance_registry)
+    end
+
+    def start_directory_server
+      @directory_server.start
+    end
+
     def setup_nats
       @nats = Dea::Nats.new(self, config)
     end
@@ -326,6 +338,7 @@ module Dea
 
       start_component
       start_nats
+      start_directory_server
       register_directory_server_v2
       directory_server_v2.start
 
