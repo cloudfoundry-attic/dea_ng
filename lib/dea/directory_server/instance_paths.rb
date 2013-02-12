@@ -5,7 +5,7 @@ require "openssl"
 require "steno"
 
 class Dea::DirectoryServerV2
-  class FileApi < Grape::API
+  class InstancePaths < Grape::API
     class << self
       def configure(directory_server, instance_registry, max_url_age_secs)
         set(:directory_server, directory_server)
@@ -35,11 +35,11 @@ class Dea::DirectoryServerV2
       end
 
       def logger
-        FileApi.logger
+        InstancePaths.logger
       end
 
       def settings
-        FileApi.settings
+        InstancePaths.settings
       end
     end
 

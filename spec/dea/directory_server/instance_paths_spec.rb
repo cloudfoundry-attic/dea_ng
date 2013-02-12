@@ -3,8 +3,6 @@
 require "spec_helper"
 require "json"
 require "rack/test"
-
-require "dea/directory_server/file_api"
 require "dea/directory_server_v2"
 
 describe Dea::DirectoryServerV2::InstancePaths do

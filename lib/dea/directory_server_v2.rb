@@ -51,9 +51,9 @@ module Dea
     private
 
     def configure_file_api_server
-      Dea::DirectoryServerV2::FileApi.configure(self, @instance_registry, 60 * 60)
+      Dea::DirectoryServerV2::InstancePaths.configure(self, @instance_registry, 60 * 60)
       Thin::Logging.silent = true
-      @file_api_server = Thin::Server.new("127.0.0.1", @config["directory_server"]["file_api_port"], FileApi)
+      @file_api_server = Thin::Server.new("127.0.0.1", @config["directory_server"]["file_api_port"], InstancePaths)
     end
 
     def params_to_s(params)
@@ -62,4 +62,4 @@ module Dea
   end
 end
 
-require "dea/directory_server/file_api"
+require "dea/directory_server/instance_paths"

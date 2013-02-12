@@ -1,7 +1,6 @@
 # coding: UTF-8
 
 require "dea/version"
-require "dea/directory_server/file_api"
 
 module Dea
   module Protocol; end
