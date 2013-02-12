@@ -49,7 +49,7 @@ describe Dea::DirectoryServerV2 do
       it "includes generated hmac param" do
         subject.hmac_helper
           .should_receive(:create)
-          .with("http://#{subject.uuid}.domain#{path_and_query}")
+          .with(path_and_query)
           .and_return("hmac-value")
         url.should include("hmac=hmac-value")
       end
@@ -88,7 +88,7 @@ describe Dea::DirectoryServerV2 do
   end
 
   describe "#verify_url" do
-    context "when full url matches hmac-ed value" do
+    context "when path and query params match hmac-ed value" do
       let(:url) { subject.url_for("/path", :param => "value") }
 
       it "returns true" do
@@ -96,7 +96,7 @@ describe Dea::DirectoryServerV2 do
       end
     end
 
-    context "when full url with reordered params matches hmac-ed value" do
+    context "when path and reordered params matches hmac-ed value" do
       let(:url) { subject.url_for("/path", :param1 => "value", :param2 => "value") }
 
       it "returns true" do
@@ -108,7 +108,7 @@ describe Dea::DirectoryServerV2 do
       end
     end
 
-    context "when full url does not match hmac-ed value" do
+    context "when path and query params do not match hmac-ed value" do
       let(:url) { subject.url_for("/path", :param => "value") }
 
       it "returns false" do

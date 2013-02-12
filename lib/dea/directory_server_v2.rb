@@ -34,18 +34,19 @@ module Dea
     end
 
     def url_for(path, params = {})
-      non_hmaced_url = "http://#{external_hostname}#{path}?#{params_to_s(params)}"
-      non_hmaced_url + "&hmac=#{hmac_helper.create(non_hmaced_url)}"
+      path_and_params = "#{path}?#{params_to_s(params)}"
+      "http://#{external_hostname}#{path_and_params}&hmac=#{hmac_helper.create(path_and_params)}"
     end
 
     def verify_url(url)
       parsed_url = URI.parse(url)
       params = Rack::Utils.parse_query(parsed_url.query)
-      given_hmac = params["hmac"]
 
+      given_hmac = params["hmac"]
       params.delete("hmac")
-      parsed_url.query = params_to_s(params)
-      hmac_helper.compare(given_hmac, parsed_url.to_s)
+
+      path_and_params = "#{parsed_url.path}?#{params_to_s(params)}"
+      hmac_helper.compare(given_hmac, path_and_params)
     end
 
     private
