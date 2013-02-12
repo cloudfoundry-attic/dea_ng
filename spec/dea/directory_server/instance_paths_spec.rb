@@ -7,7 +7,7 @@ require "rack/test"
 require "dea/directory_server/file_api"
 require "dea/directory_server_v2"
 
-describe Dea::DirectoryServerV2::FileApi do
+describe Dea::DirectoryServerV2::InstancePaths do
   include Rack::Test::Methods
   include_context "tmpdir"
 
@@ -26,7 +26,7 @@ describe Dea::DirectoryServerV2::FileApi do
   let(:config) { {"directory_server" => {"file_api_port" => 1234}} }
   let(:directory_server) { Dea::DirectoryServerV2.new("example.org", 1234, instance_registry, config) }
 
-  before { Dea::DirectoryServerV2::FileApi.configure(directory_server, instance_registry, 1) }
+  before { Dea::DirectoryServerV2::InstancePaths.configure(directory_server, instance_registry, 1) }
 
   describe "GET /instance_paths/<instance_id>" do
     it "returns a 401 if the hmac is missing" do
