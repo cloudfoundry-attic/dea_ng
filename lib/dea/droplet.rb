@@ -6,6 +6,7 @@ require "fileutils"
 require "steno"
 require "steno/core_ext"
 require "tempfile"
+require "dea/download"
 
 module Dea
   class Droplet
