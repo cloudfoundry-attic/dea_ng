@@ -3,7 +3,6 @@
 require "em/warden/client/connection"
 require "steno"
 require "steno/core_ext"
-
 require "dea/promise"
 
 module Dea
