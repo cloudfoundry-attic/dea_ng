@@ -1,7 +1,6 @@
 # coding: UTF-8
 
 require "grape"
-require "openssl"
 require "steno"
 
 class Dea::DirectoryServerV2
@@ -49,7 +48,6 @@ class Dea::DirectoryServerV2
         requires :timestamp, :type => Integer
         requires :path,      :type => String
       end
-
       get "/:instance_id" do
         unless settings[:directory_server].verify_url(request.url)
           logger.warn("HMAC mismatch")
