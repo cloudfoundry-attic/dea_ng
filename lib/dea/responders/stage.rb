@@ -24,7 +24,7 @@ module Dea::Responders
     def handle(message)
       logger.info("<staging> Got staging request with #{message.data.inspect}")
 
-      task = Dea::StagingTask.new(@bootstrap, message.data)
+      task = Dea::StagingTask.new(@bootstrap, nil, message.data)
 
       task.start do |error|
         result = {

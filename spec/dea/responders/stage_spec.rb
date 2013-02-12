@@ -76,7 +76,7 @@ describe Dea::Responders::Stage do
     it "starts staging task" do
       Dea::StagingTask
         .should_receive(:new)
-        .with(bootstrap, message.data)
+        .with(bootstrap, anything, message.data)
         .and_return(staging_task)
       staging_task.should_receive(:start)
       subject.handle(message)
