@@ -44,12 +44,11 @@ module Dea::Responders
       staging_task_registry.register(task)
 
       task.start do |error|
-        result = {
-          "task_id"  => task.task_id,
-          "task_log" => task.task_log
-        }
-        result["error"] = error.to_s if error
-        message.respond(result)
+        respond_to_message(message, {
+          :task_id => task.task_id,
+          :task_log => task.task_log,
+          :error => (error.to_s if error)
+        })
 
         staging_task_registry.unregister(task)
       end
@@ -62,16 +61,27 @@ module Dea::Responders
       staging_task_registry.register(task)
 
       task.after_setup do |error|
-        message.respond(
-          "task_id" => task.task_id,
-          "streaming_log_url" => task.streaming_log_url,
-          "error" => (error.to_s if error)
-        )
+        respond_to_message(message, {
+          :task_id => task.task_id,
+          :streaming_log_url => task.streaming_log_url,
+          :error => (error.to_s if error)
+        })
       end
 
       task.start do |error|
         staging_task_registry.unregister(task)
       end
+    end
+
+    private
+
+    def respond_to_message(message, params)
+      message.respond(
+        "task_id" => params[:task_id],
+        "task_log" => params[:task_log],
+        "task_streaming_log_url" => params[:streaming_log_url],
+        "error" => params[:error],
+      )
     end
   end
 end

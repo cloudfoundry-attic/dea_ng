@@ -138,6 +138,8 @@ describe Dea::Responders::Stage do
           nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
             "task_id" => "task-id",
             "task_log" => "task-log",
+            "task_streaming_log_url" => nil,
+            "error" => nil,
           ))
           subject.stage_sync(message)
         end
@@ -152,6 +154,7 @@ describe Dea::Responders::Stage do
           nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
             "task_id" => "task-id",
             "task_log" => "task-log",
+            "task_streaming_log_url" => nil,
             "error" => "error-description",
           ))
           subject.stage_sync(message)
@@ -187,7 +190,8 @@ describe Dea::Responders::Stage do
         it "responds with successful message" do
           nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
             "task_id" => "task-id",
-            "streaming_log_url" => "streaming-log-url",
+            "task_log" => nil,
+            "task_streaming_log_url" => "streaming-log-url",
             "error" => nil
           ))
           subject.stage_async(message)
@@ -205,7 +209,8 @@ describe Dea::Responders::Stage do
         it "responds with error message" do
           nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
             "task_id" => "task-id",
-            "streaming_log_url" => nil,
+            "task_log" => nil,
+            "task_streaming_log_url" => nil,
             "error" => "error-description",
           ))
           subject.stage_async(message)
