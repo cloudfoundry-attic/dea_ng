@@ -6,6 +6,8 @@ base_dir: /tmp/dea_ng
 logging:
   level: debug
 
+local_route: localhost
+
 # The this flag determines whether or not this DEA should only host
 # production apps. (default: false)
 only_production_apps: false
