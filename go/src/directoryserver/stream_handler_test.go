@@ -62,7 +62,7 @@ func (s *StreamHandlerSuite) Get(c *C) *http.Response {
 		IdleTimeout:   20 * time.Millisecond,
 	}
 
-	l, err := net.Listen("tcp", "localhost:")
+	l, err := net.Listen("tcp", "localhost:0")
 	c.Assert(err, IsNil)
 
 	x := http.Server{Handler: s.Handler}

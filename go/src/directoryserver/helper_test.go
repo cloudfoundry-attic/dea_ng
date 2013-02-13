@@ -49,7 +49,7 @@ func (handler dummyDeaHandler) ServeHTTP(w http.ResponseWriter,
 }
 
 func startTestServer(h http.Handler) (net.Listener, string, uint16) {
-	l, err := net.Listen("tcp", "localhost:")
+	l, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
 		panic(err)
 	}

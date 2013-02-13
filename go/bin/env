@@ -1,7 +1,7 @@
 #!/bin/bash
 
-base=$(readlink -nf $(dirname $0)/..)
+pushd $(dirname $0)/.. > /dev/null
+base=$PWD
+popd > /dev/null
 
-export GOPATH=$base:$base/vendor
-
-exec $@
+exec env GOPATH=$base:$base/vendor $@
