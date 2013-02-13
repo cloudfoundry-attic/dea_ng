@@ -122,7 +122,7 @@ describe Dea::StagingTask do
 
     describe "after_setup callback" do
       let(:successful_promise) { Dea::Promise.new {|p| p.deliver } }
-      let(:failing_promise) { Dea::Promise.new {|p| raise "some-error" } }
+      let(:failing_promise) { Dea::Promise.new {|p| raise "failing promise" } }
 
       def stub_staging_setup
         staging.stub(:prepare_workspace)
@@ -169,7 +169,19 @@ describe Dea::StagingTask do
           it "calls registered callback with an error" do
             staging.start rescue nil
             @received[0].should be_true
-            @received[1].to_s.should == "some-error"
+            @received[1].to_s.should == "failing promise"
+          end
+        end
+
+        context "when the callback itself fails" do
+          it "calls registered callback exactly once" do
+            count = 0
+            staging.after_setup do |error|
+              count += 1
+              raise "failing callback"
+            end
+            expect { staging.start }.to raise_error(/failing callback/)
+            count.should eq 1
           end
         end
       end

@@ -182,12 +182,11 @@ module Dea
       [ promise_app_download,
         promise_create_container
       ].each(&:run).each(&:resolve)
-
-      trigger_after_setup(nil)
-
     rescue => e
       trigger_after_setup(e)
       raise
+    else
+      trigger_after_setup(nil)
     end
 
     def resolve_staging
