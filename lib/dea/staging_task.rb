@@ -206,8 +206,6 @@ module Dea
       ].each(&:run).each(&:resolve)
 
       promise_container_info.resolve
-      trigger_after_setup(nil)
-
     rescue => e
       trigger_after_setup(e)
       raise

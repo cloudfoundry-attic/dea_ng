@@ -213,14 +213,16 @@ describe Dea::StagingTask do
 
       context "when there is callback registered" do
         before do
-          @received = [false, nil]
-          staging.after_setup { |error| @received = [true, error] }
+          @received_count = 0
+          @received_error = nil
+          staging.after_setup { |error| @received_count += 1; @received_error = error }
         end
 
         context "when staging task succeeds finishing setup" do
           it "calls registered callback without an error" do
             staging.start
-            @received.should == [true, nil]
+            @received_count.should == 1
+            @received_error.should be_nil
           end
         end
 
@@ -229,20 +231,25 @@ describe Dea::StagingTask do
 
           it "calls registered callback with an error" do
             staging.start rescue nil
-            @received[0].should be_true
-            @received[1].to_s.should == "failing promise"
+            @received_count.should == 1
+            @received_error.to_s.should == "failing promise"
           end
         end
 
         context "when the callback itself fails" do
+          before do
+            staging.after_setup { |_| @received_count += 1; raise "failing callback" }
+          end
+
           it "calls registered callback exactly once" do
-            count = 0
-            staging.after_setup do |error|
-              count += 1
-              raise "failing callback"
-            end
-            expect { staging.start }.to raise_error(/failing callback/)
-            count.should eq 1
+            staging.start rescue nil
+            @received_count.should == 1
+          end
+
+          it "propagates raised error" do
+            expect {
+              staging.start
+            }.to raise_error(/failing callback/)
           end
         end
       end
