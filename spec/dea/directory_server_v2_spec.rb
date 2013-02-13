@@ -91,8 +91,17 @@ describe Dea::DirectoryServerV2 do
     context "when path and query params match hmac-ed value" do
       let(:url) { subject.url_for("/path", :param => "value") }
 
-      it "returns true" do
-        subject.verify_url(url).should be_true
+      context "when domain matches" do
+        it "returns true" do
+          subject.verify_url(url).should be_true
+        end
+      end
+
+      context "when domain does not match" do
+        it "returns true" do
+          url.gsub!(subject.domain, "other-domain")
+          subject.verify_url(url).should be_true
+        end
       end
     end
 
