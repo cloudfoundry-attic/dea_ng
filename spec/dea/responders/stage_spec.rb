@@ -167,7 +167,7 @@ describe Dea::Responders::Stage do
     describe "#stage_asyncrhonously" do
       before do
         staging_task.stub(:after_setup)
-        staging_task.stub(:start).and_yield(nil)
+        staging_task.stub(:start)
       end
 
       it "starts staging task" do
@@ -181,42 +181,72 @@ describe Dea::Responders::Stage do
 
       it_registers_task :stage_async
 
-      context "when staging succeeds setting up staging container" do
-        before do
-          staging_task.stub(:streaming_log_url).and_return("streaming-log-url")
-          staging_task.stub(:after_setup).and_yield(nil)
+      describe "after staging container setup" do
+        before { staging_task.stub(:streaming_log_url).and_return("streaming-log-url") }
+
+        context "when staging succeeds setting up staging container" do
+          before { staging_task.stub(:after_setup).and_yield(nil) }
+
+          it "responds with successful message" do
+            nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
+              "task_id" => "task-id",
+              "task_log" => nil,
+              "task_streaming_log_url" => "streaming-log-url",
+              "error" => nil
+            ))
+            subject.stage_async(message)
+          end
         end
 
-        it "responds with successful message" do
-          nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
-            "task_id" => "task-id",
-            "task_log" => nil,
-            "task_streaming_log_url" => "streaming-log-url",
-            "error" => nil
-          ))
-          subject.stage_async(message)
-        end
+        context "when staging fails to set up staging container" do
+          before { staging_task.stub(:after_setup).and_yield(RuntimeError.new("error-description")) }
 
-        it_unregisters_task :stage_async
+          it "responds with error message" do
+            nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
+              "task_id" => "task-id",
+              "task_log" => nil,
+              "task_streaming_log_url" => "streaming-log-url",
+              "error" => "error-description",
+            ))
+            subject.stage_async(message)
+          end
+        end
       end
 
-      context "when staging fails to set up staging container" do
-        before do
-          staging_task.stub(:streaming_log_url).and_return(nil)
-          staging_task.stub(:after_setup).and_yield(RuntimeError.new("error-description"))
+      describe "after staging completion" do
+        before { staging_task.stub(:task_log).and_return("task-log") }
+
+        context "when successfully" do
+          before { staging_task.stub(:start).and_yield(nil) }
+
+          it "responds successful message" do
+            nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
+              "task_id" => "task-id",
+              "task_log" => "task-log",
+              "task_streaming_log_url" => nil,
+              "error" => nil
+            ))
+            subject.stage_async(message)
+          end
+
+          it_unregisters_task :stage_async
         end
 
-        it "responds with error message" do
-          nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
-            "task_id" => "task-id",
-            "task_log" => nil,
-            "task_streaming_log_url" => nil,
-            "error" => "error-description",
-          ))
-          subject.stage_async(message)
-        end
+        context "when failed" do
+          before { staging_task.stub(:start).and_yield(RuntimeError.new("error-description")) }
 
-        it_unregisters_task :stage_async
+          it "responds with error message" do
+            nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
+              "task_id" => "task-id",
+              "task_log" => "task-log",
+              "task_streaming_log_url" => nil,
+              "error" => "error-description",
+            ))
+            subject.stage_async(message)
+          end
+
+          it_unregisters_task :stage_async
+        end
       end
     end
   end

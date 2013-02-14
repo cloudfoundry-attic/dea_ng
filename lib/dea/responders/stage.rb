@@ -49,7 +49,6 @@ module Dea::Responders
           :task_log => task.task_log,
           :error => (error.to_s if error)
         })
-
         staging_task_registry.unregister(task)
       end
     end
@@ -69,6 +68,11 @@ module Dea::Responders
       end
 
       task.start do |error|
+        respond_to_message(message, {
+          :task_id => task.task_id,
+          :task_log => task.task_log,
+          :error => (error.to_s if error)
+        })
         staging_task_registry.unregister(task)
       end
     end
