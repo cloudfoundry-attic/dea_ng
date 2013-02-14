@@ -72,64 +72,45 @@ describe Dea::Responders::Stage do
   end
 
   describe "#handle" do
-    context "when staging request is async" do
-      let(:message) { Dea::Nats::Message.new(nats, nil, {}, "respond-to") }
-
-      it "stages sync" do
-        subject.should_receive(:stage_sync)
-        subject.handle(message)
-      end
-    end
-
-    context "when staging request is async" do
-      let(:message) { Dea::Nats::Message.new(nats, nil, {"async" => true}, "respond-to") }
-
-      it "stages async" do
-        subject.should_receive(:stage_async)
-        subject.handle(message)
-      end
-    end
-  end
-
-  describe "managing staging task" do
-    let(:message) { Dea::Nats::Message.new(nats, nil, {"something" => "value"}, "respond-to") }
     let(:staging_task) { mock(:staging_task, :task_id => "task-id", :task_log => "task-log") }
 
     before { Dea::StagingTask.stub(:new => staging_task) }
 
-    def self.it_registers_task(method)
+    def self.it_registers_task
       it "adds staging task to registry" do
         staging_task.stub(:start)
 
         expect {
-          subject.send(method, message)
+          subject.handle(message)
         }.to change {
           staging_task_registry.registered_task("task-id")
         }.from(nil).to(staging_task)
       end
     end
 
-    def self.it_unregisters_task(method)
+    def self.it_unregisters_task
       it "unregisters task from registry" do
         expect {
-          subject.send(method, message)
+          subject.handle(message)
         }.to_not change {
           staging_task_registry.registered_task("task-id")
         }
       end
     end
 
-    describe "#stage_sync" do
+    describe "staging sync" do
+      let(:message) { Dea::Nats::Message.new(nats, nil, {"something" => "value"}, "respond-to") }
+
       it "starts staging task" do
         Dea::StagingTask
           .should_receive(:new)
           .with(bootstrap, dir_server, message.data)
           .and_return(staging_task)
         staging_task.should_receive(:start)
-        subject.stage_sync(message)
+        subject.handle(message)
       end
 
-      it_registers_task :stage_sync
+      it_registers_task
 
       context "when staging is successful" do
         before { staging_task.stub(:start).and_yield(nil) }
@@ -141,10 +122,10 @@ describe Dea::Responders::Stage do
             "task_streaming_log_url" => nil,
             "error" => nil,
           ))
-          subject.stage_sync(message)
+          subject.handle(message)
         end
 
-        it_unregisters_task :stage_sync
+        it_unregisters_task
       end
 
       context "when staging task fails" do
@@ -157,14 +138,16 @@ describe Dea::Responders::Stage do
             "task_streaming_log_url" => nil,
             "error" => "error-description",
           ))
-          subject.stage_sync(message)
+          subject.handle(message)
         end
 
-        it_unregisters_task :stage_sync
+        it_unregisters_task
       end
     end
 
-    describe "#stage_asyncrhonously" do
+    describe "staging async" do
+      let(:message) { Dea::Nats::Message.new(nats, nil, {"async" => true}, "respond-to") }
+
       before do
         staging_task.stub(:after_setup)
         staging_task.stub(:start)
@@ -176,10 +159,10 @@ describe Dea::Responders::Stage do
           .with(bootstrap, dir_server, message.data)
           .and_return(staging_task)
         staging_task.should_receive(:start)
-        subject.stage_async(message)
+        subject.handle(message)
       end
 
-      it_registers_task :stage_async
+      it_registers_task
 
       describe "after staging container setup" do
         before { staging_task.stub(:streaming_log_url).and_return("streaming-log-url") }
@@ -194,7 +177,7 @@ describe Dea::Responders::Stage do
               "task_streaming_log_url" => "streaming-log-url",
               "error" => nil
             ))
-            subject.stage_async(message)
+            subject.handle(message)
           end
         end
 
@@ -208,7 +191,7 @@ describe Dea::Responders::Stage do
               "task_streaming_log_url" => "streaming-log-url",
               "error" => "error-description",
             ))
-            subject.stage_async(message)
+            subject.handle(message)
           end
         end
       end
@@ -226,10 +209,10 @@ describe Dea::Responders::Stage do
               "task_streaming_log_url" => nil,
               "error" => nil
             ))
-            subject.stage_async(message)
+            subject.handle(message)
           end
 
-          it_unregisters_task :stage_async
+          it_unregisters_task
         end
 
         context "when failed" do
@@ -242,10 +225,10 @@ describe Dea::Responders::Stage do
               "task_streaming_log_url" => nil,
               "error" => "error-description",
             ))
-            subject.stage_async(message)
+            subject.handle(message)
           end
 
-          it_unregisters_task :stage_async
+          it_unregisters_task
         end
       end
     end

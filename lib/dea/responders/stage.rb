@@ -17,12 +17,10 @@ module Dea::Responders
     end
 
     def start
-      if config["staging"] && config["staging"]["enabled"]
-        options = {:do_not_track_subscription => true, :queue => "staging"}
-        @sid = nats.subscribe("staging", options) do |message|
-          handle(message)
-        end
-      end
+      return unless configured_to_stage?
+
+      options = {:do_not_track_subscription => true, :queue => "staging"}
+      @sid = nats.subscribe("staging", options) { |message| handle(message) }
     end
 
     def stop
@@ -30,42 +28,12 @@ module Dea::Responders
     end
 
     def handle(message)
-      if message.data["async"]
-        stage_async(message)
-      else
-        stage_sync(message)
-      end
-    end
-
-    def stage_sync(message)
-      logger.info("<staging> Got staging request with #{message.data.inspect}")
+      logger.info("<staging> Got #{"a" if message.data["async"]}sync staging request with #{message.data.inspect}")
 
       task = Dea::StagingTask.new(bootstrap, dir_server, message.data)
       staging_task_registry.register(task)
 
-      task.start do |error|
-        respond_to_message(message, {
-          :task_id => task.task_id,
-          :task_log => task.task_log,
-          :error => (error.to_s if error)
-        })
-        staging_task_registry.unregister(task)
-      end
-    end
-
-    def stage_async(message)
-      logger.info("<staging> Got async staging request with #{message.data.inspect}")
-
-      task = Dea::StagingTask.new(bootstrap, dir_server, message.data)
-      staging_task_registry.register(task)
-
-      task.after_setup do |error|
-        respond_to_message(message, {
-          :task_id => task.task_id,
-          :streaming_log_url => task.streaming_log_url,
-          :error => (error.to_s if error)
-        })
-      end
+      notify_setup_completion(message, task) if message.data["async"]
 
       task.start do |error|
         respond_to_message(message, {
@@ -78,6 +46,20 @@ module Dea::Responders
     end
 
     private
+
+    def configured_to_stage?
+      config["staging"] && config["staging"]["enabled"]
+    end
+
+    def notify_setup_completion(message, task)
+      task.after_setup do |error|
+        respond_to_message(message, {
+          :task_id => task.task_id,
+          :streaming_log_url => task.streaming_log_url,
+          :error => (error.to_s if error)
+        })
+      end
+    end
 
     def respond_to_message(message, params)
       message.respond(
