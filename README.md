@@ -36,10 +36,3 @@ Requests for directories/files are handled by the DEA, which responds
 with a HTTP redirect to a URL that hits the directory server directly.
 The URL is signed by the DEA, and the directory server checks the
 validity of the URL with the DEA before serving it.
-
-## File a bug
-
-To file a bug against Cloud Foundry Open Source and its components, sign
-up and use our [bug tracking system][atlassian].
-
-[atlassian]: http://cloudfoundry.atlassian.net
