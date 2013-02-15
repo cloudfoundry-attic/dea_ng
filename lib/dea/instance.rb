@@ -7,7 +7,7 @@ require "vcap/common"
 require "yaml"
 
 require "dea/env"
-require "dea/event_emitter"
+require "dea/utils/event_emitter"
 require "dea/health_check/port_open"
 require "dea/health_check/state_file_ready"
 require "dea/promise"

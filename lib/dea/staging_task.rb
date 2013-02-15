@@ -3,7 +3,7 @@ require "tmpdir"
 require "yaml"
 
 require "vcap/staging"
-require "dea/download"
+require "dea/utils/download"
 require "dea/utils/upload"
 require "dea/promise"
 require "dea/task"

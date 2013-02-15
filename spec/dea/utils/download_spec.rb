@@ -1,5 +1,5 @@
-require 'spec_helper'
-require 'dea/download'
+require "spec_helper"
+require "dea/utils/download"
 
 describe Download do
   around do |example|

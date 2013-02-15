@@ -1,4 +1,4 @@
-require 'dea/utils/eventmachine_multipart_hack'
+require "dea/utils/eventmachine_multipart_hack"
 
 class Upload
   class UploadError < StandardError
