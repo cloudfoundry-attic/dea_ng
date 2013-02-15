@@ -62,26 +62,34 @@ describe Dea::DirectoryServerV2::InstancePaths do
       last_error.should == "Instance unavailable"
     end
 
-    it "returns 404 if the requested file doesn't exist" do
-      instance.stub(:instance_path_available?).and_return(true)
-      get instance_path
-      last_response.status.should == 404
-    end
+    context "when instance path is available" do
+      before { instance.stub(:instance_path_available?).and_return(true) }
 
-    it "returns 403 if the file points outside the instance directory" do
-      instance.stub(:instance_path_available?).and_return(true)
-      get instance_path(:path => "/..")
-      last_response.status.should == 403
-    end
+      it "returns 404 if the requested file doesn't exist" do
+        get instance_path
+        last_response.status.should == 404
+      end
 
-    it "returns the full path on success" do
-      instance.stub(:instance_path_available?).and_return(true)
+      it "returns 403 if the file points outside the instance directory" do
+        get instance_path(:path => "/..")
+        last_response.status.should == 403
+      end
 
-      path = File.join(tmpdir, "test")
-      FileUtils.touch(path)
+      it "returns the full path on success" do
+        path = File.join(tmpdir, "test")
+        FileUtils.touch(path)
 
-      get instance_path(:path => "/test")
-      json_body["instance_path"].should == File.join(instance.instance_path, "test")
+        get instance_path(:path => "/test")
+        json_body["instance_path"].should == File.join(instance.instance_path, "test")
+      end
+
+      context "when nil path is requested" do
+        it "return 200 with instance path" do
+          get directory_server.file_url_for(instance.instance_id, nil)
+          last_response.status.should == 200
+          json_body["instance_path"].should == instance.instance_path
+        end
+      end
     end
   end
 

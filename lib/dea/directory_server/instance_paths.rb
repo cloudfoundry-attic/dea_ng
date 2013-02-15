@@ -68,7 +68,7 @@ class Dea::DirectoryServerV2
           json_error!("Instance unavailable", 503)
         end
 
-        full_path = File.join(instance.instance_path, params[:path])
+        full_path = File.join(instance.instance_path, params[:path].to_s)
         if !File.exists?(full_path)
           json_error!("Entity not found", 404)
         end
