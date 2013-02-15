@@ -63,19 +63,19 @@ class Dea::DirectoryServerV2
           json_error!("Unknown instance", 404)
         end
 
-        if !instance.instance_path_available?
+        unless instance.instance_path_available?
           logger.warn("Instance path unavailable, instance_id=#{instance_id}")
           json_error!("Instance unavailable", 503)
         end
 
         full_path = File.join(instance.instance_path, params[:path].to_s)
-        if !File.exists?(full_path)
+        unless File.exists?(full_path)
           json_error!("Entity not found", 404)
         end
 
         # Expand symlinks and '..'
         real_path = File.realpath(full_path)
-        if !real_path.start_with?(instance.instance_path)
+        unless real_path.start_with?(instance.instance_path)
           logger.warn("Requested path '#{full_path}' points outside instance to '#{real_path}'")
           json_error!("Not accessible", 403)
         end
