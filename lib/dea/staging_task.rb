@@ -45,7 +45,7 @@ module Dea
       @dir_server.url_for("/tasks/#{task_id}/file_path?path=#{WARDEN_STAGING_LOG}")
     end
 
-    def start(&callback)
+    def start
       staging_promise = Promise.new do |p|
         logger.info("<staging> Starting staging task")
         logger.info("<staging> Setting up temporary directories")
@@ -57,24 +57,35 @@ module Dea
       end
 
       Promise.resolve(staging_promise) do |error, _|
-        finish_task(error, &callback)
+        finish_task(error)
       end
     end
 
-    def after_setup(&blk)
-      @after_setup = blk
+    def finish_task(error)
+      trigger_after_complete(error)
+      raise(error) if error
+    ensure
+      clean_workspace
+    end
+    private :finish_task
+
+    def after_setup_callback(&blk)
+      @after_setup_callback = blk
     end
 
     def trigger_after_setup(error)
-      @after_setup.call(error) if @after_setup
+      @after_setup_callback.call(error) if @after_setup_callback
     end
     private :trigger_after_setup
 
-    def finish_task(error, &callback)
-      callback.call(error) if callback
-      clean_workspace
-      raise(error) if error
+    def after_complete_callback(&blk)
+      @after_complete_callback = blk
     end
+
+    def trigger_after_complete(error)
+      @after_complete_callback.call(error) if @after_complete_callback
+    end
+    private :trigger_after_complete
 
     def prepare_workspace
       StagingPlugin::Config.to_file({

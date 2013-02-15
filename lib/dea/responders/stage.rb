@@ -28,21 +28,17 @@ module Dea::Responders
     end
 
     def handle(message)
-      logger.info("<staging> Got #{"a" if message.data["async"]}sync staging request with #{message.data.inspect}")
+      should_do_async_staging = message.data["async"]
+
+      logger.info("<staging> Got #{"a" if should_do_async_staging}sync staging request with #{message.data.inspect}")
 
       task = Dea::StagingTask.new(bootstrap, dir_server, message.data)
       staging_task_registry.register(task)
 
-      notify_setup_completion(message, task) if message.data["async"]
+      notify_setup_completion(message, task) if should_do_async_staging
+      notify_completion(message, task)
 
-      task.start do |error|
-        respond_to_message(message, {
-          :task_id => task.task_id,
-          :task_log => task.task_log,
-          :error => (error.to_s if error)
-        })
-        staging_task_registry.unregister(task)
-      end
+      task.start
     end
 
     private
@@ -52,12 +48,23 @@ module Dea::Responders
     end
 
     def notify_setup_completion(message, task)
-      task.after_setup do |error|
+      task.after_setup_callback do |error|
         respond_to_message(message, {
           :task_id => task.task_id,
           :streaming_log_url => task.streaming_log_url,
           :error => (error.to_s if error)
         })
+      end
+    end
+
+    def notify_completion(message, task)
+      task.after_complete_callback do |error|
+        respond_to_message(message, {
+          :task_id => task.task_id,
+          :task_log => task.task_log,
+          :error => (error.to_s if error)
+        })
+        staging_task_registry.unregister(task)
       end
     end
 

@@ -175,6 +175,94 @@ describe Dea::StagingTask do
       staging.stub(:promise_destroy).and_return(successful_promise)
     end
 
+    def self.it_calls_callback(callback_name, options={})
+      describe "after_#{callback_name}_callback" do
+        before do
+          stub_staging_setup
+          stub_staging
+        end
+
+        context "when there is no callback registered" do
+          it "doesn't not try to call registered callback" do
+            staging.start
+          end
+        end
+
+        context "when there is callback registered" do
+          before do
+            @received_count = 0
+            @received_error = nil
+            staging.send("after_#{callback_name}_callback") do |error|
+              @received_count += 1
+              @received_error = error
+            end
+          end
+
+          context "and staging task succeeds finishing #{callback_name}" do
+            it "calls registered callback without an error" do
+              staging.start
+              @received_count.should == 1
+              @received_error.should be_nil
+            end
+          end
+
+          context "and staging task fails before finishing #{callback_name}" do
+            before { staging.stub(options[:failure_cause]).and_return(failing_promise) }
+
+            it "calls registered callback with an error" do
+              staging.start rescue nil
+              @received_count.should == 1
+              @received_error.to_s.should == "failing promise"
+            end
+          end
+
+          context "and the callback itself fails" do
+            before do
+              staging.send("after_#{callback_name}_callback") do |_|
+                @received_count += 1
+                raise "failing callback"
+              end
+            end
+
+            it "cleans up workspace" do
+              staging.should_receive(:clean_workspace)
+              staging.start rescue nil
+            end if options[:callback_failure_cleanup_assertions]
+
+            it "calls registered callback exactly once" do
+              staging.start rescue nil
+              @received_count.should == 1
+            end
+
+            context "and there is no error from staging" do
+              it "raises error raised in the callback" do
+                expect {
+                  staging.start
+                }.to raise_error(/failing callback/)
+              end
+            end
+
+            context "and there is an error from staging" do
+              before { staging.stub(options[:failure_cause]).and_return(failing_promise) }
+
+              it "raises the staging error" do
+                expect {
+                  staging.start
+                }.to raise_error(/failing callback/)
+              end
+            end
+          end
+        end
+      end
+    end
+
+    it_calls_callback :setup, :failure_cause => :promise_app_download
+
+    it_calls_callback :complete, {
+      :failure_cause => :promise_destroy,
+      :callback_failure_cleanup_assertions => true
+    }
+
     it "should clean up after itself" do
       staging.stub(:prepare_workspace).and_raise("Error")
       expect { staging.start }.to raise_error(/Error/)
@@ -197,90 +285,6 @@ describe Dea::StagingTask do
 
       stub_staging_setup
       staging.start
-    end
-
-    describe "after_setup callback" do
-      before do
-        stub_staging_setup
-        stub_staging
-      end
-
-      context "when there is no callback registered" do
-        it "doesn't not try to call registered callback" do
-          staging.start
-        end
-      end
-
-      context "when there is callback registered" do
-        before do
-          @received_count = 0
-          @received_error = nil
-          staging.after_setup { |error| @received_count += 1; @received_error = error }
-        end
-
-        context "when staging task succeeds finishing setup" do
-          it "calls registered callback without an error" do
-            staging.start
-            @received_count.should == 1
-            @received_error.should be_nil
-          end
-        end
-
-        context "when staging task fails before finishing setup" do
-          before { staging.stub(:promise_app_download).and_return(failing_promise) }
-
-          it "calls registered callback with an error" do
-            staging.start rescue nil
-            @received_count.should == 1
-            @received_error.to_s.should == "failing promise"
-          end
-        end
-
-        context "when the callback itself fails" do
-          before do
-            staging.after_setup { |_| @received_count += 1; raise "failing callback" }
-          end
-
-          it "calls registered callback exactly once" do
-            staging.start rescue nil
-            @received_count.should == 1
-          end
-
-          it "propagates raised error" do
-            expect {
-              staging.start
-            }.to raise_error(/failing callback/)
-          end
-        end
-      end
-    end
-  end
-
-  describe "#finish_task" do
-    context "when an error is passed" do
-      let(:fake_error) { StandardError.new("fake error") }
-
-      it "calls the callback with the error, then raises the error" do
-        expect {
-          staging.finish_task(fake_error) do |error|
-            error.should == fake_error
-          end
-        }.to raise_error(fake_error)
-      end
-    end
-
-    context "when no error is passed" do
-      it "cleans up the workspace after calling the callback" do
-        callback_called = false
-
-        staging.finish_task(nil) do
-          callback_called = true
-          File.exists?(workspace_dir).should be_true
-        end
-
-        callback_called.should be_true
-        File.exists?(workspace_dir).should be_false
-      end
     end
   end
 
@@ -350,12 +354,12 @@ describe Dea::StagingTask do
       promise
     end
 
-    context 'when there is an error' do
+    context "when there is an error" do
       before { Download.any_instance.stub(:download!).and_yield("This is an error", nil) }
       it { expect { subject }.to raise_error(RuntimeError, "This is an error") }
     end
 
-    context 'when there is no error' do
+    context "when there is no error" do
       before do
         File.stub(:rename)
         File.stub(:chmod)
@@ -400,12 +404,12 @@ describe Dea::StagingTask do
       promise
     end
 
-    context 'when there is an error' do
+    context "when there is an error" do
       before { Upload.any_instance.stub(:upload!).and_yield("This is an error") }
       it { expect { subject }.to raise_error(RuntimeError, "This is an error") }
     end
 
-    context 'when there is no error' do
+    context "when there is no error" do
       before { Upload.any_instance.stub(:upload!).and_yield(nil) }
       its(:result) { should == [:deliver, nil]}
     end
@@ -418,13 +422,13 @@ describe Dea::StagingTask do
       promise
     end
 
-    it 'should print out some info' do
+    it "should print out some info" do
       staging.stub(:copy_out_request)
       logger.should_receive(:info).with(anything)
       subject
     end
 
-    it 'should send copying out request' do
+    it "should send copying out request" do
       staging.should_receive(:copy_out_request).with(Dea::StagingTask::WARDEN_STAGED_DROPLET, /.{5,}/)
       subject
     end
@@ -437,7 +441,7 @@ describe Dea::StagingTask do
       promise
     end
 
-    it 'should send copying out request' do
+    it "should send copying out request" do
       staging.should_receive(:copy_out_request).with(Dea::StagingTask::WARDEN_STAGING_LOG, /#{workspace_dir}/)
       subject
     end

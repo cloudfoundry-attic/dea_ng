@@ -74,12 +74,15 @@ describe Dea::Responders::Stage do
   describe "#handle" do
     let(:staging_task) { mock(:staging_task, :task_id => "task-id", :task_log => "task-log") }
 
-    before { Dea::StagingTask.stub(:new => staging_task) }
+    before do
+      Dea::StagingTask.stub(:new => staging_task)
+      staging_task.stub(:after_setup_callback)
+      staging_task.stub(:after_complete_callback)
+      staging_task.stub(:start)
+    end
 
     def self.it_registers_task
       it "adds staging task to registry" do
-        staging_task.stub(:start)
-
         expect {
           subject.handle(message)
         }.to change {
@@ -106,14 +109,18 @@ describe Dea::Responders::Stage do
           .should_receive(:new)
           .with(bootstrap, dir_server, message.data)
           .and_return(staging_task)
-        staging_task.should_receive(:start)
+
+        staging_task.should_not_receive(:after_setup_callback)
+        staging_task.should_receive(:after_complete_callback).ordered
+        staging_task.should_receive(:start).ordered
+
         subject.handle(message)
       end
 
       it_registers_task
 
       context "when staging is successful" do
-        before { staging_task.stub(:start).and_yield(nil) }
+        before { staging_task.stub(:after_complete_callback).and_yield(nil) }
 
         it "responds with successful message" do
           nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
@@ -129,7 +136,7 @@ describe Dea::Responders::Stage do
       end
 
       context "when staging task fails" do
-        before { staging_task.stub(:start).and_yield(RuntimeError.new("error-description")) }
+        before { staging_task.stub(:after_complete_callback).and_yield(RuntimeError.new("error-description")) }
 
         it "responds with error message" do
           nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
@@ -148,17 +155,16 @@ describe Dea::Responders::Stage do
     describe "staging async" do
       let(:message) { Dea::Nats::Message.new(nats, nil, {"async" => true}, "respond-to") }
 
-      before do
-        staging_task.stub(:after_setup)
-        staging_task.stub(:start)
-      end
-
-      it "starts staging task" do
+      it "starts staging task with registered callbacks" do
         Dea::StagingTask
           .should_receive(:new)
           .with(bootstrap, dir_server, message.data)
           .and_return(staging_task)
-        staging_task.should_receive(:start)
+
+        staging_task.should_receive(:after_setup_callback).ordered
+        staging_task.should_receive(:after_complete_callback).ordered
+        staging_task.should_receive(:start).ordered
+
         subject.handle(message)
       end
 
@@ -168,7 +174,7 @@ describe Dea::Responders::Stage do
         before { staging_task.stub(:streaming_log_url).and_return("streaming-log-url") }
 
         context "when staging succeeds setting up staging container" do
-          before { staging_task.stub(:after_setup).and_yield(nil) }
+          before { staging_task.stub(:after_setup_callback).and_yield(nil) }
 
           it "responds with successful message" do
             nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
@@ -182,7 +188,7 @@ describe Dea::Responders::Stage do
         end
 
         context "when staging fails to set up staging container" do
-          before { staging_task.stub(:after_setup).and_yield(RuntimeError.new("error-description")) }
+          before { staging_task.stub(:after_setup_callback).and_yield(RuntimeError.new("error-description")) }
 
           it "responds with error message" do
             nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
@@ -200,7 +206,7 @@ describe Dea::Responders::Stage do
         before { staging_task.stub(:task_log).and_return("task-log") }
 
         context "when successfully" do
-          before { staging_task.stub(:start).and_yield(nil) }
+          before { staging_task.stub(:after_complete_callback).and_yield(nil) }
 
           it "responds successful message" do
             nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
@@ -216,7 +222,7 @@ describe Dea::Responders::Stage do
         end
 
         context "when failed" do
-          before { staging_task.stub(:start).and_yield(RuntimeError.new("error-description")) }
+          before { staging_task.stub(:after_complete_callback).and_yield(RuntimeError.new("error-description")) }
 
           it "responds with error message" do
             nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
