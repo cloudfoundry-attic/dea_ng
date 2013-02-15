@@ -4,7 +4,7 @@ require "yaml"
 
 require "vcap/staging"
 require "dea/download"
-require "dea/upload"
+require "dea/utils/upload"
 require "dea/promise"
 require "dea/task"
 require "dea/directory_server_v2"

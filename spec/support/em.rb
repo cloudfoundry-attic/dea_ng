@@ -9,14 +9,14 @@ module Helpers
 
     ::EM.epoll
 
-    ::EM.run {
+    ::EM.run do
       quantum = 0.005
       ::EM.set_quantum(quantum * 1000) # Lowest possible timer resolution
       ::EM.set_heartbeat_interval(quantum) # Timeout connections asap
       ::EM.add_timer(timeout) { raise "timeout" }
 
       yield
-    }
+    end
   end
 
   def done
