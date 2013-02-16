@@ -67,12 +67,11 @@ describe Upload do
   end
 
   describe "#multipart_header" do
-    it "returns correct header" do
+    it "returns correct header (the number of new lines is really important: added by the multipart em hack)" do
       subject.multipart_header.should eq <<-DATA
 --multipart-boundary-UUID
 Content-Disposition: form-data; name="upload[droplet]"; filename="droplet.tgz"
 Content-Type: application/octet-stream
-
       DATA
     end
   end

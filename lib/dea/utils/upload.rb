@@ -45,7 +45,6 @@ class Upload
 --#{boundary}
 Content-Disposition: form-data; name="upload[droplet]"; filename="droplet.tgz"
 Content-Type: application/octet-stream
-
 HEADER
   end
 

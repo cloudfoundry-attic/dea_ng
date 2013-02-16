@@ -52,7 +52,7 @@ describe EventMachine::HttpClient do
         subject
       end
 
-      it "sends the correct multipart header" do
+      it "sends the correct multipart header (the number of new lines is really important)" do
         conn.should_receive(:send_data).with("PREPEND\r\n")
         subject
       end
