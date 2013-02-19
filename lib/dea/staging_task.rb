@@ -42,7 +42,7 @@ module Dea
     end
 
     def streaming_log_url
-      @dir_server.url_for("/tasks/#{task_id}/file_path?path=#{WARDEN_STAGING_LOG}")
+      @dir_server.url_for("/staging_tasks/#{task_id}/file_path", :path => WARDEN_STAGING_LOG)
     end
 
     def start

@@ -97,11 +97,11 @@ describe Dea::StagingTask do
     let(:url) { staging.streaming_log_url }
 
     it "returns url for staging log" do
-      url.should include("/tasks/#{staging.task_id}/file_path", )
+      url.should include("/staging_tasks/#{staging.task_id}/file_path", )
     end
 
     it "includes path to staging task output" do
-      url.should include "path=/tmp/staged/logs/staging_task.log"
+      url.should include "path=%2Ftmp%2Fstaged%2Flogs%2Fstaging_task.log"
     end
 
     it "hmacs url" do
