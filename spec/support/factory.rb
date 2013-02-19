@@ -45,7 +45,13 @@ module Helpers
     {
       "properties" => {
         "runtime" => "ruby",
-        "runtime_info" => "",
+        "runtime_info" => {},
+        "resources" => {
+          "memory" => 128,
+          "disk" => 128,
+          "fds" => 5000,
+        },
+        "services" => [],
         "framework_info" => {
           "name" => "sinatra"
         }

@@ -9,7 +9,7 @@ describe Dea::StagingTask do
     {
       "base_dir" => ".",
       "directory_server" => {"file_api_port" => 1234},
-      "staging" => {"environment" => {}},
+      "staging" => {"environment" => {}, "platform_config" => {}},
     }
   end
 
@@ -22,7 +22,8 @@ describe Dea::StagingTask do
     end
   end
 
-  let(:staging) { Dea::StagingTask.new(bootstrap, dir_server, valid_staging_attributes) }
+  let(:attributes) { valid_staging_attributes }
+  let(:staging) { Dea::StagingTask.new(bootstrap, dir_server, attributes) }
   let(:workspace_dir) { Dir.mktmpdir("somewhere") }
 
   before do
@@ -110,6 +111,36 @@ describe Dea::StagingTask do
 
     it "hmacs url" do
       url.should match(/hmac=.*/)
+    end
+  end
+
+  describe "#prepare_workspace" do
+    describe "the plugin config file" do
+      subject do
+        staging.prepare_workspace
+        YAML.load_file("#{workspace_dir}/plugin_config")
+      end
+
+      it "has the right source and destination directories" do
+        expect(subject["source_dir"]).to eq("/tmp/unstaged")
+        expect(subject["dest_dir"]).to eq("/tmp/staged")
+      end
+
+      it "includes the specified environment config" do
+        environment_config = attributes["properties"]
+        expect(subject["environment"]).to eq(environment_config)
+      end
+    end
+
+    describe "the platform config file" do
+      subject do
+        staging.prepare_workspace
+        YAML.load_file("#{workspace_dir}/platform_config")
+      end
+
+      it "includes the cache directory path" do
+        expect(subject["cache"]).to eq("/tmp/cache")
+      end
     end
   end
 
