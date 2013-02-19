@@ -39,7 +39,6 @@ describe Dea::Env do
       "droplet_sha1"        => "deadbeef",
       "droplet_uri"         => "http://foo.com/file.ext",
 
-      "runtime_name"        => "ruby19",
       "framework_name"      => "rails",
 
       "limits"              => { "mem" => 1, "disk" => 2, "fds" => 3 },
@@ -187,8 +186,6 @@ describe Dea::Env do
       application_name
       application_uris
       application_users
-
-      runtime_name
     )
 
     keys.each do |key|
@@ -217,8 +214,6 @@ describe Dea::Env do
         "application_name"     => "name",
         "application_uris"     => "uris",
         "application_users"    => "users",
-
-        "runtime_name"         => "runtime",
 
         "started_at"           => "start",
         "started_at_timestamp" => "state_timestamp",
@@ -256,10 +251,6 @@ describe Dea::Env do
       }
     end
 
-    let(:runtime) do
-      mock("Dea::Runtime")
-    end
-
     let(:env) do
       subject.env
     end
@@ -275,10 +266,6 @@ describe Dea::Env do
       instance.stub(:services).and_return([service])
 
       instance.stub(:debug).and_return(nil)
-      instance.stub(:runtime).and_return(runtime)
-
-      runtime.stub(:environment).and_return({ "RUNTIME_ENVIRONMENT" => "yep"})
-      runtime.stub(:debug_environment).with("mode").and_return({ "RUNTIME_DEBUG_ENVIRONMENT" => "yep"})
 
       instance.stub(:environment).and_return({ "ENVIRONMENT" => "yep" })
     end
@@ -301,28 +288,14 @@ describe Dea::Env do
       find("VCAP_APP_PORT").should =~ /4567/
     end
 
-    it "includes VCAP_DEBUG_*" do
-      find("VCAP_DEBUG_IP").should =~ /#{application_for_json["host"]}/
-      find("VCAP_DEBUG_PORT").should =~ /4568/
+    it "does not includes VCAP_DEBUG_*" do
+      find("VCAP_DEBUG_IP").should be_nil
+      find("VCAP_DEBUG_PORT").should be_nil
     end
 
     it "includes VCAP_CONSOLE_*" do
       find("VCAP_CONSOLE_IP").should =~ /#{application_for_json["host"]}/
       find("VCAP_CONSOLE_PORT").should =~ /4569/
-    end
-
-    it "includes the runtime's environment" do
-      find("RUNTIME_ENVIRONMENT").should be
-    end
-
-    it "includes the runtime's debug environment when the debug mode is enabled" do
-      instance.stub(:debug).and_return("mode")
-      find("RUNTIME_DEBUG_ENVIRONMENT").should be
-    end
-
-    it "doesn't include the runtime's debug environment when debug mode is not enabled" do
-      instance.stub(:debug).and_return(nil)
-      find("RUNTIME_DEBUG_ENVIRONMENT").should_not be
     end
 
     it "includes the user-specified environment" do
@@ -362,6 +335,15 @@ describe Dea::Env do
       port = service["credentials"]["port"]
 
       find("VMC_VENDOR").should =~ /#{host}:#{port}/
+    end
+
+    context "when in debug mode" do
+      before { instance.stub(:debug).and_return(true) }
+
+      it "does not includes VCAP_DEBUG_*" do
+        find("VCAP_DEBUG_IP").should =~ /#{application_for_json["host"]}/
+        find("VCAP_DEBUG_PORT").should =~ /4568/
+      end
     end
   end
 end

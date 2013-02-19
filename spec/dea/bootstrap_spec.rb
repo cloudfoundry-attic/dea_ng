@@ -13,8 +13,7 @@ describe Dea::Bootstrap do
       "directory_server" => {
         "v1_port" => 12345,
       },
-      "domain" => "default",
-      "runtimes" => ["ruby", "java"],
+      "domain" => "default"
     }
   end
 
@@ -260,45 +259,6 @@ describe Dea::Bootstrap do
         droplet_registry[sha].should_receive(:destroy)
       end
       bootstrap.reap_unreferenced_droplets
-    end
-  end
-
-  describe "#runtime" do
-    before do
-      bootstrap.setup_runtimes
-    end
-
-    it "returns nil when a runtime is not mentioned in the configuration" do
-      bootstrap.runtime("php").should be_nil
-    end
-
-    it "returns nil when a runtime is not valid" do
-      runtime = mock("Dea::Runtime")
-      runtime.should_receive(:validate).once.and_raise(Dea::Runtime::BaseError.new("Error"))
-
-      Dea::Runtime.stub(:new).and_return(runtime)
-
-      bootstrap.runtime("ruby").should be_nil
-    end
-
-    it "returns a Runtime object when a runtime is valid" do
-      runtime = mock("Dea::Runtime")
-      runtime.should_receive(:validate).once.and_return
-
-      Dea::Runtime.stub(:new).and_return(runtime)
-
-      bootstrap.runtime("ruby").should == runtime
-    end
-
-    it "caches valid runtimes" do
-      runtime = mock("Dea::Runtime")
-      runtime.should_receive(:validate).once.and_return
-
-      Dea::Runtime.stub(:new).and_return(runtime)
-
-      r1 = bootstrap.runtime("ruby")
-      r2 = bootstrap.runtime("ruby")
-      r1.should == r2
     end
   end
 

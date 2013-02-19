@@ -199,10 +199,6 @@ module Dea
       ].each(&:resolve)
     end
 
-    def runtime
-      bootstrap.runtime(attributes["properties"]["runtime"], attributes["properties"]["runtime_info"])
-    end
-
     def clean_workspace
       FileUtils.rm_rf(workspace_dir)
     end

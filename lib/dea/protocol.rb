@@ -101,7 +101,6 @@ module Dea::Protocol::V1
   class AdvertiseMessage
     def self.generate(bootstrap)
       { "id"       => bootstrap.uuid,
-        "runtimes" => bootstrap.runtimes.keys,
         "available_memory" => bootstrap.resource_manager.resources["memory"].remain,
         "prod"     => bootstrap.config.only_production_apps?,
       }

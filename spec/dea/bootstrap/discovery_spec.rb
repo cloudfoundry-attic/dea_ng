@@ -62,22 +62,21 @@ describe Dea do
   end
 
   describe "dea.discover" do
-    it "should not respond for unsupported runtimes" do
-      received_message = false
+    it "should support any runtime" do
+      received_message = nil
 
       em(:timeout => 1) do
         bootstrap.setup
         bootstrap.start
 
-        req = discover_message("runtime" => "unsupported")
-        nats_mock.request("dea.discover", req) do
-          received_message = true
+        req = discover_message("runtime" => "anything")
+        nats_mock.request("dea.discover", req) do |msg|
+          received_message = Yajl::Parser.parse(msg)
+          done
         end
-
-        done
       end
 
-      received_message.should be_false
+      verify_hello_message(bootstrap, received_message)
     end
 
     it "should not respond if insufficient resources" do

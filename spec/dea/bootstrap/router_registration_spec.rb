@@ -50,7 +50,6 @@ describe Dea do
       "port" => instances[0].instance_host_port,
       "tags" => {
         "framework" => instances[0].framework_name,
-        "runtime"   => instances[0].runtime_name,
       },
       "private_instance_id" => instances[0].private_instance_id,
     }

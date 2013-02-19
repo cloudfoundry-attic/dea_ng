@@ -62,16 +62,14 @@ module Dea
 
     # The format used by VCAP_APPLICATION
     def application_for_json
-      keys = %W(
+      keys = %W[
         instance_id
         instance_index
 
         application_version
         application_name
         application_uris
-
-        runtime_name
-      )
+      ]
 
       # TODO(kowshik): Eliminate application_users as it is deprecated.
       hash = { "application_users" => [] }
@@ -94,7 +92,6 @@ module Dea
       hash["uris"]            = hash["application_uris"]
       hash["users"]           = hash["application_users"]
 
-      hash["runtime"]         = hash["runtime_name"]
       hash["start"]           = hash["started_at"]
       hash["state_timestamp"] = hash["started_at_timestamp"]
 
@@ -143,10 +140,14 @@ module Dea
 
       env << ["VCAP_APP_HOST",     application["host"]]
       env << ["VCAP_APP_PORT",     instance.instance_container_port]
-      env << ["VCAP_DEBUG_IP",     application["host"]]
-      env << ["VCAP_DEBUG_PORT",   instance.instance_debug_container_port]
+
       env << ["VCAP_CONSOLE_IP",   application["host"]]
       env << ["VCAP_CONSOLE_PORT", instance.instance_console_container_port]
+
+      if instance.debug
+        env << ["VCAP_DEBUG_IP",     application["host"]]
+        env << ["VCAP_DEBUG_PORT",   instance.instance_debug_container_port]
+      end
 
       # Remove this once BVTs are updated/killed.
       env.concat(legacy_env)
@@ -155,14 +156,6 @@ module Dea
       env = env.map do |(key, value)|
         [key, %{'%s'} % value.to_s]
       end
-
-      # Include debug environment for runtime
-      if instance.debug
-        env.concat(instance.runtime.debug_environment(instance.debug).to_a)
-      end
-
-      # Include environment for runtime
-      env.concat(instance.runtime.environment.to_a)
 
       # Prepare user-specified environment
       instance_environment = instance.environment.map do |(key, value)|

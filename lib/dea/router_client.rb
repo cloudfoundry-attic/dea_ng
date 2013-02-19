@@ -40,7 +40,6 @@ module Dea
         "port" => instance.instance_host_port,
         "tags" => {
           "framework" => instance.framework_name,
-          "runtime"   => instance.runtime_name,
         },
         "private_instance_id" => instance.private_instance_id,
       }

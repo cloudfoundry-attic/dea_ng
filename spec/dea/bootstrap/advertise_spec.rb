@@ -20,9 +20,6 @@ describe Dea do
     @advertisement["id"].should == \
       bootstrap.uuid
 
-    @advertisement["runtimes"].should == \
-      bootstrap.runtimes.keys
-
     @advertisement["available_memory"].should == \
       bootstrap.resource_manager.resources["memory"].remain
   end

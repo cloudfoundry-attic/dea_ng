@@ -64,7 +64,6 @@ module Dea
       validate_config
 
       setup_logging
-      setup_runtimes
       setup_droplet_registry
       setup_resource_manager
       setup_instance_registry
@@ -103,42 +102,6 @@ module Dea
       end
 
       Steno.init(Steno::Config.new(options))
-    end
-
-    attr_reader :runtimes
-
-    def setup_runtimes
-      runtimes = Hash[config["runtimes"].map do |name|
-        [name, nil]
-      end]
-
-      if runtimes.empty?
-        logger.fatal "No runtimes"
-        exit 1
-      end
-
-      @runtimes = runtimes
-
-      nil
-    end
-
-    def runtime(name, options = {})
-      if runtimes.has_key?(name)
-        if runtimes[name].nil?
-          runtime = Runtime.new(options)
-
-          # Only cache runtime if it validates
-          begin
-            runtime.validate
-          rescue Runtime::BaseError => err
-            logger.warn err.to_s
-          else
-            runtimes[name] = runtime
-          end
-        end
-
-        runtimes[name]
-      end
     end
 
     attr_reader :droplet_registry
@@ -549,13 +512,9 @@ module Dea
     end
 
     def handle_dea_discover(message)
-      runtime = message.data["runtime"]
       rs = message.data["limits"]
 
-      if !runtimes.has_key?(runtime)
-        logger.info("Unsupported runtime '#{runtime}'")
-        return
-      elsif !resource_manager.could_reserve?(rs["mem"], rs["disk"], 1)
+      unless resource_manager.could_reserve?(rs["mem"], rs["disk"], 1)
         logger.info("Couldn't accomodate resource request")
         return
       end

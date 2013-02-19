@@ -16,17 +16,13 @@ shared_context "bootstrap_setup" do
         "advertise" => 0.01,
         "heartbeat" => 0.01,
       },
-      "runtimes" => ["test1", "test2"],
+      "runtimes" => %w[test1 test2],
       "directory_server" => {
         "v1_port" => 12345,
         "v2_port" => 23456,
       },
       "domain" => "default",
     }
-
-    mock_runtime = mock("Dea::Runtime")
-    mock_runtime.stub(:validate)
-    Dea::Runtime.stub(:new).and_return(mock_runtime)
 
     @bootstrap = Dea::Bootstrap.new(config)
 

@@ -2,8 +2,6 @@
 
 require "membrane"
 
-require "dea/runtime"
-
 module Dea
   class Config
     EMPTY_CONFIG = {
@@ -31,7 +29,6 @@ module Dea
           "only_production_apps" => bool,
           "nats_uri" => String,
           "pid_filename" => String,
-          "runtimes" => [String],
           "warden_socket" => String,
           "index" => Integer,
 

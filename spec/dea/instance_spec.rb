@@ -72,15 +72,13 @@ describe Dea::Instance do
       its(:droplet_uri)  { should == "http://foo.com/file.ext" }
     end
 
-    describe "runtime/framework attributes" do
+    describe "framework attributes" do
       let(:start_message_data) do
         {
-          "runtime"   => "ruby19",
           "framework" => "rails",
         }
       end
 
-      its(:runtime_name)   { should == "ruby19" }
       its(:framework_name) { should == "rails" }
     end
 
@@ -120,17 +118,10 @@ describe Dea::Instance do
   end
 
   describe "validation" do
-    before do
-      bootstrap.stub(:runtime).with("ruby19", anything).and_return("runtime")
-      bootstrap.stub(:runtime).with("not_found", anything).and_return(nil)
-    end
-
     it "should not raise when the attributes are valid" do
       instance = Dea::Instance.new(bootstrap, valid_instance_attributes)
 
-      expect do
-        instance.validate
-      end.to_not raise_error
+      expect { instance.validate }.to_not raise_error
     end
 
     it "should raise when attributes are missing" do
@@ -138,9 +129,7 @@ describe Dea::Instance do
       attributes.delete("application_id")
       instance = Dea::Instance.new(bootstrap, attributes)
 
-      expect do
-        instance.validate
-      end.to raise_error
+      expect { instance.validate }.to raise_error
     end
 
     it "should raise when attributes are invalid" do
@@ -148,19 +137,7 @@ describe Dea::Instance do
       attributes["application_id"] = attributes["application_id"].to_i
       instance = Dea::Instance.new(bootstrap, attributes)
 
-      expect do
-        instance.validate
-      end.to raise_error
-    end
-
-    it "should raise when the runtime is not found" do
-      attributes = valid_instance_attributes.dup
-      attributes["runtime_name"] = "not_found"
-      instance = Dea::Instance.new(bootstrap, attributes)
-
-      expect do
-        instance.validate
-      end.to raise_error(Dea::Instance::RuntimeNotFoundError)
+      expect { instance.validate }.to raise_error
     end
   end
 
@@ -420,12 +397,6 @@ describe Dea::Instance do
       droplet
     end
 
-    let(:runtime) do
-      runtime = mock("runtime")
-      runtime.stub(:dirname).and_return("/runtime_path")
-      runtime
-    end
-
     let(:warden_connection) do
       mock("warden_connection")
     end
@@ -444,7 +415,6 @@ describe Dea::Instance do
       instance.stub(:promise_start).and_return(delivering_promise)
       instance.stub(:promise_health_check).and_return(delivering_promise(true))
       instance.stub(:droplet).and_return(droplet)
-      instance.stub(:runtime).and_return(runtime)
       instance.stub(:start_stat_collector)
       instance.stub(:link)
     end
@@ -832,60 +802,19 @@ describe Dea::Instance do
 
     end
 
-    describe "preparing the start script" do
-      let(:runtime) do
-        runtime = mock(:runtime)
-        runtime.stub(:executable).and_return("/bin/runtime")
-        runtime
-      end
-
-      before do
-        instance.unstub(:promise_prepare_start_script)
-        instance.stub(:runtime).and_return(runtime)
-      end
-
-      it "should run sed" do
-        instance.stub(:promise_warden_run) do |_, script|
-          script.should =~ /^sed /
-
-          delivering_promise
-        end
-
-        expect_start.to_not raise_error
-      end
-
-      it "can fail by run failing" do
-        instance.stub(:promise_warden_run) do |*_|
-          failing_promise(RuntimeError.new("failure"))
-        end
-
-        expect_start.to raise_error("failure")
-      end
-    end
-
     describe "starting the application" do
-      let(:runtime) do
-        runtime = mock("Dea::Runtime")
-        runtime.stub(:environment).and_return({})
-        runtime.stub(:debug_environment).and_return({})
-        runtime
-      end
-
       let(:response) do
         response = mock("spawn_response")
         response.stub(:job_id => 37)
         response
       end
 
-      before do
-        instance.unstub(:promise_start)
-        instance.stub(:runtime).and_return(runtime)
-      end
+      before { instance.unstub(:promise_start) }
 
       it "executes a SpawnRequest" do
         instance.attributes["warden_handle"] = "handle"
 
-        instance.stub(:promise_warden_call) do |connection, request|
+        instance.stub(:promise_warden_call) do |_, request|
           request.should be_kind_of(::Warden::Protocol::SpawnRequest)
           request.handle.should == "handle"
           request.script.should_not be_empty
