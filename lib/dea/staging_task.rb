@@ -204,7 +204,7 @@ module Dea
     end
 
     def path_in_container(path)
-      File.join(container_path, path) if container_path
+      File.join(container_path, path.to_s) if container_path
     end
 
     private
