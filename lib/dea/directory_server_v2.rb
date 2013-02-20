@@ -41,8 +41,12 @@ module Dea
       @file_api_server.start
     end
 
-    def file_url_for(instance_id, file_path)
+    def instance_file_url_for(instance_id, file_path)
       url_for("/instance_paths/#{instance_id}", :path => file_path, :timestamp => Time.now.to_i)
+    end
+
+    def staging_task_file_url_for(task_id, file_path)
+      url_for("/staging_tasks/#{task_id}/file_path", :path => file_path, :timestamp => Time.now.to_i)
     end
 
     def url_for(path, params = {})

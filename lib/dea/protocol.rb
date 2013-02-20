@@ -44,7 +44,7 @@ module Dea::Protocol::V1
       }
 
       if request.has_key?("path")
-        response["file_uri_v2"] = bootstrap.directory_server_v2.file_url_for(instance.instance_id, request["path"])
+        response["file_uri_v2"] = bootstrap.directory_server_v2.instance_file_url_for(instance.instance_id, request["path"])
       end
 
       if instance.debug

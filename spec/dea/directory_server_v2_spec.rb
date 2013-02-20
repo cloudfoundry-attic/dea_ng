@@ -129,12 +129,28 @@ describe Dea::DirectoryServerV2 do
       end
     end
 
-    describe "#file_url_for" do
-      let(:url) { subject.file_url_for("instance-id", "/path-to-file") }
+    describe "#instance_file_url_for" do
+      let(:url) { subject.instance_file_url_for("instance-id", "/path-to-file") }
       before { Time.stub(:now => Time.at(10)) }
 
       it_generates_url "/instance_paths/instance-id"
       it_hmacs_url "/instance_paths/instance-id?path=%2Fpath-to-file&timestamp=10"
+
+      it "includes timestamp with current time" do
+        query_params(url)["timestamp"].should == "10"
+      end
+
+      it "includes file path" do
+        query_params(url)["path"].should == "/path-to-file"
+      end
+    end
+
+    describe "#staging_task_file_url_for" do
+      let(:url) { subject.staging_task_file_url_for("task-id", "/path-to-file") }
+      before { Time.stub(:now => Time.at(10)) }
+
+      it_generates_url "/staging_tasks/task-id/file_path"
+      it_hmacs_url "/staging_tasks/task-id/file_path?path=%2Fpath-to-file&timestamp=10"
 
       it "includes timestamp with current time" do
         query_params(url)["timestamp"].should == "10"

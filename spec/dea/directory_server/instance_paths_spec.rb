@@ -87,7 +87,7 @@ describe Dea::DirectoryServerV2::InstancePaths do
       end
 
       it "return 200 with instance path when path is not explicitly specified (nil)" do
-        get directory_server.file_url_for(instance.instance_id, nil)
+        get directory_server.instance_file_url_for(instance.instance_id, nil)
         last_response.status.should == 200
         json_body["instance_path"].should == instance.instance_path
       end
@@ -97,7 +97,7 @@ describe Dea::DirectoryServerV2::InstancePaths do
   alias_method :app, :described_class
 
   def instance_path(instance_id, path, opts = {})
-    directory_server.file_url_for(instance_id, path).tap do |url|
+    directory_server.instance_file_url_for(instance_id, path).tap do |url|
       url.gsub!(/hmac=.+([^\&]|$)/, "hmac=#{opts[:hmac]}") if opts[:hmac]
     end
   end
