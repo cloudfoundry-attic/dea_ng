@@ -1,6 +1,7 @@
 # coding: UTF-8
 
 require "nats/client"
+require File.expand_path("mock_class", File.dirname(__FILE__))
 
 # Defined specifically for NatsClientMock
 class NatsInstance
