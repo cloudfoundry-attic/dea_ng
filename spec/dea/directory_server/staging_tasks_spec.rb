@@ -71,7 +71,12 @@ describe Dea::DirectoryServerV2::StagingTasks do
       end
 
       context "when container path does exist" do
-        before { staging_task.stub(:container_path => tmpdir) }
+        let(:container_rootfs_path) { File.join(tmpdir, "tmp", "rootfs") }
+
+        before do
+          FileUtils.mkdir_p(container_rootfs_path)
+          staging_task.stub(:container_path => tmpdir)
+        end
 
         context "when requested file does not exist" do
           it "returns 404" do
@@ -90,12 +95,13 @@ describe Dea::DirectoryServerV2::StagingTasks do
         end
 
         context "when file exists" do
-          before { FileUtils.touch(File.join(tmpdir, "some-file")) }
+          let(:expanded_file_path) { File.join(container_rootfs_path, "some-file") }
+          before { FileUtils.touch(expanded_file_path) }
 
           it "returns expanded path" do
             get staging_task_file_path(staging_task.task_id, "some-file")
             last_response.status.should == 200
-            json_body["instance_path"].should == File.join(tmpdir, "some-file")
+            json_body["instance_path"].should == expanded_file_path
           end
         end
       end

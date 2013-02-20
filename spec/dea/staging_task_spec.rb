@@ -145,13 +145,15 @@ describe Dea::StagingTask do
     context "when given path is not nil" do
       context "when container path is set" do
         before { staging.stub(:container_path => "/container/path") }
-        it "returns path inside warden container" do
-          staging.path_in_container("path/to/file").should == "/container/path/path/to/file"
+
+        it "returns path inside warden container root file system" do
+          staging.path_in_container("path/to/file").should == "/container/path/tmp/rootfs/path/to/file"
         end
       end
 
       context "when container path is not set" do
         before { staging.stub(:container_path => nil) }
+
         it "returns nil" do
           staging.path_in_container("path/to/file").should be_nil
         end
@@ -161,13 +163,15 @@ describe Dea::StagingTask do
     context "when given path is nil" do
       context "when container path is set" do
         before { staging.stub(:container_path => "/container/path") }
-        it "returns path inside warden container" do
-          staging.path_in_container(nil).should == "/container/path/"
+
+        it "returns path inside warden container root file system" do
+          staging.path_in_container(nil).should == "/container/path/tmp/rootfs/"
         end
       end
 
       context "when container path is not set" do
         before { staging.stub(:container_path => nil) }
+
         it "returns nil" do
           staging.path_in_container("path/to/file").should be_nil
         end
