@@ -30,10 +30,6 @@ module Helpers
       "droplet_sha1"        => "deadbeef",
       "droplet_uri"         => "http://foo.com/file.ext",
 
-      "runtime_name"        => "ruby19",
-      "runtime_info"        => { "foo" => "bar" },
-      "framework_name"      => "rails",
-
       "limits"              => { "mem" => 1, "disk" => 2, "fds" => 3 },
       "environment"         => { "FOO" => "BAR" },
       "services"            => [valid_service_attributes],
@@ -44,16 +40,11 @@ module Helpers
   def valid_staging_attributes
     {
       "properties" => {
-        "runtime" => "ruby",
-        "runtime_info" => {},
+        "services" => [],
         "resources" => {
           "memory" => 128,
           "disk" => 128,
           "fds" => 5000,
-        },
-        "services" => [],
-        "framework_info" => {
-          "name" => "sinatra"
         }
       },
       "download_uri" => "http://127.0.0.1:12346/download",

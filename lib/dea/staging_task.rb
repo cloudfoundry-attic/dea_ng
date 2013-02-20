@@ -92,8 +92,7 @@ module Dea
       Promise.new do |p|
         script = "mkdir -p #{WARDEN_STAGED_DIR}/logs && "
         script += [staging_environment.map {|k, v| "#{k}=#{v}"}.join(" "),
-                   config["dea_ruby"], run_plugin_path,
-                   attributes["properties"]["framework_info"]["name"],
+                   config["dea_ruby"], run_plugin_path, "buildpack",
                    plugin_config_path, "> #{WARDEN_STAGING_LOG} 2>&1"].join(" ")
         logger.info("<staging> Running #{script}")
 

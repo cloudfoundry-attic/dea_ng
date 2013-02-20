@@ -39,8 +39,6 @@ describe Dea::Env do
       "droplet_sha1"        => "deadbeef",
       "droplet_uri"         => "http://foo.com/file.ext",
 
-      "framework_name"      => "rails",
-
       "limits"              => { "mem" => 1, "disk" => 2, "fds" => 3 },
       "environment"         => { "FOO" => "BAR" },
       "services"            => { "name" => "redis", "type" => "redis" },

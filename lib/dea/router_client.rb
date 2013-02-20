@@ -38,9 +38,7 @@ module Dea
         "uris" => opts[:uris] || instance.application_uris,
         "host" => bootstrap.local_ip,
         "port" => instance.instance_host_port,
-        "tags" => {
-          "framework" => instance.framework_name,
-        },
+        "tags" => {},
         "private_instance_id" => instance.private_instance_id,
       }
     end

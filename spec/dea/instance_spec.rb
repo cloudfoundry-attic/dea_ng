@@ -72,16 +72,6 @@ describe Dea::Instance do
       its(:droplet_uri)  { should == "http://foo.com/file.ext" }
     end
 
-    describe "framework attributes" do
-      let(:start_message_data) do
-        {
-          "framework" => "rails",
-        }
-      end
-
-      its(:framework_name) { should == "rails" }
-    end
-
     describe "other attributes" do
       let(:start_message_data) do
         {

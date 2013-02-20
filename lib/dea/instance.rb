@@ -122,8 +122,6 @@ module Dea
       attributes["droplet_sha1"]        ||= attributes.delete("sha1")
       attributes["droplet_uri"]         ||= attributes.delete("executableUri")
 
-      attributes["framework_name"]      ||= attributes.delete("framework")
-
       # Translate environment to dictionary (it is passed as Array with VAR=VAL)
       env = attributes.delete("env") || []
       attributes["environment"] ||= Hash[env.map do |e|
@@ -185,9 +183,9 @@ module Dea
           "droplet_sha1"        => String,
           "droplet_uri"         => String,
 
-          optional("runtime_name") => String,
-          optional("runtime_info") => dict(String, any),
-          "framework_name"         => String,
+          optional("runtime_name")   => String,
+          optional("runtime_info")   => dict(String, any),
+          optional("framework_name") => String,
 
           # TODO: use proper schema
           "limits"              => limits_schema,
