@@ -1,5 +1,6 @@
 class Download
   attr_reader :uri, :blk, :destination_dir, :sha1_expected
+  attr_reader :logger
 
   class DownloadError < StandardError
     attr_reader :data
@@ -15,10 +16,11 @@ class Download
     end
   end
 
-  def initialize(uri, destination_dir, sha1_expected = nil)
+  def initialize(uri, destination_dir, sha1_expected=nil, custom_logger=nil)
     @uri = uri
     @destination_dir = destination_dir
     @sha1_expected = sha1_expected
+    @logger = custom_logger || self.class.logger
   end
 
   def download!(&blk)
@@ -63,6 +65,7 @@ class Download
         if http_status == 200
           sha1_actual   = sha1.hexdigest
           if !sha1_expected || sha1_expected == sha1_actual
+            logger.info("Download succeeded")
             blk.call(nil, file.path)
           else
             context[:droplet_sha1_expected] = sha1_expected

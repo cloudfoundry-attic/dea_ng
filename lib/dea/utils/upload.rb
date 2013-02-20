@@ -1,15 +1,18 @@
 require "dea/utils/eventmachine_multipart_hack"
 
 class Upload
+  attr_reader :logger
+
   class UploadError < StandardError
     def initialize(msg, uri="(unknown)")
-      super("<staging> Error uploading: %s (%s)" % [uri, msg])
+      super("Error uploading: %s (%s)" % [uri, msg])
     end
   end
 
-  def initialize(source, destination)
+  def initialize(source, destination, custom_logger=nil)
     @source = source
     @destination = destination
+    @logger = custom_logger || self.class.logger
   end
 
   def upload!(&upload_callback)
@@ -26,6 +29,7 @@ class Upload
 
     http.errback do
       error = UploadError.new("Response status: unknown", @destination)
+      logger.warn(error.message)
       upload_callback.call(error)
     end
 
@@ -33,9 +37,11 @@ class Upload
       http_status = http.response_header.status
 
       if http_status == 200
+        logger.info("Upload succeeded")
         upload_callback.call(nil)
       else
         error = UploadError.new("HTTP status: #{http_status} - #{http.response}", @destination)
+        logger.warn(error.message)
         upload_callback.call(error)
       end
     end

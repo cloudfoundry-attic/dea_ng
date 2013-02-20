@@ -167,7 +167,7 @@ module Dea
 
     def promise_app_upload
       Promise.new do |p|
-        Upload.new(staged_droplet_path, attributes["upload_uri"]).upload! do |error|
+        Upload.new(staged_droplet_path, attributes["upload_uri"], logger).upload! do |error|
           if error
             p.fail(error)
           else
