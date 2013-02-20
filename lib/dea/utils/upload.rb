@@ -14,14 +14,14 @@ class Upload
 
   def upload!(&upload_callback)
     http = EM::HttpRequest.new(@destination).post(
-        head: {
-          "Content-Type" => "multipart/form-data; boundary=#{boundary}",
-          EM::HttpClient::MULTIPART_HACK => {
-            :prepend => multipart_header,
-            :append => multipart_footer
-          }
-        },
-        file: @source
+      head: {
+        "Content-Type" => "multipart/form-data; boundary=#{boundary}",
+        EM::HttpClient::MULTIPART_HACK => {
+          :prepend => multipart_header,
+          :append => multipart_footer
+        }
+      },
+      file: @source
     )
 
     http.errback do
@@ -31,10 +31,11 @@ class Upload
 
     http.callback do
       http_status = http.response_header.status
+
       if http_status == 200
         upload_callback.call(nil)
       else
-        error = UploadError.new("HTTP status: #{http_status}", @destination)
+        error = UploadError.new("HTTP status: #{http_status} - #{http.response}", @destination)
         upload_callback.call(error)
       end
     end

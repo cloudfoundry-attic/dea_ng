@@ -59,7 +59,7 @@ describe Upload do
 
         subject.upload! do |error|
           error.should be_a(Upload::UploadError)
-          error.message.should == "<staging> Error uploading: http://127.0.0.1:12345/ (HTTP status: 500)"
+          error.message.should match %r{<staging> Error uploading: http://127.0.0.1:12345/ \(HTTP status: 500}
           done
         end
       end
