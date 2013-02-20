@@ -22,15 +22,14 @@ module Dea
     attr_reader :bootstrap, :dir_server, :attributes
     attr_reader :container_path
 
-    def initialize(bootstrap, dir_server, attributes)
-      super(bootstrap.config)
+    def initialize(bootstrap, dir_server, attributes, custom_logger=nil)
+      super(bootstrap.config, custom_logger)
+
       @bootstrap = bootstrap
       @dir_server = dir_server
       @attributes = attributes.dup
-    end
 
-    def logger
-      @logger ||= self.class.logger.tag({})
+      logger.user_data[:task_id] = task_id
     end
 
     def task_id
@@ -47,9 +46,9 @@ module Dea
 
     def start
       staging_promise = Promise.new do |p|
-        logger.info("<staging> Starting staging task")
-        logger.info("<staging> Setting up temporary directories")
-        logger.info("<staging> Working dir in #{workspace_dir}")
+        logger.info("Starting staging task")
+        logger.info("Setting up temporary directories")
+        logger.info("Working dir in #{workspace_dir}")
 
         resolve_staging_setup
         resolve_staging
@@ -110,7 +109,7 @@ module Dea
           "> #{WARDEN_STAGING_LOG} 2>&1"
         ].join(" ")
 
-        logger.info("<staging> Running #{script}")
+        logger.info("Running #{script}")
 
         begin
           promise_warden_run(:app, script).resolve
@@ -131,7 +130,7 @@ module Dea
 
     def promise_unpack_app
       Promise.new do |p|
-        logger.info "<staging> Unpacking app to #{WARDEN_UNSTAGED_DIR}"
+        logger.info("Unpacking app to #{WARDEN_UNSTAGED_DIR}")
         script = "unzip -q #{downloaded_droplet_path} -d #{WARDEN_UNSTAGED_DIR}"
         promise_warden_run(:app, script).resolve
 
@@ -150,17 +149,17 @@ module Dea
 
     def promise_app_download
       Promise.new do |p|
-        logger.info("<staging> Downloading application from #{attributes["download_uri"]}")
+        logger.info("Downloading application from #{attributes["download_uri"]}")
 
         Download.new(attributes["download_uri"], workspace_dir).download! do |error, path|
-          unless error
+          if error
+            p.fail(error)
+          else
             File.rename(path, downloaded_droplet_path)
             File.chmod(0744, downloaded_droplet_path)
 
-            logger.debug "<staging> Moved droplet to #{downloaded_droplet_path}"
+            logger.debug("Moved droplet to #{downloaded_droplet_path}")
             p.deliver
-          else
-            p.fail(error)
           end
         end
       end
@@ -169,11 +168,11 @@ module Dea
     def promise_app_upload
       Promise.new do |p|
         Upload.new(staged_droplet_path, attributes["upload_uri"]).upload! do |error|
-          unless error
-            logger.info("<staging> Uploaded app to #{attributes["upload_uri"]}")
-            p.deliver
-          else
+          if error
             p.fail(error)
+          else
+            logger.info("Uploaded app to #{attributes["upload_uri"]}")
+            p.deliver
           end
         end
       end

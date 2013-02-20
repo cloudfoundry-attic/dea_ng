@@ -107,7 +107,7 @@ describe Dea::Responders::Stage do
       it "starts staging task" do
         Dea::StagingTask
           .should_receive(:new)
-          .with(bootstrap, dir_server, message.data)
+          .with(bootstrap, dir_server, message.data, an_instance_of(Steno::TaggedLogger))
           .and_return(staging_task)
 
         staging_task.should_not_receive(:after_setup_callback)
@@ -158,7 +158,7 @@ describe Dea::Responders::Stage do
       it "starts staging task with registered callbacks" do
         Dea::StagingTask
           .should_receive(:new)
-          .with(bootstrap, dir_server, message.data)
+          .with(bootstrap, dir_server, message.data, an_instance_of(Steno::TaggedLogger))
           .and_return(staging_task)
 
         staging_task.should_receive(:after_setup_callback).ordered

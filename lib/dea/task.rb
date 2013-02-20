@@ -17,9 +17,11 @@ module Dea
     }
 
     attr_reader :config
+    attr_reader :logger
 
-    def initialize(config)
+    def initialize(config, custom_logger=nil)
       @config = config
+      @logger = custom_logger || self.class.logger.tag({})
       @warden_connections = {}
     end
 
@@ -154,8 +156,7 @@ module Dea
         response = promise_warden_call(:app, create_request).resolve
 
         @attributes["warden_handle"] = response.handle
-
-        @logger = logger.tag("warden_handle" => response.handle)
+        logger.user_data[:warden_handle] = response.handle
 
         p.deliver
       end
@@ -260,7 +261,7 @@ module Dea
       begin
         promise_warden_call_with_retry(:app, request).resolve
         rescue ::EM::Warden::Client::Error => error
-        logger.warn("<staging> Error copying files out of container: #{error.message}")
+        logger.warn("Error copying files out of container: #{error.message}")
       end
     end
   end

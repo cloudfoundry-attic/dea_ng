@@ -30,9 +30,10 @@ module Dea::Responders
     def handle(message)
       should_do_async_staging = message.data["async"]
 
-      logger.info("<staging> Got #{"a" if should_do_async_staging}sync staging request with #{message.data.inspect}")
+      logger = logger_for_app(message.data["app_id"])
+      logger.info("Got #{"a" if should_do_async_staging}sync staging request with #{message.data.inspect}")
 
-      task = Dea::StagingTask.new(bootstrap, dir_server, message.data)
+      task = Dea::StagingTask.new(bootstrap, dir_server, message.data, logger)
       staging_task_registry.register(task)
 
       notify_setup_completion(message, task) if should_do_async_staging
@@ -75,6 +76,11 @@ module Dea::Responders
         "task_streaming_log_url" => params[:streaming_log_url],
         "error" => params[:error],
       )
+    end
+
+    def logger_for_app(app_id)
+      logger = Steno::Logger.new("Staging", Steno.config.sinks)
+      logger.tag(:app_guid => app_id)
     end
   end
 end

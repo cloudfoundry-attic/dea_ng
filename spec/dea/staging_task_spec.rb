@@ -61,15 +61,17 @@ describe Dea::StagingTask do
   end
 
   describe "#task_id" do
+    subject { Dea::StagingTask.new(bootstrap, dir_server, attributes) }
+
     it "generates a guid" do
       VCAP.should_receive(:secure_uuid).and_return("the_uuid")
-      staging.task_id.should == "the_uuid"
+      subject.task_id.should == "the_uuid"
     end
 
     it "persists" do
       VCAP.should_receive(:secure_uuid).once.and_return("the_uuid")
-      staging.task_id.should == "the_uuid"
-      staging.task_id.should == "the_uuid"
+      subject.task_id.should == "the_uuid"
+      subject.task_id.should == "the_uuid"
     end
   end
 
