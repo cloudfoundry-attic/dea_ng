@@ -157,6 +157,9 @@ module Dea
         [key, %{'%s'} % value.to_s]
       end
 
+      # Set debug environment for buildpacks to process
+      env << ["VCAP_DEBUG_MODE", instance.debug] if instance.debug
+
       # Prepare user-specified environment
       instance_environment = instance.environment.map do |(key, value)|
         # Wrap value in double quotes if it isn't already (allows interpolation)

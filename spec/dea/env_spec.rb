@@ -296,6 +296,16 @@ describe Dea::Env do
       find("VCAP_CONSOLE_PORT").should =~ /4569/
     end
 
+    it "includes the debug mode when the debug mode is set" do
+      instance.stub(:debug).and_return("mode")
+      find("VCAP_DEBUG_MODE").should == "mode"
+    end
+
+    it "doesn't include the debug mode when debug mode is not set" do
+      instance.stub(:debug).and_return(nil)
+      find("VCAP_DEBUG_MODE").should_not be
+    end
+
     it "includes the user-specified environment" do
       find("ENVIRONMENT").should be
     end
