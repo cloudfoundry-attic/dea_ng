@@ -170,19 +170,19 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_ReturnDirectoryListing(t *C
 	// Create temp directory listing for this unit test.
 	tmpDir, err := ioutil.TempDir("", "")
 	if err != nil {
-		t.Fail()
+		t.Error(err)
 	}
 	_, err = ioutil.TempDir(tmpDir, "testdir_")
 	if err != nil {
-		t.Fail()
+		t.Error(err)
 	}
 	tmpFile, err := ioutil.TempFile(tmpDir, "testfile_")
 	if err != nil {
-		t.Fail()
+		t.Error(err)
 	}
 	err = tmpFile.Close()
 	if err != nil {
-		t.Fail()
+		t.Error(err)
 	}
 	var dump bytes.Buffer
 	for index := 0; index < 10000; index++ {
@@ -190,7 +190,7 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_ReturnDirectoryListing(t *C
 	}
 	err = ioutil.WriteFile(tmpFile.Name(), []byte(dump.String()), 0600)
 	if err != nil {
-		t.Fail()
+		t.Error(err)
 	}
 
 	responseBody := []byte(fmt.Sprintf(`{"instance_path": "%s"}`, tmpDir))
@@ -240,7 +240,7 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_ReturnDirectoryListing(t *C
 
 	// Clean up.
 	if err = os.RemoveAll(tmpDir); err != nil {
-		t.Fail()
+		t.Error(err)
 	}
 }
 
@@ -248,7 +248,7 @@ func fetchStreamingResponse(t *C, url string) (*http.Response, string) {
 	// Create temp file for this unit test.
 	tmpFile, err := ioutil.TempFile("", "testfile_")
 	if err != nil {
-		t.Fail()
+		t.Error(err)
 	}
 
 	err = tmpFile.Close()
@@ -363,7 +363,7 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_DumpFile(t *C) {
 	// Create temp file for this unit test.
 	tmpFile, err := ioutil.TempFile("", "testfile_")
 	if err != nil {
-		t.Fail()
+		t.Error(err)
 	}
 	err = tmpFile.Close()
 	if err != nil {
@@ -375,7 +375,7 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_DumpFile(t *C) {
 	}
 	err = ioutil.WriteFile(tmpFile.Name(), []byte(dump.String()), 0600)
 	if err != nil {
-		t.Fail()
+		t.Error(err)
 	}
 
 	responseBody := []byte(fmt.Sprintf(`{"instance_path": "%s"}`, tmpFile.Name()))
@@ -417,7 +417,7 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_DumpFile(t *C) {
 
 	// Clean up.
 	if err = os.Remove(tmpFile.Name()); err != nil {
-		t.Fail()
+		t.Error(err)
 	}
 }
 
@@ -425,7 +425,7 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_DumpFile_RangeQuery(t *C) {
 	// Create temp file for this unit test.
 	tmpFile, err := ioutil.TempFile("", "testfile_")
 	if err != nil {
-		t.Fail()
+		t.Error(err)
 	}
 	err = tmpFile.Close()
 	if err != nil {
@@ -437,7 +437,7 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_DumpFile_RangeQuery(t *C) {
 	}
 	err = ioutil.WriteFile(tmpFile.Name(), []byte(dump.String()), 0600)
 	if err != nil {
-		t.Fail()
+		t.Error(err)
 	}
 
 	responseBody := []byte(fmt.Sprintf(`{"instance_path": "%s"}`, tmpFile.Name()))
@@ -492,7 +492,7 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_DumpFile_RangeQuery(t *C) {
 
 	// Clean up.
 	if err = os.Remove(tmpFile.Name()); err != nil {
-		t.Fail()
+		t.Error(err)
 	}
 }
 
@@ -500,7 +500,7 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_DumpFile_FailedRangeQuery(t
 	// Create temp file for this unit test.
 	tmpFile, err := ioutil.TempFile("", "testfile_")
 	if err != nil {
-		t.Fail()
+		t.Error(err)
 	}
 	err = tmpFile.Close()
 	if err != nil {
@@ -512,7 +512,7 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_DumpFile_FailedRangeQuery(t
 	}
 	err = ioutil.WriteFile(tmpFile.Name(), []byte(dump.String()), 0600)
 	if err != nil {
-		t.Fail()
+		t.Error(err)
 	}
 
 	responseBody := []byte(fmt.Sprintf(`{"instance_path": "%s"}`, tmpFile.Name()))
@@ -552,6 +552,6 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_DumpFile_FailedRangeQuery(t
 
 	// Clean up.
 	if err = os.Remove(tmpFile.Name()); err != nil {
-		t.Fail()
+		t.Error(err)
 	}
 }
