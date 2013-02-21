@@ -15,6 +15,7 @@ package directoryserver
 import (
 	"bytes"
 	"common"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -79,15 +80,17 @@ func (h handler) writeDeaClientError(err *error, w http.ResponseWriter) {
 	fmt.Fprintf(w, msg)
 }
 
-// Prefixes the error message indicating an internal server error.
 // Writes the new error message in the HTTP response and sets the HTTP response
 // status code to 500.
-func (h handler) writeServerError(err *error, w http.ResponseWriter) {
-	msgFormat := "Can't serve request due to error: %s"
-	msg := fmt.Sprintf(msgFormat, (*err).Error())
+func (h handler) writeServerErrorMessage(errorMessage string, w http.ResponseWriter) {
+	msg := fmt.Sprintf("Can't serve request due to error: %s", errorMessage)
 	log.Info(msg)
 	w.WriteHeader(500)
 	fmt.Fprintf(w, msg)
+}
+
+func (h handler) writeServerError(err *error, w http.ResponseWriter) {
+	h.writeServerErrorMessage((*err).Error(), w)
 }
 
 // Writes the directory listing of the directory path in the HTTP response.
@@ -144,22 +147,71 @@ func (h handler) dumpFile(request *http.Request, writer http.ResponseWriter,
 	return handle.Close()
 }
 
-func (h handler) writeFile(request *http.Request,
-	writer http.ResponseWriter, path string) {
-	var err error
-	if _, present := request.URL.Query()["tail"]; present {
-		f, err := os.Open(path)
-		if err == nil {
-			_, err = f.Seek(0, os.SEEK_END)
-			if err == nil {
-				s := &StreamHandler{
-					File:          f,
-					FlushInterval: 50 * time.Millisecond,
-					IdleTimeout:   time.Duration(h.streamingTimeout) * time.Second,
-				}
-				s.ServeHTTP(writer, request)
-			}
+func (h handler) shouldTail(request *http.Request) bool {
+	_, present := request.URL.Query()["tail"]
+	return present
+}
+
+func (h handler) hasTailOffset(request *http.Request) bool {
+	_, present := request.URL.Query()["tail_offset"]
+	return present
+}
+
+func (h handler) getTailOffset(request *http.Request) (int64, error) {
+	param, present := request.URL.Query()["tail_offset"]
+	if !present {
+		return 0, errors.New("Offset not part of query.")
+	}
+
+	offset, err := strconv.Atoi(param[0])
+	if err != nil || offset < 0 {
+		return 0, errors.New("Tail offset must be a positive integer.")
+	}
+
+	return int64(offset), nil
+}
+
+func (h handler) tailFile(request *http.Request, writer http.ResponseWriter,
+	path string) error {
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+
+	var offset int64
+	var seekType int
+
+	if h.hasTailOffset(request) {
+		seekType = os.SEEK_SET
+		offset, err = h.getTailOffset(request)
+		if err != nil {
+			return err
 		}
+	} else {
+		seekType = os.SEEK_END
+		offset = 0
+	}
+
+	_, err = file.Seek(offset, seekType)
+	if err != nil {
+		return err
+	}
+
+	fileStreamer := &StreamHandler{
+		File:          file,
+		FlushInterval: 50 * time.Millisecond,
+		IdleTimeout:   time.Duration(h.streamingTimeout) * time.Second,
+	}
+
+	fileStreamer.ServeHTTP(writer, request)
+	return nil
+}
+
+func (h handler) writeFile(request *http.Request, writer http.ResponseWriter, path string) {
+	var err error
+
+	if h.shouldTail(request) {
+		err = h.tailFile(request, writer, path)
 	} else {
 		err = h.dumpFile(request, writer, path)
 	}

@@ -3,6 +3,7 @@ package directoryserver
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	. "launchpad.net/gocheck"
 	"net/http"
@@ -20,8 +21,8 @@ func dump(file *os.File, t *C, numLines int) error {
 		t.Error(err)
 	}
 
-	for count := 0; count < numLines; count++ {
-		_, err = handle.WriteString("blah")
+	for i := 0; i < numLines; i++ {
+		_, err = handle.WriteString(fmt.Sprintf("blah%d", i))
 		if err != nil {
 			t.Error(err)
 		}
@@ -243,12 +244,13 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_ReturnDirectoryListing(t *C
 	}
 }
 
-func (s *DirectoryServerSuite) TestHandler_ServeHTTP_StreamFile(t *C) {
+func fetchStreamingResponse(t *C, url string) (*http.Response, string) {
 	// Create temp file for this unit test.
 	tmpFile, err := ioutil.TempFile("", "testfile_")
 	if err != nil {
 		t.Fail()
 	}
+
 	err = tmpFile.Close()
 	if err != nil {
 		t.Error(err)
@@ -276,15 +278,32 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_StreamFile(t *C) {
 	go dump(tmpFile, t, 10) // thread.
 	time.Sleep(1 * time.Second)
 
-	response, err := http.Get(fmt.Sprintf("http://%s:%d/path?tail", hd, pd))
+	response, err := http.Get(fmt.Sprintf("http://%s:%d%s", hd, pd, url))
 	if err != nil {
 		t.Error(err)
 	}
 
-	// Check status code.
-	if response.StatusCode != 200 {
-		t.Fail()
+	body := make([]byte, 100)
+	_, err = response.Body.Read(body)
+	if err != nil {
+		// If no data comes through before timeout expires
+		// stream handler will just close the connection 
+		// causing EOF error which is ok.
+		if err != io.EOF && err != io.ErrUnexpectedEOF {
+			t.Error(err)
+		}
 	}
+
+	if err = os.Remove(tmpFile.Name()); err != nil {
+		t.Error(err)
+	}
+
+	return response, string(body)
+}
+
+func (s *DirectoryServerSuite) TestHandler_ServeHTTP_StreamFile(t *C) {
+	response, body := fetchStreamingResponse(t, "/path?tail=&tail_offset=0")
+	t.Check(response.StatusCode, Equals, 200)
 
 	// Check transfer encoding.
 	te := response.TransferEncoding
@@ -292,17 +311,52 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_StreamFile(t *C) {
 		t.Fail()
 	}
 
-	body := make([]byte, 100)
-	_, err = response.Body.Read(body)
-	matched, _ := regexp.Match("blah", body)
+	matched, _ := regexp.MatchString("^blah[^12]", body)
 	if !matched {
 		t.Fail()
 	}
+}
 
-	// Clean up.
-	if err = os.Remove(tmpFile.Name()); err != nil {
+func (s *DirectoryServerSuite) TestHandler_ServeHTTP_StreamFileFromValidOffset(t *C) {
+	response, body := fetchStreamingResponse(t, "/path?tail=&tail_offset=0")
+	t.Check(response.StatusCode, Equals, 200)
+
+	// Check transfer encoding.
+	te := response.TransferEncoding
+	if len(te) != 1 || te[0] != "chunked" {
 		t.Fail()
 	}
+
+	matched, _ := regexp.MatchString("^blah0blah1blah2", body)
+	if !matched {
+		t.Fail()
+	}
+}
+
+func (s *DirectoryServerSuite) TestHandler_ServeHTTP_StreamFileFromOffsetLargerThanFile(t *C) {
+	response, body := fetchStreamingResponse(t, "/path?tail=&tail_offset=1000000")
+	t.Check(response.StatusCode, Equals, 200)
+
+	trimmed_body := strings.Trim(body, string(0))
+	t.Check(len(trimmed_body), Equals, 0)
+}
+
+func (s *DirectoryServerSuite) TestHandler_ServeHTTP_StreamFileFromOffsetThatOverflowsInt32(t *C) {
+	response, body := fetchStreamingResponse(t, "/path?tail=&tail_offset=1000000000000000000000000000000")
+	t.Check(response.StatusCode, Equals, 500)
+	t.Check(body, Matches, ".*Tail offset must be a positive integer.*")
+}
+
+func (s *DirectoryServerSuite) TestHandler_ServeHTTP_StreamFileFromNonNumericOffset(t *C) {
+	response, body := fetchStreamingResponse(t, "/path?tail=&tail_offset=abc")
+	t.Check(response.StatusCode, Equals, 500)
+	t.Check(body, Matches, ".*Tail offset must be a positive integer.*")
+}
+
+func (s *DirectoryServerSuite) TestHandler_ServeHTTP_StreamFileFromNegavtiveOffset(t *C) {
+	response, body := fetchStreamingResponse(t, "/path?tail=&tail_offset=-1")
+	t.Check(response.StatusCode, Equals, 500)
+	t.Check(body, Matches, ".*Tail offset must be a positive integer.*")
 }
 
 func (s *DirectoryServerSuite) TestHandler_ServeHTTP_DumpFile(t *C) {
