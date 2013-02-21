@@ -34,18 +34,12 @@ describe Dea::StagingTask do
   end
 
   describe "#promise_stage" do
-    let(:staging_env) { { "PATH" => "x", "FOO" => "y" } }
+    let(:staging_env) { "PATH=x FOO=y" }
     it "assembles a shell command and initiates collection of task log" do
       staging.should_receive(:staging_environment).and_return(staging_env)
 
       staging.should_receive(:promise_warden_run) do |connection_name, cmd|
-        staging_env.each do |k, v|
-          cmd.should include("#{k}=#{v}")
-        end
-
-        cmd.should include("mkdir -p /tmp/staged/logs")
-        cmd.should include("bin/run_plugin")
-        cmd.should include("plugin_config")
+        cmd.should match %r{mkdir -p /tmp/staged/logs && PATH=x FOO=y .*/bin/run_plugin .*/plugin_config > /tmp/staged/logs/staging_task.log 2>&1}
         mock("promise", :resolve => nil)
       end
 
@@ -247,7 +241,7 @@ describe Dea::StagingTask do
     end
   end
 
-  describe '#promise_app_download' do
+  describe "#promise_app_download" do
     subject do
       promise = staging.promise_app_download
       promise.resolve
@@ -297,7 +291,7 @@ describe Dea::StagingTask do
     end
   end
 
-  describe '#promise_app_upload' do
+  describe "#promise_app_upload" do
     subject do
       promise = staging.promise_app_upload
       promise.resolve
@@ -315,7 +309,7 @@ describe Dea::StagingTask do
     end
   end
 
-  describe '#promise_copy_out' do
+  describe "#promise_copy_out" do
     subject do
       promise = staging.promise_copy_out
       promise.resolve

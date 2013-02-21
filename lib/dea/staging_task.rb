@@ -90,14 +90,15 @@ module Dea
 
     def promise_stage
       Promise.new do |p|
-        script = "(mkdir -p #{WARDEN_STAGED_DIR}/logs && "
-        script += [
-          staging_environment.map {|k, v| "#{k}=#{v}"}.join(" "),
+        script = [
+          "mkdir -p #{WARDEN_STAGED_DIR}/logs &&",
+          staging_environment,
           config["dea_ruby"],
           run_plugin_path,
           plugin_config_path,
-          ") > #{WARDEN_STAGING_LOG} 2>&1"
+          "> #{WARDEN_STAGING_LOG} 2>&1"
         ].join(" ")
+
         logger.info("<staging> Running #{script}")
 
         begin
@@ -265,7 +266,7 @@ module Dea
         "LIBRARY_PATH" => staging_config["environment"]["LIBRARY_PATH"],
         "LD_LIBRARY_PATH" => staging_config["environment"]["LD_LIBRARY_PATH"],
         "PATH" => "#{staging_config["environment"]["PATH"]}:#{ENV["PATH"]}"
-      }
+      }.map {|k, v| "#{k}=#{v}"}.join(" ")
     end
 
     def staging_config
