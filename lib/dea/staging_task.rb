@@ -61,6 +61,7 @@ module Dea
     end
 
     def finish_task(error)
+      logger.info("Finished staging task")
       trigger_after_complete(error)
       raise(error) if error
     ensure
@@ -116,6 +117,7 @@ module Dea
         ensure
           promise_task_log.resolve
         end
+
         p.deliver
       end
     end
@@ -131,6 +133,7 @@ module Dea
     def promise_unpack_app
       Promise.new do |p|
         logger.info("Unpacking app to #{WARDEN_UNSTAGED_DIR}")
+
         script = "unzip -q #{downloaded_droplet_path} -d #{WARDEN_UNSTAGED_DIR}"
         promise_warden_run(:app, script).resolve
 
@@ -151,7 +154,7 @@ module Dea
       Promise.new do |p|
         logger.info("Downloading application from #{attributes["download_uri"]}")
 
-        Download.new(attributes["download_uri"], workspace_dir).download! do |error, path|
+        Download.new(attributes["download_uri"], workspace_dir, nil, logger).download! do |error, path|
           if error
             p.fail(error)
           else
