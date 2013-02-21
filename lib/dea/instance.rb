@@ -441,7 +441,7 @@ module Dea
 
     def promise_extract_droplet
       Promise.new do |p|
-        script = "tar zxf #{droplet.droplet_path}"
+        script = "cd /home/vcap/ && tar zxf #{droplet.droplet_path}"
 
         promise_warden_run(:app, script).resolve
 
@@ -504,31 +504,17 @@ module Dea
 
         promise_state(State::BORN, State::STARTING).resolve
 
-        promise_droplet = Promise.new do |p|
-          if !droplet.droplet_exist?
-            logger.info("Starting droplet download")
-            promise_droplet_download.resolve
-          else
-            logger.info("Skipping droplet download")
-          end
-
-          p.deliver
-        end
-
-        promise_container = Promise.new do |p|
-          promise_create_container.resolve
-          promise_setup_network.resolve
-          promise_limit_disk.resolve
-          promise_limit_memory.resolve
-          promise_setup_environment.resolve
-
-          p.deliver
-        end
-
         # Concurrently download droplet and setup container
-        [promise_droplet, promise_container].each(&:run).each(&:resolve)
+        [
+          promise_droplet,
+          promise_container
+        ].each(&:run).each(&:resolve)
 
-        [promise_setup_network, promise_extract_droplet, promise_start].each(&:resolve)
+        [
+          promise_setup_network,
+          promise_extract_droplet,
+          promise_start
+        ].each(&:resolve)
 
         on(Transition.new(:starting, :crashed)) do
           cancel_health_check
@@ -556,6 +542,31 @@ module Dea
         end
 
         callback.call(error) unless callback.nil?
+      end
+    end
+
+    def promise_container
+      Promise.new do |p|
+        promise_create_container.resolve
+        promise_setup_network.resolve
+        promise_limit_disk.resolve
+        promise_limit_memory.resolve
+        promise_setup_environment.resolve
+
+        p.deliver
+      end
+    end
+
+    def promise_droplet
+      Promise.new do |p|
+        if !droplet.droplet_exist?
+          logger.info("Starting droplet download")
+          promise_droplet_download.resolve
+        else
+          logger.info("Skipping droplet download")
+        end
+
+        p.deliver
       end
     end
 

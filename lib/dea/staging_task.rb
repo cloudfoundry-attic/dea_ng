@@ -90,13 +90,13 @@ module Dea
 
     def promise_stage
       Promise.new do |p|
-        script = "mkdir -p #{WARDEN_STAGED_DIR}/logs && "
+        script = "(mkdir -p #{WARDEN_STAGED_DIR}/logs && "
         script += [
           staging_environment.map {|k, v| "#{k}=#{v}"}.join(" "),
           config["dea_ruby"],
           run_plugin_path,
           plugin_config_path,
-          "> #{WARDEN_STAGING_LOG} 2>&1"
+          ") > #{WARDEN_STAGING_LOG} 2>&1"
         ].join(" ")
         logger.info("<staging> Running #{script}")
 
@@ -141,7 +141,7 @@ module Dea
         logger.info("<staging> Downloading application from #{attributes["download_uri"]}")
 
         Download.new(attributes["download_uri"], workspace_dir).download! do |error, path|
-          if !error
+          unless error
             File.rename(path, downloaded_droplet_path)
             File.chmod(0744, downloaded_droplet_path)
 
@@ -157,7 +157,7 @@ module Dea
     def promise_app_upload
       Promise.new do |p|
         Upload.new(staged_droplet_path, attributes["upload_uri"]).upload! do |error|
-          if !error
+          unless error
             logger.info("<staging> Uploaded app to #{attributes["upload_uri"]}")
             p.deliver
           else
