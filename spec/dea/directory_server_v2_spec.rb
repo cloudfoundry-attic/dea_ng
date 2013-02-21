@@ -72,13 +72,13 @@ describe Dea::DirectoryServerV2 do
       end
 
       it "can handle instance paths requests" do
-        url = subject.url_for("/instance_paths/instance-id", :path => "some-file-path", :timestamp => Time.now.to_i)
+        url = subject.instance_file_url_for("instance-id", "some-file-path")
         response = make_request(localize_url(url))
         response.should include("Unknown instance")
       end
 
       it "can handle staging tasks requests" do
-        url = subject.url_for("/staging_tasks/task-id/file_path", :path => "some-file-path", :timestamp => Time.now.to_i)
+        url = subject.staging_task_file_url_for("task-id", "some-file-path")
         response = make_request(localize_url(url))
         response.should include("Unknown staging task")
       end
@@ -118,8 +118,8 @@ describe Dea::DirectoryServerV2 do
       Rack::Utils.parse_query(URI.parse(url).query)
     end
 
-    describe "#url_for" do
-      let(:url) { subject.url_for("/path", :param => "value") }
+    describe "#hmaced_url_for" do
+      let(:url) { subject.hmaced_url_for("/path", {:param => "value"}, [:param]) }
 
       it_generates_url "/path"
       it_hmacs_url "/path?param=value"
@@ -162,54 +162,88 @@ describe Dea::DirectoryServerV2 do
     end
   end
 
-  describe "#verify_url" do
-    context "when path and query params match hmac-ed value" do
-      let(:url) { subject.url_for("/path", :param => "value") }
+  describe "#verify_hmaced_url" do
+    context "when hmac-ed path matches original path" do
+      let(:verified_params) { [] }
+      let(:url) { subject.hmaced_url_for("/path", {:param => "value"}, verified_params) }
 
-      context "when domain matches" do
+      it "returns true" do
+        subject.verify_hmaced_url(url, verified_params).should be_true
+      end
+    end
+
+    context "when path does not match original path" do
+      let(:verified_params) { [] }
+      let(:url) { subject.hmaced_url_for("/path", {:param => "value"}, verified_params) }
+
+      it "returns false" do
+        url.sub!("/path", "/malicious-path")
+        subject.verify_hmaced_url(url, verified_params).should be_false
+      end
+    end
+
+    context "when hmac-ed params match original params" do
+      let(:url) { subject.hmaced_url_for("/path", {:param1 => "value1", :param2 => "value2"}, verified_params) }
+
+      context "when verifying all params" do
+        let(:verified_params) { [:param1, :param2] }
+
         it "returns true" do
-          subject.verify_url(url).should be_true
+          subject.verify_hmaced_url(url, verified_params).should be_true
         end
       end
 
-      context "when domain does not match" do
+      context "when verifying specific params" do
+        let(:verified_params) { [:param1] }
+
         it "returns true" do
-          url.gsub!(subject.domain, "other-domain")
-          subject.verify_url(url).should be_true
+          subject.verify_hmaced_url(url, verified_params).should be_true
         end
       end
     end
 
-    context "when path and reordered params matches hmac-ed value" do
-      let(:url) { subject.url_for("/path", :param1 => "value", :param2 => "value") }
+    context "when hmac-ed params are reordered" do
+      let(:verified_params) { [:param1, :param2] }
+      let(:url) { subject.hmaced_url_for("/path", {:param1 => "value", :param2 => "value"}, verified_params) }
 
       it "returns true" do
         url.sub!("param1", "paramX")
         url.sub!("param2", "param1")
         url.sub!("paramX", "param2")
 
-        subject.verify_url(url).should be_true
+        subject.verify_hmaced_url(url, verified_params).should be_true
       end
     end
 
-    context "when path and query params do not match hmac-ed value" do
-      let(:url) { subject.url_for("/path", :param => "value") }
+    context "when hmac-ed param does not match original param" do
+      let(:verified_params) { [:param] }
+      let(:url) { subject.hmaced_url_for("/path", {:param => "value"}, verified_params) }
 
       it "returns false" do
-        url.sub!("value", "other-value")
-        subject.verify_url(url).should be_false
+        url.sub!("value", "malicious-value")
+        subject.verify_hmaced_url(url, verified_params).should be_false
+      end
+    end
+
+    context "when non-hmac-ed param is added (to support misc params additions)" do
+      let(:verified_params) { [:param] }
+      let(:url) { subject.hmaced_url_for("/path", {:param => "value"}, verified_params) }
+
+      it "returns true" do
+        url << "&new_param=new-value"
+        subject.verify_hmaced_url(url, verified_params).should be_true
       end
     end
 
     context "when url does not have hmac param" do
       it "returns false" do
-        subject.verify_url("http://google.com").should be_false
+        subject.verify_hmaced_url("http://google.com", []).should be_false
       end
     end
 
     context "when passed url is not a valid url" do
       it "returns false" do
-        subject.verify_url("invalid-url").should be_false
+        subject.verify_hmaced_url("invalid-url", []).should be_false
       end
     end
   end

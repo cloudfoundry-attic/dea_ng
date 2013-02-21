@@ -111,10 +111,7 @@ describe Dea::DirectoryServerV2::StagingTasks do
   alias_method :app, :described_class
 
   def staging_task_file_path(task_id, file_path, options={})
-    path = "/staging_tasks/#{task_id}/file_path"
-    params = {:path => file_path, :timestamp => Time.now.to_i}
-
-    directory_server.url_for(path, params).tap do |url|
+    directory_server.staging_task_file_url_for(task_id, file_path).tap do |url|
       url.gsub!(/hmac=.+([^\&]|$)/, "hmac=#{options[:hmac]}") if options[:hmac]
     end
   end

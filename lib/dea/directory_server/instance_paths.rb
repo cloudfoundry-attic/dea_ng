@@ -49,7 +49,7 @@ class Dea::DirectoryServerV2
         requires :path,      :type => String
       end
       get "/:instance_id" do
-        unless settings[:directory_server].verify_url(request.url)
+        unless settings[:directory_server].verify_instance_file_url(request.url)
           logger.warn("HMAC mismatch")
           json_error!("Invalid HMAC", 401)
         end

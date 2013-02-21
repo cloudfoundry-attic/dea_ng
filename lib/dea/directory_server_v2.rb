@@ -41,28 +41,52 @@ module Dea
       @file_api_server.start
     end
 
-    def instance_file_url_for(instance_id, file_path)
-      url_for("/instance_paths/#{instance_id}", :path => file_path, :timestamp => Time.now.to_i)
+    def hmaced_url_for(path, params={}, params_to_verify=[])
+      verifiable_params = params.select { |k, v| params_to_verify.include?(k) }
+      verifiable_path_and_params = "#{path}?#{params_to_s(verifiable_params)}"
+
+      hmac = hmac_helper.create(verifiable_path_and_params)
+      params_with_hmac = params_to_s(params.merge(:hmac => hmac))
+
+      "http://#{external_hostname}#{path}?#{params_with_hmac}"
     end
 
-    def staging_task_file_url_for(task_id, file_path)
-      url_for("/staging_tasks/#{task_id}/file_path", :path => file_path, :timestamp => Time.now.to_i)
-    end
-
-    def url_for(path, params = {})
-      path_and_params = "#{path}?#{params_to_s(params)}"
-      "http://#{external_hostname}#{path_and_params}&hmac=#{hmac_helper.create(path_and_params)}"
-    end
-
-    def verify_url(url)
+    def verify_hmaced_url(url, params_to_verify=[])
       parsed_url = URI.parse(url)
       params = Rack::Utils.parse_query(parsed_url.query)
 
-      given_hmac = params["hmac"]
-      params.delete("hmac")
+      # Do not symbolize user input!
+      params_to_verify = params_to_verify.map(&:to_s)
+      verifiable_params = params.select { |k, v| params_to_verify.include?(k) }
+      verifiable_path_and_params = "#{parsed_url.path}?#{params_to_s(verifiable_params)}"
 
-      path_and_params = "#{parsed_url.path}?#{params_to_s(params)}"
-      hmac_helper.compare(given_hmac, path_and_params)
+      hmac_helper.compare(params["hmac"], verifiable_path_and_params)
+    end
+
+    VERIFIABLE_FILE_PARAMS = [:path, :timestamp]
+
+    def instance_file_url_for(instance_id, file_path)
+      hmaced_url_for(
+        "/instance_paths/#{instance_id}",
+        {:path => file_path, :timestamp => Time.now.to_i},
+        VERIFIABLE_FILE_PARAMS
+      )
+    end
+
+    def verify_instance_file_url(url)
+      verify_hmaced_url(url, VERIFIABLE_FILE_PARAMS)
+    end
+
+    def staging_task_file_url_for(task_id, file_path)
+      hmaced_url_for(
+        "/staging_tasks/#{task_id}/file_path",
+        {:path => file_path, :timestamp => Time.now.to_i},
+        VERIFIABLE_FILE_PARAMS
+      )
+    end
+
+    def verify_staging_task_file_url(url)
+      verify_hmaced_url(url, VERIFIABLE_FILE_PARAMS)
     end
 
     private
