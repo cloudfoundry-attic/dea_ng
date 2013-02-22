@@ -565,9 +565,7 @@ describe Dea::Instance do
         instance.instance_debug_container_port.should == 1235
       end
 
-      it "should map a console port port if needed" do
-        instance.attributes["console"] = true
-
+      it "maps a console port" do
         instance.stub(:promise_warden_call) do
           delivering_promise(response)
         end

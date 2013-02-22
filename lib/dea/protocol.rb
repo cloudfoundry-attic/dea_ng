@@ -41,6 +41,8 @@ module Dea::Protocol::V1
         "file_uri"        => bootstrap.directory_server.uri,
         "credentials"     => bootstrap.directory_server.credentials,
         "staged"          => "/#{instance.instance_id}",
+        "console_ip"      => bootstrap.local_ip,
+        "console_port"    => instance.instance_console_host_port
       }
 
       if request.has_key?("path")
@@ -51,13 +53,6 @@ module Dea::Protocol::V1
         response.update({
           "debug_ip"   => bootstrap.local_ip,
           "debug_port" => instance.instance_debug_host_port,
-        })
-      end
-
-      if instance.console
-        response.update({
-          "console_ip"   => bootstrap.local_ip,
-          "console_port" => instance.instance_console_host_port,
         })
       end
 
