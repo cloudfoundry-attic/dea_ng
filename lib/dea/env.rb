@@ -147,6 +147,8 @@ module Dea
       if instance.debug
         env << ["VCAP_DEBUG_IP",     application["host"]]
         env << ["VCAP_DEBUG_PORT",   instance.instance_debug_container_port]
+        # Set debug environment for buildpacks to process
+        env << ["VCAP_DEBUG_MODE", instance.debug]
       end
 
       # Remove this once BVTs are updated/killed.
@@ -157,11 +159,17 @@ module Dea
         [key, %{'%s'} % value.to_s]
       end
 
-      # Set debug environment for buildpacks to process
-      env << ["VCAP_DEBUG_MODE", instance.debug] if instance.debug
+      env.concat(translate_env(instance.bootstrap.config["app_environment"]))
 
-      # Prepare user-specified environment
-      instance_environment = instance.environment.map do |(key, value)|
+      # Include user-specified environment
+      env.concat(translate_env(instance.environment))
+
+      env
+    end
+
+    def translate_env(env)
+      return [] unless env
+      env.map do |(key, value)|
         # Wrap value in double quotes if it isn't already (allows interpolation)
         unless value =~ /^['"]/
           value = %{"%s"} % value
@@ -169,11 +177,6 @@ module Dea
 
         [key, value]
       end
-
-      # Include user-specified environment
-      env.concat(instance_environment)
-
-      env
     end
   end
 end
