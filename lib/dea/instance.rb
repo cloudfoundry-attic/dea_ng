@@ -746,7 +746,7 @@ module Dea
           :ns_used      => info_resp.cpu_stat.usage,
         }
 
-        @cpu_samples.unshift if @cpu_samples.size > 2
+        @cpu_samples.shift if @cpu_samples.size > 2
 
         if @cpu_samples.size == 2
           used = @cpu_samples[1][:ns_used] - @cpu_samples[0][:ns_used]
