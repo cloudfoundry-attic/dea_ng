@@ -320,12 +320,38 @@ describe Dea::Instance do
       result
     end
 
+    shared_examples "sets timeout" do
+      it "does not set timeout if debug mode is suspend" do
+        instance.attributes["debug"] = "suspend"
+        deferrable.should_not_receive(:timeout)
+        execute_health_check do
+          deferrable.succeed
+        end
+      end
+
+      it "sets timeout if debug mode is not set" do
+        deferrable.should_receive(:timeout)
+        execute_health_check do
+          deferrable.succeed
+        end
+      end
+
+      it "sets timeout if debug mode set to run" do
+        instance.attributes["debug"] = "run"
+        deferrable.should_receive(:timeout)
+        execute_health_check do
+          deferrable.succeed
+        end
+      end
+    end
+
     describe "via state file" do
       before do
         instance.stub(:promise_read_instance_manifest).and_return(delivering_promise({ "state_file" => "state_file.yml" }))
-
         Dea::HealthCheck::StateFileReady.stub(:new).and_yield(deferrable)
       end
+
+      it_behaves_like "sets timeout"
 
       it "can succeed" do
         result = execute_health_check do
@@ -349,6 +375,8 @@ describe Dea::Instance do
         instance.attributes["application_uris"] = ["some-test-app.my-cloudfoundry.com"]
         Dea::HealthCheck::PortOpen.stub(:new).and_yield(deferrable)
       end
+
+      it_behaves_like "sets timeout"
 
       it "succeeds when the port is open" do
         result = execute_health_check do

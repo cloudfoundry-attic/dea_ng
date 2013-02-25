@@ -798,7 +798,9 @@ module Dea
 
           hc.errback  { p.deliver(false) }
 
-          hc.timeout(60)
+          if attributes["debug"] != "suspend"
+            hc.timeout(60)
+          end
         end
       end
     end
