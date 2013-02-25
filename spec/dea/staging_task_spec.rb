@@ -40,7 +40,7 @@ describe Dea::StagingTask do
       staging.should_receive(:staging_environment).and_return(staging_env)
 
       staging.should_receive(:promise_warden_run) do |connection_name, cmd|
-        cmd.should match %r{mkdir -p /tmp/staged/logs && PATH=x FOO=y .*/bin/run_plugin .*/plugin_config > /tmp/staged/logs/staging_task.log 2>&1}
+        cmd.should match %r{^PATH=x FOO=y .*/bin/run_plugin .*/plugin_config > /tmp/staged/logs/staging_task.log 2>&1$}
         mock("promise", :resolve => nil)
       end
 
@@ -187,6 +187,7 @@ describe Dea::StagingTask do
       staging.stub(:prepare_workspace)
       staging.stub(:promise_app_download).and_return(successful_promise)
       staging.stub(:promise_create_container).and_return(successful_promise)
+      staging.stub(:promise_prepare_staging_log).and_return(successful_promise)
       staging.stub(:promise_container_info).and_return(successful_promise)
     end
 
@@ -293,8 +294,13 @@ describe Dea::StagingTask do
       File.exists?(workspace_dir).should be_false
     end
 
-    it "prepare workspace, download app source, creates container and then obtains container info" do
-      %w(prepare_workspace promise_app_download promise_create_container promise_container_info).each do |step|
+    it "prepare workspace, download app source, creates container, prepares staging log and then obtains container info" do
+      %w(prepare_workspace
+         promise_app_download
+         promise_create_container
+         promise_prepare_staging_log
+         promise_container_info
+      ).each do |step|
         staging.should_receive(step).ordered.and_return(successful_promise)
       end
 
@@ -309,6 +315,16 @@ describe Dea::StagingTask do
 
       stub_staging_setup
       staging.start
+    end
+  end
+
+  describe "#promise_prepare_staging_log" do
+    it "assembles a shell command that creates staging_task.log file for tailing it" do
+      staging.should_receive(:promise_warden_run) do |connection_name, cmd|
+        cmd.should match "mkdir -p /tmp/staged/logs && touch /tmp/staged/logs/staging_task.log"
+        mock(:prepare_staging_log_promise, :resolve => nil)
+      end
+      staging.promise_prepare_staging_log.resolve
     end
   end
 

@@ -99,10 +99,18 @@ module Dea
       File.open(platform_config_path, "w") { |f| YAML.dump(platform_config, f) }
     end
 
+    def promise_prepare_staging_log
+      Promise.new do |p|
+        script = "mkdir -p #{WARDEN_STAGED_DIR}/logs && touch #{WARDEN_STAGING_LOG}"
+        logger.info("Preparing staging log: #{script}")
+        promise_warden_run(:app, script).resolve
+        p.deliver
+      end
+    end
+
     def promise_stage
       Promise.new do |p|
         script = [
-          "mkdir -p #{WARDEN_STAGED_DIR}/logs &&",
           staging_environment,
           config["dea_ruby"],
           run_plugin_path,
@@ -110,7 +118,7 @@ module Dea
           "> #{WARDEN_STAGING_LOG} 2>&1"
         ].join(" ")
 
-        logger.info("Running #{script}")
+        logger.info("Staging: #{script}")
 
         begin
           promise_warden_run(:app, script).resolve
@@ -214,11 +222,15 @@ module Dea
     def resolve_staging_setup
       prepare_workspace
 
-      [ promise_app_download,
+      run_in_parallel(
+        promise_app_download,
         promise_create_container,
-      ].each(&:run).each(&:resolve)
+      )
+      run_in_parallel(
+        promise_prepare_staging_log,
+        promise_container_info,
+      )
 
-      promise_container_info.resolve
     rescue => e
       trigger_after_setup(e)
       raise
@@ -227,13 +239,22 @@ module Dea
     end
 
     def resolve_staging
-      [ promise_unpack_app,
+      run_serially(
+        promise_unpack_app,
         promise_stage,
         promise_pack_app,
         promise_copy_out,
         promise_app_upload,
         promise_destroy,
-      ].each(&:resolve)
+      )
+    end
+
+    def run_in_parallel(*promises)
+      promises.each(&:run).each(&:resolve)
+    end
+
+    def run_serially(*promises)
+      promises.each(&:resolve)
     end
 
     def clean_workspace
