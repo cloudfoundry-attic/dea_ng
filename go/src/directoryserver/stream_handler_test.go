@@ -49,13 +49,7 @@ func (s *StreamHandlerSuite) TempFileName(c *C) string {
 	return f.Name()
 }
 
-func (s *StreamHandlerSuite) Get(c *C) *http.Response {
-	f, err := os.Open(s.FileName)
-	c.Assert(err, IsNil)
-
-	_, err = f.Seek(0, os.SEEK_END)
-	c.Assert(err, IsNil)
-
+func (s *StreamHandlerSuite) GetFile(c *C, f *os.File) *http.Response {
 	s.Handler = &StreamHandler{
 		File:          f,
 		FlushInterval: 1 * time.Millisecond,
@@ -73,6 +67,16 @@ func (s *StreamHandlerSuite) Get(c *C) *http.Response {
 	c.Assert(err, IsNil)
 
 	return res
+}
+
+func (s *StreamHandlerSuite) Get(c *C) *http.Response {
+	f, err := os.Open(s.FileName)
+	c.Assert(err, IsNil)
+
+	_, err = f.Seek(0, os.SEEK_END)
+	c.Assert(err, IsNil)
+
+	return s.GetFile(c, f)
 }
 
 func (s *StreamHandlerSuite) TestStream(c *C) {
@@ -98,6 +102,31 @@ func (s *StreamHandlerSuite) TestStreamFromCurrentPosition(c *C) {
 
 	r := bufio.NewReader(res.Body)
 	l, err := r.ReadString('\n')
+	c.Check(err, IsNil)
+	c.Check(l, Equals, "world\n")
+}
+
+func (s *StreamHandlerSuite) TestStreamFlushesBeforeTailing(c *C) {
+	s.Printf(c, "hello\n")
+
+	f, err := os.Open(s.FileName)
+	c.Assert(err, IsNil)
+
+	_, err = f.Seek(3, os.SEEK_SET)
+	c.Assert(err, IsNil)
+
+	res := s.GetFile(c, f)
+	c.Check(res.StatusCode, Equals, 200)
+
+	r := bufio.NewReader(res.Body)
+
+	l, err := r.ReadString('\n')
+	c.Check(err, IsNil)
+	c.Check(l, Equals, "lo\n")
+
+	s.Printf(c, "world\n")
+
+	l, err = r.ReadString('\n')
 	c.Check(err, IsNil)
 	c.Check(l, Equals, "world\n")
 }

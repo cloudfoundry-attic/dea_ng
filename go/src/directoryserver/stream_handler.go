@@ -59,6 +59,12 @@ func (x *StreamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		x.IdleTimeout = 1 * time.Minute
 	}
 
+	// Flush content before starting stream
+	_, err = io.Copy(u, x.File)
+	if err != nil {
+		return
+	}
+
 	for {
 		select {
 		case <-time.After(x.IdleTimeout):
