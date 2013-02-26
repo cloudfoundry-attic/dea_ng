@@ -79,16 +79,10 @@ func (x *StreamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 
 			conn.Close()
-
 			stop = true
-		case ev, ok := <-watcher.Event:
-			if !ok {
-				stop = true
-				break
-			}
 
-			// Break on rename
-			if ev.IsRename() {
+		case ev, ok := <-watcher.Event:
+			if !ok || ev.IsRename() || ev.IsDelete() {
 				stop = true
 				break
 			}
@@ -98,6 +92,7 @@ func (x *StreamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				stop = true
 				break
 			}
+
 		case _, ok := <-watcher.Error:
 			if !ok {
 				stop = true

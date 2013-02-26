@@ -128,7 +128,7 @@ func (s *StreamHandlerSuite) TestStreamWithIdleTimeout(c *C) {
 	c.Check(err, Equals, io.ErrUnexpectedEOF)
 }
 
-func (s *StreamHandlerSuite) TestStreamUntilRename(c *C) {
+func (s *StreamHandlerSuite) TestStreamUntilRenamed(c *C) {
 	var l string
 	var err error
 
@@ -148,6 +148,33 @@ func (s *StreamHandlerSuite) TestStreamUntilRename(c *C) {
 	// Rename
 	y := s.TempFileName(c)
 	err = os.Rename(s.FileName, y)
+	c.Assert(err, IsNil)
+
+	// Read EOF
+	l, err = r.ReadString('\n')
+	c.Check(err, Equals, io.EOF)
+	c.Check(l, Equals, "")
+}
+
+func (s *StreamHandlerSuite) TestStreamUntilRemoved(c *C) {
+	var l string
+	var err error
+
+	res := s.Get(c)
+	c.Check(res.StatusCode, Equals, 200)
+
+	r := bufio.NewReader(res.Body)
+
+	// Write before rename
+	s.Printf(c, "hello\n")
+
+	// Read bytes written before rename
+	l, err = r.ReadString('\n')
+	c.Check(err, IsNil)
+	c.Check(l, Equals, "hello\n")
+
+	// Remove
+	err = os.Remove(s.FileName)
 	c.Assert(err, IsNil)
 
 	// Read EOF
