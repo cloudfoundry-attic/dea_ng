@@ -59,7 +59,7 @@ func (x *StreamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		x.IdleTimeout = 1 * time.Minute
 	}
 
-	for stop := false; !stop; {
+	for {
 		select {
 		case <-time.After(x.IdleTimeout):
 			hj, ok := w.(http.Hijacker)
@@ -79,24 +79,20 @@ func (x *StreamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 
 			conn.Close()
-			stop = true
 
 		case ev, ok := <-watcher.Event:
 			if !ok || ev.IsRename() || ev.IsDelete() {
-				stop = true
-				break
+				return
 			}
 
 			_, err = io.Copy(u, x.File)
 			if err != nil {
-				stop = true
-				break
+				return
 			}
 
 		case _, ok := <-watcher.Error:
 			if !ok {
-				stop = true
-				break
+				return
 			}
 		}
 	}
