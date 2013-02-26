@@ -26,6 +26,5 @@ set -e
 
 # Test Ruby
 (
-  bundle install
   bundle exec rake spec
 )

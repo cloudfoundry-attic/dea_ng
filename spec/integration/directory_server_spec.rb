@@ -2,10 +2,6 @@ require "spec_helper"
 require "net/http"
 
 describe "Directory server", :type => :integration do
-  start_nats
-  start_dea
-  start_directory_server
-
   it "asks dea to verify instance file paths" do
     result = Net::HTTP.get(URI.parse("http://localhost:5678/instance_paths/instance-id?path=/file"))
     result.should include("Invalid HMAC")

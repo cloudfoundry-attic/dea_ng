@@ -18,6 +18,12 @@ RSpec::Core::RakeTask.new(:spec) do |t|
   # See .rspec
 end
 
+desc "Install dependencies for integration tests"
+task :install do
+  result = system "PATH=$PATH:/usr/local/go/bin go/bin/go install runner"
+  raise "Installation failed" unless result
+end
+
 task :ensure_coding do
   patterns = [
     /Rakefile$/,

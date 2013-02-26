@@ -1,0 +1,29 @@
+#!/usr/bin/env ruby
+
+# TODO
+# on a mac, this script should start our
+# vagrant box and run the dea on that box
+
+def on_mac?
+  RUBY_PLATFORM =~ /darwin/
+end
+
+def start_in_vagrant
+  start_native
+
+  # require "vagrant"
+  # env = Vagrant::Environment.new
+  # env.cli("up")
+  # env.cli("ssh", "-c", "some/path/bin/dea")
+end
+
+def start_native
+  cmd = File.expand_path("../dea", __FILE__)
+  exec "#{cmd} #{ARGV[0]}"
+end
+
+if on_mac?
+  start_in_vagrant
+else
+  start_native
+end

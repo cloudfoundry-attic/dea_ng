@@ -22,6 +22,7 @@ gem "vcap_staging", :git => "https://github.com/cloudfoundry/vcap-staging.git", 
 gem "sys-filesystem"
 
 group :test do
+  gem "foreman"
   gem "rspec"
   gem "rack-test"
   gem "rcov"
