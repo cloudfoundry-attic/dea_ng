@@ -84,8 +84,6 @@ func (x *StreamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				panic(err)
 			}
 
-			// Close connection forcibly to prevent sending EOF chunk
-			// since this is not an _expected_ end of stream
 			conn.Close()
 			return
 

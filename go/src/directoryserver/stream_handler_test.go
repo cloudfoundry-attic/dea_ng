@@ -67,9 +67,7 @@ func (s *StreamHandlerSuite) GetFile(c *C, f *os.File) *http.Response {
 	s.Handler = &StreamHandler{
 		File:          f,
 		FlushInterval: 1 * time.Millisecond,
-
-		// Make it long enough for Travis to be happy
-		IdleTimeout:   200 * time.Millisecond,
+		IdleTimeout:   20 * time.Millisecond,
 	}
 
 	l, err := net.Listen("tcp", "localhost:0")
@@ -162,7 +160,7 @@ func (s *StreamHandlerSuite) TestStreamWithIdleTimeout(c *C) {
 	r := bufio.NewReader(res.Body)
 
 	// Write before timing out
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(15 * time.Millisecond)
 	s.Printf(c, "hi there!\n")
 
 	// Read the write
@@ -170,10 +168,10 @@ func (s *StreamHandlerSuite) TestStreamWithIdleTimeout(c *C) {
 	c.Check(l, Equals, "hi there!\n")
 
 	// Write after timing out
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(25 * time.Millisecond)
 
 	// Wait again to ensure the timeout logic is no longer in use
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(25 * time.Millisecond)
 
 	s.Printf(c, "what?\n")
 
