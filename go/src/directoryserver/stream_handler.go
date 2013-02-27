@@ -90,7 +90,14 @@ func (x *StreamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 
 		case ev, ok := <-watcher.Event:
-			if !ok || ev.IsRename() || ev.IsDelete() {
+			if !ok || ev.IsRename() {
+				return
+			}
+
+			// Since we keep the inode open
+			// we will not receive delete_self notification
+			_, err = os.Stat(x.File.Name())
+			if err != nil {
 				return
 			}
 
