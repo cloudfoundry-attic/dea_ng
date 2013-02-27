@@ -49,6 +49,20 @@ func (s *StreamHandlerSuite) TempFileName(c *C) string {
 	return f.Name()
 }
 
+type PanicReportingHandler struct {
+	Checker *C
+	Handler http.Handler
+}
+
+func (p *PanicReportingHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	defer func() {
+		err := recover()
+		p.Checker.Assert(err, IsNil)
+	}()
+
+	p.Handler.ServeHTTP(rw, req)
+}
+
 func (s *StreamHandlerSuite) GetFile(c *C, f *os.File) *http.Response {
 	s.Handler = &StreamHandler{
 		File:          f,
@@ -59,7 +73,12 @@ func (s *StreamHandlerSuite) GetFile(c *C, f *os.File) *http.Response {
 	l, err := net.Listen("tcp", "localhost:0")
 	c.Assert(err, IsNil)
 
-	x := http.Server{Handler: s.Handler}
+	panicReportingHandler := &PanicReportingHandler{
+		Checker: c,
+		Handler: s.Handler,
+	}
+
+	x := http.Server{Handler: panicReportingHandler}
 	go x.Serve(l)
 	defer l.Close()
 
@@ -150,6 +169,10 @@ func (s *StreamHandlerSuite) TestStreamWithIdleTimeout(c *C) {
 
 	// Write after timing out
 	time.Sleep(25 * time.Millisecond)
+
+	// Wait again to ensure the timeout logic is no longer in use
+	time.Sleep(25 * time.Millisecond)
+
 	s.Printf(c, "what?\n")
 
 	// Read an unexepected EOF

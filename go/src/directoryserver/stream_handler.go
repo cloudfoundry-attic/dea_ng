@@ -85,6 +85,7 @@ func (x *StreamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 
 			conn.Close()
+			return
 
 		case ev, ok := <-watcher.Event:
 			if !ok || ev.IsRename() || ev.IsDelete() {
