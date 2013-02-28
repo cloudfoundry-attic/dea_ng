@@ -24,6 +24,10 @@ task :install do
   raise "Installation failed" unless result
 end
 
+task :dir_server => [:install] do
+  system "go/bin/runner -conf config/dea.yml"
+end
+
 task :ensure_coding do
   patterns = [
     /Rakefile$/,

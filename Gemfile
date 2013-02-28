@@ -23,6 +23,8 @@ gem "sys-filesystem"
 
 group :test do
   gem "foreman"
+  gem "vagrant"
+  gem "librarian"
   gem "rspec"
   gem "rack-test"
   gem "rcov"

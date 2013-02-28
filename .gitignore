@@ -4,3 +4,6 @@ go/bin
 spec_reports
 .idea
 .rvmrc
+chef/cookbooks
+.vagrant
+tmp
