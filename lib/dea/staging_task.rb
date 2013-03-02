@@ -108,6 +108,17 @@ module Dea
       end
     end
 
+    def promise_app_dir
+      Promise.new do |p|
+        # Some buildpacks seem to make assumption that /app is a non-empty directory
+        # See: https://github.com/heroku/heroku-buildpack-python/blob/master/bin/compile#L46
+        # TODO possibly remove this if pull request is accepted
+        script = "mkdir /app && touch /app/support_heroku_buildpacks && chown -R vcap:vcap /app"
+        promise_warden_run(:app, script, true).resolve
+        p.deliver
+      end
+    end
+
     def promise_stage
       Promise.new do |p|
         script = [
@@ -228,6 +239,7 @@ module Dea
       )
       run_in_parallel(
         promise_prepare_staging_log,
+        promise_app_dir,
         promise_container_info,
       )
 

@@ -189,6 +189,7 @@ describe Dea::StagingTask do
       staging.stub(:promise_create_container).and_return(successful_promise)
       staging.stub(:promise_prepare_staging_log).and_return(successful_promise)
       staging.stub(:promise_container_info).and_return(successful_promise)
+      staging.stub(:promise_app_dir).and_return(successful_promise)
     end
 
     def stub_staging
@@ -294,11 +295,12 @@ describe Dea::StagingTask do
       File.exists?(workspace_dir).should be_false
     end
 
-    it "prepare workspace, download app source, creates container, prepares staging log and then obtains container info" do
+    it "prepare workspace, download app source, creates container, prepares staging log, creates app dir and then obtains container info" do
       %w(prepare_workspace
          promise_app_download
          promise_create_container
          promise_prepare_staging_log
+         promise_app_dir
          promise_container_info
       ).each do |step|
         staging.should_receive(step).ordered.and_return(successful_promise)
