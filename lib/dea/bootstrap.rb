@@ -29,7 +29,6 @@ Dir[File.join(File.dirname(__FILE__), "responders/*.rb")].each { |f| require(f) 
 module Dea
   class Bootstrap
     DEFAULT_HEARTBEAT_INTERVAL     = 10 # In secs
-    DEFAULT_ADVERTISE_INTERVAL     = 5
     DROPLET_REAPER_INTERVAL_SECS   = 10
 
     DISCOVER_DELAY_MS_PER_INSTANCE = 10
@@ -222,10 +221,6 @@ module Dea
       hb_interval = config["intervals"]["heartbeat"] || DEFAULT_HEARTBEAT_INTERVAL
       @heartbeat_timer = EM.add_periodic_timer(hb_interval) { send_heartbeat(instance_registry.to_a) }
 
-      # Notifications for CloudControllers looking to place droplets
-      advertise_interval = config["intervals"]["advertise"] || DEFAULT_ADVERTISE_INTERVAL
-      @advertise_timer = EM.add_periodic_timer(advertise_interval) { send_advertise }
-
       # Ensure we keep around only the most recent crash for short amount of time
       instance_registry.start_reaper
 
@@ -237,9 +232,7 @@ module Dea
 
     def stop_sweepers
       # Only need to stop nats-talking sweepers
-      # No need to check the timers, EM code is robust enough
-      EM.cancel_timer(@heartbeat_timer)
-      EM.cancel_timer(@advertise_timer)
+      EM.cancel_timer(@heartbeat_timer) if @heartbeat_timer
     end
 
     def setup_directory_server_v2
@@ -265,8 +258,13 @@ module Dea
       nats.start
 
       @responders = [
-        Dea::Responders::Stage.new(nats, uuid, self, staging_task_registry, directory_server_v2, config)
+        Dea::Responders::Stage.new(nats, uuid, self, staging_task_registry, directory_server_v2, config),
+        Dea::Responders::DeaLocator.new(nats, uuid, resource_manager, config),
       ].each(&:start)
+    end
+
+    def locator_responders
+      (@responders || []).select { |r| r.is_a?(Dea::Responders::DeaLocator) }
     end
 
     def start_component
@@ -285,8 +283,7 @@ module Dea
 
     def start_finish
       nats.publish("dea.start", Dea::Protocol::V1::HelloMessage.generate(self))
-
-      send_advertise
+      locator_responders.map(&:advertise)
     end
 
     def register_directory_server_v2
@@ -506,10 +503,6 @@ module Dea
       instance.start
     end
 
-    def handle_dea_locate(message)
-      send_advertise
-    end
-
     def handle_dea_stop(message)
       instances_filtered_by_message(message) do |instance|
         next if !instance.running?
@@ -609,10 +602,14 @@ module Dea
       ignore_signals
       stop_sweepers
 
-      instance_registry.each do |instance|
-        next unless instance.running? || instance.starting?
+      locator_responders.map(&:stop)
 
-        send_exited_message(instance, EXIT_REASON_EVACUATION)
+      if instance_registry
+        instance_registry.each do |instance|
+          if instance.running? || instance.starting?
+            send_exited_message(instance, EXIT_REASON_EVACUATION)
+          end
+        end
       end
 
       EM.add_timer(config["evacuation_delay_secs"]) { shutdown }
@@ -695,12 +692,6 @@ module Dea
       nats.publish("dea.heartbeat", hbs)
 
       nil
-    end
-
-    def send_advertise
-      # TODO: Return if resources are exhausted
-      msg = Dea::Protocol::V1::AdvertiseMessage.generate(self)
-      @nats.publish("dea.advertise", msg)
     end
 
     def instances_filtered_by_message(message)

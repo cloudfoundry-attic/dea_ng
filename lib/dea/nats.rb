@@ -34,10 +34,6 @@ module Dea
         bootstrap.handle_dea_directed_start(message)
       end
 
-      subscribe("dea.locate") do |message|
-        bootstrap.handle_dea_locate(message)
-      end
-
       subscribe("dea.stop") do |message|
         bootstrap.handle_dea_stop(message)
       end

@@ -150,10 +150,7 @@ describe Dea do
         bootstrap.setup
         bootstrap.start
 
-        mem_mock = mock("memory")
-        mem_mock.stub(:used).and_return(1)
-        mem_mock.stub(:capacity).and_return(2)
-
+        mem_mock = mock("memory", :used => 1, :capacity => 2, :remain => 1)
         resources = { "memory" => mem_mock }
         bootstrap.resource_manager.stub(:resources).and_return(resources)
 

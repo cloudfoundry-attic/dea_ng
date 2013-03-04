@@ -19,7 +19,6 @@ describe Dea::Nats do
       "router.start"        => :handle_router_start,
       "dea.status"          => :handle_dea_status,
       "dea.UUID.start"      => :handle_dea_directed_start,
-      "dea.locate"          => :handle_dea_locate,
       "dea.stop"            => :handle_dea_stop,
       "dea.update"          => :handle_dea_update,
       "dea.find.droplet"    => :handle_dea_find_droplet,

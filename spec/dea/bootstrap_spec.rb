@@ -5,6 +5,7 @@ require "dea/bootstrap"
 require "dea/instance"
 
 describe Dea::Bootstrap do
+  stub_nats
   include_context "tmpdir"
 
   before do
@@ -269,15 +270,18 @@ describe Dea::Bootstrap do
   end
 
   describe "#start_nats" do
-    let(:nats) { mock("nats", :start => nil) }
-    before { bootstrap.stub(:nats => nats) }
+    before do
+      EM.stub(:add_periodic_timer)
+      bootstrap.stub(:uuid => "unique-dea-id")
+      bootstrap.setup_nats
+    end
 
     it "starts nats" do
-      nats.should_receive(:start)
+      bootstrap.nats.should_receive(:start)
       bootstrap.start_nats
     end
 
-    it "sets up staging responder" do
+    it "sets up staging responder to respond to staging requests" do
       bootstrap.setup_staging_task_registry
       bootstrap.setup_directory_server_v2
       bootstrap.start_nats
@@ -286,13 +290,69 @@ describe Dea::Bootstrap do
       responder.should_not be_nil
 
       responder.tap do |r|
-        r.nats.should == nats
+        r.nats.should be_a(Dea::Nats)
+        r.dea_id.should be_a(String)
         r.bootstrap.should == bootstrap
+        r.staging_task_registry.should be_a(Dea::StagingTaskRegistry)
+        r.dir_server.should be_a(Dea::DirectoryServerV2)
+        r.config.should be_a(Dea::Config)
+      end
+    end
 
-        r.staging_task_registry.should == bootstrap.staging_task_registry
-        r.dir_server.should == bootstrap.directory_server_v2
+    it "sets up locator responder to respond to 'dea.locate' and send out 'dea.advertise'" do
+      bootstrap.setup_resource_manager
+      bootstrap.start_nats
 
-        r.config.should == bootstrap.config
+      responder = bootstrap.responders.detect { |r| r.is_a?(Dea::Responders::DeaLocator) }
+      responder.should_not be_nil
+
+      responder.tap do |r|
+        r.nats.should be_a(Dea::Nats)
+        r.dea_id.should be_a(String)
+        r.resource_manager.should be_a(Dea::ResourceManager)
+        r.config.should be_a(Dea::Config)
+      end
+    end
+  end
+
+  describe "#start_finish" do
+    before { EM.stub(:add_periodic_timer => nil, :add_timer => nil) }
+
+    before do
+      bootstrap.stub(:uuid => "unique-dea-id")
+      bootstrap.setup_nats
+      bootstrap.setup_directory_server
+      bootstrap.setup_resource_manager
+      bootstrap.start_nats
+    end
+
+    it "explicitly advertises" do
+      Dea::Responders::DeaLocator.any_instance.should_receive(:advertise)
+      bootstrap.start_finish
+    end
+  end
+
+  describe "#evacuate" do
+    before { EM.stub(:add_periodic_timer => nil, :add_timer => nil) }
+
+    context "when advertising/locating was set up" do
+      before do
+        bootstrap.stub(:uuid => "unique-dea-id")
+        bootstrap.setup_nats
+        bootstrap.setup_resource_manager
+        bootstrap.start_nats
+      end
+
+      it "stops advertising/locating" do
+        Dea::Responders::DeaLocator.any_instance.should_receive(:stop)
+        bootstrap.evacuate
+      end
+    end
+
+    context "when advertising/locating was not set up" do
+      it "does nothing" do
+        Dea::Responders::DeaLocator.any_instance.should_not_receive(:stop)
+        bootstrap.evacuate
       end
     end
   end
