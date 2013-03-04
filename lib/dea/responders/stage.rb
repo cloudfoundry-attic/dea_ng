@@ -3,13 +3,15 @@ require "dea/staging_task"
 module Dea::Responders
   class Stage
     attr_reader :nats
+    attr_reader :dea_id
     attr_reader :bootstrap
     attr_reader :staging_task_registry
     attr_reader :dir_server
     attr_reader :config
 
-    def initialize(nats, bootstrap, staging_task_registry, dir_server, config)
+    def initialize(nats, dea_id, bootstrap, staging_task_registry, dir_server, config)
       @nats = nats
+      @dea_id = dea_id
       @bootstrap = bootstrap
       @staging_task_registry = staging_task_registry
       @dir_server = dir_server
@@ -18,13 +20,13 @@ module Dea::Responders
 
     def start
       return unless configured_to_stage?
-
-      options = {:do_not_track_subscription => true, :queue => "staging"}
-      @sid = nats.subscribe("staging", options) { |message| handle(message) }
+      subscribe_to_staging
+      subscribe_to_dea_specific_staging
     end
 
     def stop
-      nats.unsubscribe(@sid) if @sid
+      unsubscribe_from_staging
+      unsubscribe_from_dea_specific_staging
     end
 
     def handle(message)
@@ -46,6 +48,24 @@ module Dea::Responders
 
     def configured_to_stage?
       config["staging"] && config["staging"]["enabled"]
+    end
+
+    def subscribe_to_staging
+      options = {:do_not_track_subscription => true, :queue => "staging"}
+      @staging_sid = nats.subscribe("staging", options) { |message| handle(message) }
+    end
+
+    def unsubscribe_from_staging
+      nats.unsubscribe(@staging_sid) if @staging_sid
+    end
+
+    def subscribe_to_dea_specific_staging
+      options = {:do_not_track_subscription => true}
+      @dea_specified_staging_sid = nats.subscribe("staging.#{@dea_id}.start", options) { |message| handle(message) }
+    end
+
+    def unsubscribe_from_dea_specific_staging
+      nats.unsubscribe(@dea_specified_staging_sid) if @dea_specified_staging_sid
     end
 
     def notify_setup_completion(message, task)
