@@ -3,6 +3,7 @@
 require "ci/reporter/rake/rspec"
 require "rspec/core/rake_task"
 require "rspec/core/version"
+Dir.glob(File.expand_path("../lib/tasks/*", __FILE__)).each { |f| require f }
 
 reports_dir = File.expand_path("spec_reports")
 
@@ -16,16 +17,6 @@ end
 desc "Run all examples"
 RSpec::Core::RakeTask.new(:spec) do |t|
   # See .rspec
-end
-
-desc "Install dependencies for integration tests"
-task :install do
-  result = system "PATH=$PATH:/usr/local/go/bin go/bin/go install runner"
-  raise "Installation failed" unless result
-end
-
-task :dir_server => [:install] do
-  system "go/bin/runner -conf config/dea.yml"
 end
 
 task :ensure_coding do

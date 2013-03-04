@@ -148,6 +148,7 @@ GEM
       mixlib-shellout
       systemu
       yajl-ruby
+    patron (0.4.18)
     posix-spawn (0.3.6)
     rack (1.4.1)
     rack-mount (0.8.3)
@@ -202,6 +203,7 @@ DEPENDENCIES
   grape!
   librarian
   nats
+  patron
   rack
   rack-test
   rake

@@ -2,6 +2,7 @@ require "spec_helper"
 require "timeout"
 require "yajl"
 require "digest/sha1"
+require "patron"
 
 describe "Logging", :type => :integration do
   describe "starting an app" do
@@ -21,6 +22,11 @@ describe "Logging", :type => :integration do
         "limits" => { "mem" => 1, "disk" => 1, "fds" => 1 },
         "services" => []
       })
+
+      http = Patron::Session.new
+      http.headers['Authorization'] = 'Basic auth_key'
+      http.base_url = "http://localhost:5000"
+      expect(http.get("/healthcheck").body).to include("OK")
     end
   end
 

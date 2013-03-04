@@ -7,3 +7,4 @@ spec_reports
 chef/cookbooks
 .vagrant
 tmp
+dump.rdb
