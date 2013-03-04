@@ -30,4 +30,5 @@ group :test do
   gem "rack-test"
   gem "rcov"
   gem "ci_reporter"
+  gem 'rr'
 end
