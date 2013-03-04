@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe Buildpacks::Config do
+describe Buildpacks::Config, :type => :buildpack do
   describe '#from_file' do
     it 'should symbolize keys for service bindings' do
       svc = {

@@ -1,7 +1,6 @@
 require 'spec_helper'
-require 'buildpack'
 
-describe Buildpacks::Buildpack do
+describe Buildpacks::Buildpack, :type => :buildpack do
   let(:fake_buildpacks_dir) { File.expand_path("../../fixtures/fake_buildpacks", __FILE__) }
   let(:buildpacks_path_with_start_cmd) { "#{fake_buildpacks_dir}/with_start_cmd" }
   let(:buildpacks_path_with_rails) { "#{fake_buildpacks_dir}/with_rails" }
@@ -13,9 +12,7 @@ describe Buildpacks::Buildpack do
   let(:app_without_procfile) { :app_without_procfile }
 
   before do
-    any_instance_of(Buildpacks::Buildpack) do |plugin|
-      stub(plugin).buildpacks_path { Pathname.new(buildpacks_path) }
-    end
+    Buildpacks::Buildpack.any_instance.stub(:buildpacks_path) { Pathname.new(buildpacks_path) }
   end
 
   shared_examples_for "successful buildpack compilation" do
@@ -73,7 +70,7 @@ fi
     subject { plugin.build_pack }
 
     it "clones the buildpack URL" do
-      mock(plugin).system(anything) do |cmd|
+      plugin.should_receive(:system).with(anything) do |cmd|
         expect(cmd).to match /git clone #{buildpack_url} #{plugin.app_dir}\/.buildpacks/
         true
       end
@@ -82,10 +79,10 @@ fi
     end
 
     it "does not try to detect the buildpack" do
-      stub(plugin).system(anything) { true }
+      plugin.stub(:system).with(anything) { true }
 
       plugin.installers.each do |i|
-        dont_allow(i).detect
+        i.should_not_receive(:detect)
       end
 
       subject
@@ -93,7 +90,7 @@ fi
 
     context "when the cloning fails" do
       it "gives up and raises an error" do
-        stub(plugin).system(anything) { false }
+        plugin.stub(:system).with(anything) { false }
 
         expect { subject }.to raise_error("Failed to git clone buildpack")
       end
