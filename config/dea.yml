@@ -28,3 +28,6 @@ directory_server:
   streaming_timeout: 10
   logging:
     level: info
+
+stacks:
+  - lucid64

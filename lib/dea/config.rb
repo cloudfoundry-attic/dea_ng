@@ -20,12 +20,15 @@ module Dea
       ::Membrane::SchemaParser.parse do
         {
           "base_dir" => String,
+
           optional("local_route") => String,
+
           "logging" => {
             "level"            => String,
             optional("file")   => String,
             optional("syslog") => String,
           },
+
           "only_production_apps" => bool,
           "nats_uri" => String,
           "pid_filename" => String,
@@ -37,6 +40,8 @@ module Dea
             "v2_port" => Integer,
             "file_api_port" => Integer,
           },
+
+          "stacks" => [String],
 
           optional("crash_lifetime_secs") => Integer,
           optional("crash_block_usage_ratio_threshold") => Float,
@@ -75,6 +80,10 @@ module Dea
     end
 
     include Enumerable
+
+    def self.from_file(file_path)
+      new(YAML.load_file(file_path)).tap(&:validate)
+    end
 
     def initialize(config)
       @config = EMPTY_CONFIG.merge(config)

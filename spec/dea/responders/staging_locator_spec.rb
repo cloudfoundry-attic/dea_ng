@@ -110,13 +110,14 @@ describe Dea::Responders::StagingLocator do
   end
 
   describe "#advertise" do
-    let(:available_memory) { 45678 }
-    before { resource_manager.resources["memory"].stub(:remain => available_memory) }
-
     it "publishes 'staging.advertise' message" do
+      config["stacks"] = ["lucid64"]
+      resource_manager.resources["memory"].stub(:remain => 45678)
+
       nats_mock.should_receive(:publish).with("staging.advertise", JSON.dump(
         "id" => dea_id,
-        "available_memory" => available_memory,
+        "stacks" => ["lucid64"],
+        "available_memory" => 45678,
       ))
       subject.advertise
     end
