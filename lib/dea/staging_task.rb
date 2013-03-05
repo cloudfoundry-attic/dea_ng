@@ -2,7 +2,7 @@ require "tempfile"
 require "tmpdir"
 require "yaml"
 
-require "vcap/staging"
+require_relative "../../buildpacks/lib/buildpack"
 require "dea/utils/download"
 require "dea/utils/upload"
 require "dea/promise"
@@ -88,7 +88,7 @@ module Dea
     private :trigger_after_complete
 
     def prepare_workspace
-      StagingPlugin::Config.to_file({
+      Buildpacks::Config.to_file({
         "source_dir"   => WARDEN_UNSTAGED_DIR,
         "dest_dir"     => WARDEN_STAGED_DIR,
         "environment"  => attributes["properties"]
@@ -274,10 +274,7 @@ module Dea
     end
 
     def paths_to_bind
-      [
-        workspace_dir,
-        shared_gems_dir
-      ]
+      [workspace_dir, shared_gems_dir, buildpack_dir]
     end
 
     def workspace_dir
@@ -289,7 +286,7 @@ module Dea
     end
 
     def shared_gems_dir
-      @shared_gems_dir ||= staging_plugin_spec.base_dir
+      @shared_gems_dir ||= Gem::Specification.find_by_name("vcap_logging").base_dir
     end
 
     def staged_droplet_path
@@ -313,11 +310,11 @@ module Dea
     end
 
     def run_plugin_path
-      @run_plugin_path ||= File.join(staging_plugin_spec.gem_dir, "bin", "run_plugin")
+      @run_plugin_path ||= File.join(buildpack_dir, "bin/run")
     end
 
-    def staging_plugin_spec
-      @staging_plugin_spec ||= Gem::Specification.find_by_name("vcap_staging")
+    def buildpack_dir
+      @buildpack_path ||= File.expand_path("../../buildpacks", __FILE__)
     end
 
     def cleanup(file)
