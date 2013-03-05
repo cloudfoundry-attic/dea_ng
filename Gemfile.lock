@@ -24,10 +24,10 @@ GIT
 
 GIT
   remote: https://github.com/cloudfoundry/vcap-staging.git
-  revision: 1e6f2b1808083b14ace847fb7b6b777c818e1f1d
+  revision: 931b3ebd576f1e18988b3336ce261055068db7c9
   submodules: true
   specs:
-    vcap_staging (0.1.64)
+    vcap_staging (0.1.65)
       nokogiri (>= 1.4.4)
       rake
       uuidtools (~> 2.1.2)
