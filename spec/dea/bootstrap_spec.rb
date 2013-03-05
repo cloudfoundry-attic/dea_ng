@@ -299,11 +299,26 @@ describe Dea::Bootstrap do
       end
     end
 
-    it "sets up locator responder to respond to 'dea.locate' and send out 'dea.advertise'" do
+    it "sets up dea locator responder to respond to 'dea.locate' and send out 'dea.advertise'" do
       bootstrap.setup_resource_manager
       bootstrap.start_nats
 
       responder = bootstrap.responders.detect { |r| r.is_a?(Dea::Responders::DeaLocator) }
+      responder.should_not be_nil
+
+      responder.tap do |r|
+        r.nats.should be_a(Dea::Nats)
+        r.dea_id.should be_a(String)
+        r.resource_manager.should be_a(Dea::ResourceManager)
+        r.config.should be_a(Dea::Config)
+      end
+    end
+
+    it "sets up staging locator responder to respond to 'staging.locate' and send out 'staging.advertise'" do
+      bootstrap.setup_resource_manager
+      bootstrap.start_nats
+
+      responder = bootstrap.responders.detect { |r| r.is_a?(Dea::Responders::StagingLocator) }
       responder.should_not be_nil
 
       responder.tap do |r|
@@ -326,8 +341,13 @@ describe Dea::Bootstrap do
       bootstrap.start_nats
     end
 
-    it "explicitly advertises" do
+    it "advertises dea" do
       Dea::Responders::DeaLocator.any_instance.should_receive(:advertise)
+      bootstrap.start_finish
+    end
+
+    it "advertises staging" do
+      Dea::Responders::StagingLocator.any_instance.should_receive(:advertise)
       bootstrap.start_finish
     end
   end
@@ -343,15 +363,25 @@ describe Dea::Bootstrap do
         bootstrap.start_nats
       end
 
-      it "stops advertising/locating" do
+      it "stops dea advertising/locating" do
         Dea::Responders::DeaLocator.any_instance.should_receive(:stop)
+        bootstrap.evacuate
+      end
+
+      it "stops staging advertising/locating" do
+        Dea::Responders::StagingLocator.any_instance.should_receive(:stop)
         bootstrap.evacuate
       end
     end
 
     context "when advertising/locating was not set up" do
-      it "does nothing" do
+      it "does not stop dea locator" do
         Dea::Responders::DeaLocator.any_instance.should_not_receive(:stop)
+        bootstrap.evacuate
+      end
+
+      it "does not stop staging locator" do
+        Dea::Responders::StagingLocator.any_instance.should_not_receive(:stop)
         bootstrap.evacuate
       end
     end

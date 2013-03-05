@@ -260,11 +260,16 @@ module Dea
       @responders = [
         Dea::Responders::Stage.new(nats, uuid, self, staging_task_registry, directory_server_v2, config),
         Dea::Responders::DeaLocator.new(nats, uuid, resource_manager, config),
+        Dea::Responders::StagingLocator.new(nats, uuid, resource_manager, config),
       ].each(&:start)
     end
 
     def locator_responders
-      (@responders || []).select { |r| r.is_a?(Dea::Responders::DeaLocator) }
+      return [] unless @responders
+      @responders.select do |r|
+        r.is_a?(Dea::Responders::DeaLocator) ||
+          r.is_a?(Dea::Responders::StagingLocator)
+      end
     end
 
     def start_component
