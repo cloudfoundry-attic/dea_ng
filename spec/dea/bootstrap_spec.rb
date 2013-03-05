@@ -286,7 +286,7 @@ describe Dea::Bootstrap do
       bootstrap.setup_directory_server_v2
       bootstrap.start_nats
 
-      responder = bootstrap.responders.detect { |r| r.is_a?(Dea::Responders::Stage) }
+      responder = bootstrap.responders.detect { |r| r.is_a?(Dea::Responders::Staging) }
       responder.should_not be_nil
 
       responder.tap do |r|

@@ -2,9 +2,9 @@ require "spec_helper"
 require "dea/nats"
 require "dea/staging_task_registry"
 require "dea/directory_server_v2"
-require "dea/responders/stage"
+require "dea/responders/staging"
 
-describe Dea::Responders::Stage do
+describe Dea::Responders::Staging do
   stub_nats
 
   let(:nats) { Dea::Nats.new(bootstrap, config) }

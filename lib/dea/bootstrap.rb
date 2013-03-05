@@ -258,9 +258,9 @@ module Dea
       nats.start
 
       @responders = [
-        Dea::Responders::Stage.new(nats, uuid, self, staging_task_registry, directory_server_v2, config),
         Dea::Responders::DeaLocator.new(nats, uuid, resource_manager, config),
         Dea::Responders::StagingLocator.new(nats, uuid, resource_manager, config),
+        Dea::Responders::Staging.new(nats, uuid, self, staging_task_registry, directory_server_v2, config),
       ].each(&:start)
     end
 

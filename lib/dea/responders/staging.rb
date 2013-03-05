@@ -1,7 +1,7 @@
 require "dea/staging_task"
 
 module Dea::Responders
-  class Stage
+  class Staging
     attr_reader :nats
     attr_reader :dea_id
     attr_reader :bootstrap
