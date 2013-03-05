@@ -3,6 +3,7 @@ packages = %w(
   ruby1.9.3
   build-essential
   quota
+  libcurl4-gnutls-dev
   libxml2-dev
   libxslt-dev
   golang
