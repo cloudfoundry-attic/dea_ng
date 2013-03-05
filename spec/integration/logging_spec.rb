@@ -8,8 +8,11 @@ describe "Logging", :type => :integration do
   describe "starting an app" do
     it "works" do
       dea_id = request_nats("dea.discover", {
-        "limits" => { "mem" => 1, "disk" => 1 },
-        "droplet" => "asdf-asdf-asdf-asdf"
+        "droplet" => "droplet-id",
+        "limits" => {
+          "mem" => 1,
+          "disk" => 1
+        },
       })["id"]
 
       publish_nats("dea.#{dea_id}.start", {
@@ -19,12 +22,16 @@ describe "Logging", :type => :integration do
         "version" => "2.0",
         "name" => "my_app",
         "cc_partition" => "1",
-        "limits" => { "mem" => 1, "disk" => 1, "fds" => 1 },
-        "services" => []
+        "services" => [],
+        "limits" => {
+          "mem" => 1,
+          "disk" => 1,
+          "fds" => 1
+        },
       })
 
       http = Patron::Session.new
-      http.headers['Authorization'] = 'Basic auth_key'
+      http.headers["Authorization"] = "Basic auth_key"
       http.base_url = "http://localhost:5000"
       expect(http.get("/healthcheck").body).to include("OK")
     end
