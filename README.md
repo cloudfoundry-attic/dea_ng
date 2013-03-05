@@ -36,3 +36,20 @@ Requests for directories/files are handled by the DEA, which responds
 with a HTTP redirect to a URL that hits the directory server directly.
 The URL is signed by the DEA, and the directory server checks the
 validity of the URL with the DEA before serving it.
+
+
+### Staging
+
+See [staging.rb](lib/dea/responders/staging.rb) for staging flow.
+
+#### NATS Messaging
+
+- `staging.advertise`: Stagers (now DEA's) broadcast their capacity/capability
+
+- `staging.locate`: Stagers respond to any message on this subject with a
+  `staging.advertise` message (CC uses this to bootstrap)
+
+- `staging.<uuid>.start`: Stagers respond to requests on this subject to stage apps
+
+- `staging`: Stagers (in a queue group) respond to requests to stage an app
+  (old protocol)
