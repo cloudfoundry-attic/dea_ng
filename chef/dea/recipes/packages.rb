@@ -7,6 +7,7 @@ packages = %w(
   libxml2-dev
   libxslt-dev
   golang
+  redis-server
 )
 
 packages.each do |package_name|

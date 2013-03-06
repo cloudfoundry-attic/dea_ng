@@ -1,13 +1,13 @@
 desc "Install/run log server for tests"
 namespace :log_server do
   ROOT = File.expand_path("../../..", __FILE__)
-  LOG_SERVER_BRANCH = "public-logplex"
-  LOG_SERVER_REPO = "git@github.com:cloudfoundry/logplex.git"
+  LOG_SERVER_BRANCH = "master"
+  LOG_SERVER_REPO = "https://github.com/cloudfoundry/logplex.git"
 
   desc "Run log server for integration tests"
   task :run => [:install] do
     Dir.chdir(log_server_dir) do
-      system "source keys.sh && bin/logplex"
+      system "bin/logplex"
     end
   end
 
@@ -23,8 +23,7 @@ namespace :log_server do
     end
 
     Dir.chdir(log_server_dir) do
-      system "git fetch origin #{LOG_SERVER_BRANCH}"
-      system "git checkout origin/#{LOG_SERVER_BRANCH}"
+      system "git pull origin #{LOG_SERVER_BRANCH}"
     end
   end
 

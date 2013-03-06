@@ -13,10 +13,20 @@ Vagrant::Config.run do |config|
 
     chef.add_recipe "apt"
     chef.add_recipe "git"
+    chef.add_recipe "erlang"
     chef.add_recipe "dea::packages"
     chef.add_recipe "dea::warden"
     chef.add_recipe "dea::dea"
 
-    chef.json = {}
+    chef.json = {
+      erlang: {
+        install_method: :source,
+        source: {
+          url: "http://erlang.org/download/otp_src_R15B03-1.tar.gz",
+          version: "R15B03",
+          checksum: "1d7ace92e8cf41abbee1dba8192b7d5f"
+        }
+      }
+    }
   end
 end
