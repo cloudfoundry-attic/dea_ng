@@ -274,7 +274,10 @@ module Dea
     end
 
     def paths_to_bind
-      [workspace_dir, shared_gems_dir, File.dirname(staging_config["platform_config"]["insight_agent"])]
+      [
+        workspace_dir,
+        shared_gems_dir
+      ]
     end
 
     def workspace_dir
