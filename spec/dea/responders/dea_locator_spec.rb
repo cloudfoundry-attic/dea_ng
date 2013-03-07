@@ -120,6 +120,7 @@ describe Dea::Responders::DeaLocator do
         nats_mock.should_receive(:publish).with("dea.advertise", JSON.dump(
           "id" => dea_id,
           "prod" => true,
+          "stacks" => [],
           "available_memory" => available_memory,
         ))
         subject.advertise
@@ -133,6 +134,21 @@ describe Dea::Responders::DeaLocator do
         nats_mock.should_receive(:publish).with("dea.advertise", JSON.dump(
           "id" => dea_id,
           "prod" => false,
+          "stacks" => [],
+          "available_memory" => available_memory,
+        ))
+        subject.advertise
+      end
+    end
+
+    context "when config specifies stacks" do
+      before { config["stacks"] = ["stack-1", "stack-2"] }
+
+      it "publishes 'dea.advertise' message with stacks" do
+        nats_mock.should_receive(:publish).with("dea.advertise", JSON.dump(
+          "id" => dea_id,
+          "prod" => false,
+          "stacks" => ["stack-1", "stack-2"],
           "available_memory" => available_memory,
         ))
         subject.advertise

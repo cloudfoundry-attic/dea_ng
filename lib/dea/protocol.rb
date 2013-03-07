@@ -97,6 +97,7 @@ module Dea::Protocol::V1
     def self.generate(message={})
       { "id" => message[:id],
         "prod" => message[:prod],
+        "stacks" => message[:stacks],
         "available_memory" => message[:available_memory],
       }
     end

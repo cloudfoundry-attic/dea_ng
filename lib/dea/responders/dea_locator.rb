@@ -32,6 +32,7 @@ module Dea::Responders
         Dea::Protocol::V1::AdvertiseMessage.generate({
           :id => dea_id,
           :prod => config.only_production_apps?,
+          :stacks => config["stacks"] || [],
           :available_memory => resource_manager.resources["memory"].remain,
         }),
       )
