@@ -2,7 +2,6 @@ require "tempfile"
 require "tmpdir"
 require "yaml"
 
-require "vcap/staging"
 require "dea/utils/download"
 require "dea/utils/upload"
 require "dea/promise"
@@ -88,14 +87,15 @@ module Dea
     private :trigger_after_complete
 
     def prepare_workspace
-      StagingPlugin::Config.to_file({
+      plugin_config = {
         "source_dir"   => WARDEN_UNSTAGED_DIR,
         "dest_dir"     => WARDEN_STAGED_DIR,
         "environment"  => attributes["properties"]
-      }, plugin_config_path)
+      }
 
-      platform_config = staging_config["platform_config"]
-      platform_config["cache"] = WARDEN_CACHE
+      platform_config = staging_config["platform_config"].merge("cache" => WARDEN_CACHE)
+
+      File.open(plugin_config_path, 'w') { |f| YAML.dump(plugin_config, f) }
       File.open(platform_config_path, "w") { |f| YAML.dump(platform_config, f) }
     end
 
@@ -274,10 +274,7 @@ module Dea
     end
 
     def paths_to_bind
-      [
-        workspace_dir,
-        shared_gems_dir
-      ]
+      [workspace_dir, buildpack_dir]
     end
 
     def workspace_dir
@@ -286,10 +283,6 @@ module Dea
       @workspace_dir = Dir.mktmpdir(nil, staging_base_dir)
       File.chmod(0755, @workspace_dir)
       @workspace_dir
-    end
-
-    def shared_gems_dir
-      @shared_gems_dir ||= staging_plugin_spec.base_dir
     end
 
     def staged_droplet_path
@@ -313,11 +306,11 @@ module Dea
     end
 
     def run_plugin_path
-      @run_plugin_path ||= File.join(staging_plugin_spec.gem_dir, "bin", "run_plugin")
+      @run_plugin_path ||= File.join(buildpack_dir, "bin/run")
     end
 
-    def staging_plugin_spec
-      @staging_plugin_spec ||= Gem::Specification.find_by_name("vcap_staging")
+    def buildpack_dir
+      @buildpack_path ||= File.expand_path("../../../buildpacks", __FILE__)
     end
 
     def cleanup(file)
@@ -329,7 +322,6 @@ module Dea
 
     def staging_environment
       {
-        "GEM_PATH" => shared_gems_dir,
         "PLATFORM_CONFIG" => platform_config_path,
         "C_INCLUDE_PATH" => "#{staging_config["environment"]["C_INCLUDE_PATH"]}:#{ENV["C_INCLUDE_PATH"]}",
         "LIBRARY_PATH" => staging_config["environment"]["LIBRARY_PATH"],

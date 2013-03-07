@@ -40,7 +40,7 @@ describe Dea::StagingTask do
       staging.should_receive(:staging_environment).and_return(staging_env)
 
       staging.should_receive(:promise_warden_run) do |connection_name, cmd|
-        cmd.should match %r{^PATH=x FOO=y .*/bin/run_plugin .*/plugin_config > /tmp/staged/logs/staging_task.log 2>&1$}
+        cmd.should match %r{^PATH=x FOO=y .*/bin/run .*/plugin_config > /tmp/staged/logs/staging_task.log 2>&1$}
         mock("promise", :resolve => nil)
       end
 

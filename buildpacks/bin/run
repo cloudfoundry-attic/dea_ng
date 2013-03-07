@@ -1,0 +1,10 @@
+$:.unshift(File.expand_path("../../lib", __FILE__))
+
+require "buildpack"
+
+unless ARGV.length == 1
+  puts "Usage: run_plugin [plugin config file]"
+  exit 1
+end
+
+Buildpacks::Buildpack.from_file(ARGV[0]).stage_application

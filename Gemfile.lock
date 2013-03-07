@@ -23,18 +23,6 @@ GIT
       yajl-ruby
 
 GIT
-  remote: https://github.com/cloudfoundry/vcap-staging.git
-  revision: 456b85a4ad291c3fb39bd8c608cb0c21f9deaaf0
-  submodules: true
-  specs:
-    vcap_staging (0.1.69)
-      nokogiri (>= 1.4.4)
-      rake
-      uuidtools (~> 2.1.2)
-      vcap_logging (= 0.1.4)
-      yajl-ruby (>= 0.7.9)
-
-GIT
   remote: https://github.com/cloudfoundry/warden.git
   revision: 4c1bb04f863f565be8ed8181e25758145ac739b4
   specs:
@@ -203,6 +191,7 @@ DEPENDENCIES
   grape!
   librarian
   nats
+  nokogiri (>= 1.4.4)
   patron
   rack
   rack-test
@@ -212,9 +201,10 @@ DEPENDENCIES
   steno!
   sys-filesystem
   thin
+  uuidtools (~> 2.1.2)
   vagrant
   vcap_common!
-  vcap_staging!
+  vcap_logging (= 0.1.4)
   warden-client!
   warden-protocol!
   yajl-ruby
