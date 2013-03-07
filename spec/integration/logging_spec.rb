@@ -6,7 +6,7 @@ require "patron"
 
 describe "Logging", :type => :integration, :requires_erlang => true do
   describe "starting an app" do
-    it "works" do
+    xit "works" do
       dea_id = request_nats("dea.discover", {
         "droplet" => "droplet-id",
         "limits" => {
