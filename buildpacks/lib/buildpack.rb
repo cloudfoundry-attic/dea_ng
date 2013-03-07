@@ -1,9 +1,6 @@
-require 'bundler'
-
-require "uuidtools"
-require_relative "staging_plugin"
-require_relative "installer"
-require_relative "rails_support"
+require "staging_plugin"
+require "installer"
+require "rails_support"
 
 module Buildpacks
   class Buildpack < StagingPlugin
@@ -14,9 +11,7 @@ module Buildpacks
         create_app_directories
         copy_source_files
         FileUtils.chmod_R(0744, app_dir)
-        Bundler.with_clean_env do
-          build_pack.compile
-        end
+        build_pack.compile
         stage_rails_console if rails_buildpack?
         create_startup_script
       end
@@ -42,7 +37,7 @@ module Buildpacks
     end
 
     def buildpacks_path
-      Pathname.new(__FILE__) + '../../../../../../vendor/buildpacks/'
+      Pathname.new(__FILE__) + '../vendor/buildpacks/'
     end
 
     def installers
@@ -103,7 +98,6 @@ BASH
       vars.each { |k, v| vars[k] = "${#{k}:-#{v}}" }
       vars["HOME"] = "$PWD/app"
       vars["PORT"] = "$VCAP_APP_PORT"
-      vars["DATABASE_URL"] = database_uri if rails_buildpack? && bound_database
       vars["MEMORY_LIMIT"] = "#{application_memory}m"
       vars
     end

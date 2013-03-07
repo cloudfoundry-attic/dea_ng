@@ -1,5 +1,7 @@
 # coding: UTF-8
 
+$:.unshift(File.expand_path("../../buildpacks/lib", __FILE__))
+
 require 'bundler'
 Bundler.require
 

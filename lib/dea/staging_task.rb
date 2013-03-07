@@ -88,14 +88,15 @@ module Dea
     private :trigger_after_complete
 
     def prepare_workspace
-      Buildpacks::Config.to_file({
+      plugin_config = {
         "source_dir"   => WARDEN_UNSTAGED_DIR,
         "dest_dir"     => WARDEN_STAGED_DIR,
         "environment"  => attributes["properties"]
-      }, plugin_config_path)
+      }
 
-      platform_config = staging_config["platform_config"]
-      platform_config["cache"] = WARDEN_CACHE
+      platform_config = staging_config["platform_config"].merge("cache" => WARDEN_CACHE)
+
+      File.open(plugin_config_path, 'w') { |f| YAML.dump(plugin_config, f) }
       File.open(platform_config_path, "w") { |f| YAML.dump(platform_config, f) }
     end
 

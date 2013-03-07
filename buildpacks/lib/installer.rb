@@ -2,7 +2,6 @@ require "open3"
 
 module Buildpacks
   class Installer < Struct.new(:path, :app_dir)
-
     def detect
       @detect_output, status = Open3.capture2 command('detect')
       status == 0
