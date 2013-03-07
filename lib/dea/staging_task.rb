@@ -310,7 +310,7 @@ module Dea
     end
 
     def buildpack_dir
-      @buildpack_path ||= File.expand_path("../../buildpacks", __FILE__)
+      @buildpack_path ||= File.expand_path("../../../buildpacks", __FILE__)
     end
 
     def cleanup(file)

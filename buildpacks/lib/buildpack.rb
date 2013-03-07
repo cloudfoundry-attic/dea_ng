@@ -1,3 +1,4 @@
+require "pathname"
 require "staging_plugin"
 require "installer"
 require "rails_support"
@@ -37,7 +38,7 @@ module Buildpacks
     end
 
     def buildpacks_path
-      Pathname.new(__FILE__) + '../vendor/buildpacks/'
+      Pathname.new(__FILE__) + '../../vendor/'
     end
 
     def installers
