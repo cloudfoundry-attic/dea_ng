@@ -275,7 +275,7 @@ module Dea
     end
 
     def paths_to_bind
-      [workspace_dir, shared_gems_dir, buildpack_dir]
+      [workspace_dir, buildpack_dir]
     end
 
     def workspace_dir
@@ -284,10 +284,6 @@ module Dea
       @workspace_dir = Dir.mktmpdir(nil, staging_base_dir)
       File.chmod(0755, @workspace_dir)
       @workspace_dir
-    end
-
-    def shared_gems_dir
-      @shared_gems_dir ||= Gem::Specification.find_by_name("vcap_logging").base_dir
     end
 
     def staged_droplet_path
@@ -327,7 +323,6 @@ module Dea
 
     def staging_environment
       {
-        "GEM_PATH" => shared_gems_dir,
         "PLATFORM_CONFIG" => platform_config_path,
         "C_INCLUDE_PATH" => "#{staging_config["environment"]["C_INCLUDE_PATH"]}:#{ENV["C_INCLUDE_PATH"]}",
         "LIBRARY_PATH" => staging_config["environment"]["LIBRARY_PATH"],
