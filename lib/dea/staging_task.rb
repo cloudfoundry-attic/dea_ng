@@ -2,7 +2,6 @@ require "tempfile"
 require "tmpdir"
 require "yaml"
 
-require_relative "../../buildpacks/lib/buildpack"
 require "dea/utils/download"
 require "dea/utils/upload"
 require "dea/promise"
