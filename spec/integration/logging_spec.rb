@@ -4,7 +4,7 @@ require "yajl"
 require "digest/sha1"
 require "patron"
 
-describe "Logging", :type => :integration do
+describe "Logging", :type => :integration, :requires_erlang => true do
   describe "starting an app" do
     it "works" do
       dea_id = request_nats("dea.discover", {

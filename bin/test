@@ -26,5 +26,5 @@ set -e
 
 # Test Ruby
 (
-  bundle exec rake spec
+  bundle exec rake spec SPEC_OPTS="--tag ~requires_erlang"
 )
