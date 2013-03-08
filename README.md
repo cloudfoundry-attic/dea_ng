@@ -19,12 +19,12 @@ Manager][hm]).
 The advantages of this generation of the DEA over the previous (and
 first) generation DEA is that is more modular and has better test
 coverage. A breaking change between the two is that this version of the
-DEA depends on Warden to run application instances.
+DEA depends on [Warden][warden] to run application instances.
 
 [cc]: https://github.com/cloudfoundry/cloud_controller_ng
 [nats]: https://github.com/derekcollison/nats
 [hm]: https://github.com/cloudfoundry/health_manager
-
+[warden]: https://github.com/cloudfoundry/warden
 
 ### Directory server
 
