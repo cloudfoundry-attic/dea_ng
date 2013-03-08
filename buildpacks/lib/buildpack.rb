@@ -28,7 +28,7 @@ module Buildpacks
     def build_pack
       return @build_pack if @build_pack
 
-      custom_url = environment[:buildpack]
+      custom_url = environment["buildpack"]
       return @build_pack = clone_buildpack(custom_url) if custom_url
 
       @build_pack = installers.detect(&:detect)
@@ -48,7 +48,7 @@ module Buildpacks
     end
 
     def start_command
-      return environment[:meta][:command] if environment[:meta] && environment[:meta][:command]
+      return environment["meta"]["command"] if environment["meta"] && environment["meta"]["command"]
       procfile["web"] ||
         release_info.fetch("default_process_types", {})["web"] ||
           raise("Please specify a web start command in your manifest.yml or Procfile")

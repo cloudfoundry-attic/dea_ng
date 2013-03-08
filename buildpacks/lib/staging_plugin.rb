@@ -63,8 +63,8 @@ module Buildpacks
     end
 
     def application_memory
-      if environment[:resources] && environment[:resources][:memory]
-        environment[:resources][:memory]
+      if environment["resources"] && environment["resources"]["memory"]
+        environment["resources"]["memory"]
       else
         512 #MB
       end
