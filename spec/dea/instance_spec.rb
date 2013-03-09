@@ -820,35 +820,41 @@ describe Dea::Instance do
 
     end
 
-    describe "before_start hook" do
-      let(:runtime) do
-        runtime = mock(:runtime)
-        runtime.stub(:environment).and_return({})
-        runtime
-      end
-
-      before do
-        bootstrap.stub(:config).and_return({
-          "hooks" => {
-            "before_start" => File.join(File.dirname(__FILE__), 'hooks/before_start')
-          }
-        })
-        instance.stub(:runtime).and_return(runtime)
-        instance.unstub(:promise_exec_hook_script)
-      end
-
-      it "should execute script file" do
-        instance.stub(:promise_warden_run) do |_, script|
-          script.should_not be_empty
-          lines = script.split("\n")
-          lines[-2].should == 'echo "before_start"'  # file contents
-          lines[-1].should == 'exit'
-          delivering_promise
+    shared_examples_for "start script hook" do |hook|
+      describe "#{hook} hook" do
+        let(:runtime) do
+          runtime = mock(:runtime)
+          runtime.stub(:environment).and_return({})
+          runtime
         end
 
-        expect_start.to_not raise_error
+        before do
+          bootstrap.stub(:config).and_return({
+            "hooks" => {
+              "#{hook}" => File.join(File.dirname(__FILE__), "hooks/#{hook}")
+            }
+          })
+          instance.stub(:runtime).and_return(runtime)
+          instance.unstub(:promise_exec_hook_script)
+        end
+
+        it "should execute script file" do
+          script_content = nil
+          instance.stub(:promise_warden_run) do |_, script|
+            script.should_not be_empty
+            lines = script.split("\n")
+            script_content = lines[-2]
+            delivering_promise
+          end
+
+          expect_start.to_not raise_error
+          script_content.should == "echo \"#{hook}\""
+        end
       end
     end
+
+    it_behaves_like 'start script hook', 'before_start'
+    it_behaves_like 'start script hook', 'after_start'
 
     describe "starting the application" do
       let(:response) do
@@ -913,36 +919,6 @@ describe Dea::Instance do
         expect_start.to raise_error
       end
     end
-
-    describe "after_start hook" do
-      let(:runtime) do
-        runtime = mock(:runtime)
-        runtime.stub(:environment).and_return({})
-        runtime
-      end
-
-      before do
-        bootstrap.stub(:config).and_return({
-          "hooks" => {
-            "after_start" => File.join(File.dirname(__FILE__), 'hooks/after_start')
-          }
-        })
-        instance.stub(:runtime).and_return(runtime)
-        instance.unstub(:promise_exec_hook_script)
-      end
-
-      it "should execute the script file" do
-        instance.stub(:promise_warden_run) do |_, script|
-          script.should_not be_empty
-          lines = script.split("\n")
-          lines[-2].should == 'echo "after_start"'  # file contents
-          lines[-1].should == 'exit'
-          delivering_promise
-        end
-
-        expect_start.to_not raise_error
-      end
-    end
   end
 
   describe "stop transition" do
@@ -997,6 +973,38 @@ describe Dea::Instance do
         end
       end
     end
+
+    shared_examples_for "stop script hook" do |hook|
+      describe "script hook" do
+        let(:runtime) do
+          runtime = mock(:runtime)
+          runtime.stub(:environment).and_return({})
+          runtime
+        end
+        before do
+          bootstrap.stub(:config).and_return({
+            "hooks" => {
+              hook => File.join(File.dirname(__FILE__), "hooks/#{hook}")
+            }
+          })
+          instance.stub(:runtime).and_return(runtime)
+          instance.stub(:state_starting_timestamp).and_return(Time.now)
+        end
+        it "should execute script file" do
+          script_content = nil
+          instance.stub(:promise_warden_run) do |_, script|
+            script.should_not be_empty
+            lines = script.split("\n")
+            script_content = lines[-2]
+            delivering_promise
+          end
+          expect_stop.to_not raise_error
+          script_content.should == "echo \"#{hook}\""
+        end
+      end
+    end
+    it_behaves_like 'stop script hook', 'before_stop'
+    it_behaves_like 'stop script hook', 'after_stop'
 
     describe "#promise_stop" do
       before do
