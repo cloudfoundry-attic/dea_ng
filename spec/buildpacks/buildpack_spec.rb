@@ -61,7 +61,7 @@ fi
 
   context "when a buildpack URL is passed" do
     let(:buildpack_url) { "git://github.com/heroku/heroku-buildpack-java.git" }
-    let(:staging_env) { { :buildpack => buildpack_url } }
+    let(:staging_env) { { "buildpack" => buildpack_url } }
     let(:plugin) { Buildpacks::Buildpack.new(".", ".", staging_env) }
 
     subject { plugin.build_pack }
@@ -94,7 +94,7 @@ fi
   end
 
   context "when a start command is passed" do
-    let(:staging_env) { {:meta => {:command => "node app.js --from-manifest=true"}} }
+    let(:staging_env) { {"meta" => {"command" => "node app.js --from-manifest=true"}} }
 
     before { app_fixture :app_without_procfile }
 
