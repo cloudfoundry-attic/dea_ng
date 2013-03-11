@@ -135,6 +135,10 @@ echo "$STARTED" >> #{pidfile_dir}/run.pid
       FileUtils.chmod(0500, path)
     end
 
+    def bound_services
+      environment[:services] || []
+    end
+
     def copy_source_files(dest=nil)
       system "cp -a #{File.join(source_directory, "*")} #{dest || app_dir}"
     end

@@ -179,6 +179,37 @@ fi
         expect(config_file_contents.keys).to match_array(["username", "password"])
       end
     end
+
+    context "when a database is bound" do
+      let(:staging_env) {
+        {
+          :services => [{
+            :label => "postgresql",
+            :credentials => {
+              :hostname => "mariahs_host",
+              :port => 5678,
+              :user => "mariah",
+              :password => "nick",
+              :name => "mariahs_db"
+            }
+          }]
+        }
+      }
+
+      it "sets the DATABASE_URL in the startup script" do
+        stage staging_env do |staged_dir|
+          start_script_body(staged_dir).should include('DATABASE_URL="postgres://mariah:nick@mariahs_host:5678/mariahs_db"')
+        end
+      end
+    end
+
+    context "when a database is not bound" do
+      it "does not set the DATABASE_URL in the startup script" do
+        stage staging_env do |staged_dir|
+          start_script_body(staged_dir).should_not include("DATABASE_URL")
+        end
+      end
+    end
   end
 
   context "when a rails application is NOT detected" do
