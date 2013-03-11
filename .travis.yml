@@ -2,7 +2,7 @@ language: ruby
 otp_release: R15B02
 
 rvm:
-  - 1.9.3
+  - 1.9.3-p392
 
 before_install:
   - git submodule update --init
