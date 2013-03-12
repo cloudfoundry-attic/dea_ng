@@ -34,7 +34,7 @@ describe Dea::HealthCheck::PortOpen do
     elapsed = Time.now - start
 
     ok.should be_false
-    elapsed.should be_within(0.02).of(0.1)
+    elapsed.should be_within(0.2).of(0.1)
   end
 
   def run_health_check(host, port, timeout, &blk)
