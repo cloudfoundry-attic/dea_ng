@@ -38,7 +38,26 @@ The URL is signed by the DEA, and the directory server checks the
 validity of the URL with the DEA before serving it.
 
 
-### Staging
+## Running DEA on a non-linux system (with Vagrant)
+
+When contributing to DEA it's useful to run it as a standalone
+component. Here is how to do that:
+
+- `librarian-chef install` from `chef` director
+
+- `vagrant up` to start VM that will run DEA and its dependencies.
+  (Vagrantfile is currently set up to use Ubuntu 10.04.)
+
+- `vagrant ssh` to get inside the VM
+
+- `/dea` contains mounted copy of dea_ng source code
+  (run `foreman start` to start dea_ng components specified in Procfile)
+
+- `/warden` contains cloned version of Warden
+  (run `bundle exec rake warden:start[config/linux.yml]` from `/warden/warden` to start Warden)
+
+
+## Staging
 
 See [staging.rb](lib/dea/responders/staging.rb) for staging flow.
 
