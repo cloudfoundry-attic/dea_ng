@@ -47,6 +47,7 @@ module Helpers
           "fds" => 5000,
         }
       },
+      "app_id" => "app-guid",
       "download_uri" => "http://127.0.0.1:12346/download",
       "upload_uri" => "http://127.0.0.1:12346/upload",
       "staged_path" => ""
