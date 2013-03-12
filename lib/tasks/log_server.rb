@@ -7,7 +7,10 @@ namespace :log_server do
   desc "Run log server for integration tests"
   task :run => [:install] do
     Dir.chdir(log_server_dir) do
-      system "bin/logplex"
+      system <<-RUN_SERVER
+LOGPLEX_AUTH_KEY=auth_key LOGPLEX_COOKIE=123 INSTANCE_NAME=logplex1 LOCAL_IP=`hostname` \
+bin/logplex
+RUN_SERVER
     end
   end
 
