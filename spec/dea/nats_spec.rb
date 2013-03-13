@@ -54,6 +54,19 @@ describe Dea::Nats do
       nats_mock.should_receive(:publish).with("echo.reply", %{{"hello":"world"}})
       nats_mock.receive_message("echo", { "hello" => "world" }, "echo.reply")
     end
+
+    it "should catch and log errors raised while processing a message" do
+      logfile = Tempfile.open("dea_nats")
+      Steno.init(Steno::Config.new({:sinks => [Steno::Sink::IO.new(logfile)]}))
+
+      nats.subscribe("raise_error") do |message|
+        raise "Catch Me"
+      end
+      nats_mock.receive_message("raise_error")
+
+      logfile.rewind
+      Yajl::Parser.parse(logfile.readlines[1])["message"].should == "Error \"Catch Me\" raised while processing \"raise_error\": {}"
+    end
   end
 
   describe "#subscribe" do
