@@ -4,14 +4,11 @@ require "eventmachine"
 
 module Dea
   module HealthCheck
-
     class Base
-
       include ::EM::Deferrable
 
       def initialize
         setup_callbacks
-
         @done = false
       end
 
@@ -32,6 +29,5 @@ module Dea
       def cleanup
       end
     end
-
   end
 end

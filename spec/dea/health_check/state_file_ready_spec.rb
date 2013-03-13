@@ -2,7 +2,6 @@
 
 require "spec_helper"
 require "yajl"
-
 require "dea/health_check/state_file_ready"
 
 describe Dea::HealthCheck::StateFileReady do
@@ -10,66 +9,48 @@ describe Dea::HealthCheck::StateFileReady do
 
   let(:state_file_path) { File.join(tmpdir, "state.json") }
 
-  it "should fail if the file never exists" do
-    start = Time.now
-    ok = run_health_check(state_file_path, 0.1)
-    elapsed = Time.now - start
-
-    ok.should be_false
-    elapsed.should be_within(0.02).of(0.1)
+  it "fails if the file never exists" do
+    run_health_check(state_file_path, 0.1).should == "failure"
   end
 
-  it "should fail if the file exists but the state is never 'RUNNING'" do
+  it "fails if the file exists but the state is never 'RUNNING'" do
     write_state_file(state_file_path, "CRASHED")
-
-    start = Time.now
-    ok = run_health_check(state_file_path, 0.1)
-    elapsed = Time.now - start
-
-    ok.should be_false
-    elapsed.should be_within(0.02).of(0.1)
+    run_health_check(state_file_path, 0.1).should == "failure"
   end
 
-  it "should fail if the state file is corrupted" do
+  it "fails if the state file is corrupted" do
     File.open(state_file_path, "w+") { |f| f.write("{{{") }
-
-    start = Time.now
-    ok = run_health_check(state_file_path, 0.1)
-    elapsed = Time.now - start
-
-    ok.should be_false
-    elapsed.should be_within(0.02).of(0.1)
+    run_health_check(state_file_path, 0.1).should == "failure"
   end
 
-  it "should succeed if the file exists prior to starting the health check" do
+  it "succeeds if the file exists prior to starting the health check" do
     write_state_file(state_file_path, "RUNNING")
-
-    run_health_check(state_file_path, 0.1).should be_true
+    run_health_check(state_file_path, 0.1).should == "success"
   end
 
-  it "should succeed if the file exists before the timeout" do
-    ok = run_health_check(state_file_path, 0.1) do
-      EM.add_timer(0.04) { write_state_file(state_file_path, "RUNNING") }
+  it "succeeds if the file exists before the timeout" do
+    create_file = lambda do
+      EM.add_timer(0.04) do
+        write_state_file(state_file_path, "RUNNING")
+      end
     end
-
-    ok.should be_true
+    run_health_check(state_file_path, 0.1, &create_file).should == "success"
   end
 
-  def run_health_check(path, timeout, &blk)
-    success = false
-    health_check = nil
+  def run_health_check(path, timeout, &before_health_check)
+    result = nil
 
     em(:timeout => 1) do
-      blk.call unless blk.nil?
+      before_health_check.call unless before_health_check.nil?
 
-      health_check = Dea::HealthCheck::StateFileReady.new(path, 0.02) do |hc|
+      Dea::HealthCheck::StateFileReady.new(path, 0.02) do |hc|
         hc.callback do
-          success = true
+          result = "success"
           EM.stop
         end
 
         hc.errback do
-          success = false
+          result = "failure"
           EM.stop
         end
 
@@ -77,7 +58,7 @@ describe Dea::HealthCheck::StateFileReady do
       end
     end
 
-    success
+    result
   end
 
   def write_state_file(path, state)

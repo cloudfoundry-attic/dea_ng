@@ -7,14 +7,11 @@ require "dea/health_check/base"
 
 module Dea
   module HealthCheck
-
     class StateFileReady < ::Dea::HealthCheck::Base
-
       attr_reader :path
 
       def initialize(path, retry_interval_secs = 0.5)
         super()
-
         @path  = path
 
         yield self if block_given?
@@ -30,11 +27,12 @@ module Dea
 
       def check_state_file
         state = Yajl::Parser.parse(File.read(path))
-
-        if !state.nil? && state["state"] == "RUNNING"
+        if state && state["state"] == "RUNNING"
           succeed
         end
+
       rescue Errno::ENOENT
+        # Noop
       rescue => e
         logger.error("Failed parsing state file: #{e}")
         logger.log_exception(e)
@@ -52,6 +50,5 @@ module Dea
         self.class.logger
       end
     end
-
   end
 end
