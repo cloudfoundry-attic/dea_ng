@@ -63,22 +63,41 @@ func (p *PanicReportingHandler) ServeHTTP(rw http.ResponseWriter, req *http.Requ
 	p.Handler.ServeHTTP(rw, req)
 }
 
-func (s *StreamHandlerSuite) GetFile(c *C, f *os.File) *http.Response {
-	s.Handler = &StreamHandler{
+func (s *StreamHandlerSuite) BuildFile(c *C) *os.File {
+	f, err := os.Open(s.FileName)
+	c.Assert(err, IsNil)
+
+	_, err = f.Seek(0, os.SEEK_END)
+	c.Assert(err, IsNil)
+
+	return f
+}
+
+func (s *StreamHandlerSuite) BuildHandler(f *os.File) *StreamHandler {
+	return &StreamHandler{
 		File:          f,
 		FlushInterval: 1 * time.Millisecond,
-		IdleTimeout:   20 * time.Millisecond,
+		// Large idle timeout is needed to avoid
+		// flaky test behaviour when system is under load.
+		IdleTimeout: 5 * time.Minute,
+	}
+}
+
+func (s *StreamHandlerSuite) GetFromHandler(c *C, h *StreamHandler) *http.Response {
+	s.Handler = h
+
+	panicReportingHandler := &PanicReportingHandler{
+		Checker: c,
+		Handler: h,
+	}
+
+	x := http.Server{
+		Handler: panicReportingHandler,
 	}
 
 	l, err := net.Listen("tcp", "localhost:0")
 	c.Assert(err, IsNil)
 
-	panicReportingHandler := &PanicReportingHandler{
-		Checker: c,
-		Handler: s.Handler,
-	}
-
-	x := http.Server{Handler: panicReportingHandler}
 	go x.Serve(l)
 	defer l.Close()
 
@@ -89,13 +108,9 @@ func (s *StreamHandlerSuite) GetFile(c *C, f *os.File) *http.Response {
 }
 
 func (s *StreamHandlerSuite) Get(c *C) *http.Response {
-	f, err := os.Open(s.FileName)
-	c.Assert(err, IsNil)
-
-	_, err = f.Seek(0, os.SEEK_END)
-	c.Assert(err, IsNil)
-
-	return s.GetFile(c, f)
+	f := s.BuildFile(c)
+	h := s.BuildHandler(f)
+	return s.GetFromHandler(c, h)
 }
 
 func (s *StreamHandlerSuite) TestStream(c *C) {
@@ -134,7 +149,8 @@ func (s *StreamHandlerSuite) TestStreamFlushesBeforeTailing(c *C) {
 	_, err = f.Seek(3, os.SEEK_SET)
 	c.Assert(err, IsNil)
 
-	res := s.GetFile(c, f)
+	h := s.BuildHandler(f)
+	res := s.GetFromHandler(c, h)
 	c.Check(res.StatusCode, Equals, 200)
 
 	r := bufio.NewReader(res.Body)
@@ -154,7 +170,15 @@ func (s *StreamHandlerSuite) TestStreamWithIdleTimeout(c *C) {
 	var l string
 	var err error
 
-	res := s.Get(c)
+	f := s.BuildFile(c)
+
+	handler := &StreamHandler{
+		File:          f,
+		FlushInterval: 1 * time.Millisecond,
+		IdleTimeout:   200 * time.Millisecond,
+	}
+
+	res := s.GetFromHandler(c, handler)
 	c.Check(res.StatusCode, Equals, 200)
 
 	r := bufio.NewReader(res.Body)
@@ -168,10 +192,10 @@ func (s *StreamHandlerSuite) TestStreamWithIdleTimeout(c *C) {
 	c.Check(l, Equals, "hi there!\n")
 
 	// Write after timing out
-	time.Sleep(25 * time.Millisecond)
+	time.Sleep(250 * time.Millisecond)
 
 	// Wait again to ensure the timeout logic is no longer in use
-	time.Sleep(25 * time.Millisecond)
+	time.Sleep(250 * time.Millisecond)
 
 	s.Printf(c, "what?\n")
 
