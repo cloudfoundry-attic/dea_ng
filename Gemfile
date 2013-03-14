@@ -26,6 +26,7 @@ gem "sys-filesystem"
 group :test do
   gem "patron"
   gem "foreman"
+  gem "sinatra"
   gem "vagrant"
   gem "librarian"
   gem "rspec"

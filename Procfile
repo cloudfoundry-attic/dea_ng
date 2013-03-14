@@ -1,4 +1,4 @@
 directory_server: rake dir_server:run
-dea: bin/dea config/dea.yml
+dea: bundle exec bin/dea config/dea.yml
 nats: nats-server
-file_server: spec/bin/file_server.rb 9999
+file_server: bundle exec spec/bin/file_server.rb

@@ -1,9 +1,21 @@
 #!/usr/bin/env ruby
 
 require "thin"
+require "sinatra/base"
 
-PORT = ARGV[0]
-raise "Pass a port!" unless PORT
+class FileServer < Sinatra::Base
+  APPS_DIR = File.expand_path("../../fixtures/apps", __FILE__)
 
-app = Rack::Directory.new(File.expand_path("../../fixtures", __FILE__))
-Rack::Handler::Thin.run(app, :Port => PORT)
+  get "/unstaged/:name" do |name|
+    zip_path = "/tmp/fixture-#{name}.zip"
+    Dir.chdir("#{APPS_DIR}/#{name}") do
+      system "rm -rf #{zip_path} && zip #{zip_path} *"
+    end
+    send_file(zip_path)
+  end
+
+  post "/staged/:name" do |name|
+  end
+end
+
+FileServer.run!(:port => 9999)

@@ -8,6 +8,8 @@ packages = %w(
   libxslt-dev
   golang
   redis-server
+  zip
+  unzip
 )
 
 packages.each do |package_name|
