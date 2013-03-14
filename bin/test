@@ -26,5 +26,5 @@ set -e
 
 # Test Ruby
 (
-  bundle exec rake spec SPEC_OPTS="--tag ~requires_erlang"
+  bundle exec rake spec SPEC_OPTS="--tag ~requires_erlang --tag ~requires_warden"
 )

@@ -1,6 +1,6 @@
 require "spec_helper"
 
-describe "Staging an app", :type => :integration do
+describe "Staging an app", :type => :integration, :requires_warden => true do
   let(:nats) { NatsHelper.new }
 
   describe "staging a simple sinatra app" do
