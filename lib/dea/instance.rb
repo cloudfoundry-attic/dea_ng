@@ -496,6 +496,28 @@ module Dea
       end
     end
 
+    def promise_exec_hook_script(key)
+      Promise.new do |p|
+        if bootstrap.config['hooks'] && bootstrap.config['hooks'][key]
+          script_path = bootstrap.config['hooks'][key]
+          if File.exist?(script_path)
+            script = []
+            script << "umask 077"
+            env = Env.new(self)
+            env.env.each do |k, v|
+              script << "export %s=%s" % [k, v]
+            end
+            script << File.read(script_path)
+            script << "exit"
+            promise_warden_run(:app, script.join("\n")).resolve
+          else
+            logger.warn("The hook(#{key}) script is not found on #{script_path}")
+          end
+        end
+        p.deliver
+      end
+    end
+
     def start(&callback)
       p = Promise.new do
         logger.info("Starting instance")
@@ -511,6 +533,7 @@ module Dea
         [
           promise_setup_network,
           promise_extract_droplet,
+          promise_exec_hook_script('before_start'),
           promise_start
         ].each(&:resolve)
 
@@ -525,6 +548,8 @@ module Dea
         if promise_health_check.resolve
           logger.info("Instance healthy")
           promise_state(State::STARTING, State::RUNNING).resolve
+
+          promise_exec_hook_script('after_start').resolve
         else
           logger.warn("Instance unhealthy")
           p.fail("Instance unhealthy")
@@ -582,7 +607,11 @@ module Dea
       p = Promise.new do
         logger.info("Stopping instance")
 
+        promise_exec_hook_script('before_stop').resolve
+
         promise_state(State::RUNNING, State::STOPPING).resolve
+
+        promise_exec_hook_script('after_stop').resolve
 
         promise_stop.resolve
 
