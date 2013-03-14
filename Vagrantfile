@@ -4,6 +4,7 @@ Vagrant::Config.run do |config|
 
   config.vm.forward_port 4222, 4222 # NATS
   config.vm.forward_port 5678, 5678 # DirectoryServerV2
+  config.vm.forward_port 8001, 8001 # Logplex REST
 
   config.vm.share_folder "dea_repo", "/dea", "."
 
