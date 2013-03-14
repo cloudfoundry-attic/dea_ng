@@ -9,6 +9,7 @@ Vagrant::Config.run do |config|
 
   config.vm.provision :chef_solo do |chef|
     chef.cookbooks_path = ["./chef/cookbooks", "./chef"]
+    chef.provisioning_path = "/var/vagrant-chef"
     chef.log_level = :debug
 
     chef.add_recipe "apt"
