@@ -1,4 +1,4 @@
-ROOT_FS = "/tmp/warden/rootfs"
+ROOT_FS = "/var/warden/rootfs"
 RUBY_BUILD_DIR = "tmp/ruby-build"
 PREFIX = "/usr/local"
 RUBY_VERSION = "1.9.3-p392"
