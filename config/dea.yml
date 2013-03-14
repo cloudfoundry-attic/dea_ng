@@ -41,3 +41,10 @@ directory_server:
 
 stacks:
   - lucid64
+
+# Hook scripts for droplet start/stop
+# hooks:
+#   before_start: path/to/script
+#   after_start: path/to/script
+#   before_stop: path/to/script
+#   after_stop: path/to/script
