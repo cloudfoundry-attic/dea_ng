@@ -1,6 +1,6 @@
 [submodule "buildpacks/vendor/nodejs"]
 	path = buildpacks/vendor/nodejs
-	url = https://github.com/heroku/heroku-buildpack-nodejs.git
+	url = https://github.com/cloudfoundry/heroku-buildpack-nodejs.git
 [submodule "buildpacks/vendor/java"]
 	path = buildpacks/vendor/java
 	url = https://github.com/cloudfoundry/cloudfoundry-buildpack-java.git
