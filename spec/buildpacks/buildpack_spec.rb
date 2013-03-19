@@ -183,14 +183,14 @@ fi
     context "when a database is bound" do
       let(:staging_env) {
         {
-          :services => [{
-            :label => "postgresql",
-            :credentials => {
-              :hostname => "mariahs_host",
-              :port => 5678,
-              :user => "mariah",
-              :password => "nick",
-              :name => "mariahs_db"
+          "services" => [{
+            "label" => "postgresql",
+            "credentials" => {
+              "hostname" => "mariahs_host",
+              "port" => 5678,
+              "user" => "mariah",
+              "password" => "nick",
+              "name" => "mariahs_db"
             }
           }]
         }

@@ -136,7 +136,7 @@ echo "$STARTED" >> #{pidfile_dir}/run.pid
     end
 
     def bound_services
-      environment[:services] || []
+      environment["services"] || []
     end
 
     def copy_source_files(dest=nil)

@@ -59,7 +59,7 @@ fi
         when 1
           bound_databases.first
         else
-          binding = bound_databases.detect { |b| b[:name] && b[:name] =~ /^.*production$|^.*prod$/ }
+          binding = bound_databases.detect { |b| b["name"] && b["name"] =~ /^.*production$|^.*prod$/ }
           if !binding
             raise "Unable to determine primary database from multiple. " +
               "Please bind only one database service to Rails applications."
@@ -69,11 +69,11 @@ fi
     end
 
     def database_type
-      case bound_database[:label]
+      case bound_database["label"]
         when /^mysql/
-          :mysql2
+          "mysql2"
         when /^postgres/
-          :postgres
+          "postgres"
         else
           raise "Unable to configure unknown database: #{binding.inspect}"
       end
@@ -97,16 +97,16 @@ fi
 
     # return host, port, username, password, and database
     def credentials
-      creds = bound_database[:credentials]
+      creds = bound_database["credentials"]
       unless creds
         raise "Database binding failed to include credentials"
       end
       {
-        'host' => creds[:hostname],
-        'port' => creds[:port],
-        'username' => creds[:user],
-        'password' => creds[:password],
-        'database' => creds[:name]
+        'host' => creds["hostname"],
+        'port' => creds["port"],
+        'username' => creds["user"],
+        'password' => creds["password"],
+        'database' => creds["name"]
       }
     end
 
@@ -115,7 +115,7 @@ fi
     end
 
     def known_database?(binding)
-      if label = binding[:label]
+      if label = binding["label"]
         case label
           when /^mysql/
             binding
