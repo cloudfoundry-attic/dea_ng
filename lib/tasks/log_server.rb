@@ -9,6 +9,9 @@ namespace :log_server do
     Dir.chdir(log_server_dir) do
       system <<-RUN_SERVER
 LOGPLEX_AUTH_KEY=auth_key LOGPLEX_COOKIE=123 INSTANCE_NAME=logplex1 LOCAL_IP=`hostname` \
+LOGPLEX_CONFIG_REDIS_URL=redis://127.0.0.1:6379 \
+LOGPLEX_STATS_REDIS_URL=redis://127.0.0.1 \
+REDIS_URL=redis://127.0.0.1 \
 bin/logplex
 RUN_SERVER
     end
