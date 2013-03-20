@@ -7,7 +7,7 @@ describe Dea::DirectoryServerV2 do
   let(:instance_registry) { Dea::InstanceRegistry.new({}) }
   let(:staging_task_registry) { Dea::StagingTaskRegistry.new }
 
-  let(:config) { {"directory_server" => {"file_api_port" => 2345}} }
+  let(:config) { {"directory_server" => {"file_api_port" => 3456}} }
   subject { Dea::DirectoryServerV2.new("domain", 1234, config) }
 
   describe "#initialize" do
@@ -23,7 +23,7 @@ describe Dea::DirectoryServerV2 do
       subject.file_api_server.tap do |s|
         s.should be_an_instance_of Thin::Server
         s.host.should == "127.0.0.1"
-        s.port.should == 2345
+        s.port.should == 3456
         s.app.should_not be_nil
       end
     end
@@ -68,7 +68,7 @@ describe Dea::DirectoryServerV2 do
       end
 
       def localize_url(url)
-        url.sub(subject.external_hostname, "localhost:2345")
+        url.sub(subject.external_hostname, "localhost:3456")
       end
 
       it "can handle instance paths requests" do
