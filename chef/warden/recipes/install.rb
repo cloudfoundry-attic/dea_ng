@@ -5,7 +5,7 @@ NEW_CONFIG_FILE_PATH = "#{WARDEN_PATH}/warden/config/dea_vm.yml"
 
 git WARDEN_PATH do
   repository "git://github.com/cloudfoundry/warden.git"
-  reference "master"
+  revision "0293814d6cc591cc5029e66188495fac7ceed4f2"
   action :sync
 end
 
