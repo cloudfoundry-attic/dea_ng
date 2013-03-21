@@ -31,40 +31,56 @@ describe EventMachine::HttpClient do
     end
     let!(:tempfile) do
       file = Tempfile.new("tempfile")
-      file.write("BODY")
+      file.write(body)
       file.rewind
       file
     end
 
+    before { SecureRandom.stub(:uuid) { "UUID" } }
+
     subject { http.send_request(headers, body) }
 
     context "with multipart hack" do
-      let(:headers) { {EM::HttpClient::MULTIPART_HACK => {:prepend => "PREPEND", :append => "APPEND"}} }
-      let(:length) do
-        File.size(tempfile) +
-          headers[EM::HttpClient::MULTIPART_HACK][:prepend].length +
-          headers[EM::HttpClient::MULTIPART_HACK][:prepend].length +
-          ("\r\n".length * 2)
+      let(:headers) do
+        {
+          "FOO" => "BAR",
+          EM::HttpClient::MULTIPART_HACK => {
+            :name => "foo",
+            :filename => "foo.bar",
+            :content_type => "application/octet-stream"
+          }
+        }
       end
 
-      it "has the right headers including the content length" do
-        conn.should_receive(:send_data).with("REQUEST_HEADERS{\"content-length\"=>#{length}}\r\n")
+      let(:expected_header) {
+        [
+          "--multipart-boundary-UUID",
+          "Content-Disposition: form-data; name=\"foo\"; filename=\"foo.bar\"",
+          "Content-Type: application/octet-stream",
+          "",
+          ""
+        ].join("\r\n")
+      }
+
+      it "has the right http headers including the content length" do
+        expected_length = expected_header.length + body.length + "\r\n--multipart-boundary-UUID--\n".length
+        conn.should_receive(:send_data).with("REQUEST_HEADERS{\"FOO\"=>\"BAR\", \"content-type\"=>\"multipart/form-data; boundary=multipart-boundary-UUID\", \"content-length\"=>#{expected_length}}\r\n")
         subject
       end
 
       it "sends the correct multipart header (the number of new lines is really important)" do
-        conn.should_receive(:send_data).with("PREPEND\r\n")
+        conn.should_receive(:send_data).with(expected_header)
+        subject
+      end
+
+      it "streams the file" do
+        conn.should_receive(:stream_file_data).with(tempfile.path, :http_chunks => false)
         subject
       end
 
       it "adds the multipart footer to the file" do
         subject
-        File.read(tempfile.path).should match /^BODY\r\nAPPEND$/
-      end
-
-      it "does not put the multipart header hack in the headers" do
-        http.should_receive(:encode_headers).with({"content-length" => length})
-        subject
+        File.read(tempfile.path).should eq("#{body}\r\n--multipart-boundary-UUID--\n")
       end
     end
 

@@ -18,10 +18,9 @@ class Upload
   def upload!(&upload_callback)
     http = EM::HttpRequest.new(@destination).post(
       head: {
-        "Content-Type" => "multipart/form-data; boundary=#{boundary}",
         EM::HttpClient::MULTIPART_HACK => {
-          :prepend => multipart_header,
-          :append => multipart_footer
+          :name => "upload[droplet]",
+          :filename => "droplet.tgz"
         }
       },
       file: @source
@@ -45,23 +44,5 @@ class Upload
         upload_callback.call(error)
       end
     end
-  end
-
-  def multipart_header
-    <<-HEADER
---#{boundary}
-Content-Disposition: form-data; name="upload[droplet]"; filename="droplet.tgz"
-Content-Type: application/octet-stream
-HEADER
-  end
-
-  def multipart_footer
-    "--#{boundary}--"
-  end
-
-  private
-
-  def boundary
-    @boundary ||= "multipart-boundary-#{SecureRandom.uuid}"
   end
 end

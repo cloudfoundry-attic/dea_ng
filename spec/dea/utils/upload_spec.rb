@@ -11,10 +11,6 @@ describe Upload do
 
   subject { Upload.new(file_to_upload.path, "http://127.0.0.1:12345/") }
 
-  before do
-    SecureRandom.stub(:uuid) { "UUID" }
-  end
-
   describe "#upload!" do
     around do |example|
       em { example.call }
@@ -30,7 +26,7 @@ describe Upload do
 
         subject.upload! do |error|
           error.should be_nil
-          uploaded_contents.should match(/.*multipart-boundary-UUID.*Content-Disposition.*This is the file contents.*multipart-boundary-UUID.*/m)
+          uploaded_contents.should match(/.*multipart-boundary-.*Content-Disposition.*This is the file contents.*multipart-boundary-.*/m)
           done
         end
       end
@@ -63,22 +59,6 @@ describe Upload do
           done
         end
       end
-    end
-  end
-
-  describe "#multipart_header" do
-    it "returns correct header (the number of new lines is really important: added by the multipart em hack)" do
-      subject.multipart_header.should eq <<-DATA
---multipart-boundary-UUID
-Content-Disposition: form-data; name="upload[droplet]"; filename="droplet.tgz"
-Content-Type: application/octet-stream
-      DATA
-    end
-  end
-
-  describe "#multipart_footer" do
-    it "returns correct footer" do
-      subject.multipart_footer.should eq "--multipart-boundary-UUID--"
     end
   end
 end

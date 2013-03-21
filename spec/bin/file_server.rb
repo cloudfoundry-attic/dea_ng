@@ -1,10 +1,14 @@
 #!/usr/bin/env ruby
 
+require "fileutils"
 require "thin"
 require "sinatra/base"
+require "pp"
 
 APPS_DIR = File.expand_path("../../fixtures/apps", __FILE__)
 BUILDPACKS_DIR = File.expand_path("../../fixtures/fake_buildpacks", __FILE__)
+STAGED_APPS_DIR = "/tmp/dea"
+FileUtils.mkdir_p(STAGED_APPS_DIR)
 
 class FileServer < Sinatra::Base
   get "/unstaged/:name" do |name|
@@ -16,6 +20,19 @@ class FileServer < Sinatra::Base
   end
 
   post "/staged/:name" do |name|
+    droplet = params["upload"]["droplet"]
+    FileUtils.mv(droplet[:tempfile].path, file_path(name))
+    200
+  end
+
+  get "/staged/:name" do |name|
+    send_file(file_path(name))
+  end
+
+  private
+
+  def file_path(name)
+    "#{STAGED_APPS_DIR}/#{name}"
   end
 end
 
