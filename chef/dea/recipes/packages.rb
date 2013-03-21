@@ -10,6 +10,7 @@ packages = %w(
   redis-server
   zip
   unzip
+  curl
 )
 
 packages.each do |package_name|
