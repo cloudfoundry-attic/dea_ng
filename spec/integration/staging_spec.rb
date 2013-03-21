@@ -35,7 +35,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
 
     def download_tgz(url)
       dir = Dir.mktmpdir
-      system "curl #{url} > #{dir}/staged_app.tgz"
+      system "curl #{url} > #{dir}/staged_app.tgz 1> /dev/null"
       system "cd #{dir} && tar xzvf staged_app.tgz 1> /dev/null"
       yield dir
       FileUtils.rm_rf(dir)
