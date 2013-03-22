@@ -12,7 +12,6 @@ end
 execute_in_chroot "install packages" do
   root_dir ROOT_FS
   command "apt-get update && apt-get --yes install zlib1g-dev unzip curl git-core"
-  creates "#{ROOT_FS}/#{PREFIX}/usr/bin/curl"
 end
 
 execute_in_chroot "install ruby" do
