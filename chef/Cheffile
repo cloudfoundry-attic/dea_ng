@@ -2,4 +2,3 @@ site 'http://community.opscode.com/api/v1'
 
 cookbook 'git'
 cookbook 'apt'
-cookbook 'erlang', :git => 'https://github.com/cloudfoundry/erlang-chef-cookbook.git'

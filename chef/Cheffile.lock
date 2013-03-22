@@ -17,18 +17,7 @@ SITE
       chef_handler (>= 0.0.0)
     yum (2.1.0)
 
-GIT
-  remote: https://github.com/cloudfoundry/erlang-chef-cookbook.git
-  ref: master
-  sha: d724f6e3b0b9bcaf17e8c5766457dab8692328af
-  specs:
-    erlang (1.2.0)
-      apt (<= 1.7.0)
-      build-essential (>= 0.0.0)
-      yum (>= 0.5.0)
-
 DEPENDENCIES
   apt (>= 0)
-  erlang (>= 0)
   git (>= 0)
 
