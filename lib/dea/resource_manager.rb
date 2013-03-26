@@ -11,8 +11,8 @@ module Dea
 
     def initialize(instance_registry, config = {})
       config = DEFAULT_CONFIG.merge(config)
-      @memory_capacity = config["memory_mb"]
-      @disk_capacity = config["disk_mb"]
+      @memory_capacity = config["memory_mb"] * config["memory_overcommit_factor"]
+      @disk_capacity = config["disk_mb"] * config["disk_overcommit_factor"]
       @instance_registry = instance_registry
     end
 

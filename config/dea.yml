@@ -8,6 +8,12 @@ logging:
 
 local_route: localhost
 
+resources:
+  memory_mb: 256
+  memory_overcommit_factor: 2
+  disk_mb: 1024
+  disk_overcommit_factor: 2
+
 # The this flag determines whether or not this DEA should only host
 # production apps. (default: false)
 only_production_apps: false

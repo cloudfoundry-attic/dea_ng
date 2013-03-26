@@ -6,7 +6,9 @@ describe "Running an app", :type => :integration, :requires_warden => true do
   let(:unstaged_url) { "http://localhost:9999/unstaged/sinatra" }
   let(:staged_url) { "http://localhost:9999/staged/sinatra" }
   let(:app_id) { SecureRandom.hex(8) }
-  let(:original_memory) { 8 * 1024 }
+  let(:original_memory) do
+    2 * 256 # from config/dea.yml
+  end
 
   before do
     setup_fake_buildpack("start_command")
@@ -45,6 +47,7 @@ describe "Running an app", :type => :integration, :requires_warden => true do
 
   after do
     nats.publish("dea.stop", { "droplet" => app_id })
+    wait_until_instance_gone(app_id)
   end
 
   describe "starting the app" do
