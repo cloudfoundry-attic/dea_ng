@@ -1,12 +1,11 @@
 require "spec_helper"
 
 describe "Staging an app", :type => :integration, :requires_warden => true do
-  let(:dea_hostname) { `hostname -I`.split(" ")[0] }
   let(:nats) { NatsHelper.new }
 
   describe "staging a simple sinatra app" do
-    let(:unstaged_url) { "http://#{dea_hostname}:9999/unstaged/sinatra" }
-    let(:staged_url) { "http://#{dea_hostname}:9999/staged/sinatra" }
+    let(:unstaged_url) { "http://localhost:9999/unstaged/sinatra" }
+    let(:staged_url) { "http://localhost:9999/staged/sinatra" }
 
     context 'when the DEA has to detect the buildback' do
       it "packages a ruby binary and the app's gems" do
@@ -37,10 +36,10 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
     end
 
     context "when a buildpack url is specified" do
-      let(:buildpack_url) { "http://#{dea_hostname}:9999/buildpacks/with_start_cmd/succeed_to_detect/.git" }
+      let(:buildpack_url) { fake_buildpack_url("start_command") }
 
       it "downloads the buildpack and runs it" do
-        setup_fake_buildpack
+        setup_fake_buildpack("start_command")
 
         response = nats.request("staging", {
           "async" => false,
@@ -54,16 +53,6 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
 
         response["task_log"].should include("Some compilation output")
         response["error"].should be_nil
-      end
-
-      def setup_fake_buildpack
-        Dir.chdir("spec/fixtures/fake_buildpacks/with_start_cmd/succeed_to_detect") do
-          `rm -rf .git`
-          `git init`
-          `git add . && git add -A`
-          `git commit -am "fake commit"`
-          `git update-server-info`
-        end
       end
     end
 

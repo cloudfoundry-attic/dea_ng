@@ -8,3 +8,4 @@ chef/cookbooks
 .vagrant
 tmp
 dump.rdb
+spec/fixtures/**/.git

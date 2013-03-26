@@ -6,6 +6,7 @@ require 'bundler'
 Bundler.require
 
 require 'tempfile'
+require 'timeout'
 require_relative '../buildpacks/lib/buildpack'
 
 Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].map { |f| require f }
@@ -13,6 +14,8 @@ Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].map { |f| require f }
 RSpec.configure do |config|
   config.include Helpers
   config.include StagingSpecHelpers, :type => :buildpack
+  config.include BuildpackHelpers, :type => :integration
+  config.include DeaHelpers, :type => :integration
 
   config.before do
     steno_config = {

@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 describe Buildpacks::Buildpack, :type => :buildpack do
-  let(:fake_buildpacks_dir) { File.expand_path("../../fixtures/fake_buildpacks", __FILE__) }
+  let(:fake_buildpacks_dir) { File.expand_path("../../fixtures/fake_buildpack_dirs", __FILE__) }
   let(:buildpacks_path_with_start_cmd) { "#{fake_buildpacks_dir}/with_start_cmd" }
   let(:buildpacks_path_with_rails) { "#{fake_buildpacks_dir}/with_rails" }
   let(:buildpacks_path_without_start_cmd) { "#{fake_buildpacks_dir}/without_start_cmd" }
@@ -134,7 +134,7 @@ fi
 
       it "uses the default start command" do
         stage staging_env do |staged_dir|
-          packages_with_start_script(staged_dir, "node app.js --from-buildpack=true")
+          packages_with_start_script(staged_dir, "while :; do echo 'Running app...'; sleep 1; done")
         end
       end
     end

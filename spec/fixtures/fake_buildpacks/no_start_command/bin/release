@@ -4,5 +4,5 @@ cat <<EOF
 ---
 config_vars:
   PATH: bin:/usr/local/bin:/usr/bin:/bin
-  FROM_BUILD_PACK: yes
+  FROM_BUILD_PACK: "yes"
 EOF
