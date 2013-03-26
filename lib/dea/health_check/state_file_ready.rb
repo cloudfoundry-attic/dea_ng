@@ -26,13 +26,13 @@ module Dea
       private
 
       def check_state_file
+        return unless File.exists?(path)
+
         state = Yajl::Parser.parse(File.read(path))
         if state && state["state"] == "RUNNING"
           succeed
         end
 
-      rescue Errno::ENOENT
-        # Noop
       rescue => e
         logger.error("Failed parsing state file: #{e}")
         logger.log_exception(e)
