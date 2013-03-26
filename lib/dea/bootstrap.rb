@@ -67,8 +67,8 @@ module Dea
       setup_logging
       setup_droplet_registry
       setup_instance_registry
-      setup_resource_manager
       setup_staging_task_registry
+      setup_resource_manager
       setup_directory_server
       setup_directory_server_v2
       setup_signal_handlers
@@ -121,7 +121,11 @@ module Dea
     attr_reader :resource_manager
 
     def setup_resource_manager
-      @resource_manager = Dea::ResourceManager.new(instance_registry, config["resources"])
+      @resource_manager = Dea::ResourceManager.new(
+        instance_registry,
+        staging_task_registry,
+        config["resources"]
+      )
     end
 
     def setup_staging_task_registry

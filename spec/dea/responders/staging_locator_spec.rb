@@ -1,6 +1,7 @@
 require "spec_helper"
 require "dea/nats"
 require "dea/instance_registry"
+require "dea/staging_task_registry"
 require "dea/resource_manager"
 require "dea/responders/staging_locator"
 require "dea/config"
@@ -12,7 +13,8 @@ describe Dea::Responders::StagingLocator do
   let(:bootstrap) { mock(:bootstrap, :config => config) }
   let(:dea_id) { "unique-dea-id" }
   let(:instance_registry) { Dea::InstanceRegistry.new }
-  let(:resource_manager) { Dea::ResourceManager.new(instance_registry) }
+  let(:staging_task_registry) { Dea::StagingTaskRegistry.new }
+  let(:resource_manager) { Dea::ResourceManager.new(instance_registry, staging_task_registry) }
   let(:config) { Dea::Config.new({}) }
 
   subject { described_class.new(nats, dea_id, resource_manager, config) }

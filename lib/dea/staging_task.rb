@@ -43,6 +43,14 @@ module Dea
       @dir_server.staging_task_file_url_for(task_id, WARDEN_STAGING_LOG)
     end
 
+    def memory_limit_in_bytes
+      staging_config["memory_limit_mb"].to_i * 1024 * 1024
+    end
+
+    def disk_limit_in_bytes
+      staging_config["disk_limit_mb"].to_i * 1024 * 1024
+    end
+
     def start
       staging_promise = Promise.new do |p|
         logger.info("Starting staging task")
@@ -237,6 +245,8 @@ module Dea
         promise_app_download,
         promise_create_container,
       )
+      promise_limit_disk.resolve
+      promise_limit_memory.resolve
       run_in_parallel(
         promise_prepare_staging_log,
         promise_app_dir,

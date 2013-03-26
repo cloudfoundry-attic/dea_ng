@@ -620,64 +620,6 @@ describe Dea::Instance do
       end
     end
 
-    describe "limiting disk" do
-      before do
-        instance.unstub(:promise_limit_disk)
-        instance.stub(:disk_limit_in_bytes).and_return(1234)
-      end
-
-      it "should make a net_in request on behalf of the container" do
-        instance.attributes["warden_handle"] = "handle"
-
-        instance.stub(:promise_warden_call) do |connection, request|
-          request.should be_kind_of(::Warden::Protocol::LimitDiskRequest)
-          request.handle.should == "handle"
-          request.byte.should == 1234
-
-          delivering_promise
-        end
-
-        expect_start.to_not raise_error
-      end
-
-      it "can fail" do
-        instance.stub(:promise_warden_call) do
-          failing_promise(RuntimeError.new("error"))
-        end
-
-        expect_start.to raise_error(RuntimeError, /error/i)
-      end
-    end
-
-    describe "limiting memory" do
-      before do
-        instance.unstub(:promise_limit_memory)
-        instance.stub(:memory_limit_in_bytes).and_return(1234)
-      end
-
-      it "should make a net_in request on behalf of the container" do
-        instance.attributes["warden_handle"] = "handle"
-
-        instance.stub(:promise_warden_call) do |connection, request|
-          request.should be_kind_of(::Warden::Protocol::LimitMemoryRequest)
-          request.handle.should == "handle"
-          request.limit_in_bytes.should == 1234
-
-          delivering_promise
-        end
-
-        expect_start.to_not raise_error
-      end
-
-      it "can fail" do
-        instance.stub(:promise_warden_call) do
-          failing_promise(RuntimeError.new("error"))
-        end
-
-        expect_start.to raise_error(RuntimeError, /error/i)
-      end
-    end
-
     describe "running a script in a container" do
       before do
         instance.attributes["warden_handle"] = "handle"

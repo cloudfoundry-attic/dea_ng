@@ -38,9 +38,11 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
     context "when a buildpack url is specified" do
       let(:buildpack_url) { fake_buildpack_url("start_command") }
 
-      it "downloads the buildpack and runs it" do
+      before do
         setup_fake_buildpack("start_command")
+      end
 
+      it "downloads the buildpack and runs it" do
         response = nats.request("staging", {
           "async" => false,
           "app_id" => "some-app-id",
@@ -53,6 +55,20 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
 
         response["task_log"].should include("Some compilation output")
         response["error"].should be_nil
+      end
+
+      it "decreases the DEA's available memory" do
+        expect {
+          nats.request("staging", {
+            "async" => true,
+            "app_id" => "some-app-id",
+            "properties" => {
+              "buildpack" => buildpack_url
+            },
+            "download_uri" => unstaged_url,
+            "upload_uri" => staged_url
+          })
+        }.to change { dea_memory }.by(-1024)
       end
     end
 

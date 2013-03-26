@@ -33,6 +33,8 @@ staging:
   environment:
     PATH: /usr/local/ruby/bin
     BUILDPACK_CACHE: /var/vcap/packages/buildpack_cache
+  memory_limit_mb: 1024
+  disk_limit_mb: 2048
 
 dea_ruby: /usr/local/ruby/bin/ruby
 

@@ -406,28 +406,6 @@ module Dea
       end
     end
 
-    def promise_limit_disk
-      Promise.new do |p|
-        request = ::Warden::Protocol::LimitDiskRequest.new
-        request.handle = @attributes["warden_handle"]
-        request.byte = disk_limit_in_bytes
-        promise_warden_call(:app, request).resolve
-
-        p.deliver
-      end
-    end
-
-    def promise_limit_memory
-      Promise.new do |p|
-        request = ::Warden::Protocol::LimitMemoryRequest.new
-        request.handle = @attributes["warden_handle"]
-        request.limit_in_bytes = memory_limit_in_bytes
-        promise_warden_call(:app, request).resolve
-
-        p.deliver
-      end
-    end
-
     def promise_setup_environment
       Promise.new do |p|
         script = "cd / && mkdir -p home/vcap/app && chown vcap:vcap home/vcap/app && ln -s home/vcap/app /app"

@@ -6,11 +6,21 @@ require "dea/directory_server_v2"
 require "em-http"
 
 describe Dea::StagingTask do
+  let(:memory_limit_mb) { 256 }
+  let(:disk_limit_mb) { 1025 }
+
   let(:config) do
     {
       "base_dir" => ".",
-      "directory_server" => {"file_api_port" => 1234},
-      "staging" => {"environment" => {}, "platform_config" => {}},
+      "directory_server" => {
+        "file_api_port" => 1234
+      },
+      "staging" => {
+        "environment" => {},
+        "platform_config" => {},
+        "memory_limit_mb" => memory_limit_mb,
+        "disk_limit_mb" => disk_limit_mb
+      },
     }
   end
 
@@ -187,6 +197,8 @@ describe Dea::StagingTask do
       staging.stub(:prepare_workspace)
       staging.stub(:promise_app_download).and_return(successful_promise)
       staging.stub(:promise_create_container).and_return(successful_promise)
+      staging.stub(:promise_limit_disk).and_return(successful_promise)
+      staging.stub(:promise_limit_memory).and_return(successful_promise)
       staging.stub(:promise_prepare_staging_log).and_return(successful_promise)
       staging.stub(:promise_container_info).and_return(successful_promise)
       staging.stub(:promise_app_dir).and_return(successful_promise)
@@ -299,6 +311,8 @@ describe Dea::StagingTask do
       %w(prepare_workspace
          promise_app_download
          promise_create_container
+         promise_limit_disk
+         promise_limit_memory
          promise_prepare_staging_log
          promise_app_dir
          promise_container_info
@@ -317,6 +331,18 @@ describe Dea::StagingTask do
 
       stub_staging_setup
       staging.start
+    end
+  end
+
+  describe "#memory_limit_in_bytes" do
+    it "exports memory in bytes as specified in the config file" do
+      staging.memory_limit_in_bytes.should eq(1024 * 1024 * memory_limit_mb)
+    end
+  end
+
+  describe "#disk_limit_in_bytes" do
+    it "exports disk in bytes as specified in the config file" do
+      staging.disk_limit_in_bytes.should eq(1024 * 1024 * disk_limit_mb)
     end
   end
 

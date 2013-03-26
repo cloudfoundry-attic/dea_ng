@@ -1,4 +1,6 @@
 class Dea::StagingTaskRegistry
+  include Enumerable
+
   def register(task)
     tasks[task.task_id] = task
   end
@@ -9,6 +11,10 @@ class Dea::StagingTaskRegistry
 
   def registered_task(task_id)
     tasks[task_id]
+  end
+
+  def each(&block)
+    tasks.each_value(&block)
   end
 
   private

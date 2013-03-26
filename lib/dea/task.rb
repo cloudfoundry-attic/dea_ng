@@ -162,6 +162,26 @@ module Dea
       end
     end
 
+    def promise_limit_disk
+      Promise.new do |p|
+        request = ::Warden::Protocol::LimitDiskRequest.new
+        request.handle = container_handle
+        request.byte = disk_limit_in_bytes
+        promise_warden_call(:app, request).resolve
+        p.deliver
+      end
+    end
+
+    def promise_limit_memory
+      Promise.new do |p|
+        request = ::Warden::Protocol::LimitMemoryRequest.new
+        request.handle = container_handle
+        request.limit_in_bytes = memory_limit_in_bytes
+        promise_warden_call(:app, request).resolve
+        p.deliver
+      end
+    end
+
     def container_handle
       @attributes["warden_handle"]
     end
