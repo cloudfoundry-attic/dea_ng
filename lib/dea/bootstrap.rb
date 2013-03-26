@@ -66,8 +66,8 @@ module Dea
 
       setup_logging
       setup_droplet_registry
-      setup_resource_manager
       setup_instance_registry
+      setup_resource_manager
       setup_staging_task_registry
       setup_directory_server
       setup_directory_server_v2
@@ -112,16 +112,16 @@ module Dea
       @droplet_registry = Dea::DropletRegistry.new(File.join(config["base_dir"], "droplets"))
     end
 
-    attr_reader :resource_manager
-
-    def setup_resource_manager
-      @resource_manager = Dea::ResourceManager.new(config["resources"])
-    end
-
     attr_reader :instance_registry
 
     def setup_instance_registry
       @instance_registry = Dea::InstanceRegistry.new(config)
+    end
+
+    attr_reader :resource_manager
+
+    def setup_resource_manager
+      @resource_manager = Dea::ResourceManager.new(instance_registry, config["resources"])
     end
 
     def setup_staging_task_registry
@@ -521,7 +521,7 @@ module Dea
     def handle_dea_discover(message)
       rs = message.data["limits"]
 
-      unless resource_manager.could_reserve?(rs["mem"], rs["disk"], 1)
+      unless resource_manager.could_reserve?(rs["mem"], rs["disk"])
         logger.info("Couldn't accomodate resource request")
         return
       end
@@ -536,14 +536,13 @@ module Dea
 
     def calculate_discover_delay(app_id)
       delay = 0.0
-      mem = resource_manager.resources["memory"]
 
       # Penalize for instances of the same app
       instances = instance_registry.instances_for_application(app_id)
       delay += (instances.size * DISCOVER_DELAY_MS_PER_INSTANCE)
 
       # Penalize for mem usage
-      delay += (mem.used / mem.capacity.to_f) * DISCOVER_DELAY_MS_MEM
+      delay += (resource_manager.reserved_memory / resource_manager.memory_capacity.to_f) * DISCOVER_DELAY_MS_MEM
 
       [delay, DISCOVER_DELAY_MS_MAX].min.to_f / 1000
     end

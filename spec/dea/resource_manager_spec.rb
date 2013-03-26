@@ -1,81 +1,74 @@
 # coding: UTF-8
 
 require "spec_helper"
-
 require "dea/resource_manager"
-
-describe Dea::ResourceManager::Resource do
-  describe "#reserve" do
-    it "should return the requested amount if available" do
-      resource = Dea::ResourceManager::Resource.new("test", 10, 1)
-      resource.reserve(5).should == 5
-    end
-
-    it "should return nil if the request amount isn't available" do
-      resource = Dea::ResourceManager::Resource.new("test", 10, 1)
-      resource.reserve(15).should be_nil
-    end
-
-    it "should handle overcommit" do
-      resource = Dea::ResourceManager::Resource.new("test", 10, 1.5)
-      resource.reserve(15).should == 15
-    end
-  end
-
-  describe "#release" do
-    it "should increase remaining resources by the appropriate amount" do
-      resource = Dea::ResourceManager::Resource.new("test", 10, 1.5)
-      resource.reserve(15).should == 15
-      resource.release(10)
-      resource.remain.should == 10
-      resource.reserve(10).should == 10
-    end
-  end
-
-  describe "#could_reserve?" do
-    it "should return true if a sufficient amount is available" do
-      resource = Dea::ResourceManager::Resource.new("test", 10, 1)
-      resource.could_reserve?(10).should be_true
-    end
-
-    it "should return false if a sufficient amount is not available" do
-      resource = Dea::ResourceManager::Resource.new("test", 10, 1)
-      resource.could_reserve?(20).should be_false
-    end
-  end
-end
+require "dea/instance_registry"
+require "dea/instance"
 
 describe Dea::ResourceManager do
+  let(:bootstrap) { mock(:bootstrap, :config => { }) }
+  let(:instance_registry) { Dea::InstanceRegistry.new({ }) }
+
   let(:manager) do
-    Dea::ResourceManager.new("memory_mb" => 100, "memory_overcommit_factor" => 1.5,
-                             "disk_mb" => 100, "disk_overcommit_factor" => 1.5,
-                             "num_instances" => 100)
+    Dea::ResourceManager.new(instance_registry, {
+      "memory_mb" => 600,
+      "disk_mb" => 4000,
+      "num_instances" => 100
+    })
+  end
+
+  let(:instances) do
+    [
+      Dea::Instance.new(bootstrap, {
+        "limits" => { "mem" => 200, "disk" => 2000, "fds" => 1 }
+      }),
+      Dea::Instance.new(bootstrap, {
+        "limits" => { "mem" => 300, "disk" => 1000, "fds" => 1 }
+      })
+    ]
+  end
+
+  before do
+    instances.each do |instance|
+      instance_registry.register(instance)
+    end
+  end
+
+  describe "#remaining_memory" do
+    context "when no instances are registered" do
+      before do
+        instance_registry.each { |i| instance_registry.unregister(i) }
+      end
+
+      it "returns the full capacity" do
+        manager.remaining_memory.should eql(600)
+      end
+    end
+
+    it "returns the correct remaining memory" do
+      reserved_in_bytes = instances[0].memory_limit_in_bytes + instances[1].memory_limit_in_bytes
+      reserved_in_mb = reserved_in_bytes / 1024 / 1024
+      manager.remaining_memory.should eql(600 - reserved_in_mb)
+    end
   end
 
   describe "could_reserve?" do
-    it "should return false if any resources are insufficient" do
-      manager.could_reserve?(200, 50, 50).should be_false # mem
-      manager.could_reserve?(50, 200, 50).should be_false # disk
-      manager.could_reserve?(50, 50, 200).should be_false # instances
+    context "when the given amounts of memory and disk are available" do
+      it "can reserve" do
+        manager.could_reserve?(10, 900).should be_true
+      end
     end
 
-    it "should return true if all resources are available" do
-      manager.could_reserve?(50, 50, 50).should be_true
-    end
-  end
-
-  describe "reserve" do
-    it "should return reservation if all resources are available" do
-      expected = {
-        "memory"        => 50,
-        "disk"          => 50,
-        "num_instances" => 50,
-      }
-      manager.reserve(50, 50, 50).should == expected
+    context "when too much memory is being used" do
+      it "can't reserve" do
+        manager.could_reserve?(100, 900).should be_false
+      end
     end
 
-    it "should return nil if any resources aren't available" do
-      manager.reserve(50, 200, 50).should be_nil
+    context "when too much disk is being used" do
+      it "can't reserve" do
+        manager.could_reserve?(10, 1100).should be_false
+      end
     end
   end
 end

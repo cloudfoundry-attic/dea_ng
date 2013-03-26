@@ -33,7 +33,7 @@ module Dea::Responders
       nats.publish("staging.advertise", {
         "id" => dea_id,
         "stacks" => config["stacks"],
-        "available_memory" => resource_manager.resources["memory"].remain,
+        "available_memory" => resource_manager.remaining_memory
       })
     end
 

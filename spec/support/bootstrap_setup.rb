@@ -71,6 +71,11 @@ shared_context "bootstrap_setup" do
   end
 
   def create_and_register_instance(bootstrap, instance_attributes = {})
+    instance_attributes["limits"] = {
+      "mem" => 10,
+      "disk" => 10,
+      "fds" => 16
+    }
     instance = Dea::Instance.new(bootstrap, instance_attributes)
     bootstrap.instance_registry.register(instance)
     instance

@@ -33,7 +33,7 @@ module Dea::Responders
           :id => dea_id,
           :prod => config.only_production_apps?,
           :stacks => config["stacks"] || [],
-          :available_memory => resource_manager.resources["memory"].remain,
+          :available_memory => resource_manager.remaining_memory
         }),
       )
     end

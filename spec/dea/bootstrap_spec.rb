@@ -337,6 +337,7 @@ describe Dea::Bootstrap do
       bootstrap.stub(:uuid => "unique-dea-id")
       bootstrap.setup_nats
       bootstrap.setup_directory_server
+      bootstrap.setup_instance_registry
       bootstrap.setup_resource_manager
       bootstrap.start_nats
     end

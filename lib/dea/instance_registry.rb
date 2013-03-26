@@ -71,6 +71,22 @@ module Dea
       @instances.each { |_, instance| yield instance }
     end
 
+    def total_reserved_memory_in_bytes
+      sum { |i| i.memory_limit_in_bytes }
+    end
+
+    def total_used_memory_in_bytes
+      sum { |i| i.used_memory_in_bytes }
+    end
+
+    def total_reserved_disk_in_bytes
+      sum { |i| i.disk_limit_in_bytes }
+    end
+
+    def sum(&block)
+      reduce(0) { |sum, instance| sum + block.call(instance) }
+    end
+
     def empty?
       @instances.empty?
     end

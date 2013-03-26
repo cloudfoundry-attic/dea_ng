@@ -1,5 +1,6 @@
 require "spec_helper"
 require "dea/nats"
+require "dea/instance_registry"
 require "dea/resource_manager"
 require "dea/responders/staging_locator"
 require "dea/config"
@@ -10,7 +11,8 @@ describe Dea::Responders::StagingLocator do
   let(:nats) { Dea::Nats.new(bootstrap, config) }
   let(:bootstrap) { mock(:bootstrap, :config => config) }
   let(:dea_id) { "unique-dea-id" }
-  let(:resource_manager) { Dea::ResourceManager.new }
+  let(:instance_registry) { Dea::InstanceRegistry.new }
+  let(:resource_manager) { Dea::ResourceManager.new(instance_registry) }
   let(:config) { Dea::Config.new({}) }
 
   subject { described_class.new(nats, dea_id, resource_manager, config) }
@@ -112,7 +114,7 @@ describe Dea::Responders::StagingLocator do
   describe "#advertise" do
     it "publishes 'staging.advertise' message" do
       config["stacks"] = ["lucid64"]
-      resource_manager.resources["memory"].stub(:remain => 45678)
+      resource_manager.stub(:remaining_memory => 45678)
 
       nats_mock.should_receive(:publish).with("staging.advertise", JSON.dump(
         "id" => dea_id,

@@ -124,6 +124,9 @@ describe Dea do
         bootstrap.setup
         bootstrap.start
 
+        bootstrap.resource_manager.stub(:used_memory).and_return(0)
+        bootstrap.resource_manager.stub(:memory_capacity).and_return(200)
+
         2.times do
           create_and_register_instance(bootstrap, "application_id" => 0)
         end
@@ -149,10 +152,8 @@ describe Dea do
       em(:timeout => 1) do
         bootstrap.setup
         bootstrap.start
-
-        mem_mock = mock("memory", :used => 1, :capacity => 2, :remain => 1)
-        resources = { "memory" => mem_mock }
-        bootstrap.resource_manager.stub(:resources).and_return(resources)
+        bootstrap.resource_manager.stub(:remaining_memory).and_return(100)
+        bootstrap.resource_manager.stub(:memory_capacity).and_return(200)
 
         req = discover_message("droplet" => 0)
         nats_mock.request("dea.discover", req) do |msg|

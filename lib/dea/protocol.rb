@@ -116,21 +116,14 @@ module Dea::Protocol::V1
   class DeaStatusResponse
     def self.generate(bootstrap)
       hello = HelloMessage.generate(bootstrap)
-
-      used_memory = bootstrap.instance_registry.inject(0) do |a, i|
-        a + (i.used_memory_in_bytes / (1024 * 1024))
-      end
-
       rm = bootstrap.resource_manager
 
-      extra = {
-        "max_memory"      => rm.resources["memory"].capacity,
-        "reserved_memory" => rm.resources["memory"].used,
-        "used_memory"     => used_memory,
-        "num_clients"     => rm.resources["num_instances"].used,
-      }
-
-      hello.merge(extra)
+      hello.merge({
+        "max_memory"      => rm.memory_capacity,
+        "reserved_memory" => rm.reserved_memory,
+        "used_memory"     => rm.used_memory,
+        "num_clients"     => nil
+      })
     end
   end
 
