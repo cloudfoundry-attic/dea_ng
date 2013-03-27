@@ -283,13 +283,13 @@ describe Dea::Instance do
     end
 
     it "should keep only 2 cpu samples" do
-      instance.instance_variable_get(:@cpu_samples).should have(0).items
+      instance.cpu_samples.should have(0).items
       5.times do
         instance.stub(:promise_container_info).and_return(delivering_promise(info_response1))
         Dea::Promise.resolve(instance.promise_collect_stats)
         sleep(0.001)
       end
-      instance.instance_variable_get(:@cpu_samples).should have(2).items
+      instance.cpu_samples.should have(2).items
     end
   end
 

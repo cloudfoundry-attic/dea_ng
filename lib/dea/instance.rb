@@ -244,6 +244,7 @@ module Dea
     attr_reader :used_memory_in_bytes
     attr_reader :used_disk_in_bytes
     attr_reader :computed_pcpu    # See `man ps`
+    attr_reader :cpu_samples
 
     def initialize(bootstrap, attributes)
       super(bootstrap.config)
