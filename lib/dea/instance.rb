@@ -244,6 +244,7 @@ module Dea
     attr_reader :used_memory_in_bytes
     attr_reader :used_disk_in_bytes
     attr_reader :computed_pcpu    # See `man ps`
+    attr_reader :cpu_samples
 
     def initialize(bootstrap, attributes)
       super(bootstrap.config)
@@ -724,7 +725,7 @@ module Dea
           :ns_used      => info_resp.cpu_stat.usage,
         }
 
-        @cpu_samples.unshift if @cpu_samples.size > 2
+        @cpu_samples.shift if @cpu_samples.size > 2
 
         if @cpu_samples.size == 2
           used = @cpu_samples[1][:ns_used] - @cpu_samples[0][:ns_used]

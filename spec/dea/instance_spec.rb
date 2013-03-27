@@ -281,6 +281,16 @@ describe Dea::Instance do
 
       instance.computed_pcpu.should > 0
     end
+
+    it "should keep only 2 cpu samples" do
+      instance.cpu_samples.should have(0).items
+      5.times do
+        instance.stub(:promise_container_info).and_return(delivering_promise(info_response1))
+        Dea::Promise.resolve(instance.promise_collect_stats)
+        sleep(0.001)
+      end
+      instance.cpu_samples.should have(2).items
+    end
   end
 
   describe "#promise_health_check" do
