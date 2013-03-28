@@ -23,14 +23,14 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
         download_tgz(staged_url) do |dir|
           Dir.entries("#{dir}/app/vendor").should include("ruby-1.9.2")
           Dir.entries("#{dir}/app/vendor/bundle/ruby/1.9.1/gems").should =~ %w(
-          .
-          ..
-          bundler-1.3.2
-          rack-1.5.1
-          rack-protection-1.3.2
-          sinatra-1.3.4
-          tilt-1.3.3
-        )
+            .
+            ..
+            bundler-1.3.2
+            rack-1.5.1
+            rack-protection-1.3.2
+            sinatra-1.3.4
+            tilt-1.3.3
+          )
         end
       end
     end
