@@ -51,10 +51,12 @@ component. Here is how to do that:
 - `vagrant ssh` to get inside the VM
 
 - `/dea` contains mounted copy of dea_ng source code
-  (run `foreman start` to start dea_ng components specified in Procfile)
 
 - `/warden` contains cloned version of Warden
-  (run `bundle exec rake warden:start[config/linux.yml]` from `/warden/warden` to start Warden)
+
+- Run `sudo su -`
+
+- Run `foreman start` to start dea_ng components specified in Procfile
 
 
 ## Staging
