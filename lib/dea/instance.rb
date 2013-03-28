@@ -17,7 +17,7 @@ module Dea
   class Instance < Task
     include EventEmitter
 
-    STAT_COLLECTION_INTERVAL_SECS = 1
+    STAT_COLLECTION_INTERVAL_SECS = 10
 
     BIND_MOUNT_MODE_MAP = {
       "ro" =>  ::Warden::Protocol::CreateRequest::BindMount::Mode::RO,
