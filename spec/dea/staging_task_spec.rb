@@ -48,25 +48,12 @@ describe Dea::StagingTask do
     let(:staging_env) { "PATH=x FOO=y" }
     it "assembles a shell command and initiates collection of task log" do
       staging.should_receive(:staging_environment).and_return(staging_env)
-
       staging.should_receive(:promise_warden_run) do |connection_name, cmd|
-        cmd.should match %r{^PATH=x FOO=y .*/bin/run .*/plugin_config > /tmp/staged/logs/staging_task.log 2>&1$}
+        cmd.should match %r{^PATH=x FOO=y .*/bin/run .*/plugin_config >> /tmp/staged/logs/staging_task.log 2>&1$}
         mock("promise", :resolve => nil)
       end
 
-      staging.should_receive(:promise_task_log) { mock("promise", :resolve => nil) }
-
       staging.promise_stage.resolve
-    end
-
-    it "initiates collection of task log if script fails to run" do
-      staging.should_receive(:staging_environment).and_return(staging_env)
-
-      staging.should_receive(:promise_warden_run) { raise RuntimeError.new("Script Failed") }
-
-      staging.should_receive(:promise_task_log) { mock("promise", :resolve => nil) }
-
-      expect { staging.promise_stage.resolve }.to raise_error "Script Failed"
     end
   end
 
@@ -208,8 +195,11 @@ describe Dea::StagingTask do
       staging.stub(:promise_unpack_app).and_return(successful_promise)
       staging.stub(:promise_stage).and_return(successful_promise)
       staging.stub(:promise_pack_app).and_return(successful_promise)
+      staging.stub(:promise_log_upload_started).and_return(successful_promise)
       staging.stub(:promise_copy_out).and_return(successful_promise)
       staging.stub(:promise_app_upload).and_return(successful_promise)
+      staging.stub(:promise_log_upload_finished).and_return(successful_promise)
+      staging.stub(:promise_task_log).and_return(successful_promise)
       staging.stub(:promise_destroy).and_return(successful_promise)
     end
 
@@ -307,6 +297,23 @@ describe Dea::StagingTask do
       File.exists?(workspace_dir).should be_false
     end
 
+    context "when a script fails" do
+      before do
+        stub_staging_setup
+        stub_staging
+        staging.stub(:promise_stage).and_raise("Script Failed")
+      end
+
+      it "still copies out the task log" do
+        staging.should_receive(:promise_task_log) { mock("promise", :resolve => nil) }
+        staging.start rescue nil
+      end
+
+      it "propagates the error" do
+        expect { staging.start }.to raise_error(/Script Failed/)
+      end
+    end
+
     it "prepare workspace, download app source, creates container, prepares staging log, creates app dir and then obtains container info" do
       %w(prepare_workspace
          promise_app_download
@@ -325,7 +332,7 @@ describe Dea::StagingTask do
     end
 
     it "unpacks, stages, repacks, copies files out of container, upload staged app and then destroys" do
-      %w(unpack_app stage pack_app copy_out app_upload destroy).each do |step|
+      %w(unpack_app stage pack_app copy_out log_upload_started app_upload log_upload_finished task_log destroy).each do |step|
         staging.should_receive("promise_#{step}").ordered.and_return(successful_promise)
       end
 
@@ -457,7 +464,7 @@ describe Dea::StagingTask do
   describe "#promise_pack_app" do
     it "assembles a shell command" do
       staging.should_receive(:promise_warden_run) do |connection_name, cmd|
-        cmd.should include("cd /tmp/staged && COPYFILE_DISABLE=true tar -czf /tmp/droplet.tgz .")
+        normalize_whitespace(cmd).should include("cd /tmp/staged && COPYFILE_DISABLE=true tar -czf /tmp/droplet.tgz .")
         mock("promise", :resolve => nil)
       end
 
@@ -519,5 +526,9 @@ describe Dea::StagingTask do
       staging.should_receive(:copy_out_request).with(Dea::StagingTask::WARDEN_STAGING_LOG, /#{workspace_dir}/)
       subject
     end
+  end
+
+  def normalize_whitespace(script)
+    script.gsub(/\s+/, " ")
   end
 end

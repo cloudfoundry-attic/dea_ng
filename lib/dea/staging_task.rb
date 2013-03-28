@@ -134,17 +134,11 @@ module Dea
           config["dea_ruby"],
           run_plugin_path,
           plugin_config_path,
-          "> #{WARDEN_STAGING_LOG} 2>&1"
+          ">> #{WARDEN_STAGING_LOG} 2>&1"
         ].join(" ")
 
         logger.info("Staging: #{script}")
-
-        begin
-          promise_warden_run(:app, script).resolve
-        ensure
-          promise_task_log.resolve
-        end
-
+        promise_warden_run(:app, script).resolve
         p.deliver
       end
     end
@@ -161,8 +155,11 @@ module Dea
       Promise.new do |p|
         logger.info("Unpacking app to #{WARDEN_UNSTAGED_DIR}")
 
-        script = "unzip -q #{downloaded_droplet_path} -d #{WARDEN_UNSTAGED_DIR}"
-        promise_warden_run(:app, script).resolve
+        promise_warden_run(:app, <<-BASH).resolve
+          package_size=`du -h #{downloaded_droplet_path} | cut -f1`
+          echo "-----> Downloaded app package ($package_size)" >> #{WARDEN_STAGING_LOG}
+          unzip -q #{downloaded_droplet_path} -d #{WARDEN_UNSTAGED_DIR}
+        BASH
 
         p.deliver
       end
@@ -170,9 +167,10 @@ module Dea
 
     def promise_pack_app
       Promise.new do |p|
-        script = "cd #{WARDEN_STAGED_DIR} && COPYFILE_DISABLE=true tar -czf #{WARDEN_STAGED_DROPLET} ."
-        promise_warden_run(:app, script).resolve
-
+        promise_warden_run(:app, <<-BASH).resolve
+          cd #{WARDEN_STAGED_DIR} &&
+          COPYFILE_DISABLE=true tar -czf #{WARDEN_STAGED_DROPLET} .
+        BASH
         p.deliver
       end
     end
@@ -195,6 +193,16 @@ module Dea
       end
     end
 
+    def promise_log_upload_started
+      Promise.new do |p|
+        promise_warden_run(:app, <<-BASH).resolve
+          droplet_size=`du -h #{WARDEN_STAGED_DROPLET} | cut -f1`
+          echo "-----> Uploading staged droplet ($droplet_size)" >> #{WARDEN_STAGING_LOG}
+        BASH
+        p.deliver
+      end
+    end
+
     def promise_app_upload
       Promise.new do |p|
         Upload.new(staged_droplet_path, attributes["upload_uri"], logger).upload! do |error|
@@ -205,6 +213,15 @@ module Dea
             p.deliver
           end
         end
+      end
+    end
+
+    def promise_log_upload_finished
+      Promise.new do |p|
+        promise_warden_run(:app, <<-BASH).resolve
+          echo "-----> Uploaded droplet" >> #{WARDEN_STAGING_LOG}
+        BASH
+        p.deliver
       end
     end
 
@@ -266,9 +283,13 @@ module Dea
         promise_stage,
         promise_pack_app,
         promise_copy_out,
+        promise_log_upload_started,
         promise_app_upload,
-        promise_destroy,
+        promise_log_upload_finished
       )
+    ensure
+      promise_task_log.resolve
+      promise_destroy.resolve
     end
 
     def run_in_parallel(*promises)

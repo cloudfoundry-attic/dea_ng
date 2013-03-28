@@ -7,7 +7,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
     let(:unstaged_url) { "http://localhost:9999/unstaged/sinatra" }
     let(:staged_url) { "http://localhost:9999/staged/sinatra" }
 
-    context 'when the DEA has to detect the buildback' do
+    context "when the DEA has to detect the buildback" do
       it "packages a ruby binary and the app's gems" do
         response = nats.request("staging", {
           "async" => false,
@@ -38,9 +38,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
     context "when a buildpack url is specified" do
       let(:buildpack_url) { fake_buildpack_url("start_command") }
 
-      before do
-        setup_fake_buildpack("start_command")
-      end
+      before { setup_fake_buildpack("start_command") }
 
       it "downloads the buildpack and runs it" do
         response = nats.request("staging", {
@@ -53,8 +51,13 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
           "upload_uri" => staged_url
         })
 
-        response["task_log"].should include("Some compilation output")
         response["error"].should be_nil
+        response["task_log"].tap do |log|
+          log.should include("-----> Downloaded app package (4.0K)\n")
+          log.should include("-----> Some compilation output\n")
+          log.should include("-----> Uploading staged droplet (12K)\n")
+          log.should include("-----> Uploaded droplet\n")
+        end
       end
 
       it "decreases the DEA's available memory" do
