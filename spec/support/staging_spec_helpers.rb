@@ -24,6 +24,6 @@ module StagingSpecHelpers
   end
 
   def app_source
-    app_fixture_base_directory.join(@app_fixture).join('source').to_s
+    app_fixture_base_directory.join(@app_fixture).to_s
   end
 end
