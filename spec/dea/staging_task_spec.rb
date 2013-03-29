@@ -9,9 +9,13 @@ describe Dea::StagingTask do
   let(:memory_limit_mb) { 256 }
   let(:disk_limit_mb) { 1025 }
 
+  let!(:workspace_dir) do
+    staging.workspace.workspace_dir # force workspace creation
+  end
+
   let(:config) do
     {
-      "base_dir" => ".",
+      "base_dir" => Dir.mktmpdir("base_dir"),
       "directory_server" => {
         "file_api_port" => 1234
       },
@@ -35,14 +39,8 @@ describe Dea::StagingTask do
 
   let(:attributes) { valid_staging_attributes }
   let(:staging) { Dea::StagingTask.new(bootstrap, dir_server, attributes) }
-  let(:workspace_dir) { Dir.mktmpdir("somewhere") }
 
-  before do
-    staging.stub(:workspace_dir) { workspace_dir }
-    staging.stub(:staged_droplet_path) { __FILE__ }
-    staging.stub(:downloaded_droplet_path) { "/path/to/downloaded/droplet" }
-    staging.stub(:logger) { logger }
-  end
+  before { staging.stub(:logger) { logger } }
 
   describe "#promise_stage" do
     let(:staging_env) { "PATH=x FOO=y" }
@@ -73,9 +71,8 @@ describe Dea::StagingTask do
   end
 
   describe "#task_log" do
-    subject { staging.task_log }
-
     describe "when staging has not yet started" do
+      subject { staging.task_log }
       it { should be_nil }
     end
 
@@ -443,8 +440,8 @@ describe Dea::StagingTask do
       its(:result) { should == [:deliver, nil]}
 
       it "should rename the file" do
-        File.should_receive(:rename).with("/path/to/file", "/path/to/downloaded/droplet")
-        File.should_receive(:chmod).with(0744, "/path/to/downloaded/droplet")
+        File.should_receive(:rename).with("/path/to/file", "#{workspace_dir}/app.zip")
+        File.should_receive(:chmod).with(0744, "#{workspace_dir}/app.zip")
         subject
       end
     end
@@ -453,7 +450,7 @@ describe Dea::StagingTask do
   describe "#promise_unpack_app" do
     it "assembles a shell command" do
       staging.should_receive(:promise_warden_run) do |connection_name, cmd|
-        cmd.should include("unzip -q /path/to/downloaded/droplet -d /tmp/unstaged")
+        cmd.should include("unzip -q #{workspace_dir}/app.zip -d /tmp/unstaged")
         mock("promise", :resolve => nil)
       end
 
@@ -504,7 +501,7 @@ describe Dea::StagingTask do
     end
 
     it "should send copying out request" do
-      staging.should_receive(:copy_out_request).with(Dea::StagingTask::WARDEN_STAGED_DROPLET, /.{5,}/)
+      staging.should_receive(:copy_out_request).with("/tmp/droplet.tgz", /.{5,}/)
       subject
     end
   end
@@ -517,13 +514,13 @@ describe Dea::StagingTask do
     end
 
     it "should send copying out request" do
-      staging.should_receive(:copy_out_request).with(Dea::StagingTask::WARDEN_STAGING_LOG, /#{workspace_dir}/)
+      staging.should_receive(:copy_out_request).with("/tmp/staged/logs/staging_task.log", /#{workspace_dir}/)
       subject
     end
 
     it "should write the staging log to the main logger" do
       logger.should_receive(:info).with(anything)
-      staging.should_receive(:copy_out_request).with(Dea::StagingTask::WARDEN_STAGING_LOG, /#{workspace_dir}/)
+      staging.should_receive(:copy_out_request).with("/tmp/staged/logs/staging_task.log", /#{workspace_dir}/)
       subject
     end
   end

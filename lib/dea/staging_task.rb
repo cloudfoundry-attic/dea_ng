@@ -6,18 +6,10 @@ require "dea/utils/download"
 require "dea/utils/upload"
 require "dea/promise"
 require "dea/task"
+require "dea/staging_task_workspace"
 
 module Dea
   class StagingTask < Task
-    DROPLET_FILE = "droplet.tgz"
-    STAGING_LOG = "staging_task.log"
-
-    WARDEN_UNSTAGED_DIR = "/tmp/unstaged"
-    WARDEN_STAGED_DIR = "/tmp/staged"
-    WARDEN_STAGED_DROPLET = "/tmp/#{DROPLET_FILE}"
-    WARDEN_CACHE = "/tmp/cache"
-    WARDEN_STAGING_LOG = "#{WARDEN_STAGED_DIR}/logs/#{STAGING_LOG}"
-
     attr_reader :bootstrap, :dir_server, :attributes
     attr_reader :container_path
 
@@ -35,12 +27,16 @@ module Dea
       @task_id ||= VCAP.secure_uuid
     end
 
+    def workspace
+      @workspace ||= StagingTaskWorkspace.new(config["base_dir"])
+    end
+
     def task_log
-      File.read(staging_log_path) if File.exists?(staging_log_path)
+      File.read(workspace.staging_log_path) if File.exists?(workspace.staging_log_path)
     end
 
     def streaming_log_url
-      @dir_server.staging_task_file_url_for(task_id, WARDEN_STAGING_LOG)
+      @dir_server.staging_task_file_url_for(task_id, workspace.warden_staging_log)
     end
 
     def memory_limit_in_bytes
@@ -55,7 +51,7 @@ module Dea
       staging_promise = Promise.new do |p|
         logger.info("Starting staging task")
         logger.info("Setting up temporary directories")
-        logger.info("Working dir in #{workspace_dir}")
+        logger.info("Working dir in #{workspace.workspace_dir}")
 
         resolve_staging_setup
         resolve_staging
@@ -96,20 +92,20 @@ module Dea
 
     def prepare_workspace
       plugin_config = {
-        "source_dir"   => WARDEN_UNSTAGED_DIR,
-        "dest_dir"     => WARDEN_STAGED_DIR,
-        "environment"  => attributes["properties"]
+        "source_dir"  => workspace.warden_unstaged_dir,
+        "dest_dir"    => workspace.warden_staged_dir,
+        "environment" => attributes["properties"]
       }
 
-      platform_config = staging_config["platform_config"].merge("cache" => WARDEN_CACHE)
+      platform_config = staging_config["platform_config"].merge("cache" => workspace.warden_cache)
 
-      File.open(plugin_config_path, 'w') { |f| YAML.dump(plugin_config, f) }
-      File.open(platform_config_path, "w") { |f| YAML.dump(platform_config, f) }
+      File.open(workspace.plugin_config_path, 'w') { |f| YAML.dump(plugin_config, f) }
+      File.open(workspace.platform_config_path, "w") { |f| YAML.dump(platform_config, f) }
     end
 
     def promise_prepare_staging_log
       Promise.new do |p|
-        script = "mkdir -p #{WARDEN_STAGED_DIR}/logs && touch #{WARDEN_STAGING_LOG}"
+        script = "mkdir -p #{workspace.warden_staged_dir}/logs && touch #{workspace.warden_staging_log}"
         logger.info("Preparing staging log: #{script}")
         promise_warden_run(:app, script).resolve
         p.deliver
@@ -133,8 +129,8 @@ module Dea
           staging_environment,
           config["dea_ruby"],
           run_plugin_path,
-          plugin_config_path,
-          ">> #{WARDEN_STAGING_LOG} 2>&1"
+          workspace.plugin_config_path,
+          ">> #{workspace.warden_staging_log} 2>&1"
         ].join(" ")
 
         logger.info("Staging: #{script}")
@@ -145,7 +141,7 @@ module Dea
 
     def promise_task_log
       Promise.new do |p|
-        copy_out_request(WARDEN_STAGING_LOG, File.dirname(staging_log_path))
+        copy_out_request(workspace.warden_staging_log, File.dirname(workspace.staging_log_path))
         logger.info "Staging task log: #{task_log}"
         p.deliver
       end
@@ -153,12 +149,12 @@ module Dea
 
     def promise_unpack_app
       Promise.new do |p|
-        logger.info("Unpacking app to #{WARDEN_UNSTAGED_DIR}")
+        logger.info("Unpacking app to #{workspace.warden_unstaged_dir}")
 
         promise_warden_run(:app, <<-BASH).resolve
-          package_size=`du -h #{downloaded_droplet_path} | cut -f1`
-          echo "-----> Downloaded app package ($package_size)" >> #{WARDEN_STAGING_LOG}
-          unzip -q #{downloaded_droplet_path} -d #{WARDEN_UNSTAGED_DIR}
+          package_size=`du -h #{workspace.downloaded_droplet_path} | cut -f1`
+          echo "-----> Downloaded app package ($package_size)" >> #{workspace.warden_staging_log}
+          unzip -q #{workspace.downloaded_droplet_path} -d #{workspace.warden_unstaged_dir}
         BASH
 
         p.deliver
@@ -168,8 +164,8 @@ module Dea
     def promise_pack_app
       Promise.new do |p|
         promise_warden_run(:app, <<-BASH).resolve
-          cd #{WARDEN_STAGED_DIR} &&
-          COPYFILE_DISABLE=true tar -czf #{WARDEN_STAGED_DROPLET} .
+          cd #{workspace.warden_staged_dir} &&
+          COPYFILE_DISABLE=true tar -czf #{workspace.warden_staged_droplet} .
         BASH
         p.deliver
       end
@@ -179,14 +175,14 @@ module Dea
       Promise.new do |p|
         logger.info("Downloading application from #{attributes["download_uri"]}")
 
-        Download.new(attributes["download_uri"], workspace_dir, nil, logger).download! do |error, path|
+        Download.new(attributes["download_uri"], workspace.workspace_dir, nil, logger).download! do |error, path|
           if error
             p.fail(error)
           else
-            File.rename(path, downloaded_droplet_path)
-            File.chmod(0744, downloaded_droplet_path)
+            File.rename(path, workspace.downloaded_droplet_path)
+            File.chmod(0744, workspace.downloaded_droplet_path)
 
-            logger.debug("Moved droplet to #{downloaded_droplet_path}")
+            logger.debug("Moved droplet to #{workspace.downloaded_droplet_path}")
             p.deliver
           end
         end
@@ -196,8 +192,8 @@ module Dea
     def promise_log_upload_started
       Promise.new do |p|
         promise_warden_run(:app, <<-BASH).resolve
-          droplet_size=`du -h #{WARDEN_STAGED_DROPLET} | cut -f1`
-          echo "-----> Uploading staged droplet ($droplet_size)" >> #{WARDEN_STAGING_LOG}
+          droplet_size=`du -h #{workspace.warden_staged_droplet} | cut -f1`
+          echo "-----> Uploading staged droplet ($droplet_size)" >> #{workspace.warden_staging_log}
         BASH
         p.deliver
       end
@@ -205,7 +201,7 @@ module Dea
 
     def promise_app_upload
       Promise.new do |p|
-        Upload.new(staged_droplet_path, attributes["upload_uri"], logger).upload! do |error|
+        Upload.new(workspace.staged_droplet_path, attributes["upload_uri"], logger).upload! do |error|
           if error
             p.fail(error)
           else
@@ -219,7 +215,7 @@ module Dea
     def promise_log_upload_finished
       Promise.new do |p|
         promise_warden_run(:app, <<-BASH).resolve
-          echo "-----> Uploaded droplet" >> #{WARDEN_STAGING_LOG}
+          echo "-----> Uploaded droplet" >> #{workspace.warden_staging_log}
         BASH
         p.deliver
       end
@@ -227,9 +223,8 @@ module Dea
 
     def promise_copy_out
       Promise.new do |p|
-        logger.info("Copying out to #{staged_droplet_path}")
-        staged_droplet_dir = File.expand_path(File.dirname(staged_droplet_path))
-        copy_out_request(WARDEN_STAGED_DROPLET, staged_droplet_dir)
+        logger.info("Copying out to #{workspace.staged_droplet_path}")
+        copy_out_request(workspace.warden_staged_droplet, workspace.staged_droplet_dir)
 
         p.deliver
       end
@@ -301,47 +296,19 @@ module Dea
     end
 
     def clean_workspace
-      FileUtils.rm_rf(workspace_dir)
+      FileUtils.rm_rf(workspace.workspace_dir)
     end
 
     def paths_to_bind
-      [workspace_dir, buildpack_dir]
-    end
-
-    def workspace_dir
-      return @workspace_dir if @workspace_dir
-      staging_base_dir = File.join(config["base_dir"], "staging")
-      @workspace_dir = Dir.mktmpdir(nil, staging_base_dir)
-      File.chmod(0755, @workspace_dir)
-      @workspace_dir
-    end
-
-    def staged_droplet_path
-      @staged_droplet_path ||= File.join(workspace_dir, "staged", DROPLET_FILE)
-    end
-
-    def staging_log_path
-      @staging_log_path ||= File.join(workspace_dir, STAGING_LOG)
-    end
-
-    def plugin_config_path
-      @plugin_config_path ||= File.join(workspace_dir, "plugin_config")
-    end
-
-    def platform_config_path
-      @platform_config_path ||= File.join(workspace_dir, "platform_config")
-    end
-
-    def downloaded_droplet_path
-      @downloaded_droplet_path ||= File.join(workspace_dir, "app.zip")
+      [workspace.workspace_dir, buildpack_dir]
     end
 
     def run_plugin_path
-      @run_plugin_path ||= File.join(buildpack_dir, "bin/run")
+      File.join(buildpack_dir, "bin/run")
     end
 
     def buildpack_dir
-      @buildpack_path ||= File.expand_path("../../../buildpacks", __FILE__)
+      File.expand_path("../../../buildpacks", __FILE__)
     end
 
     def cleanup(file)
@@ -353,7 +320,7 @@ module Dea
 
     def staging_environment
       {
-        "PLATFORM_CONFIG" => platform_config_path,
+        "PLATFORM_CONFIG" => workspace.platform_config_path,
         "C_INCLUDE_PATH" => "#{staging_config["environment"]["C_INCLUDE_PATH"]}:#{ENV["C_INCLUDE_PATH"]}",
         "LIBRARY_PATH" => staging_config["environment"]["LIBRARY_PATH"],
         "LD_LIBRARY_PATH" => staging_config["environment"]["LD_LIBRARY_PATH"],
