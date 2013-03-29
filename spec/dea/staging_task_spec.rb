@@ -250,8 +250,9 @@ describe Dea::StagingTask do
             end
 
             it "cleans up workspace" do
-              staging.should_receive(:clean_workspace)
-              staging.start rescue nil
+              expect {
+                staging.start rescue nil
+              }.to change { File.exists?(workspace_dir) }.from(true).to(false)
             end if options[:callback_failure_cleanup_assertions]
 
             it "calls registered callback exactly once" do
