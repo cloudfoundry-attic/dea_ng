@@ -17,6 +17,6 @@ Vagrant::Config.run do |config|
     chef.add_recipe "dea::packages"
     chef.add_recipe "dea::dea"
     chef.add_recipe "warden::install"
-    chef.add_recipe "warden::customize_rootfs"
+    chef.add_recipe "warden::install_rootfs"
   end
 end
