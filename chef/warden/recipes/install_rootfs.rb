@@ -20,9 +20,9 @@ ruby_block "install warden rootfs" do
     system "tar xvf #{WARDEN_STEMCELL_FILE} && tar xvf image"
 
     system "echo '----> Mounting BOSH Stemcell'"
-    loop = `kpartx -av root.img`.match /map\s+(?<loop>.+?)\s+/
+    loop = `kpartx -av root.img`.match /map\s+(.+?)\s+/
     FileUtils.mkdir_p STEMCELL_MOUNT
-    system "mount /dev/mapper/#{loop[:loop]} #{STEMCELL_MOUNT}"
+    system "mount /dev/mapper/#{loop[1]} #{STEMCELL_MOUNT}"
 
     system "echo '----> Replacing standard Warden RootFS with BOSH Warden RootFS'"
     FileUtils.rm_rf ROOT_FS if File.exist? ROOT_FS
