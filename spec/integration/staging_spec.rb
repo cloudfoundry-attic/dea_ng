@@ -3,6 +3,36 @@ require "spec_helper"
 describe "Staging an app", :type => :integration, :requires_warden => true do
   let(:nats) { NatsHelper.new }
 
+  describe "staging a simple nodejs app" do
+    let(:unstaged_url) { "http://localhost:9999/unstaged/app_with_procfile" }
+    let(:staged_url) { "http://localhost:9999/staged/app_with_procfile" }
+
+    it "packages up the node dependencies and stages the app properly" do
+      response = nats.request("staging", {
+          "async" => false,
+          "app_id" => "some-node-app-id",
+          "properties" => {},
+          "download_uri" => unstaged_url,
+          "upload_uri" => staged_url
+      })
+
+      response["task_log"].should include("Resolving engine versions")
+      response["task_log"].should include("Fetching Node.js binaries")
+      response["task_log"].should include("Vendoring node into slug")
+      response["task_log"].should include("Installing dependencies with npm")
+      response["task_log"].should include("Building runtime environment")
+      response["error"].should be_nil
+
+      download_tgz(staged_url) do |dir|
+        entries = Dir.entries(dir)
+        expect(entries).to include("nodejs-0.10.1.tgz")
+        expect(entries).to include("scons-1.2.0.tgz")
+        expect(entries).to include("npm-1.2.15.tgz")
+        expect(entries).to include("nodejs-0.4.7.tgz")
+      end
+    end
+  end
+
   describe "staging a simple sinatra app" do
     let(:unstaged_url) { "http://localhost:9999/unstaged/sinatra" }
     let(:staged_url) { "http://localhost:9999/staged/sinatra" }
@@ -22,15 +52,15 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
 
         download_tgz(staged_url) do |dir|
           Dir.entries("#{dir}/app/vendor").should include("ruby-1.9.2")
-          Dir.entries("#{dir}/app/vendor/bundle/ruby/1.9.1/gems").should =~ %w(
-            .
-            ..
-            bundler-1.3.2
-            rack-1.5.1
-            rack-protection-1.3.2
-            sinatra-1.3.4
-            tilt-1.3.3
-          )
+          Dir.entries("#{dir}/app/vendor/bundle/ruby/1.9.1/gems").should =~ %w[
+          .
+          ..
+          bundler-1.3.2
+          rack-1.5.1
+          rack-protection-1.3.2
+          sinatra-1.3.4
+          tilt-1.3.3
+        ]
         end
       end
     end
