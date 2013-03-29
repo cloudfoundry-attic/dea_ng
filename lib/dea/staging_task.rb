@@ -253,13 +253,13 @@ module Dea
     def resolve_staging_setup
       prepare_workspace
 
-      run_in_parallel(
+      Promise.run_in_parallel(
         promise_app_download,
         promise_create_container,
       )
       promise_limit_disk.resolve
       promise_limit_memory.resolve
-      run_in_parallel(
+      Promise.run_in_parallel(
         promise_prepare_staging_log,
         promise_app_dir,
         promise_container_info,
@@ -273,7 +273,7 @@ module Dea
     end
 
     def resolve_staging
-      run_serially(
+      Promise.run_serially(
         promise_unpack_app,
         promise_stage,
         promise_pack_app,
@@ -285,14 +285,6 @@ module Dea
     ensure
       promise_task_log.resolve
       promise_destroy.resolve
-    end
-
-    def run_in_parallel(*promises)
-      promises.each(&:run).each(&:resolve)
-    end
-
-    def run_serially(*promises)
-      promises.each(&:resolve)
     end
 
     def clean_workspace

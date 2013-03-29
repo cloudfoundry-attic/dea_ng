@@ -5,25 +5,35 @@ require "steno/core_ext"
 
 module Dea
   class Promise
-    def self.resolve(promise)
-      f = Fiber.new do
-        result = nil
+    class << self
+      def resolve(promise)
+        f = Fiber.new do
+          result = nil
 
-        begin
-          result = [nil, promise.resolve]
-        rescue => error
-          result = [error, nil]
+          begin
+            result = [nil, promise.resolve]
+          rescue => error
+            result = [error, nil]
+          end
+
+          begin
+            yield(result) if block_given?
+          rescue => error
+            logger.log_exception(error)
+            raise
+          end
         end
 
-        begin
-          yield(result) if block_given?
-        rescue => error
-          logger.log_exception(error)
-          raise
-        end
+        f.resume
       end
 
-      f.resume
+      def run_in_parallel(*promises)
+        promises.each(&:run).each(&:resolve)
+      end
+
+      def run_serially(*promises)
+        promises.each(&:resolve)
+      end
     end
 
     attr_reader :elapsed_time, :result
