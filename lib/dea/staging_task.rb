@@ -65,6 +65,28 @@ module Dea
       staging_config["disk_limit_mb"].to_i * 1024 * 1024
     end
 
+    def stop(&callback)
+      p = Promise.new do
+        logger.info("Stopping staging task")
+        promise_stop.resolve if container_handle
+        p.deliver
+      end
+
+      resolve(p, "stop staging task") do |error, _|
+        trigger_after_stop(error)
+        callback.call(error) unless callback.nil?
+      end
+    end
+
+    def finish_task(error)
+      logger.info("Finished staging task")
+      trigger_after_complete(error)
+      raise(error) if error
+    ensure
+      clean_workspace
+    end
+    private :finish_task
+
     def after_setup_callback(&blk)
       @after_setup_callback = blk
     end
@@ -82,6 +104,15 @@ module Dea
       @after_complete_callback.call(error) if @after_complete_callback
     end
     private :trigger_after_complete
+
+    def after_stop_callback(&blk)
+      @after_stop_callback = blk
+    end
+
+    def trigger_after_stop(error)
+      @after_stop_callback.call(error) if @after_stop_callback
+    end
+    private :trigger_after_stop
 
     def prepare_workspace
       plugin_config = {

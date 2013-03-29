@@ -208,6 +208,35 @@ describe Dea::Task do
     end
   end
 
+  describe "#promise_stop" do
+    let(:response) do
+      mock("Warden::Protocol::StopResponse")
+    end
+
+    before do
+      task.stub(:container_handle) { "handle" }
+    end
+
+    it "executes a StopRequest" do
+      task.stub(:promise_warden_call) do |connection, request|
+        request.should be_kind_of(::Warden::Protocol::StopRequest)
+        request.handle.should == "handle"
+
+        delivering_promise(response)
+      end
+
+      expect { task.promise_stop.resolve }.to_not raise_error
+    end
+
+    it "can fail" do
+      task.stub(:promise_warden_call) do
+        failing_promise(RuntimeError.new("error"))
+      end
+
+      expect { task.promise_stop.resolve }.to raise_error(RuntimeError, /error/i)
+    end
+  end
+
   describe "#promise_limit_disk" do
     before do
       task.stub(:disk_limit_in_bytes).and_return(1234)

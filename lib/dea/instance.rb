@@ -572,16 +572,6 @@ module Dea
       end
     end
 
-    def promise_stop
-      Promise.new do |p|
-        request = ::Warden::Protocol::StopRequest.new
-        request.handle = attributes["warden_handle"]
-        response = promise_warden_call(:app, request).resolve
-
-        p.deliver
-      end
-    end
-
     def stop(&callback)
       p = Promise.new do
         logger.info("Stopping instance")

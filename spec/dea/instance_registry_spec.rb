@@ -80,6 +80,17 @@ describe Dea::InstanceRegistry do
     end
   end
 
+  describe "#instances" do
+    before :each do
+      instance_registry.register(instance)
+      instance_registry.register(instance1)
+    end
+
+    it "should return all registered instances" do
+      instance_registry.instances.should =~ [instance1, instance]
+    end
+  end
+
   describe "crash reaping of orphans" do
     include_context "tmpdir"
 

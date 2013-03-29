@@ -210,13 +210,23 @@ module Dea
       end
     end
 
+    def promise_stop
+      Promise.new do |p|
+        request = ::Warden::Protocol::StopRequest.new
+        request.handle = container_handle
+        promise_warden_call(:app, request).resolve
+
+        p.deliver
+      end
+    end
+
     def promise_destroy
       Promise.new do |p|
         request = ::Warden::Protocol::DestroyRequest.new
-        request.handle = attributes["warden_handle"]
+        request.handle = container_handle
 
         begin
-          response = promise_warden_call_with_retry(:app, request).resolve
+          promise_warden_call_with_retry(:app, request).resolve
         rescue ::EM::Warden::Client::Error => error
           logger.warn("Error destroying container: #{error.message}")
         end

@@ -957,37 +957,6 @@ describe Dea::Instance do
     end
     it_behaves_like 'stop script hook', 'before_stop'
     it_behaves_like 'stop script hook', 'after_stop'
-
-    describe "#promise_stop" do
-      before do
-        instance.unstub(:promise_stop)
-      end
-
-      let(:response) do
-        mock("Warden::Protocol::StopResponse")
-      end
-
-      it "executes a StopRequest" do
-        instance.attributes["warden_handle"] = "handle"
-
-        instance.stub(:promise_warden_call) do |connection, request|
-          request.should be_kind_of(::Warden::Protocol::StopRequest)
-          request.handle.should == "handle"
-
-          delivering_promise(response)
-        end
-
-        expect_stop.to_not raise_error
-      end
-
-      it "can fail" do
-        instance.stub(:promise_warden_call) do
-          failing_promise(RuntimeError.new("error"))
-        end
-
-        expect_stop.to raise_error(RuntimeError, /error/i)
-      end
-    end
   end
 
   describe "link" do

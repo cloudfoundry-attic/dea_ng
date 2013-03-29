@@ -40,6 +40,7 @@ module Dea::Responders
 
       notify_setup_completion(message, task) if should_do_async_staging
       notify_completion(message, task)
+      notify_stop(message, task)
 
       task.start
     end
@@ -83,6 +84,16 @@ module Dea::Responders
         respond_to_message(message, {
           :task_id => task.task_id,
           :task_log => task.task_log,
+          :error => (error.to_s if error)
+        })
+        staging_task_registry.unregister(task)
+      end
+    end
+
+    def notify_stop(message, task)
+      task.after_stop_callback do |error|
+        respond_to_message(message, {
+          :task_id => task.task_id,
           :error => (error.to_s if error)
         })
         staging_task_registry.unregister(task)

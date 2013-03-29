@@ -211,10 +211,6 @@ describe Dea::Env do
       }
     end
 
-    let(:env) do
-      subject.env
-    end
-
     let(:bootstrap_config) { { "app_environment" => { "APP_FOO" => "APP_BAR", "APP_BAZ" => "APP_QIK" } } }
 
     before do
@@ -238,7 +234,7 @@ describe Dea::Env do
     end
 
     def find(key)
-      pair = env.find { |e| e[0] == key }
+      pair = subject.env.find { |e| e[0] == key }
       pair[1] if pair
     end
 

@@ -643,34 +643,31 @@ module Dea
 
       unregister_directory_server_v2
 
-      pending_stops = Set.new([])
       on_pending_empty = proc do
         logger.info("All instances stopped, exiting.")
         nats.client.flush
         terminate
       end
 
-      instance_registry.each do |instance|
-        pending_stops.add(instance)
+      pending_stops = Set.new([])
+      pending_stops.merge(instance_registry.instances)
+      pending_stops.merge(staging_task_registry.tasks)
 
-        instance.stop do |error|
-          pending_stops.delete(instance)
+      pending_stops.each do |to_be_stopped|
+        to_be_stopped.stop do |error|
+          pending_stops.delete(to_be_stopped)
 
           if error
-            logger.warn("#{instance} failed to stop: #{error}")
+            logger.warn("#{to_be_stopped} failed to stop: #{error}")
           else
-            logger.debug("#{instance} exited")
+            logger.debug("#{to_be_stopped} exited")
           end
 
-          if pending_stops.empty?
-            on_pending_empty.call
-          end
+          on_pending_empty.call if pending_stops.empty?
         end
       end
 
-      if pending_stops.empty?
-        on_pending_empty.call
-      end
+      on_pending_empty.call if pending_stops.empty?
     end
 
     # So we can test shutdown()

@@ -71,6 +71,10 @@ module Dea
       @instances.each_value(&block)
     end
 
+    def instances
+      @instances.values
+    end
+
     def empty?
       @instances.empty?
     end

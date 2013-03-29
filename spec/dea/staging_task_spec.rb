@@ -43,7 +43,15 @@ describe Dea::StagingTask do
   let(:attributes) { valid_staging_attributes }
   let(:staging) { Dea::StagingTask.new(bootstrap, dir_server, attributes) }
 
-  before { staging.stub(:logger) { logger } }
+  let(:successful_promise) { Dea::Promise.new {|p| p.deliver } }
+  let(:failing_promise) { Dea::Promise.new {|p| raise "failing promise" } }
+
+  before do
+    staging.stub(:workspace_dir) { workspace_dir }
+    staging.stub(:staged_droplet_path) { __FILE__ }
+    staging.stub(:downloaded_droplet_path) { "/path/to/downloaded/droplet" }
+    staging.stub(:logger) { logger }
+  end
 
   describe "#promise_stage" do
     let(:staging_env) { "PATH=x FOO=y" }
@@ -209,9 +217,6 @@ describe Dea::StagingTask do
   end
 
   describe "#start" do
-    let(:successful_promise) { Dea::Promise.new { |p| p.deliver } }
-    let(:failing_promise) { Dea::Promise.new { |p| raise "failing promise" } }
-
     def stub_staging_setup
       staging.stub(:prepare_workspace)
       staging.stub(:promise_app_download).and_return(successful_promise)
@@ -371,6 +376,35 @@ describe Dea::StagingTask do
 
       stub_staging_setup
       staging.start
+    end
+  end
+
+  describe "#stop" do
+    context "if container exists" do
+      before { staging.stub(:container_handle) { "maria" } }
+      it "sends stop request to warden container" do
+        staging.should_receive(:promise_stop).and_return(successful_promise)
+        staging.stop
+      end
+    end
+
+    context "if container does not exist" do
+      before { staging.stub(:container_handle) { nil } }
+      it "does NOT send stop request to warden container" do
+        staging.should_not_receive(:promise_stop)
+        staging.stop
+      end
+    end
+
+    it "calls the callback" do
+      callback = lambda {}
+      callback.should_receive(:call)
+      staging.stop(&callback)
+    end
+
+    it "triggers after stop callback" do
+      staging.should_receive(:trigger_after_stop)
+      staging.stop
     end
   end
 

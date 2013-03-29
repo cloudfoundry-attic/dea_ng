@@ -12,6 +12,10 @@ describe "Dea::Bootstrap#handle_dea_stop" do
       bootstrap.start
 
       nats_mock.publish("dea.stop", message)
+
+      EM.next_tick do
+        done
+      end
     end
   end
 
