@@ -123,6 +123,23 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
           })
         }.to change { dea_memory }.by(-1024)
       end
+
+      context "when a invalid upload URI is given" do
+        it "does not crash" do
+          response = nats.request("staging", {
+            "async" => false,
+            "app_id" => "some-app-id",
+            "properties" => {
+              "buildpack" => buildpack_url
+            },
+            "download_uri" => unstaged_url,
+            "upload_uri" => "http://localhost:45459/not_real"
+          })
+
+          response["error"].should include("Error uploading")
+          dea_memory.should > 0
+        end
+      end
     end
   end
 
