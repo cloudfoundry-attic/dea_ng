@@ -1,0 +1,1 @@
+web: node app.js --from-procfile=true

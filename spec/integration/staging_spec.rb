@@ -16,12 +16,12 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
           "upload_uri" => staged_url
       })
 
-      response["task_log"].should include("Resolving engine versions")
-      response["task_log"].should include("Fetching Node.js binaries")
-      response["task_log"].should include("Vendoring node into slug")
-      response["task_log"].should include("Installing dependencies with npm")
-      response["task_log"].should include("Building runtime environment")
-      response["error"].should be_nil
+      expect(response["task_log"]).to include("Resolving engine versions")
+      expect(response["task_log"]).to include("Fetching Node.js binaries")
+      expect(response["task_log"]).to include("Vendoring node into slug")
+      expect(response["task_log"]).to include("Installing dependencies with npm")
+      expect(response["task_log"]).to include("Building runtime environment")
+      expect(response["error"]).to be_nil
 
       download_tgz(staged_url) do |dir|
         entries = Dir.entries(dir)
@@ -29,6 +29,26 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
         expect(entries).to include("scons-1.2.0.tgz")
         expect(entries).to include("npm-1.2.15.tgz")
         expect(entries).to include("nodejs-0.4.7.tgz")
+      end
+    end
+
+    context "when dependencies have incompatible versions" do
+      let(:unstaged_url) { "http://localhost:9999/unstaged/node_with_incompatibility" }
+      let(:staged_url) { "http://localhost:9999/staged/node_with_incompatibility" }
+
+      it "fails to stage" do
+        response = nats.request("staging", {
+            "async" => false,
+            "app_id" => "some-node-app-id",
+            "properties" => {},
+            "download_uri" => unstaged_url,
+            "upload_uri" => staged_url
+        })
+
+        expect(response["error"]).to include "Script exited with status 1"
+        # Bcrypt 0.4.1 is incompatible with node 0.10, using node-waf and node-gyp respectively
+        expect(response["task_log"]).to include("make: node-waf: Command not found")
+        expect(response["task_log"]).to_not include("Building runtime environment")
       end
     end
   end
@@ -104,13 +124,13 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
         }.to change { dea_memory }.by(-1024)
       end
     end
+  end
 
-    def download_tgz(url)
-      Dir.mktmpdir do |dir|
-        `curl --silent --show-error #{url} > #{dir}/staged_app.tgz`
-        `cd #{dir} && tar xzvf staged_app.tgz`
-        yield dir
-      end
+  def download_tgz(url)
+    Dir.mktmpdir do |dir|
+      `curl --silent --show-error #{url} > #{dir}/staged_app.tgz`
+      `cd #{dir} && tar xzvf staged_app.tgz`
+      yield dir
     end
   end
 end
