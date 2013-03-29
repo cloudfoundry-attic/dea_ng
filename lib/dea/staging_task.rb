@@ -23,6 +23,24 @@ module Dea
       logger.user_data[:task_id] = task_id
     end
 
+    def start
+      staging_promise = Promise.new do |p|
+        resolve_staging_setup
+        resolve_staging
+        p.deliver
+      end
+
+      Promise.resolve(staging_promise) do |error, _|
+        begin
+          logger.info("Finished staging task")
+          trigger_after_complete(error)
+          raise(error) if error
+        ensure
+          FileUtils.rm_rf(workspace.workspace_dir)
+        end
+      end
+    end
+
     def task_id
       @task_id ||= VCAP.secure_uuid
     end
@@ -46,31 +64,6 @@ module Dea
     def disk_limit_in_bytes
       staging_config["disk_limit_mb"].to_i * 1024 * 1024
     end
-
-    def start
-      staging_promise = Promise.new do |p|
-        logger.info("Starting staging task")
-        logger.info("Setting up temporary directories")
-        logger.info("Working dir in #{workspace.workspace_dir}")
-
-        resolve_staging_setup
-        resolve_staging
-        p.deliver
-      end
-
-      Promise.resolve(staging_promise) do |error, _|
-        finish_task(error)
-      end
-    end
-
-    def finish_task(error)
-      logger.info("Finished staging task")
-      trigger_after_complete(error)
-      raise(error) if error
-    ensure
-      clean_workspace
-    end
-    private :finish_task
 
     def after_setup_callback(&blk)
       @after_setup_callback = blk
@@ -287,10 +280,6 @@ module Dea
       promise_destroy.resolve
     end
 
-    def clean_workspace
-      FileUtils.rm_rf(workspace.workspace_dir)
-    end
-
     def paths_to_bind
       [workspace.workspace_dir, buildpack_dir]
     end
@@ -303,13 +292,6 @@ module Dea
       File.expand_path("../../../buildpacks", __FILE__)
     end
 
-    def cleanup(file)
-      file.close
-      yield
-    ensure
-      File.unlink(file.path) if File.exist?(file.path)
-    end
-
     def staging_environment
       {
         "PLATFORM_CONFIG" => workspace.platform_config_path,
@@ -318,7 +300,7 @@ module Dea
         "LD_LIBRARY_PATH" => staging_config["environment"]["LD_LIBRARY_PATH"],
         "PATH" => "#{staging_config["environment"]["PATH"]}:#{ENV["PATH"]}",
         "BUILDPACK_CACHE" => staging_config["environment"]["BUILDPACK_CACHE"]
-      }.map {|k, v| "#{k}=#{v}"}.join(" ")
+      }.map { |k, v| "#{k}=#{v}" }.join(" ")
     end
 
     def staging_config
