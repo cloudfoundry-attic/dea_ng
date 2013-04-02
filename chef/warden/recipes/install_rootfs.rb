@@ -16,25 +16,26 @@ end
 
 ruby_block "install warden rootfs" do
   block do
-    system "echo '----> Downloading BOSH Stemcell'"
-    system "tar xvf #{WARDEN_STEMCELL_FILE} && tar xvf image"
+    Dir.chdir(Chef::Config[:file_cache_path]) do
+      system "echo '----> Unpacking BOSH Stemcell'"
+      system "tar xvf #{WARDEN_STEMCELL_FILE} && tar xvf image"
 
-    system "echo '----> Mounting BOSH Stemcell'"
-    loop = `kpartx -av root.img`.match /map\s+(.+?)\s+/
-    FileUtils.mkdir_p STEMCELL_MOUNT
-    system "mount /dev/mapper/#{loop[1]} #{STEMCELL_MOUNT}"
+      system "echo '----> Mounting BOSH Stemcell'"
+      partition_name = `kpartx -av root.img`.match(/map\s+(.+?)\s+/)[1]
+      FileUtils.mkdir_p STEMCELL_MOUNT
+      system "mount /dev/mapper/#{partition_name} #{STEMCELL_MOUNT}"
 
-    system "echo '----> Replacing standard Warden RootFS with BOSH Warden RootFS'"
-    FileUtils.rm_rf ROOT_FS if File.exist? ROOT_FS
-    FileUtils.mkdir_p ROOT_FS
-    system "tar xzf #{STEMCELL_MOUNT}/var/vcap/stemcell_base.tar.gz -C #{ROOT_FS}"
+      system "echo '----> Replacing standard Warden RootFS with BOSH Warden RootFS'"
+      FileUtils.rm_rf ROOT_FS
+      FileUtils.mkdir_p ROOT_FS
+      system "tar xzf #{STEMCELL_MOUNT}/var/vcap/stemcell_base.tar.gz -C #{ROOT_FS}"
 
-    system "echo '----> Unmounting BOSH Stemcell'"
-    system "umount #{STEMCELL_MOUNT}"
-    system "kpartx -dv root.img"
-    FileUtils.rm_rf STEMCELL_MOUNT
+      system "echo '----> Unmounting BOSH Stemcell'"
+      system "umount #{STEMCELL_MOUNT}"
+      system "kpartx -dv root.img"
+      FileUtils.rm_rf STEMCELL_MOUNT
+    end
   end
-  action :run
 end
 
 execute "copy resolv.conf from outside container" do
