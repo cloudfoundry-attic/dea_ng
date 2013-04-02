@@ -299,7 +299,8 @@ module Dea
         "LIBRARY_PATH" => staging_config["environment"]["LIBRARY_PATH"],
         "LD_LIBRARY_PATH" => staging_config["environment"]["LD_LIBRARY_PATH"],
         "PATH" => "#{staging_config["environment"]["PATH"]}:#{ENV["PATH"]}",
-        "BUILDPACK_CACHE" => staging_config["environment"]["BUILDPACK_CACHE"]
+        "BUILDPACK_CACHE" => staging_config["environment"]["BUILDPACK_CACHE"],
+        "STAGING_TIMEOUT" => staging_config["max_staging_duration"] || "900"
       }.map { |k, v| "#{k}=#{v}" }.join(" ")
     end
 

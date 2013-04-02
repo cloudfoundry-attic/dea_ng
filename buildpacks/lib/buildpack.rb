@@ -1,3 +1,4 @@
+require "timeout"
 require "pathname"
 require "staging_plugin"
 require "installer"
@@ -11,10 +12,17 @@ module Buildpacks
       Dir.chdir(destination_directory) do
         create_app_directories
         copy_source_files
-        FileUtils.chmod_R(0744, app_dir)
-        build_pack.compile
+
+        compile_with_timeout(staging_timeout)
+
         stage_rails_console if rails_buildpack?
         create_startup_script
+      end
+    end
+
+    def compile_with_timeout(timeout)
+      Timeout.timeout(timeout) do
+        build_pack.compile
       end
     end
 
@@ -102,6 +110,10 @@ BASH
       vars["DATABASE_URL"] = database_uri if rails_buildpack? && bound_database
       vars["MEMORY_LIMIT"] = "#{application_memory}m"
       vars
+    end
+
+    def staging_timeout
+      ENV.fetch("STAGING_TIMEOUT", "900").to_i
     end
   end
 end

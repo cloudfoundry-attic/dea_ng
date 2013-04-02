@@ -229,6 +229,36 @@ fi
     end
   end
 
+  describe "#compile_with_timeout" do
+    let(:duration) { 0 }
+
+    before do
+      subject.stub_chain(:build_pack, :compile) do
+        sleep duration
+      end
+    end
+
+    subject { Buildpacks::Buildpack.new(".", ".", {}) }
+
+    context "when the staging takes too long" do
+      let(:duration) { 1 }
+
+      it "times out" do
+        expect {
+          subject.compile_with_timeout(0.01)
+        }.to raise_error(Timeout::Error)
+      end
+    end
+
+    context "when the staging completes within the timeout" do
+      it "does not time out" do
+        expect {
+          subject.compile_with_timeout(0.1)
+        }.to_not raise_error
+      end
+    end
+  end
+
   def start_script_body(staged_dir)
     start_script = File.join(staged_dir, 'startup')
     start_script.should be_executable_file

@@ -1,3 +1,5 @@
+require "socket"
+
 module BuildpackHelpers
   def fake_buildpack_url(buildpack_name)
     "http://#{hostname}:9999/buildpacks/#{buildpack_name}/.git"
@@ -16,6 +18,6 @@ module BuildpackHelpers
   private
 
   def hostname
-    `hostname -I`.split(" ")[0]
+    Socket.gethostname
   end
 end
