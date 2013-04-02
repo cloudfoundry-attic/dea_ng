@@ -10,8 +10,31 @@ require "dea/staging_task_workspace"
 
 module Dea
   class StagingTask < Task
+    DROPLET_FILE = "droplet.tgz"
+    STAGING_LOG = "staging_task.log"
+
+    WARDEN_UNSTAGED_DIR = "/tmp/unstaged"
+    WARDEN_STAGED_DIR = "/tmp/staged"
+    WARDEN_STAGED_DROPLET = "/tmp/#{DROPLET_FILE}"
+    WARDEN_CACHE = "/tmp/cache"
+    WARDEN_STAGING_LOG = "#{WARDEN_STAGED_DIR}/logs/#{STAGING_LOG}"
+
+    class StagingError < StandardError
+      def initialize(msg)
+        super("Error staging: #{msg}")
+      end
+    end
+
+    class StagingTaskStoppedError < StagingError
+      def initialize
+        super("task stopped")
+      end
+    end
+
     attr_reader :bootstrap, :dir_server, :attributes
     attr_reader :container_path
+    # TODO: implement state behavior for staging tasks
+    attr_reader :state
 
     def initialize(bootstrap, dir_server, attributes, custom_logger=nil)
       super(bootstrap.config, custom_logger)
@@ -66,14 +89,17 @@ module Dea
     end
 
     def stop(&callback)
-      p = Promise.new do
+      stopping_promise = Promise.new do |p|
         logger.info("Stopping staging task")
+
+        @state = "STOPPED"
         promise_stop.resolve if container_handle
         p.deliver
       end
 
-      resolve(p, "stop staging task") do |error, _|
-        trigger_after_stop(error)
+      Promise.resolve(stopping_promise) do |error, _|
+        logger.info("Running resolve")
+        trigger_after_stop(StagingTaskStoppedError.new)
         callback.call(error) unless callback.nil?
       end
     end
@@ -110,6 +136,7 @@ module Dea
     end
 
     def trigger_after_stop(error)
+      logger.info("Triggering after stop")
       @after_stop_callback.call(error) if @after_stop_callback
     end
     private :trigger_after_stop
@@ -159,10 +186,13 @@ module Dea
 
         logger.info("Staging: #{script}")
 
-        # there's a timeout both here and in the container;
-        # give the contained one time to trigger
         Timeout.timeout(staging_timeout + staging_timeout_grace_period) do
-          promise_warden_run(:app, script).resolve
+          begin
+            promise_warden_run(:app, script).resolve
+          rescue Dea::Task::WardenError => e
+            e = StagingTaskStoppedError.new if state == "STOPPED"
+            p.fail(e)
+          end
         end
 
         p.deliver

@@ -14,6 +14,7 @@ Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].map { |f| require f }
 RSpec.configure do |config|
   config.include Helpers
   config.include StagingSpecHelpers, :type => :buildpack
+  config.include IntegrationSpecHelpers, :type => :integration
   config.include BuildpackHelpers, :type => :integration
   config.include DeaHelpers, :type => :integration
 
@@ -29,6 +30,14 @@ RSpec.configure do |config|
     end
 
     Steno.init(Steno::Config.new(steno_config))
+  end
+
+  config.before :type => :integration do
+    start_components
+  end
+
+  config.after :type => :integration do
+    stop_components
   end
 end
 

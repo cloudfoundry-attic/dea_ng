@@ -214,7 +214,7 @@ module Dea
       Promise.new do |p|
         request = ::Warden::Protocol::StopRequest.new
         request.handle = container_handle
-        promise_warden_call(:app, request).resolve
+        promise_warden_call(:stop, request).resolve
 
         p.deliver
       end

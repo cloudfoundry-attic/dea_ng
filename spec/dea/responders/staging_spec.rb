@@ -173,14 +173,14 @@ describe Dea::Responders::Staging do
       end
 
       context "when staging task is stopped" do
-        before { staging_task.stub(:after_stop_callback).and_yield(RuntimeError.new("task interrupted")) }
+        before { staging_task.stub(:after_stop_callback).and_yield(Dea::StagingTask::StagingTaskStoppedError.new) }
 
         it "responds with error message" do
           nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
             "task_id" => "task-id",
             "task_log" => nil,
             "task_streaming_log_url" => nil,
-            "error" => "task interrupted",
+            "error" => "Error staging: task stopped",
           ))
           subject.handle(message)
         end
@@ -275,14 +275,14 @@ describe Dea::Responders::Staging do
         end
 
         context "when stopped" do
-          before { staging_task.stub(:after_stop_callback).and_yield(RuntimeError.new("task interrupted")) }
+          before { staging_task.stub(:after_stop_callback).and_yield(Dea::StagingTask::StagingTaskStoppedError.new) }
 
           it "responds with error message" do
             nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
               "task_id" => "task-id",
               "task_log" => nil,
               "task_streaming_log_url" => nil,
-              "error" => "task interrupted",
+              "error" => "Error staging: task stopped",
             ))
             subject.handle(message)
           end

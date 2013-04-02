@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+while :; do echo 'Compiling app...'; sleep 1; done
+
+exit 0

@@ -627,6 +627,13 @@ module Dea
       @shutdown_processed == true
     end
 
+    def send_staging_stop
+      staging_task_registry.tasks.each do |task|
+        logger.debug "Stopping staging task #{task}"
+        task.stop
+      end
+    end
+
     def shutdown
       if @shutdown_processed
         logger.info("Shutdown already processed, doing nothing.")
@@ -644,9 +651,9 @@ module Dea
       unregister_directory_server_v2
 
       on_pending_empty = proc do
-        logger.info("All instances stopped, exiting.")
-        nats.client.flush
-        terminate
+        logger.info("All instances and staging tasks stopped, exiting.")
+        # Terminate after nats sends all queued messages
+        nats.client.flush { terminate }
       end
 
       pending_stops = Set.new([])

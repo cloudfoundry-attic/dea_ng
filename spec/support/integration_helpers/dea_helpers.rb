@@ -1,3 +1,5 @@
+require "yaml"
+
 module DeaHelpers
   def dea_id
     nats.request("dea.discover", {
@@ -11,6 +13,16 @@ module DeaHelpers
     end
 
     response["available_memory"]
+  end
+
+  def dea_config
+    @config ||= YAML.load(File.read("config/dea.yml"))
+  end
+
+  def dea_pid
+    File.read(dea_config["pid_filename"]).to_i
+  rescue Errno::ENOENT
+    # File was removed
   end
 
   private

@@ -22,6 +22,12 @@ describe Dea::Bootstrap do
     Dea::Bootstrap.new(@config)
   end
 
+  let(:nats_client_mock) do
+    nats_client_mock = mock("nats_client").as_null_object
+    nats_client_mock.stub(:flush) { |&blk| blk.call }
+    nats_client_mock
+  end
+
   describe "logging setup" do
     after { bootstrap.setup_logging }
 
@@ -167,7 +173,6 @@ describe Dea::Bootstrap do
       end
 
       it "stops registered instances" do
-        nats_client_mock = mock("nats_client").as_null_object
         bootstrap.stub(:nats).and_return(nats_client_mock)
 
         bootstrap.instance_registry.each do |instance|
@@ -189,7 +194,6 @@ describe Dea::Bootstrap do
       end
 
       it "stops registered tasks" do
-        nats_client_mock = mock("nats_client").as_null_object
         bootstrap.stub(:nats).and_return(nats_client_mock)
 
         bootstrap.staging_task_registry.each do |task|
@@ -205,9 +209,6 @@ describe Dea::Bootstrap do
     end
 
     it "should stop and flush nats" do
-      nats_client_mock = mock("nats_client")
-      nats_client_mock.should_receive(:flush)
-
       nats_mock = mock("nats")
       nats_mock.should_receive(:stop)
       nats_mock.should_receive(:client).and_return(nats_client_mock)
@@ -220,6 +221,8 @@ describe Dea::Bootstrap do
         message["uris"].size.should == 1
         message["uris"][0].should match /.*\.#{bootstrap.config["domain"]}$/
       end
+
+      nats_client_mock.should_receive(:flush)
 
       bootstrap.stub(:nats).and_return(nats_mock)
 

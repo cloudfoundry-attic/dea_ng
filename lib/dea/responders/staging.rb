@@ -94,7 +94,7 @@ module Dea::Responders
       task.after_stop_callback do |error|
         respond_to_message(message, {
           :task_id => task.task_id,
-          :error => (error.to_s if error)
+          :error => (error.to_s if error),
         })
         staging_task_registry.unregister(task)
       end

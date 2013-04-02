@@ -2,6 +2,10 @@ require "yajl"
 require "timeout"
 
 class NatsHelper
+  def connected?
+    NATS.connected?
+  end
+
   def request(key, data, options={})
     send_message(:request, key, data, options)
   end
@@ -14,7 +18,7 @@ class NatsHelper
     response = nil
 
     NATS.start do
-      yield
+      yield if block_given?
       NATS.subscribe(key) do |resp|
         response = resp
         NATS.stop
