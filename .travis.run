@@ -1,0 +1,5 @@
+set -e -x -u
+./start_warden.sh
+
+bundle install
+bundle exec rspec
