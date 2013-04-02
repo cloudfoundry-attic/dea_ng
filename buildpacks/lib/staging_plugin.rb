@@ -125,7 +125,6 @@ echo "$STARTED" >> #{pidfile_dir}/run.pid
       FileUtils.mkdir_p(app_dir)
       FileUtils.mkdir_p(log_dir)
       FileUtils.mkdir_p(tmp_dir)
-      FileUtils.chmod_R(0744, app_dir)
     end
 
     def create_startup_script
@@ -142,6 +141,7 @@ echo "$STARTED" >> #{pidfile_dir}/run.pid
 
     def copy_source_files(dest=nil)
       system "cp -a #{File.join(source_directory, ".")} #{dest || app_dir}"
+      FileUtils.chmod_R(0744, app_dir)
     end
   end
 end
