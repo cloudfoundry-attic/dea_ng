@@ -6,12 +6,13 @@ RUBY_BUILD_DIR = "tmp/ruby-build"
 PREFIX = "/usr/local"
 RUBY_VERSION = "1.9.3-p392"
 
-execute "install mounting packages" do
-  command "apt-get update && apt-get --yes install wget kpartx"
+%w[wget kpartx].each do |pkg|
+  package(pkg) { action :install }
 end
 
 remote_file "#{Chef::Config[:file_cache_path]}/#{WARDEN_STEMCELL_FILE}" do
   source WARDEN_STEMCELL_URL
+  action :create_if_missing
 end
 
 ruby_block "install warden rootfs" do
