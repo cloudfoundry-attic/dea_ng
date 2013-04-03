@@ -157,9 +157,8 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
         }
       end
 
-      before do
-        setup_fake_buildpack("long_compiling_buildpack")
-      end
+      before { setup_fake_buildpack("long_compiling_buildpack") }
+      after { dea_start }
 
       context "when asynchronous staging is in process" do
         let(:async_staging) { true }

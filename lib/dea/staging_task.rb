@@ -136,7 +136,6 @@ module Dea
     end
 
     def trigger_after_stop(error)
-      logger.info("Triggering after stop")
       @after_stop_callback.call(error) if @after_stop_callback
     end
     private :trigger_after_stop
@@ -186,13 +185,11 @@ module Dea
 
         logger.info("Staging: #{script}")
 
-        Timeout.timeout(staging_timeout + staging_timeout_grace_period) do
-          begin
-            promise_warden_run(:app, script).resolve
-          rescue Dea::Task::WardenError => e
-            e = StagingTaskStoppedError.new if state == "STOPPED"
-            p.fail(e)
-          end
+        begin
+          promise_warden_run(:app, script).resolve
+        rescue Dea::Task::WardenError => error
+          error = StagingTaskStoppedError.new if state == "STOPPED"
+          p.fail(error)
         end
 
         p.deliver

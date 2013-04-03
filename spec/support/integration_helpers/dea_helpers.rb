@@ -25,6 +25,24 @@ module DeaHelpers
     # File was removed
   end
 
+  def dea_start
+    run_cmd("bundle exec bin/dea config/dea.yml 2>&1 >>tmp/logs/dea.log")
+    Timeout::timeout(TIMEOUT) do
+      while true
+        begin
+          response = NatsHelper.new.request("dea.status", { }, :timeout => 1)
+          break if response
+        rescue NATS::ConnectError, Timeout::Error
+          # Ignore because either NATS is not running, or DEA is not running.
+        end
+      end
+    end
+  end
+
+  def dea_stop
+    graceful_kill(dea_pid)
+  end
+
   private
 
   def nats
