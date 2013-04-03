@@ -185,11 +185,13 @@ module Dea
 
         logger.info("Staging: #{script}")
 
-        begin
-          promise_warden_run(:app, script).resolve
-        rescue Dea::Task::WardenError => error
-          error = StagingTaskStoppedError.new if state == "STOPPED"
-          p.fail(error)
+        Timeout.timeout(staging_timeout + staging_timeout_grace_period) do
+          begin
+            promise_warden_run(:app, script).resolve
+          rescue Dea::Task::WardenError => error
+            error = StagingTaskStoppedError.new if state == "STOPPED"
+            p.fail(error)
+          end
         end
 
         p.deliver
