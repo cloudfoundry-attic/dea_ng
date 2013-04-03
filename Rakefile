@@ -9,16 +9,6 @@ reports_dir = File.expand_path("spec_reports")
 
 ENV["CI_REPORTS"] = reports_dir
 
-namespace :ci do
-  desc "Run specs producing results for CI"
-  task "spec" => ["ci:setup:rspec", "^spec"]
-end
-
-desc "Run all examples"
-RSpec::Core::RakeTask.new(:spec) do |t|
-  # See .rspec
-end
-
 task :ensure_coding do
   patterns = [
     /Rakefile$/,

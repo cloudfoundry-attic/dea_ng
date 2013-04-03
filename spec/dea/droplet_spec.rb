@@ -37,6 +37,7 @@ describe Dea::Droplet do
 
       em do
         droplet.destroy { EM.stop }
+        done
       end
 
       File.exist?(droplet.droplet_dirname).should be_false

@@ -32,9 +32,9 @@ RSpec.configure do |config|
     Steno.init(Steno::Config.new(steno_config))
   end
 
-  config.before(:all, :type => :integration) { dea_start }
+  config.before(:all, :type => :integration, :requires_warden => true) { dea_start }
 
-  config.after(:all, :type => :integration) { dea_stop }
+  config.after(:all, :type => :integration, :requires_warden => true) { dea_stop }
 end
 
 STAGING_TEMP = Dir.mktmpdir
