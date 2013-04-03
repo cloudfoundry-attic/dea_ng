@@ -9,9 +9,9 @@ logging:
 local_route: localhost
 
 resources:
-  memory_mb: 256
+  memory_mb: 2048
   memory_overcommit_factor: 2
-  disk_mb: 1024
+  disk_mb: 2048
   disk_overcommit_factor: 2
 
 # The this flag determines whether or not this DEA should only host

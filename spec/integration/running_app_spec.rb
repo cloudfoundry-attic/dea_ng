@@ -7,7 +7,7 @@ describe "Running an app", :type => :integration, :requires_warden => true do
   let(:staged_url) { "http://localhost:9999/staged/sinatra" }
   let(:app_id) { SecureRandom.hex(8) }
   let(:original_memory) do
-    2 * 256 # from config/dea.yml
+    2 * 2048 # from config/dea.yml
   end
 
   before do
