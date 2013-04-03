@@ -27,7 +27,7 @@ module DeaHelpers
 
   def dea_start
     run_cmd("bundle exec bin/dea config/dea.yml 2>&1 >>tmp/logs/dea.log")
-    Timeout::timeout(TIMEOUT) do
+    Timeout::timeout(10) do
       while true
         begin
           response = NatsHelper.new.request("dea.status", { }, :timeout => 1)

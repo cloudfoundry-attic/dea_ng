@@ -1,4 +1,4 @@
-module IntegrationSetupHelpers
+module ProcessHelpers
   def run_cmd(cmd, opts={})
     project_path = File.join(File.dirname(__FILE__), "../../..")
     spawn_opts = {
@@ -30,19 +30,5 @@ module IntegrationSetupHelpers
     true
   rescue Errno::ESRCH
     false
-  end
-end
-
-RSpec.configure do |rspec_config|
-  TIMEOUT = 10
-
-  rspec_config.include IntegrationSetupHelpers, :type => :integration
-
-  rspec_config.before(:all, :type => :integration) do
-    dea_start
-  end
-
-  rspec_config.after(:all, :type => :integration) do
-    dea_stop
   end
 end

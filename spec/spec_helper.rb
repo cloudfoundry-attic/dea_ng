@@ -15,6 +15,7 @@ RSpec.configure do |config|
   config.include Helpers
   config.include StagingSpecHelpers, :type => :buildpack
   config.include BuildpackHelpers, :type => :integration
+  config.include ProcessHelpers, :type => :integration
   config.include DeaHelpers, :type => :integration
 
   config.before do
@@ -30,6 +31,10 @@ RSpec.configure do |config|
 
     Steno.init(Steno::Config.new(steno_config))
   end
+
+  config.before(:all, :type => :integration) { dea_start }
+
+  config.after(:all, :type => :integration) { dea_stop }
 end
 
 STAGING_TEMP = Dir.mktmpdir
