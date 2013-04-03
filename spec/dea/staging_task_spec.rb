@@ -13,6 +13,8 @@ describe Dea::StagingTask do
     staging.workspace.workspace_dir # force workspace creation
   end
 
+  let(:max_staging_duration) { 900 }
+
   let(:config) do
     {
       "base_dir" => Dir.mktmpdir("base_dir"),
@@ -23,7 +25,8 @@ describe Dea::StagingTask do
         "environment" => {},
         "platform_config" => {},
         "memory_limit_mb" => memory_limit_mb,
-        "disk_limit_mb" => disk_limit_mb
+        "disk_limit_mb" => disk_limit_mb,
+        "max_staging_duration" => max_staging_duration
       },
     }
   end
@@ -52,6 +55,38 @@ describe Dea::StagingTask do
       end
 
       staging.promise_stage.resolve
+    end
+
+    describe "timeouts" do
+      let(:max_staging_duration) { 0.5 }
+
+      context "when the staging times out past the grace period" do
+        it "fails with a TimeoutError" do
+          staging.stub(:staging_timeout_grace_period) { 0.5 }
+
+          staging.should_receive(:promise_warden_run) do
+            promise = mock("promise")
+            promise.should_receive(:resolve) { sleep 2 }
+            promise
+          end
+
+          expect { staging.promise_stage.resolve }.to raise_error(TimeoutError)
+        end
+      end
+
+      context "when the staging finishes within the grace period" do
+        it "does not time out" do
+          staging.stub(:staging_timeout_grace_period) { 0.5 }
+
+          staging.should_receive(:promise_warden_run) do
+            promise = mock("promise")
+            promise.should_receive(:resolve) { sleep 0.75 }
+            promise
+          end
+
+          expect { staging.promise_stage.resolve }.to_not raise_error
+        end
+      end
     end
   end
 
@@ -93,7 +128,7 @@ describe Dea::StagingTask do
     let(:url) { staging.streaming_log_url }
 
     it "returns url for staging log" do
-      url.should include("/staging_tasks/#{staging.task_id}/file_path", )
+      url.should include("/staging_tasks/#{staging.task_id}/file_path",)
     end
 
     it "includes path to staging task output" do
@@ -174,8 +209,8 @@ describe Dea::StagingTask do
   end
 
   describe "#start" do
-    let(:successful_promise) { Dea::Promise.new {|p| p.deliver } }
-    let(:failing_promise) { Dea::Promise.new {|p| raise "failing promise" } }
+    let(:successful_promise) { Dea::Promise.new { |p| p.deliver } }
+    let(:failing_promise) { Dea::Promise.new { |p| raise "failing promise" } }
 
     def stub_staging_setup
       staging.stub(:prepare_workspace)
@@ -438,7 +473,7 @@ describe Dea::StagingTask do
         File.stub(:chmod)
         Download.any_instance.stub(:download!).and_yield(nil, "/path/to/file")
       end
-      its(:result) { should == [:deliver, nil]}
+      its(:result) { should == [:deliver, nil] }
 
       it "should rename the file" do
         File.should_receive(:rename).with("/path/to/file", "#{workspace_dir}/app.zip")
@@ -484,7 +519,7 @@ describe Dea::StagingTask do
 
     context "when there is no error" do
       before { Upload.any_instance.stub(:upload!).and_yield(nil) }
-      its(:result) { should == [:deliver, nil]}
+      its(:result) { should == [:deliver, nil] }
     end
   end
 

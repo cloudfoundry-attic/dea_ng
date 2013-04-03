@@ -127,7 +127,13 @@ module Dea
         ].join(" ")
 
         logger.info("Staging: #{script}")
-        promise_warden_run(:app, script).resolve
+
+        # there's a timeout both here and in the container;
+        # give the contained one time to trigger
+        Timeout.timeout(staging_timeout + staging_timeout_grace_period) do
+          promise_warden_run(:app, script).resolve
+        end
+
         p.deliver
       end
     end
@@ -300,8 +306,16 @@ module Dea
         "LD_LIBRARY_PATH" => staging_config["environment"]["LD_LIBRARY_PATH"],
         "PATH" => "#{staging_config["environment"]["PATH"]}:#{ENV["PATH"]}",
         "BUILDPACK_CACHE" => staging_config["environment"]["BUILDPACK_CACHE"],
-        "STAGING_TIMEOUT" => staging_config["max_staging_duration"] || "900"
+        "STAGING_TIMEOUT" => staging_timeout
       }.map { |k, v| "#{k}=#{v}" }.join(" ")
+    end
+
+    def staging_timeout
+      (staging_config["max_staging_duration"] || "900").to_f
+    end
+
+    def staging_timeout_grace_period
+      60
     end
 
     def staging_config
