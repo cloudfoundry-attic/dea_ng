@@ -196,7 +196,7 @@ describe Dea do
       expected_delay = (Dea::Bootstrap::DISCOVER_DELAY_MS_MAX.to_f / 1000)
 
       verify_hello_message(bootstrap, hello)
-      actual_delay.should be_within(0.05).of(expected_delay)
+      actual_delay.should be_within(0.1).of(expected_delay)
     end
   end
 
