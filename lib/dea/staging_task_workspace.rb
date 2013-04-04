@@ -4,6 +4,7 @@ module Dea
   class StagingTaskWorkspace
     DROPLET_FILE = "droplet.tgz"
     STAGING_LOG = "staging_task.log"
+    STAGING_INFO = "staging_info.yml"
 
     def initialize(base_dir)
       @base_dir = base_dir
@@ -46,6 +47,10 @@ module Dea
       "/tmp/staged/logs/#{STAGING_LOG}"
     end
 
+    def warden_staging_info
+      "/tmp/#{STAGING_INFO}"
+    end
+
     def staged_droplet_path
       File.join(staged_droplet_dir, DROPLET_FILE)
     end
@@ -64,6 +69,10 @@ module Dea
 
     def platform_config_path
       File.join(workspace_dir, "platform_config")
+    end
+
+    def staging_info_path
+      File.join(workspace_dir, STAGING_INFO)
     end
 
     def downloaded_droplet_path

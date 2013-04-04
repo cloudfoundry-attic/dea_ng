@@ -83,6 +83,18 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
         ]
         end
       end
+
+      it "reports back detected buildpack" do
+        response = nats.request("staging", {
+          "async" => false,
+          "app_id" => "some-app-id",
+          "properties" => {},
+          "download_uri" => unstaged_url,
+          "upload_uri" => staged_url
+        })
+
+        response["detected_buildpack"].should eq("Ruby/Rack")
+      end
     end
 
     context "when a buildpack url is specified" do

@@ -84,7 +84,8 @@ module Dea::Responders
         respond_to_message(message, {
           :task_id => task.task_id,
           :task_log => task.task_log,
-          :error => (error.to_s if error)
+          :error => (error.to_s if error),
+          :detected_buildpack => task.detected_buildpack
         })
         staging_task_registry.unregister(task)
       end
@@ -105,6 +106,7 @@ module Dea::Responders
         "task_id" => params[:task_id],
         "task_log" => params[:task_log],
         "task_streaming_log_url" => params[:streaming_log_url],
+        "detected_buildpack" => params[:detected_buildpack],
         "error" => params[:error],
       )
     end

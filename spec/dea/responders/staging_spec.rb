@@ -92,7 +92,12 @@ describe Dea::Responders::Staging do
   end
 
   describe "#handle" do
-    let(:staging_task) { mock(:staging_task, :task_id => "task-id", :task_log => "task-log") }
+    let(:staging_task) {
+      mock(:staging_task,
+        :task_id => "task-id",
+        :task_log => "task-log",
+        :detected_buildpack => nil)
+    }
 
     before do
       Dea::StagingTask.stub(:new => staging_task)
@@ -141,13 +146,17 @@ describe Dea::Responders::Staging do
       it_registers_task
 
       context "when staging is successful" do
-        before { staging_task.stub(:after_complete_callback).and_yield(nil) }
+        before do
+          staging_task.stub(:after_complete_callback).and_yield(nil)
+          staging_task.stub(:detected_buildpack) { "Ruby/Rack" }
+        end
 
         it "responds with successful message" do
           nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
             "task_id" => "task-id",
             "task_log" => "task-log",
             "task_streaming_log_url" => nil,
+            "detected_buildpack" => "Ruby/Rack",
             "error" => nil,
           ))
           subject.handle(message)
@@ -164,6 +173,7 @@ describe Dea::Responders::Staging do
             "task_id" => "task-id",
             "task_log" => "task-log",
             "task_streaming_log_url" => nil,
+            "detected_buildpack" => nil,
             "error" => "error-description",
           ))
           subject.handle(message)
@@ -180,6 +190,7 @@ describe Dea::Responders::Staging do
             "task_id" => "task-id",
             "task_log" => nil,
             "task_streaming_log_url" => nil,
+            "detected_buildpack" => nil,
             "error" => "Error staging: task stopped",
           ))
           subject.handle(message)
@@ -218,6 +229,7 @@ describe Dea::Responders::Staging do
               "task_id" => "task-id",
               "task_log" => nil,
               "task_streaming_log_url" => "streaming-log-url",
+              "detected_buildpack" => nil,
               "error" => nil
             ))
             subject.handle(message)
@@ -232,6 +244,7 @@ describe Dea::Responders::Staging do
               "task_id" => "task-id",
               "task_log" => nil,
               "task_streaming_log_url" => "streaming-log-url",
+              "detected_buildpack" => nil,
               "error" => "error-description",
             ))
             subject.handle(message)
@@ -250,6 +263,7 @@ describe Dea::Responders::Staging do
               "task_id" => "task-id",
               "task_log" => "task-log",
               "task_streaming_log_url" => nil,
+              "detected_buildpack" => nil,
               "error" => nil
             ))
             subject.handle(message)
@@ -266,6 +280,7 @@ describe Dea::Responders::Staging do
               "task_id" => "task-id",
               "task_log" => "task-log",
               "task_streaming_log_url" => nil,
+              "detected_buildpack" => nil,
               "error" => "error-description",
             ))
             subject.handle(message)
@@ -282,6 +297,7 @@ describe Dea::Responders::Staging do
               "task_id" => "task-id",
               "task_log" => nil,
               "task_streaming_log_url" => nil,
+              "detected_buildpack" => nil,
               "error" => "Error staging: task stopped",
             ))
             subject.handle(message)

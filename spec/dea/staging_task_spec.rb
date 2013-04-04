@@ -147,6 +147,44 @@ describe Dea::StagingTask do
     end
   end
 
+  describe "#task_info" do
+    context "when staging info file exists" do
+      before do
+        contents = <<YAML
+---
+detected_buildpack: Ruby/Rack
+YAML
+        staging_info = File.join(workspace_dir, "staging_info.yml")
+        File.open(staging_info, 'w') {|f| f.write(contents) }
+      end
+
+      it "parses staging info file" do
+        staging.task_info["detected_buildpack"].should eq("Ruby/Rack")
+      end
+    end
+
+    context "when staging info file does not exist" do
+      it "returns empty hash if" do
+        staging.task_info.should be_empty
+      end
+    end
+  end
+
+  describe "#detected_buildpack" do
+    before do
+      contents = <<YAML
+---
+detected_buildpack: Ruby/Rack
+YAML
+      staging_info = File.join(workspace_dir, "staging_info.yml")
+      File.open(staging_info, 'w') {|f| f.write(contents) }
+    end
+
+    it "returns the detected buildpack" do
+      staging.detected_buildpack.should eq("Ruby/Rack")
+    end
+  end
+
   describe "#streaming_log_url" do
     let(:url) { staging.streaming_log_url }
 
@@ -178,6 +216,10 @@ describe Dea::StagingTask do
       it "includes the specified environment config" do
         environment_config = attributes["properties"]
         expect(subject["environment"]).to eq(environment_config)
+      end
+
+      it "includes the staging info path" do
+        expect(subject["staging_info_path"]).to eq("/tmp/staging_info.yml")
       end
     end
 
@@ -251,6 +293,7 @@ describe Dea::StagingTask do
       staging.stub(:promise_copy_out).and_return(successful_promise)
       staging.stub(:promise_app_upload).and_return(successful_promise)
       staging.stub(:promise_log_upload_finished).and_return(successful_promise)
+      staging.stub(:promise_staging_info).and_return(successful_promise)
       staging.stub(:promise_task_log).and_return(successful_promise)
       staging.stub(:promise_destroy).and_return(successful_promise)
     end
@@ -385,7 +428,7 @@ describe Dea::StagingTask do
     end
 
     it "unpacks, stages, repacks, copies files out of container, upload staged app and then destroys" do
-      %w(unpack_app stage pack_app copy_out log_upload_started app_upload log_upload_finished task_log destroy).each do |step|
+      %w(unpack_app stage pack_app copy_out log_upload_started app_upload log_upload_finished staging_info task_log destroy).each do |step|
         staging.should_receive("promise_#{step}").ordered.and_return(successful_promise)
       end
 
@@ -606,6 +649,19 @@ describe Dea::StagingTask do
     it "should write the staging log to the main logger" do
       logger.should_receive(:info).with(anything)
       staging.should_receive(:copy_out_request).with("/tmp/staged/logs/staging_task.log", /#{workspace_dir}/)
+      subject
+    end
+  end
+
+  describe "#promise_staging_info" do
+    subject do
+      promise = staging.promise_staging_info
+      promise.resolve
+      promise
+    end
+
+    it "should send copying out request" do
+      staging.should_receive(:copy_out_request).with("/tmp/staging_info.yml", /#{workspace_dir}/)
       subject
     end
   end

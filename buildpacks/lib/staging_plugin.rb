@@ -4,7 +4,7 @@ require 'tmpdir'
 
 module Buildpacks
   class StagingPlugin
-    attr_accessor :source_directory, :destination_directory, :environment_json
+    attr_accessor :source_directory, :destination_directory, :staging_info_path, :environment_json
 
     def self.platform_config
       YAML.load_file(ENV['PLATFORM_CONFIG'])
@@ -25,13 +25,14 @@ module Buildpacks
     def self.from_file(file_path)
       config = YAML.load_file(file_path)
       validate_arguments!(config["source_dir"], config["dest_dir"], config["environment"])
-      new(config["source_dir"], config["dest_dir"], config["environment"])
+      new(config)
     end
 
-    def initialize(source_directory, destination_directory, environment = {})
-      @source_directory = File.expand_path(source_directory)
-      @destination_directory = File.expand_path(destination_directory)
-      @environment = environment
+    def initialize(config = {})
+      @source_directory = File.expand_path(config["source_dir"])
+      @destination_directory = File.expand_path(config["dest_dir"])
+      @environment = config["environment"]
+      @staging_info_path = config["staging_info_path"]
     end
 
     def app_dir

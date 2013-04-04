@@ -17,6 +17,7 @@ module Buildpacks
 
         stage_rails_console if rails_buildpack?
         create_startup_script
+        save_buildpack_info
       end
     end
 
@@ -100,6 +101,14 @@ BASH
 
     def release_info
       build_pack.release_info
+    end
+
+    def save_buildpack_info
+      buildpack_info = {
+        "detected_buildpack"  => @build_pack.name
+      }
+
+      File.open(staging_info_path, 'w') { |f| YAML.dump(buildpack_info, f) }
     end
 
     def environment_variables

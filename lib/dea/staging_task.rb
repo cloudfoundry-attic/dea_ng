@@ -80,6 +80,14 @@ module Dea
       @dir_server.staging_task_file_url_for(task_id, workspace.warden_staging_log)
     end
 
+    def task_info
+      File.exists?(workspace.staging_info_path) ? YAML.load_file(workspace.staging_info_path) : {}
+    end
+
+    def detected_buildpack
+      task_info["detected_buildpack"]
+    end
+
     def memory_limit_in_bytes
       staging_config["memory_limit_mb"].to_i * 1024 * 1024
     end
@@ -142,9 +150,10 @@ module Dea
 
     def prepare_workspace
       plugin_config = {
-        "source_dir"  => workspace.warden_unstaged_dir,
-        "dest_dir"    => workspace.warden_staged_dir,
-        "environment" => attributes["properties"]
+        "source_dir" => workspace.warden_unstaged_dir,
+        "dest_dir" => workspace.warden_staged_dir,
+        "environment" => attributes["properties"],
+        "staging_info_path" => workspace.warden_staging_info
       }
 
       platform_config = staging_config["platform_config"].merge("cache" => workspace.warden_cache)
@@ -202,6 +211,14 @@ module Dea
       Promise.new do |p|
         copy_out_request(workspace.warden_staging_log, File.dirname(workspace.staging_log_path))
         logger.info "Staging task log: #{task_log}"
+        p.deliver
+      end
+    end
+
+    def promise_staging_info
+      Promise.new do |p|
+        copy_out_request(workspace.warden_staging_info, File.dirname(workspace.staging_info_path))
+        logger.info "Staging task info: #{task_info}"
         p.deliver
       end
     end
@@ -339,7 +356,8 @@ module Dea
         promise_copy_out,
         promise_log_upload_started,
         promise_app_upload,
-        promise_log_upload_finished
+        promise_log_upload_finished,
+        promise_staging_info
       )
     ensure
       promise_task_log.resolve
