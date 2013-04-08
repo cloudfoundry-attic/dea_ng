@@ -33,8 +33,6 @@ module Dea
 
     attr_reader :bootstrap, :dir_server, :attributes
     attr_reader :container_path
-    # TODO: implement state behavior for staging tasks
-    attr_reader :state
 
     def initialize(bootstrap, dir_server, attributes, custom_logger=nil)
       super(bootstrap.config, custom_logger)
@@ -100,26 +98,16 @@ module Dea
       stopping_promise = Promise.new do |p|
         logger.info("Stopping staging task")
 
-        @state = "STOPPED"
+        @after_complete_callback = nil # Unregister after complete callback
         promise_stop.resolve if container_handle
         p.deliver
       end
 
       Promise.resolve(stopping_promise) do |error, _|
-        logger.info("Running resolve")
         trigger_after_stop(StagingTaskStoppedError.new)
         callback.call(error) unless callback.nil?
       end
     end
-
-    def finish_task(error)
-      logger.info("Finished staging task")
-      trigger_after_complete(error)
-      raise(error) if error
-    ensure
-      clean_workspace
-    end
-    private :finish_task
 
     def after_setup_callback(&blk)
       @after_setup_callback = blk
@@ -195,12 +183,7 @@ module Dea
         logger.info("Staging: #{script}")
 
         Timeout.timeout(staging_timeout + staging_timeout_grace_period) do
-          begin
-            promise_warden_run(:app, script).resolve
-          rescue Dea::Task::WardenError => error
-            error = StagingTaskStoppedError.new if state == "STOPPED"
-            p.fail(error)
-          end
+          promise_warden_run(:app, script).resolve
         end
 
         p.deliver

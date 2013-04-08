@@ -28,6 +28,27 @@ class NatsHelper
     Yajl::Parser.parse(response) if response
   end
 
+  def with_async_staging(message, first_response_blk, second_response_blk)
+    response_number = 0
+    NATS.start do
+      sid = NATS.request("staging", message, :max => 2) do |response|
+        response_number += 1
+        response = Yajl::Parser.parse(response)
+        if response_number == 1
+          first_response_blk.call(response)
+        elsif response_number == 2
+          NATS.stop
+          second_response_blk.call(response)
+        end
+      end
+
+      NATS.timeout(sid, 10, :expected => 2) do
+        NATS.stop
+        fail "Timeout getting staging response"
+      end
+    end
+  end
+
   private
 
   def send_message(method, key, data, options)

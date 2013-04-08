@@ -2,6 +2,8 @@ require "spec_helper"
 
 describe "Staging an app", :type => :integration, :requires_warden => true do
   let(:nats) { NatsHelper.new }
+  let(:unstaged_url) { "http://localhost:9999/unstaged/sinatra" }
+  let(:staged_url) { "http://localhost:9999/staged/sinatra" }
 
   describe "staging a simple nodejs app" do
     let(:unstaged_url) { "http://localhost:9999/unstaged/app_with_procfile" }
@@ -54,9 +56,6 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
   end
 
   describe "staging a simple sinatra app" do
-    let(:unstaged_url) { "http://localhost:9999/unstaged/sinatra" }
-    let(:staged_url) { "http://localhost:9999/staged/sinatra" }
-
     context "when the DEA has to detect the buildback" do
       it "packages a ruby binary and the app's gems" do
         response = nats.request("staging", {
@@ -153,23 +152,26 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
         end
       end
     end
+  end
+
+  describe "running staging tasks" do
+    let(:buildpack_url) { fake_buildpack_url("long_compiling_buildpack") }
+    let(:async_staging) { false }
+    let(:start_staging_message) do
+      {
+        "async" => async_staging,
+        "app_id" => "some-app-id",
+        "properties" => {
+          "buildpack" => buildpack_url
+        },
+        "download_uri" => unstaged_url,
+        "upload_uri" => staged_url
+      }
+    end
+
+    before { setup_fake_buildpack("long_compiling_buildpack") }
 
     context "when the shutdown started" do
-      let(:buildpack_url) { fake_buildpack_url("long_compiling_buildpack") }
-      let(:async_staging) { false }
-      let(:start_staging_message) do
-        {
-          "async" => async_staging,
-          "app_id" => "some-app-id",
-          "properties" => {
-            "buildpack" => buildpack_url
-          },
-          "download_uri" => unstaged_url,
-          "upload_uri" => staged_url
-        }
-      end
-
-      before { setup_fake_buildpack("long_compiling_buildpack") }
       after { dea_start }
 
       context "when asynchronous staging is in process" do
@@ -177,24 +179,18 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
         it "stops staging tasks" do
           message = Yajl::Encoder.encode(start_staging_message)
           task_id = nil
-          NATS.start do
-            sid = NATS.request("staging", message, :max => 3) do |response|
-              response = Yajl::Parser.parse(response)
-              # Send SHUTDOWN after first response
-              if response["task_streaming_log_url"]
-                task_id = response["task_id"]
-                Process.kill("USR2", dea_pid)
-              end
 
-              if response["error"]
-                NATS.stop do
-                  response["error"].should eq("Error staging: task stopped")
-                  response["task_id"].should eq(task_id)
-                end
-              end
-            end
-            NATS.timeout(sid, 10, :expected => 2) { raise "Staging task did not stop within timeout" }
+          first_response = lambda do |response|
+            task_id = response["task_id"]
+            Process.kill("USR2", dea_pid)
           end
+
+          second_response = lambda do |response|
+            response["error"].should eq("Error staging: task stopped")
+            response["task_id"].should eq(task_id)
+          end
+
+          nats.with_async_staging message, first_response, second_response
         end
       end
 
@@ -212,6 +208,24 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
             NATS.timeout(sid, 10) { raise "Staging task did not stopped within timeout" }
           end
         end
+      end
+    end
+
+    context "when stop request is published" do
+      let(:async_staging) { true }
+
+      it "stops staging task" do
+        message = Yajl::Encoder.encode(start_staging_message)
+
+        first_response = lambda do |_|
+          NATS.publish("staging.stop",  Yajl::Encoder.encode({"app_id" => "some-app-id"}))
+        end
+
+        second_response = lambda do |response|
+          response["error"].should eq("Error staging: task stopped")
+        end
+
+        nats.with_async_staging message, first_response, second_response
       end
     end
   end

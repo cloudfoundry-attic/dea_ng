@@ -11,6 +11,13 @@ describe Dea::Responders::Staging do
   let(:dea_id) { "unique-dea-id" }
   let(:bootstrap) { mock(:bootstrap, :config => config) }
   let(:staging_task_registry) { Dea::StagingTaskRegistry.new }
+  let(:staging_task) do
+    mock(:staging_task,
+      :attributes => { "app_id" => "some_app_id" },
+      :task_id => "task-id",
+      :task_log => "task-log",
+      :detected_buildpack => nil)
+  end
   let(:dir_server) { Dea::DirectoryServerV2.new("domain", 1234, config) }
   let(:config) { {"directory_server" => {"file_api_port" => 2345}} }
 
@@ -42,9 +49,16 @@ describe Dea::Responders::Staging do
         nats_mock.publish("staging.#{dea_id}.start")
       end
 
+      it "subscribes to 'staging.stop' message" do
+        subject.start
+        subject.should_receive(:handle_stop)
+        nats_mock.publish("staging.stop")
+      end
+
       it "subscribes to staging message as part of the queue group" do
         nats_mock.should_receive(:subscribe).with("staging", :queue => "staging")
         nats_mock.should_receive(:subscribe).with("staging.#{dea_id}.start", {})
+        nats_mock.should_receive(:subscribe).with("staging.stop", {})
         subject.start
       end
 
@@ -53,6 +67,8 @@ describe Dea::Responders::Staging do
           "staging", hash_including(:do_not_track_subscription => true))
         nats.should_receive(:subscribe).with(
           "staging.#{dea_id}.start", hash_including(:do_not_track_subscription => true))
+        nats.should_receive(:subscribe).with(
+          "staging.stop", hash_including(:do_not_track_subscription => true))
         subject.start
       end
     end
@@ -71,6 +87,15 @@ describe Dea::Responders::Staging do
         subject.stop
         subject.should_not_receive(:handle)
         nats_mock.publish("staging")
+      end
+
+      it "unsubscribes from 'staging.stop' message" do
+        subject.should_receive(:handle_stop) # sanity check
+        nats_mock.publish("staging.stop")
+
+        subject.stop
+        subject.should_not_receive(:handle_stop)
+        nats_mock.publish("staging.stop")
       end
 
       it "unsubscribes from 'staging.<dea-id>.start' message" do
@@ -92,13 +117,6 @@ describe Dea::Responders::Staging do
   end
 
   describe "#handle" do
-    let(:staging_task) {
-      mock(:staging_task,
-        :task_id => "task-id",
-        :task_log => "task-log",
-        :detected_buildpack => nil)
-    }
-
     before do
       Dea::StagingTask.stub(:new => staging_task)
       staging_task.stub(:after_setup_callback)
@@ -306,6 +324,19 @@ describe Dea::Responders::Staging do
           it_unregisters_task
         end
       end
+    end
+  end
+
+  describe "#handle_stop" do
+    let(:message) { mock(:message, :data => {"app_id" => "some_app_id"}) }
+
+    before do
+      staging_task_registry.register(staging_task)
+    end
+
+    it "stops all staging tasks with the given id" do
+      staging_task.should_receive(:stop)
+      subject.handle_stop(message)
     end
   end
 end

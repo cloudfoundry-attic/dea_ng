@@ -66,20 +66,6 @@ describe Dea::StagingTask do
       staging.promise_stage.resolve
     end
 
-    context "when task is stopped and received a warden error" do
-      before do
-        staging.stub(:state) { "STOPPED" }
-      end
-
-      it "initiates collection of task log if" do
-        staging.should_receive(:staging_environment).and_return(staging_env)
-
-        staging.should_receive(:promise_warden_run) { raise Dea::Task::WardenError.new("Script exited with status 255") }
-
-        expect { staging.promise_stage.resolve }.to raise_error Dea::StagingTask::StagingTaskStoppedError
-      end
-    end
-
     describe "timeouts" do
       let(:max_staging_duration) { 0.5 }
 
@@ -463,6 +449,15 @@ YAML
     it "triggers after stop callback" do
       staging.should_receive(:trigger_after_stop)
       staging.stop
+    end
+
+    it "unregisters after complete callback" do
+      staging.stub(:resolve_staging_setup)
+      # Emulate staging stop while running staging
+      staging.stub(:resolve_staging) { staging.stop }
+
+      staging.should_not_receive(:after_complete_callback)
+      staging.start
     end
   end
 

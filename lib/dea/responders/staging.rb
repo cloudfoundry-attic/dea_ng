@@ -22,11 +22,13 @@ module Dea::Responders
       return unless configured_to_stage?
       subscribe_to_staging
       subscribe_to_dea_specific_staging
+      subscribe_to_staging_stop
     end
 
     def stop
       unsubscribe_from_staging
       unsubscribe_from_dea_specific_staging
+      unsubscribe_from_staging_stop
     end
 
     def handle(message)
@@ -43,6 +45,14 @@ module Dea::Responders
       notify_stop(message, task)
 
       task.start
+    end
+
+    def handle_stop(message)
+      staging_task_registry.each do |task|
+        if message.data["app_id"] == task.attributes["app_id"]
+          task.stop
+        end
+      end
     end
 
     private
@@ -67,6 +77,15 @@ module Dea::Responders
 
     def unsubscribe_from_dea_specific_staging
       nats.unsubscribe(@dea_specified_staging_sid) if @dea_specified_staging_sid
+    end
+
+    def subscribe_to_staging_stop
+      options = {:do_not_track_subscription => true}
+      @staging_stop_sid = nats.subscribe("staging.stop", options) { |message| handle_stop(message) }
+    end
+
+    def unsubscribe_from_staging_stop
+      nats.unsubscribe(@staging_stop_sid) if @staging_stop_sid
     end
 
     def notify_setup_completion(message, task)
