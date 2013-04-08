@@ -52,9 +52,9 @@ describe Dea::ResourceManager do
 
   let(:staging_tasks) do
     [
-      Dea::StagingTask.new(bootstrap, dir_server, {}),
-      Dea::StagingTask.new(bootstrap, dir_server, {}),
-      Dea::StagingTask.new(bootstrap, dir_server, {})
+      Dea::StagingTask.new(bootstrap, dir_server, valid_staging_attributes),
+      Dea::StagingTask.new(bootstrap, dir_server, valid_staging_attributes),
+      Dea::StagingTask.new(bootstrap, dir_server, valid_staging_attributes)
     ]
   end
 

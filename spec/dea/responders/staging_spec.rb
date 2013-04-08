@@ -13,7 +13,7 @@ describe Dea::Responders::Staging do
   let(:staging_task_registry) { Dea::StagingTaskRegistry.new }
   let(:staging_task) do
     mock(:staging_task,
-      :attributes => { "app_id" => "some_app_id" },
+      :attributes => {"app_id" => "some_app_id"},
       :task_id => "task-id",
       :task_log => "task-log",
       :detected_buildpack => nil)

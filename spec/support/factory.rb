@@ -48,6 +48,7 @@ module Helpers
         }
       },
       "app_id" => "app-guid",
+      "task_id" => VCAP.secure_uuid,
       "download_uri" => "http://127.0.0.1:12346/download",
       "upload_uri" => "http://127.0.0.1:12346/upload",
       "staged_path" => ""

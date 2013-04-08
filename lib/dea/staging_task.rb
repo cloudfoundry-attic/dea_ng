@@ -31,8 +31,7 @@ module Dea
       end
     end
 
-    attr_reader :bootstrap, :dir_server, :attributes
-    attr_reader :container_path
+    attr_reader :bootstrap, :dir_server, :attributes, :container_path, :task_id
 
     def initialize(bootstrap, dir_server, attributes, custom_logger=nil)
       super(bootstrap.config, custom_logger)
@@ -40,6 +39,7 @@ module Dea
       @bootstrap = bootstrap
       @dir_server = dir_server
       @attributes = attributes.dup
+      @task_id = attributes["task_id"]
 
       logger.user_data[:task_id] = task_id
     end
@@ -60,10 +60,6 @@ module Dea
           FileUtils.rm_rf(workspace.workspace_dir)
         end
       end
-    end
-
-    def task_id
-      @task_id ||= VCAP.secure_uuid
     end
 
     def workspace

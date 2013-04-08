@@ -15,7 +15,7 @@ describe Dea::DirectoryServerV2::StagingTasks do
   let(:directory_server) { Dea::DirectoryServerV2.new("example.org", 1234, {}) }
 
   let(:staging_task_registry) { Dea::StagingTaskRegistry.new }
-  let(:staging_task) { Dea::StagingTask.new(bootstrap, directory_server, {}) }
+  let(:staging_task) { Dea::StagingTask.new(bootstrap, directory_server, valid_staging_attributes) }
 
   before { Dea::DirectoryServerV2::StagingTasks.configure(directory_server, staging_task_registry, 1) }
 
