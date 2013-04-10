@@ -39,7 +39,7 @@ staging:
   disk_limit_mb: 2048
   max_staging_duration: 900 # 15 minutes
 
-dea_ruby: /usr/local/ruby/bin/ruby
+dea_ruby: /usr/bin/ruby
 
 # For Go-based directory server
 directory_server:
