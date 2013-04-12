@@ -11,11 +11,11 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
 
     it "packages up the node dependencies and stages the app properly" do
       response = nats.request("staging", {
-          "async" => false,
-          "app_id" => "some-node-app-id",
-          "properties" => {},
-          "download_uri" => unstaged_url,
-          "upload_uri" => staged_url
+        "async" => false,
+        "app_id" => "some-node-app-id",
+        "properties" => {},
+        "download_uri" => unstaged_url,
+        "upload_uri" => staged_url
       })
 
       expect(response["task_log"]).to include("Resolving engine versions")
@@ -26,11 +26,11 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
       expect(response["error"]).to be_nil
 
       download_tgz(staged_url) do |dir|
-        entries = Dir.entries(dir)
-        expect(entries).to include("nodejs-0.10.1.tgz")
-        expect(entries).to include("scons-1.2.0.tgz")
-        expect(entries).to include("npm-1.2.15.tgz")
-        expect(entries).to include("nodejs-0.4.7.tgz")
+        entries = Dir.entries(dir).join(" ")
+        expect(entries).to match(/nodejs-0\.10\.\d+\.tgz/)
+        expect(entries).to match(/scons-1\.2\.\d+\.tgz/)
+        expect(entries).to match(/npm-1\.2.\d+\.tgz/)
+        expect(entries).to match(/nodejs-0\.4\.\d+\.tgz/)
       end
     end
 
@@ -72,14 +72,14 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
         download_tgz(staged_url) do |dir|
           Dir.entries("#{dir}/app/vendor").should include("ruby-1.9.2")
           Dir.entries("#{dir}/app/vendor/bundle/ruby/1.9.1/gems").should =~ %w[
-          .
-          ..
-          bundler-1.3.2
-          rack-1.5.1
-          rack-protection-1.3.2
-          sinatra-1.3.4
-          tilt-1.3.3
-        ]
+            .
+            ..
+            bundler-1.3.2
+            rack-1.5.1
+            rack-protection-1.3.2
+            sinatra-1.3.4
+            tilt-1.3.3
+          ]
         end
       end
 
