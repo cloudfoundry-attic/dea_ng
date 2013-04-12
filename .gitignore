@@ -6,6 +6,7 @@ spec_reports
 .rvmrc
 chef/cookbooks
 .vagrant
-tmp
 dump.rdb
+tmp/**/*
+!.gitkeep
 spec/fixtures/**/.git
