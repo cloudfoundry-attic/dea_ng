@@ -8,6 +8,6 @@ exit_code=$?
 
 for job in `jobs -p`; do
   kill $job
-end
+done
 
 exit $exit_code
