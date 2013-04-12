@@ -10,3 +10,4 @@ dump.rdb
 tmp/**/*
 !.gitkeep
 spec/fixtures/**/.git
+chef/tmp
