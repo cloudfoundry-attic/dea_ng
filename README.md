@@ -44,21 +44,27 @@ validity of the URL with the DEA before serving it.
 When contributing to DEA it's useful to run it as a standalone
 component. Here is how to do that:
 
-- `librarian-chef install` from `chef` director
+```shell
+# create your test VM
+rake test_vm
+vagrant up
 
-- `vagrant up` to start VM that will run DEA and its dependencies.
-  (Vagrantfile is currently set up to use Ubuntu 10.04.)
+# shell into the VM
+vagrant ssh
 
-- `vagrant ssh` to get inside the VM
+# start warden
+cd /warden/warden
+bundle install
+rvmsudo bundle exec rake warden:start[config/test_vm.yml] > /tmp/warden.log &
 
-- `/dea` contains mounted copy of dea_ng source code
+# start the dea's dependencies
+cd /vagrant
+bundle install
+foreman start > /tmp/foreman.log &
 
-- `/warden` contains cloned version of Warden
-
-- Run `sudo su -`
-
-- Run `foreman start` to start dea_ng components specified in Procfile
-
+# run the dea tests
+bundle exec rspec
+```
 
 ## Staging
 
