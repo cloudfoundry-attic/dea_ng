@@ -3,8 +3,8 @@ set -e -x -u
 bundle install
 foreman start &
 
-bundle exec rspec
-exit_code=$?
+exit_code=0
+bundle exec rspec || exit_code=$?
 
 echo "Tests finished: killing background jobs:"
 jobs
