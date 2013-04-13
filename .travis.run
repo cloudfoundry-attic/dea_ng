@@ -6,8 +6,11 @@ foreman start &
 bundle exec rspec
 exit_code=$?
 
+echo "Tests finished: killing background jobs:"
+jobs
+
 for job in `jobs -p`; do
-  kill $job
+  kill -9 $job
 done
 
 exit $exit_code
