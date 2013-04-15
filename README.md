@@ -84,6 +84,7 @@ rvmsudo bundle exec rake warden:start[config/test_vm.yml] > /tmp/warden.log &
 # start the DEA's dependencies
 cd /vagrant
 bundle install
+git submodule update --init
 foreman start > /tmp/foreman.log &
 
 # run the dea tests
