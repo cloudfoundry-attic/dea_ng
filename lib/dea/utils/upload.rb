@@ -20,7 +20,7 @@ class Upload
       head: {
         EM::HttpClient::MULTIPART_HACK => {
           :name => "upload[droplet]",
-          :filename => "droplet.tgz"
+          :filename => File.basename(@source)
         }
       },
       file: @source

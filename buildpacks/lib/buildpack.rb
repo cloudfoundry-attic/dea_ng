@@ -31,7 +31,7 @@ module Buildpacks
       buildpack_path = "#{app_dir}/.buildpacks/#{File.basename(buildpack_url)}"
       ok = system("git clone #{buildpack_url} #{buildpack_path}")
       raise "Failed to git clone buildpack" unless ok
-      Buildpacks::Installer.new(Pathname.new(buildpack_path), app_dir)
+      Buildpacks::Installer.new(Pathname.new(buildpack_path), app_dir, cache_dir)
     end
 
     def build_pack
@@ -52,7 +52,7 @@ module Buildpacks
 
     def installers
       buildpacks_path.children.map do |buildpack|
-        Buildpacks::Installer.new(buildpack, app_dir)
+        Buildpacks::Installer.new(buildpack, app_dir, cache_dir)
       end
     end
 

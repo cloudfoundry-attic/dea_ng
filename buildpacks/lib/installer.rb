@@ -1,7 +1,7 @@
 require "open3"
 
 module Buildpacks
-  class Installer < Struct.new(:path, :app_dir)
+  class Installer < Struct.new(:path, :app_dir, :cache_dir)
     def detect
       @detect_output, status = Open3.capture2 command('detect')
       status == 0
@@ -13,7 +13,7 @@ module Buildpacks
 
     def compile
       puts "Installing #{path.basename}."
-      ok = system "#{command('compile')} /tmp/bundler_cache"
+      ok = system "#{command('compile')} #{cache_dir}"
       raise "Buildpack compilation step failed:\n" unless ok
     end
 

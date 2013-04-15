@@ -16,7 +16,6 @@ module Dea
     WARDEN_UNSTAGED_DIR = "/tmp/unstaged"
     WARDEN_STAGED_DIR = "/tmp/staged"
     WARDEN_STAGED_DROPLET = "/tmp/#{DROPLET_FILE}"
-    WARDEN_CACHE = "/tmp/cache"
     WARDEN_STAGING_LOG = "#{WARDEN_STAGED_DIR}/logs/#{STAGING_LOG}"
 
     class StagingError < StandardError
@@ -136,6 +135,7 @@ module Dea
       plugin_config = {
         "source_dir" => workspace.warden_unstaged_dir,
         "dest_dir" => workspace.warden_staged_dir,
+        "cache_dir" => workspace.warden_cache,
         "environment" => attributes["properties"],
         "staging_info_path" => workspace.warden_staging_info
       }
@@ -267,6 +267,38 @@ module Dea
       end
     end
 
+    def promise_buildpack_cache_upload
+      Promise.new do |p|
+        Upload.new(workspace.staged_buildpack_cache_path, attributes["buildpack_cache_upload_uri"], logger).upload! do |error|
+          if error
+            p.fail(error)
+          else
+            logger.info("Uploaded buildpack cache to #{attributes["buildpack_cache_upload_uri"]}")
+            p.deliver
+          end
+        end
+      end
+    end
+
+    def promise_buildpack_cache_download
+      Promise.new do |p|
+        logger.info("Downloading buildpack cache from #{attributes["buildpack_cache_download_uri"]}")
+
+        Download.new(attributes["buildpack_cache_download_uri"], workspace.workspace_dir, nil, logger).download! do |error, path|
+          if error
+            logger.error("Failed to download buildpack cache from #{attributes["buildpack_cache_download_uri"]}")
+          else
+            File.rename(path, workspace.downloaded_buildpack_cache_path)
+            File.chmod(0744, workspace.downloaded_buildpack_cache_path)
+
+            logger.debug("Moved droplet to #{workspace.downloaded_buildpack_cache_path}")
+          end
+
+          p.deliver
+        end
+      end
+    end
+
     def promise_log_upload_finished
       Promise.new do |p|
         promise_warden_run(:app, <<-BASH).resolve
@@ -299,6 +331,56 @@ module Dea
       end
     end
 
+    def promise_save_buildpack_cache
+      Promise.new do |p|
+        resolve(promise_pack_buildpack_cache, "pack buildpack cache") do |error, result|
+          unless error
+            promise_copy_out_buildpack_cache.resolve
+            promise_buildpack_cache_upload.resolve
+          end
+          p.deliver
+        end
+      end
+    end
+
+    def promise_pack_buildpack_cache
+      Promise.new do |p|
+        # TODO: Ignore if warden cache is empty or does not exists
+        promise_warden_run(:app, <<-BASH).resolve
+          mkdir -p #{workspace.warden_cache} &&
+          cd #{workspace.warden_cache} &&
+          COPYFILE_DISABLE=true tar -czf #{workspace.warden_staged_buildpack_cache} .
+        BASH
+        p.deliver
+      end
+    end
+
+    def promise_unpack_buildpack_cache
+      Promise.new do |p|
+        if File.exists?(workspace.downloaded_buildpack_cache_path)
+          logger.info("Unpacking buildpack cache to #{workspace.warden_cache}")
+
+          promise_warden_run(:app, <<-BASH).resolve
+          package_size=`du -h #{workspace.downloaded_buildpack_cache_path} | cut -f1`
+          echo "-----> Downloaded app buildpack cache ($package_size)" >> #{workspace.warden_staging_log}
+          mkdir -p #{workspace.warden_cache}
+          tar xfz #{workspace.downloaded_buildpack_cache_path} -C #{workspace.warden_cache}
+          BASH
+        end
+
+        p.deliver
+      end
+    end
+
+    def promise_copy_out_buildpack_cache
+      Promise.new do |p|
+        logger.info("Copying out to #{workspace.staged_droplet_path}")
+        copy_out_request(workspace.warden_staged_buildpack_cache, workspace.staged_droplet_dir)
+
+        p.deliver
+      end
+    end
+
     def path_in_container(path)
       File.join(container_path, "tmp", "rootfs", path.to_s) if container_path
     end
@@ -308,10 +390,10 @@ module Dea
     def resolve_staging_setup
       prepare_workspace
 
-      Promise.run_in_parallel(
-        promise_app_download,
-        promise_create_container,
-      )
+      promises = [promise_app_download, promise_create_container]
+      promises << promise_buildpack_cache_download if attributes["buildpack_cache_download_uri"]
+
+      Promise.run_in_parallel(*promises)
       promise_limit_disk.resolve
       promise_limit_memory.resolve
       Promise.run_in_parallel(
@@ -330,11 +412,13 @@ module Dea
     def resolve_staging
       Promise.run_serially(
         promise_unpack_app,
+        promise_unpack_buildpack_cache,
         promise_stage,
         promise_pack_app,
         promise_copy_out,
         promise_log_upload_started,
         promise_app_upload,
+        promise_save_buildpack_cache,
         promise_log_upload_finished,
         promise_staging_info
       )

@@ -6,6 +6,7 @@ require "sinatra/base"
 require "pp"
 
 APPS_DIR = File.expand_path("../../fixtures/apps", __FILE__)
+BUILDPACK_CACHE_DIR = File.expand_path("../../fixtures/buildpack_cache", __FILE__)
 BUILDPACKS_DIR = File.expand_path("../../fixtures/fake_buildpacks", __FILE__)
 STAGED_APPS_DIR = "/tmp/dea"
 FileUtils.mkdir_p(STAGED_APPS_DIR)
@@ -27,6 +28,20 @@ class FileServer < Sinatra::Base
 
   get "/staged/:name" do |name|
     send_file(file_path(name))
+  end
+
+  get "/buildpack_cache" do
+    tarball = "/tmp/buildpack_cache.tgz"
+    Dir.chdir(BUILDPACK_CACHE_DIR) do
+      system "rm -rf #{tarball} && tar -czf #{tarball} ."
+    end
+    send_file(tarball)
+  end
+
+  post "/buildpack_cache" do
+    droplet = params["upload"]["droplet"]
+    FileUtils.mv(droplet[:tempfile].path, file_path("buildpack_cache.tgz"))
+    200
   end
 
   private

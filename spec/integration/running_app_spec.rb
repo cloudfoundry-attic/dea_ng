@@ -5,6 +5,8 @@ describe "Running an app", :type => :integration, :requires_warden => true do
   let(:nats) { NatsHelper.new }
   let(:unstaged_url) { "http://localhost:9999/unstaged/sinatra" }
   let(:staged_url) { "http://localhost:9999/staged/sinatra" }
+  let(:buildpack_cache_download_uri) { "http://localhost:9999/buildpack_cache" }
+  let(:buildpack_cache_upload_uri) { "http://localhost:9999/buildpack_cache" }
   let(:app_id) { SecureRandom.hex(8) }
   let(:original_memory) do
     2 * 2048 # from config/dea.yml
@@ -20,7 +22,9 @@ describe "Running an app", :type => :integration, :requires_warden => true do
         "buildpack" => fake_buildpack_url("start_command"),
       },
       "download_uri" => unstaged_url,
-      "upload_uri" => staged_url
+      "upload_uri" => staged_url,
+      "buildpack_cache_upload_uri" => buildpack_cache_upload_uri,
+      "buildpack_cache_download_uri" => buildpack_cache_download_uri
     })
   end
 

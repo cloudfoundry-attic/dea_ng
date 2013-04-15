@@ -36,7 +36,7 @@ describe Dea::StagingTask do
 
   let(:logger) do
     mock("logger").tap do |l|
-      %w(debug debug2 info warn).each { |m| l.stub(m) }
+      %w(debug debug2 info warn log_exception error).each { |m| l.stub(m) }
     end
   end
 
@@ -179,9 +179,10 @@ YAML
         YAML.load_file("#{workspace_dir}/plugin_config")
       end
 
-      it "has the right source and destination directories" do
+      it "has the right source, destination and cache directories" do
         expect(subject["source_dir"]).to eq("/tmp/unstaged")
         expect(subject["dest_dir"]).to eq("/tmp/staged")
+        expect(subject["cache_dir"]).to eq("/tmp/cache")
       end
 
       it "includes the specified environment config" do
@@ -247,26 +248,38 @@ YAML
   describe "#start" do
     def stub_staging_setup
       staging.stub(:prepare_workspace)
-      staging.stub(:promise_app_download).and_return(successful_promise)
-      staging.stub(:promise_create_container).and_return(successful_promise)
-      staging.stub(:promise_limit_disk).and_return(successful_promise)
-      staging.stub(:promise_limit_memory).and_return(successful_promise)
-      staging.stub(:promise_prepare_staging_log).and_return(successful_promise)
-      staging.stub(:promise_container_info).and_return(successful_promise)
-      staging.stub(:promise_app_dir).and_return(successful_promise)
+      %w(
+         app_download
+         buildpack_cache_download
+         create_container
+         limit_disk
+         limit_memory
+         prepare_staging_log
+         app_dir
+         container_info
+      ).each do |step|
+        staging.stub("promise_#{step}").and_return(successful_promise)
+      end
     end
 
     def stub_staging
-      staging.stub(:promise_unpack_app).and_return(successful_promise)
-      staging.stub(:promise_stage).and_return(successful_promise)
-      staging.stub(:promise_pack_app).and_return(successful_promise)
-      staging.stub(:promise_log_upload_started).and_return(successful_promise)
-      staging.stub(:promise_copy_out).and_return(successful_promise)
-      staging.stub(:promise_app_upload).and_return(successful_promise)
-      staging.stub(:promise_log_upload_finished).and_return(successful_promise)
-      staging.stub(:promise_staging_info).and_return(successful_promise)
-      staging.stub(:promise_task_log).and_return(successful_promise)
-      staging.stub(:promise_destroy).and_return(successful_promise)
+      %w(unpack_app
+         unpack_buildpack_cache
+         stage
+         pack_app
+         copy_out
+         log_upload_started
+         app_upload
+         pack_buildpack_cache
+         copy_out_buildpack_cache
+         buildpack_cache_upload
+         log_upload_finished
+         staging_info
+         task_log
+         destroy
+      ).each do |step|
+        staging.stub("promise_#{step}").and_return(successful_promise)
+      end
     end
 
     def self.it_calls_callback(callback_name, options={})
@@ -381,7 +394,7 @@ YAML
       end
     end
 
-    it "prepare workspace, download app source, creates container, prepares staging log, creates app dir and then obtains container info" do
+    it "performs staging setup operations in correct order" do
       %w(prepare_workspace
          promise_app_download
          promise_create_container
@@ -398,8 +411,35 @@ YAML
       staging.start
     end
 
-    it "unpacks, stages, repacks, copies files out of container, upload staged app and then destroys" do
-      %w(unpack_app stage pack_app copy_out log_upload_started app_upload log_upload_finished staging_info task_log destroy).each do |step|
+    context "when buildpack_cache_download_uri is provided" do
+      before do
+        staging.stub(:attributes).and_return(
+          valid_staging_attributes.merge({ "buildpack_cache_download_uri" => "http://some_url"}))
+      end
+
+      it "downloads buildpack cache" do
+        staging.should_receive(:promise_buildpack_cache_download)
+
+        stub_staging
+        stub_staging_setup
+
+        staging.start
+      end
+    end
+
+    it "performs staging operations in correct order" do
+      %w(unpack_app
+         unpack_buildpack_cache
+         stage
+         pack_app
+         copy_out
+         log_upload_started
+         app_upload
+         save_buildpack_cache
+         log_upload_finished
+         staging_info
+         task_log
+         destroy).each do |step|
         staging.should_receive("promise_#{step}").ordered.and_return(successful_promise)
       end
 
@@ -555,6 +595,34 @@ YAML
     end
   end
 
+  describe "#promise_buildpack_cache_download" do
+    subject do
+      promise = staging.promise_buildpack_cache_download
+      promise.resolve
+      promise
+    end
+
+    context "when there is an error" do
+      before { Download.any_instance.stub(:download!).and_yield("This is an error", nil) }
+      its(:result) { should == [:deliver, nil] }
+    end
+
+    context "when there is no error" do
+      before do
+        File.stub(:rename)
+        File.stub(:chmod)
+        Download.any_instance.stub(:download!).and_yield(nil, "/path/to/file")
+      end
+      its(:result) { should == [:deliver, nil] }
+
+      it "should rename the file" do
+        File.should_receive(:rename).with("/path/to/file", "#{workspace_dir}/buildpack_cache.tgz")
+        File.should_receive(:chmod).with(0744, "#{workspace_dir}/buildpack_cache.tgz")
+        subject
+      end
+    end
+  end
+
   describe "#promise_unpack_app" do
     it "assembles a shell command" do
       staging.should_receive(:promise_warden_run) do |connection_name, cmd|
@@ -563,6 +631,30 @@ YAML
       end
 
       staging.promise_unpack_app.resolve
+    end
+  end
+
+  describe "#promise_unpack_buildpack_cache" do
+    context "when buildpack cache does not exist" do
+      it "does not run a warden command" do
+        staging.should_not_receive(:promise_warden_run)
+        staging.promise_unpack_buildpack_cache.resolve
+      end
+    end
+
+    context "when buildpack cache exists" do
+      before do
+        FileUtils.touch("#{workspace_dir}/buildpack_cache.tgz")
+      end
+
+      it "assembles a shell command" do
+        staging.should_receive(:promise_warden_run) do |_, cmd|
+          cmd.should include("tar xfz #{workspace_dir}/buildpack_cache.tgz -C /tmp/cache")
+          mock("promise", :resolve => nil)
+        end
+
+        staging.promise_unpack_buildpack_cache.resolve
+      end
     end
   end
 
@@ -577,9 +669,76 @@ YAML
     end
   end
 
+  describe "#promise_pack_buildpack_cache" do
+    it "assembles a shell command" do
+      staging.should_receive(:promise_warden_run) do |_, cmd|
+        normalize_whitespace(cmd).should include("cd /tmp/cache && COPYFILE_DISABLE=true tar -czf /tmp/buildpack_cache.tgz .")
+        mock("promise", :resolve => nil)
+      end
+
+      staging.promise_pack_buildpack_cache.resolve
+    end
+  end
+
+  describe "#promise_save_buildpack_cache" do
+
+    context "when packing succeeds" do
+
+      before do
+        staging.stub(:promise_pack_buildpack_cache).and_return(successful_promise)
+        staging.stub(:promise_copy_out_buildpack_cache).and_return(successful_promise)
+        staging.stub(:promise_buildpack_cache_upload).and_return(successful_promise)
+      end
+
+      it "copies out the buildpack cache" do
+        staging.should_receive(:promise_copy_out_buildpack_cache).and_return(successful_promise)
+        staging.promise_save_buildpack_cache.resolve
+      end
+
+      it "uploads the buildpack cache" do
+        staging.should_receive(:promise_buildpack_cache_upload).and_return(successful_promise)
+        staging.promise_save_buildpack_cache.resolve
+      end
+    end
+
+    context "when packing fails" do
+
+      before { staging.stub(:promise_pack_buildpack_cache).and_return(failing_promise) }
+
+      it "does not copy out the buildpack cache" do
+        staging.should_not_receive :promise_copy_out_buildpack_cache
+        staging.promise_save_buildpack_cache.resolve
+      end
+
+      it "does not upload the buildpack cache" do
+        staging.should_not_receive :promise_buildpack_cache_upload
+        staging.promise_save_buildpack_cache.resolve
+      end
+
+    end
+  end
+
   describe "#promise_app_upload" do
     subject do
       promise = staging.promise_app_upload
+      promise.resolve
+      promise
+    end
+
+    context "when there is an error" do
+      before { Upload.any_instance.stub(:upload!).and_yield("This is an error") }
+      it { expect { subject }.to raise_error(RuntimeError, "This is an error") }
+    end
+
+    context "when there is no error" do
+      before { Upload.any_instance.stub(:upload!).and_yield(nil) }
+      its(:result) { should == [:deliver, nil] }
+    end
+  end
+
+  describe "#promise_buildpack_cache_upload" do
+    subject do
+      promise = staging.promise_buildpack_cache_upload
       promise.resolve
       promise
     end
@@ -610,6 +769,19 @@ YAML
 
     it "should send copying out request" do
       staging.should_receive(:copy_out_request).with("/tmp/droplet.tgz", /.{5,}/)
+      subject
+    end
+  end
+
+  describe "#promise_copy_out_buildpack_cache" do
+    subject do
+      promise = staging.promise_copy_out_buildpack_cache
+      promise.resolve
+      promise
+    end
+
+    it "should send copying out request" do
+      staging.should_receive(:copy_out_request).with("/tmp/buildpack_cache.tgz", /.{5,}/)
       subject
     end
   end

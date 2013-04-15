@@ -33,6 +33,7 @@ module Buildpacks
       @destination_directory = File.expand_path(config["dest_dir"])
       @environment = config["environment"]
       @staging_info_path = config["staging_info_path"]
+      @cache_dir = config["cache_dir"]
     end
 
     def app_dir
@@ -45,6 +46,10 @@ module Buildpacks
 
     def tmp_dir
       File.join(destination_directory, "tmp")
+    end
+
+    def cache_dir
+      @cache_dir || "/tmp/cache"
     end
 
     def script_dir

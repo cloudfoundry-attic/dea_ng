@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
 
 echo "-----> Some compilation output"
+if [ -d $2 ]; then
+  echo "-----> Copying files from cache"
+  cp $2/* $1
+fi
 exit 0

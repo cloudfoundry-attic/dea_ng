@@ -290,7 +290,7 @@ module Dea
 
       begin
         promise_warden_call_with_retry(:app, request).resolve
-        rescue ::EM::Warden::Client::Error => error
+      rescue ::EM::Warden::Client::Error => error
         logger.warn("Error copying files out of container: #{error.message}")
       end
     end
