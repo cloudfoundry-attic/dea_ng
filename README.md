@@ -39,37 +39,38 @@ The URL is signed by the DEA, and the directory server checks the
 validity of the URL with the DEA before serving it.
 
 
-## Running DEA on a non-linux system (with Vagrant)
+## Usage
 
-When contributing to DEA it's useful to run it as a standalone
-component. This test configuration uses [Vagrant 1.1x][vagrant].
-
-[vagrant]: http://docs.vagrantup.com/v2/installation/index.html
-
-Follow these steps to set up DEA to run locally on your computer:
+You can run the dea executable at the command line by passing the path
+to a YAML configuration file:
 
 ```shell
-# clone the repo
-git clone http://github.com/cloudfoundry/dea_ng
-bundle install
-
-# check that your version of vagrant is 1.1 or greater
-vagrant --version
-
-# create your test VM
-rake test_vm
+bin/dea config/dea.yml
 ```
 
-Creating the test VM is likely to take a while.
+### Configuration
 
-Note that if the rake test_vm step fails and you see an error like
-"undefined method `configure' for Vagrant" or
-"found character that cannot start any token while scanning for the next token"
-it means the version of Vagrant is too old.
-Install Vagrant version 1.1 or higher.
+The following is a partial list of the keys that are read from the YAML file:
+
+* `logging` - a hash with 3 optional keys:
+  * `file` - a file path
+  * `syslog` - a syslog identifier string
+  * `level` - a syslog level name ("debug", "info", "error", etc)
+
+If neither `file` nor `syslog` is specified, the DEA will log to its stdout and stderr.
+
+* `nats_uri` - a URI of the form `nats://host:port` that the DEA will use to connect to NATS.
+
+* `warden_socket` - the path to a unix domain socket that the DEA will use to communicate to a warden server.
+
+### Running the DEA in the provided Vagrant VM
+
+When contributing to DEA it's useful to run it as a standalone
+component. Here is how to do that:
 
 ```shell
-# initialize the test VM
+# create your test VM
+rake test_vm
 vagrant up
 
 # shell into the VM
@@ -80,7 +81,7 @@ cd /warden/warden
 bundle install
 rvmsudo bundle exec rake warden:start[config/test_vm.yml] > /tmp/warden.log &
 
-# start the dea's dependencies
+# start the DEA's dependencies
 cd /vagrant
 bundle install
 foreman start > /tmp/foreman.log &
