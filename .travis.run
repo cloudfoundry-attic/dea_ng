@@ -10,7 +10,7 @@ echo "Tests finished: killing background jobs:"
 jobs
 
 for job in `jobs -p`; do
-  kill -9 $job
+  sudo kill -9 $job
 done
 
 exit $exit_code
