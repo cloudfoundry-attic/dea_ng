@@ -9,8 +9,6 @@ bundle exec rspec || exit_code=$?
 echo "Tests finished: killing background jobs:"
 jobs
 
-for job in `jobs -p`; do
-  sudo kill -9 $job
-done
+sudo pkill ruby
 
 exit $exit_code
