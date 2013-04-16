@@ -130,7 +130,7 @@ See [staging.rb](lib/dea/responders/staging.rb) for staging flow.
 
 ## Logs
 
-The DEA's logging is handled by [steno](github.com/cloudfoundry/steno). Steno collects logs,
+The DEA's logging is handled by [steno](https://github.com/cloudfoundry/steno). Steno collects logs,
 formats them, and forwards them to 'sinks', such as log files or syslog servers.
 The DEA can be configured to log to a file, a syslog server or both. If neither is provided,
 it will log to its stdout. The logging level specifies the verbosity of the logs (e.g. 'warn',
