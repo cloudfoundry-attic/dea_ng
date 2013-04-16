@@ -52,13 +52,8 @@ bin/dea config/dea.yml
 
 The following is a partial list of the keys that are read from the YAML file:
 
-* `logging` - a hash with 3 optional keys:
-  * `file` - a path to a log file
-  * `syslog` - a syslog identifier string
-  * `level` - a syslog level name
-
+* `logging` - a [Steno configuration](http://github.com/cloudfoundry/steno#from-yaml-file)
 * `nats_uri` - a URI of the form `nats://host:port` that the DEA will use to connect to NATS.
-
 * `warden_socket` - the path to a unix domain socket that the DEA will use to communicate to a warden server.
 
 ### Running the DEA in the provided Vagrant VM
@@ -130,9 +125,7 @@ See [staging.rb](lib/dea/responders/staging.rb) for staging flow.
 
 ## Logs
 
-The DEA's logging is handled by [steno](https://github.com/cloudfoundry/steno). Steno collects logs,
-formats them, and forwards them to 'sinks', such as log files or syslog servers.
+The DEA's logging is handled by [Steno](https://github.com/cloudfoundry/steno).
 The DEA can be configured to log to a file, a syslog server or both. If neither is provided,
 it will log to its stdout. The logging level specifies the verbosity of the logs (e.g. 'warn',
-'info', 'debug' ...). To find more information about logging levels, sinks, etc., take a look
-at Steno's docs.
+'info', 'debug' ...).
