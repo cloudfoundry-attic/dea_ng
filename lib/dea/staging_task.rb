@@ -442,10 +442,6 @@ module Dea
     def staging_environment
       {
         "PLATFORM_CONFIG" => workspace.platform_config_path,
-        "C_INCLUDE_PATH" => "#{staging_config["environment"]["C_INCLUDE_PATH"]}:#{ENV["C_INCLUDE_PATH"]}",
-        "LIBRARY_PATH" => staging_config["environment"]["LIBRARY_PATH"],
-        "LD_LIBRARY_PATH" => staging_config["environment"]["LD_LIBRARY_PATH"],
-        "PATH" => "#{staging_config["environment"]["PATH"]}:#{ENV["PATH"]}",
         "BUILDPACK_CACHE" => staging_config["environment"]["BUILDPACK_CACHE"],
         "STAGING_TIMEOUT" => staging_timeout
       }.map { |k, v| "#{k}=#{v}" }.join(" ")

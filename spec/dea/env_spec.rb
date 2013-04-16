@@ -211,8 +211,6 @@ describe Dea::Env do
       }
     end
 
-    let(:bootstrap_config) { { "app_environment" => { "APP_FOO" => "APP_BAR", "APP_BAZ" => "APP_QIK" } } }
-
     before do
       subject.stub(:application_for_json).and_return(application_for_json)
       subject.stub(:services_for_json).and_return(services_for_json)
@@ -227,9 +225,7 @@ describe Dea::Env do
 
       instance.stub(:environment).and_return({ "ENVIRONMENT" => "yep" })
       instance.stub(:bootstrap).and_return do
-        bootstrap = mock("Bootstrap")
-        bootstrap.stub(:config).and_return(bootstrap_config)
-        bootstrap
+        mock("bootstrap", :config => {})
       end
     end
 
@@ -285,18 +281,6 @@ describe Dea::Env do
       it "does not includes VCAP_DEBUG_*" do
         find("VCAP_DEBUG_IP").should =~ /#{application_for_json["host"]}/
         find("VCAP_DEBUG_PORT").should =~ /4568/
-      end
-    end
-
-    it "include application environment" do
-      find("APP_FOO").should == %{"APP_BAR"}
-      find("APP_BAZ").should == %{"APP_QIK"}
-    end
-
-    context "when app environment is not set" do
-      let(:bootstrap_config) { {} }
-      it "does NOT raise an error" do
-        expect { env }.to_not raise_error
       end
     end
   end

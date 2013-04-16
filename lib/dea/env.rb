@@ -101,8 +101,6 @@ module Dea
         [key, %{'%s'} % value.to_s]
       end
 
-      env.concat(translate_env(instance.bootstrap.config["app_environment"]))
-
       # Include user-specified environment
       env.concat(translate_env(instance.environment))
 

@@ -137,19 +137,6 @@ module Dea
           bind_mount
         end
 
-        # Extra mounts (these typically include libs like pq, mysql, etc)
-        config["bind_mounts"].each do |bm|
-          bind_mount = ::Warden::Protocol::CreateRequest::BindMount.new
-
-          bind_mount.src_path = bm["src_path"]
-          bind_mount.dst_path = bm["dst_path"] || bm["src_path"]
-
-          mode = bm["mode"] || "ro"
-          bind_mount.mode = BIND_MOUNT_MODE_MAP[mode]
-
-          bind_mounts << bind_mount
-        end
-
         create_request = ::Warden::Protocol::CreateRequest.new
         create_request.bind_mounts = bind_mounts
 
