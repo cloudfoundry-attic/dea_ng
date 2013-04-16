@@ -53,11 +53,9 @@ bin/dea config/dea.yml
 The following is a partial list of the keys that are read from the YAML file:
 
 * `logging` - a hash with 3 optional keys:
-  * `file` - a file path
+  * `file` - a path to a log file
   * `syslog` - a syslog identifier string
-  * `level` - a syslog level name ("debug", "info", "error", etc)
-
-If neither `file` nor `syslog` is specified, the DEA will log to its stdout and stderr.
+  * `level` - a syslog level name
 
 * `nats_uri` - a URI of the form `nats://host:port` that the DEA will use to connect to NATS.
 
@@ -118,7 +116,7 @@ bundle exec rspec
 
 See [staging.rb](lib/dea/responders/staging.rb) for staging flow.
 
-#### NATS Messaging
+### NATS Messaging
 
 - `staging.advertise`: Stagers (now DEA's) broadcast their capacity/capability
 
@@ -129,3 +127,12 @@ See [staging.rb](lib/dea/responders/staging.rb) for staging flow.
 
 - `staging`: Stagers (in a queue group) respond to requests to stage an app
   (old protocol)
+
+## Logs
+
+The DEA's logging is handled by [steno](github.com/cloudfoundry/steno). Steno collects logs,
+formats them, and forwards them to 'sinks', such as log files or syslog servers.
+The DEA can be configured to log to a file, a syslog server or both. If neither is provided,
+it will log to its stdout. The logging level specifies the verbosity of the logs (e.g. 'warn',
+'info', 'debug' ...). To find more information about logging levels, sinks, etc., take a look
+at Steno's docs.
