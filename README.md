@@ -102,7 +102,16 @@ cd /vagrant
 bundle install
 git submodule update --init
 foreman start > /tmp/foreman.log &
+```
 
+To run the tests and watch the internal NATS traffic:
+
+```
+# in one ssh session
+# run nats CLI to watch all messages
+nats-sub ">" -s nats://localhost:4222
+
+# in the other ssh session
 # run the dea tests
 bundle exec rspec
 ```
