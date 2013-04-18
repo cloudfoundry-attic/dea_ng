@@ -490,11 +490,25 @@ YAML
     it "exports memory in bytes as specified in the config file" do
       staging.memory_limit_in_bytes.should eq(1024 * 1024 * memory_limit_mb)
     end
+
+    context "when unspecified" do
+      let(:memory_limit_mb) { nil }
+      it "uses 1GB as a default" do
+        staging.memory_limit_in_bytes.should eq(1024*1024*1024)
+      end
+    end
   end
 
   describe "#disk_limit_in_bytes" do
     it "exports disk in bytes as specified in the config file" do
       staging.disk_limit_in_bytes.should eq(1024 * 1024 * disk_limit_mb)
+    end
+
+    context "when unspecified" do
+      let(:disk_limit_mb) { nil }
+      it "uses 2GB as a default" do
+        staging.disk_limit_in_bytes.should eq(2*1024*1024*1024)
+      end
     end
   end
 
