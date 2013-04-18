@@ -127,5 +127,11 @@ See [staging.rb](lib/dea/responders/staging.rb) for staging flow.
 
 The DEA's logging is handled by [Steno](https://github.com/cloudfoundry/steno).
 The DEA can be configured to log to a file, a syslog server or both. If neither is provided,
-it will log to its stdout. The logging level specifies the verbosity of the logs (e.g. 'warn',
-'info', 'debug' ...).
+it will log to its stdout.
+
+The following log levels exist, shown with an example of what they are used for:
+* `error` - DEA failed to download builpack cache, cannot create PID file
+* `warn` - DEA failed to destroy a warden container, DEA received invalid JSON message over NATS
+* `info` - DEA is shutting down, DEA received a request to stage/run an app, but didn't have the resources
+* `debug2` - DEA received request for instance information, but was not running the specified app
+* `debug` - DEA saved/loaded a snapshot, downloaded a droplet
