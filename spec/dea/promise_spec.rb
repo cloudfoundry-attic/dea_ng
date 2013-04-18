@@ -73,16 +73,19 @@ describe Dea::Promise do
   end
 
   it "should store the time it takes to execute" do
+    time = Time.now
+    Timecop.freeze(time)
+
     p = Dea::Promise.new do
-      sleep 0.010
+      Timecop.travel(5)
       p.deliver
     end
 
-    expect do |b|
+    expect { |b|
       Dea::Promise.resolve(p, &b)
-    end.to yield_control
+    }.to yield_control
 
-    p.elapsed_time.should be_within(0.005).of(0.010)
+    p.elapsed_time.should be_within(0.001).of(5)
   end
 
   it "can run without resolve" do

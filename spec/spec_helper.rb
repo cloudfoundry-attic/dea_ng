@@ -6,6 +6,7 @@ require 'bundler'
 Bundler.require
 
 require 'tempfile'
+require 'timecop'
 require 'timeout'
 require_relative '../buildpacks/lib/buildpack'
 

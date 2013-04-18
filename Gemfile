@@ -24,6 +24,7 @@ gem "vcap_logging", "0.1.4"
 gem "sys-filesystem"
 
 group :test do
+  gem "timecop"
   gem "patron"
   gem "foreman"
   gem "sinatra"
