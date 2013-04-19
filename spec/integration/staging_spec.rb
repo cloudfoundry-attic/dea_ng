@@ -24,8 +24,8 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
   end
 
   describe "staging a simple nodejs app" do
-    let(:unstaged_url) { "http://localhost:9999/unstaged/app_with_procfile" }
-    let(:staged_url) { "http://localhost:9999/staged/app_with_procfile" }
+    let(:unstaged_url) { "http://localhost:9999/unstaged/node_with_procfile" }
+    let(:staged_url) { "http://localhost:9999/staged/node_with_procfile" }
     let(:app_id) { "some-node-app-id" }
 
     it "packages up the node dependencies and stages the app properly" do

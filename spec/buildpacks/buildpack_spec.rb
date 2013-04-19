@@ -103,7 +103,7 @@ fi
   context "when a start command is passed" do
     let(:staging_env) { {"meta" => {"command" => "node app.js --from-manifest=true"}} }
 
-    before { app_fixture :app_without_procfile }
+    before { app_fixture :node_without_procfile }
 
     it_behaves_like "successful buildpack compilation"
 
@@ -115,7 +115,7 @@ fi
   end
 
   context "when the application has a procfile" do
-    before { app_fixture :app_with_procfile }
+    before { app_fixture :node_with_procfile }
 
     it_behaves_like "successful buildpack compilation"
 
@@ -126,7 +126,7 @@ fi
     end
 
     it "raise a good error if the procfile is not a hash" do
-      app_fixture :invalid_procfile
+      app_fixture :node_with_invalid_procfile
       expect {
         stage :environment => staging_env
       }.to raise_error("Invalid Procfile format.  Please ensure it is a valid YAML hash")
@@ -134,7 +134,7 @@ fi
   end
 
   context "when no start command is passed and the application does not have a procfile" do
-    before { app_fixture :app_without_procfile }
+    before { app_fixture :node_without_procfile }
 
     context "when the buildpack provides a default start command" do
       it_behaves_like "successful buildpack compilation"
@@ -168,7 +168,7 @@ fi
   end
 
   context "when a rails application is detected by the ruby buildpack" do
-    before { app_fixture :app_without_procfile }
+    before { app_fixture :node_without_procfile }
     let(:buildpacks_path) { buildpacks_path_with_rails }
 
     it "adds rails console to the startup script" do
@@ -231,7 +231,7 @@ fi
   end
 
   context "when a rails application is NOT detected" do
-    before { app_fixture :app_without_procfile }
+    before { app_fixture :node_without_procfile }
     let(:buildpacks_path) { buildpacks_path_with_start_cmd }
 
     it "doesn't add rails console to the startup script" do
