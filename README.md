@@ -103,7 +103,7 @@ bundle install
 git submodule update --init
 foreman start > /tmp/foreman.log &
 
-# run the dea tests
+# run the dea tests (takes about 20 mins)
 bundle exec rspec
 ```
 
