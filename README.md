@@ -114,6 +114,12 @@ bundle exec rspec
 Note that the integration tests stage and run real applications, which requires an internet connection.
 They take 5-10 minutes to run, depending on your connection speed.
 
+To watch the internal NATS traffic while the tests run, do this
+in another ssh session:
+```
+nats-sub ">" -s nats://localhost:4222
+```
+
 ## Staging
 
 See [staging.rb](lib/dea/responders/staging.rb) for staging flow.
