@@ -70,7 +70,7 @@ fi
 
     def database_type
       case bound_database["label"]
-        when /^mysql/
+        when /mysql/
           "mysql2"
         when /^postgres/
           "postgres"
@@ -117,7 +117,7 @@ fi
     def known_database?(binding)
       if label = binding["label"]
         case label
-          when /^mysql/
+          when /mysql/
             binding
           when /^postgresql/
             binding
