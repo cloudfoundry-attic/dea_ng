@@ -23,45 +23,6 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
     }
   end
 
-  describe "staging a simple nodejs app" do
-    let(:unstaged_url) { "http://localhost:9999/unstaged/node_with_procfile" }
-    let(:staged_url) { "http://localhost:9999/staged/node_with_procfile" }
-    let(:app_id) { "some-node-app-id" }
-
-    it "packages up the node dependencies and stages the app properly" do
-      response = nats.request("staging", start_staging_message)
-
-      expect(response["task_log"]).to include("Resolving engine versions")
-      expect(response["task_log"]).to include("Fetching Node.js binaries")
-      expect(response["task_log"]).to include("Vendoring node into slug")
-      expect(response["task_log"]).to include("Installing dependencies with npm")
-      expect(response["task_log"]).to include("Building runtime environment")
-      expect(response["error"]).to be_nil
-
-      download_tgz(staged_url) do |dir|
-        entries = Dir.entries(dir).join(" ")
-        expect(entries).to match(/nodejs-0\.10\.\d+\.tgz/)
-        expect(entries).to match(/scons-1\.2\.\d+\.tgz/)
-        expect(entries).to match(/npm-1\.2.\d+\.tgz/)
-        expect(entries).to match(/nodejs-0\.4\.\d+\.tgz/)
-      end
-    end
-
-    context "when dependencies have incompatible versions" do
-      let(:unstaged_url) { "http://localhost:9999/unstaged/node_with_incompatibility" }
-      let(:staged_url) { "http://localhost:9999/staged/node_with_incompatibility" }
-
-      it "fails to stage" do
-        response = nats.request("staging", start_staging_message)
-
-        expect(response["error"]).to include "Script exited with status 1"
-        # Bcrypt 0.4.1 is incompatible with node 0.10, using node-waf and node-gyp respectively
-        expect(response["task_log"]).to include("make: node-waf: Command not found")
-        expect(response["task_log"]).to_not include("Building runtime environment")
-      end
-    end
-  end
-
   describe "staging a simple sinatra app" do
     context "when the DEA has to detect the buildback" do
       let(:start_staging_message) {
@@ -273,14 +234,6 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
 
         nats.with_async_staging message, first_response, second_response
       end
-    end
-  end
-
-  def download_tgz(url)
-    Dir.mktmpdir do |dir|
-      `curl --silent --show-error #{url} > #{dir}/staged_app.tgz`
-      `cd #{dir} && tar xzvf staged_app.tgz`
-      yield dir
     end
   end
 end

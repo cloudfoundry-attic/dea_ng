@@ -13,6 +13,14 @@ module BuildpackHelpers
     end
   end
 
+  def download_tgz(url)
+    Dir.mktmpdir do |dir|
+      `curl --silent --show-error #{url} > #{dir}/staged_app.tgz`
+      `cd #{dir} && tar xzvf staged_app.tgz`
+      yield dir
+    end
+  end
+
   private
 
   def hostname
