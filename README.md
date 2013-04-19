@@ -102,10 +102,17 @@ cd /vagrant
 bundle install
 git submodule update --init
 foreman start > /tmp/foreman.log &
+```
 
-# run the dea tests
+To run the tests (unit, integration or all):
+```
+bundle exec rspec spec/unit
+bundle exec rspec spec/integration
 bundle exec rspec
 ```
+
+Note that the integration tests stage and run real applications, which requires an internet connection.
+They take 5-10 minutes to run, depending on your connection speed.
 
 ## Staging
 
