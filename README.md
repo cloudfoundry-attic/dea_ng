@@ -68,6 +68,7 @@ Follow these steps to set up DEA to run locally on your computer:
 ```shell
 # clone the repo
 git clone http://github.com/cloudfoundry/dea_ng
+git submodule update --init
 bundle install
 
 # check that your version of vagrant is 1.1 or greater
@@ -100,7 +101,6 @@ rvmsudo bundle exec rake warden:start[config/test_vm.yml] > /tmp/warden.log &
 # start the DEA's dependencies
 cd /vagrant
 bundle install
-git submodule update --init
 foreman start > /tmp/foreman.log &
 ```
 
