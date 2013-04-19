@@ -193,7 +193,7 @@ fi
       end
     end
 
-    context "when a database is bound" do
+    context "when a postgresql database is bound" do
       let(:staging_env) {
         <<-YAML
         services:
@@ -217,6 +217,34 @@ fi
       it "sets the DATABASE_URL in the startup script" do
         stage :environment => YAML::load(staging_env) do |staged_dir|
           start_script_body(staged_dir).should include('DATABASE_URL="postgres://mariah:nick@mariahs_host:5678/mariahs_db"')
+        end
+      end
+    end
+
+    context "when a rds_mysql database is bound" do
+      let(:staging_env) {
+        <<-YAML
+        services:
+        - label: rds_mysql-n/a
+          tags: {}
+          name: rds_mysql-851fd
+          credentials:
+            name: mariahs_db
+            hostname: mariahs_host
+            host: mariahs_host
+            port: 5678
+            user: mariah
+            username: mariah
+            password: nick
+          options: {}
+          plan: '10mb'
+          plan_options: {}
+        YAML
+      }
+
+      it "sets the DATABASE_URL in the startup script" do
+        stage :environment => YAML::load(staging_env) do |staged_dir|
+          start_script_body(staged_dir).should include('DATABASE_URL="mysql2://mariah:nick@mariahs_host:5678/mariahs_db"')
         end
       end
     end
