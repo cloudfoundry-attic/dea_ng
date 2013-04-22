@@ -14,8 +14,15 @@ FileUtils.mkdir_p(STAGED_APPS_DIR)
 class FileServer < Sinatra::Base
   get "/unstaged/:name" do |name|
     zip_path = "/tmp/fixture-#{name}.zip"
-    Dir.chdir("#{APPS_DIR}/#{name}") do
-      system "rm -rf #{zip_path} && zip #{zip_path} *"
+
+    app_path = if name == "node_buildpack_tests"
+      File.expand_path("../../../buildpacks/vendor/nodejs", __FILE__)
+    else
+      "#{APPS_DIR}/#{name}"
+    end
+
+    Dir.chdir(app_path) do
+      system "rm -rf #{zip_path} && zip -r #{zip_path} ."
     end
     send_file(zip_path)
   end
