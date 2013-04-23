@@ -8,6 +8,7 @@ module DeaHelpers
   end
 
   def dea_memory
+    # Use NATS to locate the only DEA running as part of this integration test.
     response = nats.with_subscription("dea.advertise") do
       nats.publish("dea.locate", {}, :async => true)
     end
