@@ -75,7 +75,7 @@ fi
 
     it "clones the buildpack URL" do
       plugin.should_receive(:system).with(anything) do |cmd|
-        expect(cmd).to match /git clone #{buildpack_url} #{plugin.app_dir}\/.buildpacks/
+        expect(cmd).to match /git clone #{buildpack_url} \/tmp\/buildpacks/
         true
       end
 
