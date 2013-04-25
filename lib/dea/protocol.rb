@@ -127,15 +127,18 @@ module Dea::Protocol::V1
     end
   end
 
+  # TODO (David & Kowshik): Add exit description once warden can provide it to the DEA.
   class ExitMessage
     def self.generate(instance, reason)
       msg = {
-        "cc_partition" => instance.cc_partition,
-        "droplet"      => instance.application_id,
-        "version"      => instance.application_version,
-        "instance"     => instance.instance_id,
-        "index"        => instance.instance_index,
-        "reason"       => reason,
+        "cc_partition"     => instance.cc_partition,
+        "droplet"          => instance.application_id,
+        "version"          => instance.application_version,
+        "instance"         => instance.instance_id,
+        "index"            => instance.instance_index,
+        "reason"           => reason,
+        "exit_status"      => instance.exit_status,
+        "exit_description" => instance.exit_description,
       }
 
       if instance.crashed?

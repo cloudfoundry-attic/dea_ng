@@ -966,7 +966,7 @@ describe Dea::Instance do
 
     before do
       instance.stub(:promise_warden_connection).and_return(delivering_promise(warden_connection))
-      instance.stub(:promise_link).and_return(delivering_promise)
+      instance.stub(:promise_link).and_return(delivering_promise(::Warden::Protocol::LinkResponse.new))
     end
 
     before do

@@ -245,6 +245,8 @@ module Dea
     attr_reader :used_disk_in_bytes
     attr_reader :computed_pcpu    # See `man ps`
     attr_reader :cpu_samples
+    attr_reader :exit_status
+    attr_reader :exit_description
 
     def initialize(bootstrap, attributes)
       super(bootstrap.config)
@@ -268,6 +270,8 @@ module Dea
       @used_disk_in_bytes    = 0
       @computed_pcpu         = 0
       @cpu_samples           = []
+      @exit_status           = nil
+      @exit_description      = ""
     end
 
     def setup
@@ -750,8 +754,14 @@ module Dea
       end
     end
 
+    # TODO (David & Kowshik): Warden is currently not capable of providing the
+    # exit description in its link response. Once warden's link protocol response
+    # can provide the exit description to the DEA, we need to save the
+    # exit description as an instance variable along with the exit status.
+    # Both the exit description and the exit status should be published as part
+    # of the droplet.exited message.
     def link(&callback)
-      Promise.resolve(promise_link) do |error, _|
+      Promise.resolve(promise_link) do |error, link_response|
         case self.state
         when State::STARTING
           self.state = State::CRASHED
@@ -763,6 +773,9 @@ module Dea
         else
           # Linking likely completed because of stop
         end
+
+        @exit_status = link_response.exit_status unless error
+        @exit_description = "" # Ideally, we want link_response.exit_description here.
 
         callback.call(error) unless callback.nil?
       end
