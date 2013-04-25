@@ -245,8 +245,8 @@ module Dea
     attr_reader :used_disk_in_bytes
     attr_reader :computed_pcpu    # See `man ps`
     attr_reader :cpu_samples
-    attr_reader :exit_status
-    attr_reader :exit_description
+    attr_accessor :exit_status
+    attr_accessor :exit_description
 
     def initialize(bootstrap, attributes)
       super(bootstrap.config)
@@ -762,6 +762,9 @@ module Dea
     # of the droplet.exited message.
     def link(&callback)
       Promise.resolve(promise_link) do |error, link_response|
+        self.exit_status = link_response.exit_status unless error
+        self.exit_description = "" # Ideally, we want to set it to link_response.exit_description.
+
         case self.state
         when State::STARTING
           self.state = State::CRASHED
@@ -773,9 +776,6 @@ module Dea
         else
           # Linking likely completed because of stop
         end
-
-        @exit_status = link_response.exit_status unless error
-        @exit_description = "" # Ideally, we want link_response.exit_description here.
 
         callback.call(error) unless callback.nil?
       end
