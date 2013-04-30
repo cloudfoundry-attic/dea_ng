@@ -127,7 +127,6 @@ module Dea::Protocol::V1
     end
   end
 
-  # TODO (David & Kowshik): Add exit description once warden can provide it to the DEA.
   class ExitMessage
     def self.generate(instance, reason)
       msg = {
