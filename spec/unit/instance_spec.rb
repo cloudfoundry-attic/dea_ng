@@ -14,6 +14,12 @@ describe Dea::Instance do
     Dea::Instance.new(bootstrap, valid_instance_attributes)
   end
 
+  describe "default attributes" do
+    it "defaults exit status to -1" do
+      expect(instance.exit_status).to eq(-1)
+    end
+  end
+
   describe "attributes from start message" do
     let(:start_message) do
       message = double("message")
@@ -1047,7 +1053,7 @@ describe Dea::Instance do
         it "sets the exit status on the instance" do
           expect { do_link }.to change {
             instance.exit_status
-          }.from(nil).to(42)
+          }.from(-1).to(42)
         end
 
         context "when the container info has an 'oom' event" do
@@ -1099,9 +1105,9 @@ describe Dea::Instance do
             rescue RuntimeError => e
               # Ignore error
             end
-          }.to change {
+          }.to_not change {
             instance.exit_status
-          }.from(nil).to(-1)
+          }
         end
 
         it "sets exit description of the instance to unknown" do

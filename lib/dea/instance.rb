@@ -270,7 +270,7 @@ module Dea
       @used_disk_in_bytes    = 0
       @computed_pcpu         = 0
       @cpu_samples           = []
-      @exit_status           = nil
+      @exit_status           = -1
       @exit_description      = ""
     end
 
