@@ -754,16 +754,15 @@ module Dea
       end
     end
 
-    # TODO (David & Kowshik): Warden is currently not capable of providing the
-    # exit description in its link response. Once warden's link protocol response
-    # can provide the exit description to the DEA, we need to save the
-    # exit description as an instance variable along with the exit status.
-    # Both the exit description and the exit status should be published as part
-    # of the droplet.exited message.
     def link(&callback)
       Promise.resolve(promise_link) do |error, link_response|
-        self.exit_status = link_response.exit_status unless error
-        self.exit_description = "" # Ideally, we want to set it to link_response.exit_description.
+        if error
+          self.exit_status = -1
+          self.exit_description = "unknown"
+        else
+          self.exit_status = link_response.exit_status
+          self.exit_description = determine_exit_description(link_response)
+        end
 
         case self.state
         when State::STARTING
@@ -857,6 +856,17 @@ module Dea
     end
 
     private
+
+    def determine_exit_description(link_response)
+      info = link_response.info
+      return "cannot be determined" unless info
+
+      if info.events && info.events.include?("oom")
+        return "out of memory"
+      end
+
+      "none"
+    end
 
     def container_relative_path(root, *parts)
       # This can be removed once warden's wsh branch is merged to master
