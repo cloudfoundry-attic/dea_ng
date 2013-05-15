@@ -6,10 +6,10 @@ require "dea/instance"
 require "dea/instance_registry"
 
 describe Dea::InstanceRegistry do
-  let (:bootstrap) { mock("bootstrap", :config => {}) }
-  let (:instance_registry) { Dea::InstanceRegistry.new }
-  let (:instance) { Dea::Instance.new(bootstrap, { "application_id" => 1 }) }
-  let (:instance1) { Dea::Instance.new(bootstrap, { "application_id" => 1}) }
+  let(:bootstrap) { mock("bootstrap", :config => {}) }
+  let(:instance_registry) { Dea::InstanceRegistry.new }
+  let(:instance) { Dea::Instance.new(bootstrap, { "application_id" => 1 }) }
+  let(:instance1) { Dea::Instance.new(bootstrap, { "application_id" => 1}) }
 
   describe "#register" do
     before :each do
@@ -53,6 +53,27 @@ describe Dea::InstanceRegistry do
         instance.instance_id => instance,
         instance1.instance_id => instance1,
       }
+    end
+  end
+
+  describe "#app_id_to_count" do
+    context "when there are no instances" do
+      it "is an empty hash" do
+        expect(instance_registry.app_id_to_count).to eq({})
+      end
+    end
+
+    context "when there are instances" do
+      before do
+        instance_registry.register(Dea::Instance.new(bootstrap, { "application_id" => "app1" }))
+        instance_registry.register(Dea::Instance.new(bootstrap, { "application_id" => "app1" }))
+      end
+
+      it "is a hash of the number of instances per app id" do
+        expect(instance_registry.app_id_to_count).to eq({
+          "app1" => 2
+        })
+      end
     end
   end
 

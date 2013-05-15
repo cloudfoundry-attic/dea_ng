@@ -19,6 +19,10 @@ module Dea
 
     attr_reader :memory_capacity, :disk_capacity
 
+    def app_id_to_count
+      @instance_registry.app_id_to_count
+    end
+
     def could_reserve?(memory, disk)
       (remaining_memory > memory) && (remaining_disk > disk)
     end

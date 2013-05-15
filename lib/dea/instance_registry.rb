@@ -67,6 +67,14 @@ module Dea
       @instances[instance_id]
     end
 
+    def app_id_to_count
+      app_count = {}
+      @instances_by_app_id.each do |app_id, instance_hash|
+        app_count[app_id] = instance_hash.size
+      end
+      app_count
+    end
+
     def each(&block)
       @instances.each_value(&block)
     end

@@ -104,6 +104,19 @@ describe Dea::ResourceManager do
     end
   end
 
+  describe "app_id_to_count" do
+    it "calls app_id_to_count on the instance_registry" do
+      instance_registry.stub(:app_id_to_count => {
+        'app1' => 4,
+        'app2' => 7,
+      })
+      expect(manager.app_id_to_count).to eq( {
+        'app1' => 4,
+        'app2' => 7,
+      })
+    end
+  end
+
   describe "could_reserve?" do
     let(:remaining_memory) do
       reserved_for_instances = (instances[0].memory_limit_in_bytes + instances[1].memory_limit_in_bytes) / 1024 / 1024

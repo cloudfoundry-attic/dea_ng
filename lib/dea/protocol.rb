@@ -99,6 +99,7 @@ module Dea::Protocol::V1
         "prod" => message[:prod],
         "stacks" => message[:stacks],
         "available_memory" => message[:available_memory],
+        "app_id_to_count" => message[:app_id_to_count],
       }
     end
   end
