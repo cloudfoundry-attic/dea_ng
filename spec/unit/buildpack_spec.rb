@@ -61,12 +61,12 @@ fi
 
   context "when a buildpack URL is passed" do
     let(:buildpack_url) { "git://github.com/heroku/heroku-buildpack-java.git" }
-    let(:staging_env) { { "buildpack" => buildpack_url } }
+    let(:staging_env) { {"buildpack" => buildpack_url} }
     let(:staging_config) {
       {
-        "source_dir" => ".",
-        "dest_dir" => ".",
-        "environment" => staging_env
+          "source_dir" => ".",
+          "dest_dir" => ".",
+          "environment" => staging_env
       }
     }
     let(:plugin) { Buildpacks::Buildpack.new(staging_config) }
@@ -96,6 +96,20 @@ fi
       it "gives up and raises an error" do
         plugin.stub(:system).with(anything) { false }
         expect { subject }.to raise_error("Failed to git clone buildpack")
+      end
+    end
+
+    context "when specifying a branch" do
+      URL = "git://github.com/heroku/heroku-buildpack-java.git"
+      BRANCH = "branch"
+      let(:buildpack_url) { "#{URL}+#{BRANCH}" }
+
+      it "clones a branch when a branch name is passed in" do
+        plugin.should_receive(:system).with(anything) do |cmd|
+          expect(cmd).to match /git clone --branch #{BRANCH} #{URL} \/tmp\/buildpacks/
+          true
+        end
+        subject
       end
     end
   end
@@ -281,9 +295,9 @@ fi
 
     let(:staging_config) {
       {
-        "source_dir" => ".",
-        "dest_dir" => ".",
-        "environment" => staging_env
+          "source_dir" => ".",
+          "dest_dir" => ".",
+          "environment" => staging_env
       }
     }
     subject { Buildpacks::Buildpack.new(staging_config) }
