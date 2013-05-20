@@ -3,10 +3,14 @@ require "pathname"
 require "staging_plugin"
 require "installer"
 require "rails_support"
+require "uri"
 
 module Buildpacks
   class Buildpack < StagingPlugin
     include RailsSupport
+
+    BRANCH_SEPARATOR = "+"
+    BRANCH_SEPARATOR_IN_REGEX = "\\#{BRANCH_SEPARATOR}"
 
     def stage_application
       Dir.chdir(destination_directory) do
@@ -27,18 +31,27 @@ module Buildpacks
       end
     end
 
-    def clone_buildpack(buildpack_url)
-      buildpack_path = "/tmp/buildpacks/#{File.basename(buildpack_url)}"
-      ok = system("git clone #{buildpack_url} #{buildpack_path}")
+    def clone_buildpack(buildpack_parm)
+      buildpack_url, buildpack_branch = parse_buildpack_parm buildpack_parm
+      buildpack_path = "/tmp/buildpacks/#{File.basename(buildpack_url)}#{BRANCH_SEPARATOR}#{buildpack_branch}"
+      branch_option = buildpack_branch.empty? ? "" : "--branch #{buildpack_branch} "
+      ok = system("git clone #{branch_option}#{buildpack_url} #{buildpack_path}")
       raise "Failed to git clone buildpack" unless ok
       Buildpacks::Installer.new(Pathname.new(buildpack_path), app_dir, cache_dir)
+    end
+
+    def parse_buildpack_parm(buildpack_parm)
+      parsed_buildpack_parms = URI.parse buildpack_parm
+      branch = /[^+]*#{BRANCH_SEPARATOR_IN_REGEX}?(.*)/.match(parsed_buildpack_parms.path)[1]
+      url = branch.empty? ? buildpack_parm : buildpack_parm.sub(/#{BRANCH_SEPARATOR_IN_REGEX}#{branch}/, "")
+      return url, branch
     end
 
     def build_pack
       return @build_pack if @build_pack
 
-      custom_url = environment["buildpack"]
-      return @build_pack = clone_buildpack(custom_url) if custom_url
+      buildpack_parm = environment["buildpack"]
+      return @build_pack = clone_buildpack(buildpack_parm) if buildpack_parm
 
       @build_pack = installers.detect(&:detect)
       raise "Unable to detect a supported application type" unless @build_pack
@@ -59,7 +72,7 @@ module Buildpacks
     def start_command
       return environment["meta"]["command"] if environment["meta"] && environment["meta"]["command"]
       procfile["web"] ||
-        release_info.fetch("default_process_types", {})["web"] ||
+          release_info.fetch("default_process_types", {})["web"] ||
           raise("Please specify a web start command in your manifest.yml or Procfile")
     end
 
@@ -93,7 +106,7 @@ if [ -d app/.profile.d ]; then
   unset i
 fi
 env > logs/env.log
-BASH
+        BASH
         script_content += console_start_script if rails_buildpack?
         script_content
       end
@@ -105,7 +118,7 @@ BASH
 
     def save_buildpack_info
       buildpack_info = {
-        "detected_buildpack"  => @build_pack.name
+          "detected_buildpack" => @build_pack.name
       }
 
       File.open(staging_info_path, 'w') { |f| YAML.dump(buildpack_info, f) }
