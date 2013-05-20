@@ -75,7 +75,7 @@ fi
 
     it "clones the buildpack URL" do
       plugin.should_receive(:system).with(anything) do |cmd|
-        expect(cmd).to match /git clone --depth 1 #{buildpack_url} \/tmp\/buildpacks/
+        expect(cmd).to match /git clone --depth 1 --recurse-submodules #{buildpack_url} \/tmp\/buildpacks/
         true
       end
 
