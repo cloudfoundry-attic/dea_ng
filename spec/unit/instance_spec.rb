@@ -1080,7 +1080,7 @@ describe Dea::Instance do
           it "sets the exit description to 'out of memory'" do
             expect { do_link }.to change {
               instance.exit_description
-            }.from("").to("none")
+            }.from("").to("app instance exited")
           end
         end
       end

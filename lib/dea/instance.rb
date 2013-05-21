@@ -865,7 +865,7 @@ module Dea
         return "out of memory"
       end
 
-      "none"
+      "app instance exited"
     end
 
     def container_relative_path(root, *parts)
