@@ -74,8 +74,13 @@ fi
     subject { plugin.build_pack }
 
     it "clones the buildpack URL" do
-      plugin.should_receive(:system).with(anything) do |cmd|
-        expect(cmd).to match /git clone --depth 1 --recurse-submodules #{buildpack_url} \/tmp\/buildpacks/
+      plugin.should_receive(:system).with(/git clone/) do |cmd|
+        expect(cmd).to match /git clone --depth 1 #{buildpack_url} \/tmp\/buildpacks/
+        true
+      end
+
+      plugin.should_receive(:system).with(/git submodule/) do |cmd|
+        expect(cmd).to match /cd \/tmp\/buildpacks\/heroku-buildpack-java.git && git submodule update --init --recursive/
         true
       end
 
