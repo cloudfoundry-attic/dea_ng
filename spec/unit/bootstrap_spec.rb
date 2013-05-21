@@ -439,4 +439,52 @@ describe Dea::Bootstrap do
       end
     end
   end
+
+  describe "creating an instance" do
+    subject(:instance) do
+      bootstrap.create_instance(valid_instance_attributes.merge(extra_attributes))
+    end
+
+    context "when the resource manager can not reserve space for the app" do
+      before do
+        bootstrap.instance_variable_set(:@logger, logger)
+        bootstrap.instance_variable_set(:@resource_manager, resource_manager)
+      end
+
+      let(:logger) { double(:mock_logger) }
+      let(:resource_manager) do
+        manager = double(:resource_manager)
+        manager.stub(:could_reserve?).with(1, 2).and_return(false)
+        manager
+      end
+      let(:extra_attributes) { {"limits" => {"mem" => 1, "disk" => 2, "fds" => 3}} }
+
+      it 'should log and error and return nil' do
+        logger.should_receive(:error).with(/not enough resources available/)
+        instance.should be_nil
+      end
+    end
+
+    context "when the resource manager can reserve space for the app" do
+      before do
+        bootstrap.instance_variable_set(:@logger, logger)
+        bootstrap.instance_variable_set(:@resource_manager, resource_manager)
+      end
+
+      let(:logger) { double(:mock_logger) }
+      let(:resource_manager) do
+        manager = double(:resource_manager)
+        manager.stub(:could_reserve?).with(1, 2).and_return(true)
+        manager
+      end
+      let(:extra_attributes) { {"limits" => {"mem" => 1, "disk" => 2, "fds" => 3}} }
+
+      it 'should create the instance' do
+        logger.should_not_receive(:error)
+        logger.should_not_receive(:warn)
+
+        instance.should be_a(::Dea::Instance)
+      end
+    end
+  end
 end

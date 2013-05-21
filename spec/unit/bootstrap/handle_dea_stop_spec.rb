@@ -25,10 +25,17 @@ describe "Dea::Bootstrap#handle_dea_stop" do
     instance
   end
 
+  let(:resource_manager) do
+    manager = double(:resource_manager)
+    manager.stub(:could_reserve?).and_return(true)
+    manager
+  end
+
   before do
     bootstrap.unstub(:setup_router_client)
 
     Dea::Instance.any_instance.stub(:setup_link)
+    bootstrap.stub(:resource_manager).and_return(resource_manager)
     bootstrap.stub(:instances_filtered_by_message).and_yield(instance_mock)
 
     instance_mock.stub(:running?).and_return(true)

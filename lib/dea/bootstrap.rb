@@ -373,6 +373,7 @@ module Dea
         snapshot["instances"].each do |attributes|
           instance_state = attributes.delete("state")
           instance = create_instance(attributes)
+          next unless instance
 
           # Ignore instance if it doesn't validate
           begin
@@ -404,7 +405,16 @@ module Dea
     end
 
     def create_instance(attributes)
-      instance = Instance.new(self, Instance.translate_attributes(attributes))
+      attributes = Instance.translate_attributes(attributes)
+
+      unless resource_manager.could_reserve?(attributes["limits"]["mem"], attributes["limits"]["disk"])
+        message = "Unable to start instance: #{attributes["instance_index"]}"
+        message << " for app: #{attributes["application_id"]}, not enough resources available."
+        logger.error(message)
+        return nil
+      end
+
+      instance = Instance.new(self, attributes)
       instance.setup
 
       instance.on(Instance::Transition.new(:resuming, :running)) do
@@ -496,6 +506,7 @@ module Dea
 
     def handle_dea_directed_start(message)
       instance = create_instance(message.data)
+      return unless instance
 
       if config.only_production_apps? && !instance.production_app?
         logger.info("Ignoring instance for non-production app: #{instance}")

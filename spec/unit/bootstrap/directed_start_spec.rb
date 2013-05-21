@@ -12,7 +12,7 @@ describe Dea do
         bootstrap.setup
         bootstrap.start
 
-        nats_mock.publish("dea.#{bootstrap.uuid}.start", {})
+        nats_mock.publish("dea.#{bootstrap.uuid}.start", valid_instance_attributes)
 
         EM.next_tick do
           done
@@ -22,7 +22,15 @@ describe Dea do
 
     attr_reader :instance_mock
 
+    let(:resource_manager) do
+      manager = double(:resource_manager)
+      manager.stub(:could_reserve?).and_return(true)
+      manager
+    end
+
     before do
+      bootstrap.stub(:resource_manager).and_return(resource_manager)
+
       @instance_mock = Dea::Instance.new(bootstrap, valid_instance_attributes)
       @instance_mock.stub(:validate)
       @instance_mock.stub(:start) do
