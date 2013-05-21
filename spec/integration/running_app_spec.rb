@@ -11,14 +11,8 @@ describe "Running an app", :type => :integration, :requires_warden => true do
   let(:original_memory) do
     dea_config["resources"]["memory_mb"] * dea_config["resources"]["memory_overcommit_factor"]
   end
-  let(:snapshot_path) do
-    File.join(dea_config["base_dir"], "db", "instances.json")
-  end
 
   before do
-    # Remove stale instances from earlier runs of this test.
-    FileUtils.rm_f(snapshot_path)
-
     setup_fake_buildpack("start_command")
 
     nats.request("staging", {

@@ -312,84 +312,13 @@ module Dea
     end
 
     def start
-      load_snapshot
-
       start_component
       start_nats
       start_directory_server
       register_directory_server_v2
       directory_server_v2.start
 
-      unless instance_registry.empty?
-        logger.info("Loaded #{instance_registry.size} instances from snapshot")
-
-        # Wait a bit to give instances time to re-link, and figure out their state
-        ::EM.add_timer(1.0) do
-          send_heartbeat(instance_registry.to_a)
-          start_finish
-        end
-      else
-        start_finish
-      end
-    end
-
-    def snapshot_path
-      File.join(config["base_dir"], "db", "instances.json")
-    end
-
-    def save_snapshot
-      start = Time.now
-
-      instances = instance_registry.select do |i|
-        [
-          Dea::Instance::State::RUNNING,
-          Dea::Instance::State::CRASHED,
-        ].include?(i.state)
-      end
-
-      snapshot = {
-        "time"      => start.to_f,
-        "instances" => instances.map(&:attributes),
-      }
-
-      file = Tempfile.new("instances", File.join(config["base_dir"], "tmp"))
-      file.write(::Yajl::Encoder.encode(snapshot, :pretty => true))
-      file.close
-
-      FileUtils.mv(file.path, snapshot_path)
-
-      logger.debug("Saving snapshot took: %.3fs" % [Time.now - start])
-    end
-
-    def load_snapshot
-      return unless File.exist?(snapshot_path)
-
-      start = Time.now
-
-      snapshot = ::Yajl::Parser.parse(File.read(snapshot_path))
-      snapshot ||= {}
-
-      if snapshot["instances"]
-        snapshot["instances"].each do |attributes|
-          instance_state = attributes.delete("state")
-          instance = create_instance(attributes)
-          next unless instance
-
-          # Ignore instance if it doesn't validate
-          begin
-            instance.validate
-          rescue => error
-            logger.warn("Error validating instance: #{error.message}")
-            next
-          end
-
-          # Enter instance state via "RESUMING" to trigger the right transitions
-          instance.state = Instance::State::RESUMING
-          instance.state = instance_state
-        end
-
-        logger.debug("Loading snapshot took: %.3fs" % [Time.now - start])
-      end
+      start_finish
     end
 
     def reap_unreferenced_droplets
@@ -465,18 +394,6 @@ module Dea
 
           send_exited_message(instance, reason)
         end
-      end
-
-      instance.on(Instance::Transition.new(:starting, :running)) do
-        save_snapshot
-      end
-
-      instance.on(Instance::Transition.new(:running, :stopping)) do
-        save_snapshot
-      end
-
-      instance.on(Instance::Transition.new(:running, :crashed)) do
-        save_snapshot
       end
 
       instance.on(Instance::Transition.new(:stopping, :stopped)) do

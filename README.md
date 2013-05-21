@@ -147,4 +147,4 @@ The following log levels exist, shown with an example of what they are used for:
 * `warn` - DEA failed to destroy a warden container, DEA received invalid JSON message over NATS
 * `info` - DEA is shutting down, DEA received a request to stage/run an app, but didn't have the resources
 * `debug2` - DEA received request for instance information, but was not running the specified app
-* `debug` - DEA saved/loaded a snapshot, downloaded a droplet
+* `debug` - DEA downloaded a droplet
