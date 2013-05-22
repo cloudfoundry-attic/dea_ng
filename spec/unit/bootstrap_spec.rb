@@ -442,6 +442,7 @@ describe Dea::Bootstrap do
 
   describe "creating an instance" do
     subject(:instance) do
+      bootstrap.setup_instance_registry
       bootstrap.create_instance(valid_instance_attributes.merge(extra_attributes))
     end
 

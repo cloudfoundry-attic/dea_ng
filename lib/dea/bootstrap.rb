@@ -345,18 +345,7 @@ module Dea
 
       instance = Instance.new(self, attributes)
       instance.setup
-
-      instance.on(Instance::Transition.new(:resuming, :running)) do
-        instance_registry.register(instance)
-      end
-
-      instance.on(Instance::Transition.new(:resuming, :crashed)) do
-        instance_registry.register(instance)
-      end
-
-      instance.on(Instance::Transition.new(:born, :starting)) do
-        instance_registry.register(instance)
-      end
+      instance_registry.register(instance)
 
       instance.on(Instance::Transition.new(:starting, :crashed)) do
         send_exited_message(instance, EXIT_REASON_CRASHED)

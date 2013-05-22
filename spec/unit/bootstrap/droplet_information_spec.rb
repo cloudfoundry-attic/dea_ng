@@ -97,23 +97,25 @@ describe Dea do
 
     it "should respond with a correctly formatted message" do
       responses = []
+      first_instance = nil
 
       run do
+        first_instance = @instances[0]
         responses = find_droplet(:count => 1) do
           {
-            "droplet" => @instances[0].application_id,
+            "droplet" => first_instance.application_id,
           }
         end
       end
 
       expected = {
         "dea"      => bootstrap.uuid,
-        "droplet"  => @instances[0].application_id,
-        "version"  => @instances[0].application_version,
-        "instance" => @instances[0].instance_id,
-        "index"    => @instances[0].instance_index,
-        "state"    => @instances[0].state,
-        "state_timestamp" => @instances[0].state_timestamp,
+        "droplet"  => first_instance.application_id,
+        "version"  => first_instance.application_version,
+        "instance" => first_instance.instance_id,
+        "index"    => first_instance.instance_index,
+        "state"    => first_instance.state,
+        "state_timestamp" => first_instance.state_timestamp,
       }
 
       responses.size.should == 1
@@ -124,8 +126,9 @@ describe Dea do
       responses = []
 
       run do
+        first_instance = @instances[0]
         responses = find_droplet(:count => 1) do
-          { "droplet" => @instances[0].application_id,
+          { "droplet" => first_instance.application_id,
             "path"    => "/foo/bar",
           }
         end
@@ -140,13 +143,15 @@ describe Dea do
 
       expected = nil
       run do
+        first_instance = @instances[0]
+
         # Stub time for uptime and usage calculations
         frozen_time = Time.now
         Time.stub(:now).and_return(frozen_time)
 
         expected = {
-          "name"       => @instances[0].application_name,
-          "uris"       => @instances[0].application_uris,
+          "name"       => first_instance.application_name,
+          "uris"       => first_instance.application_uris,
           "host"       => bootstrap.local_ip,
           "port"       => 5,
           "uptime"     => 1,
@@ -162,22 +167,19 @@ describe Dea do
         }
 
         # Port
-        @instances[0].stub(:instance_host_port).and_return(expected["port"])
+        first_instance.stub(:instance_host_port).and_return(expected["port"])
 
         # Limits
-        getters = [:memory_limit_in_bytes, :disk_limit_in_bytes,
-                   :file_descriptor_limit]
-        keys = %W(mem disk fds)
-        getters.zip(keys).each do |getter, key|
-          @instances[0].stub(getter).and_return(expected["#{key}_quota"])
-        end
+        first_instance.stub(:memory_limit_in_bytes).and_return(expected["mem_quota"])
+        first_instance.stub(:disk_limit_in_bytes).and_return(expected["disk_quota"])
+        first_instance.stub(:file_descriptor_limit).and_return(expected["fds_quota"])
 
         # Uptime
-        @instances[0].stub(:state_starting_timestamp).and_return(frozen_time - 1)
+        first_instance.stub(:state_starting_timestamp).and_return(frozen_time - 1)
 
         responses = find_droplet(:count => 1) do
           {
-            "droplet" => @instances[0].application_id,
+            "droplet" => first_instance.application_id,
             "include_stats" => true,
           }
         end

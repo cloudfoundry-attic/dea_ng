@@ -33,6 +33,7 @@ describe "Dea::Bootstrap#handle_dea_stop" do
 
   before do
     bootstrap.unstub(:setup_router_client)
+    bootstrap.setup
 
     Dea::Instance.any_instance.stub(:setup_link)
     bootstrap.stub(:resource_manager).and_return(resource_manager)
