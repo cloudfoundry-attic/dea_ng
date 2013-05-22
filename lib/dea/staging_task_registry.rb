@@ -1,29 +1,34 @@
-class Dea::StagingTaskRegistry
-  include Enumerable
+require_relative "registry_enumeration"
 
-  def register(task)
-    tasks_map[task.task_id] = task
-  end
+module Dea
+  class StagingTaskRegistry
+    include Enumerable
+    include RegistryEnumeration
 
-  def unregister(task)
-    tasks_map.delete(task.task_id)
-  end
+    def register(task)
+      tasks_map[task.task_id] = task
+    end
 
-  def registered_task(task_id)
-    tasks_map[task_id]
-  end
+    def unregister(task)
+      tasks_map.delete(task.task_id)
+    end
 
-  def each(&block)
-    tasks_map.each_value(&block)
-  end
+    def registered_task(task_id)
+      tasks_map[task_id]
+    end
 
-  def tasks
-    tasks_map.values
-  end
+    def each(&block)
+      tasks_map.each_value(&block)
+    end
 
-  private
+    def tasks
+      tasks_map.values
+    end
 
-  def tasks_map
-    @tasks_map ||= {}
+    private
+
+    def tasks_map
+      @tasks_map ||= {}
+    end
   end
 end

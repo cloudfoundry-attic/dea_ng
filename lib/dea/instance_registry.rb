@@ -4,6 +4,7 @@ require "steno"
 require "steno/core_ext"
 require "sys/filesystem"
 require "thread"
+require_relative "registry_enumeration"
 
 module Dea
   class InstanceRegistry
@@ -11,6 +12,7 @@ module Dea
     CRASHES_REAPER_INTERVAL_SECS = 10
 
     include Enumerable
+    include RegistryEnumeration
 
     attr_reader :config
     attr_reader :crash_lifetime_secs

@@ -11,6 +11,8 @@ describe Dea::InstanceRegistry do
   let(:instance) { Dea::Instance.new(bootstrap, { "application_id" => 1 }) }
   let(:instance1) { Dea::Instance.new(bootstrap, { "application_id" => 1}) }
 
+  it_behaves_like :handles_registry_enumerations
+
   describe "#register" do
     before :each do
       instance_registry.register(instance)

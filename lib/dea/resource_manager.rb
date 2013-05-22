@@ -28,17 +28,17 @@ module Dea
     end
 
     def reserved_memory
-      total_mb(@instance_registry, :memory_limit_in_bytes) +
-      total_mb(@staging_task_registry, :memory_limit_in_bytes)
+      total_mb(@instance_registry, :reserved_memory_bytes) +
+      total_mb(@staging_task_registry, :reserved_memory_bytes)
     end
 
     def used_memory
-      total_mb(@instance_registry, :used_memory_in_bytes)
+      total_mb(@instance_registry, :used_memory_bytes)
     end
 
     def reserved_disk
-      total_mb(@instance_registry, :disk_limit_in_bytes) +
-      total_mb(@staging_task_registry, :disk_limit_in_bytes)
+      total_mb(@instance_registry, :reserved_disk_bytes) +
+      total_mb(@staging_task_registry, :reserved_disk_bytes)
     end
 
     def remaining_memory
@@ -52,11 +52,7 @@ module Dea
     private
 
     def total_mb(registry, resource_name)
-      bytes_to_mb(total_bytes(registry, resource_name))
-    end
-
-    def total_bytes(registry, resource_name)
-      registry.reduce(0) { |sum, task| sum + task.public_send(resource_name) }
+      bytes_to_mb(registry.public_send(resource_name))
     end
 
     def bytes_to_mb(bytes)

@@ -84,6 +84,7 @@ module Dea
     def memory_limit_in_bytes
       (staging_config["memory_limit_mb"] || 1024).to_i * 1024 * 1024
     end
+    alias :used_memory_in_bytes :memory_limit_in_bytes
 
     def disk_limit_in_bytes
       (staging_config["disk_limit_mb"] || 2*1024).to_i * 1024 * 1024
@@ -324,8 +325,7 @@ module Dea
         request = ::Warden::Protocol::InfoRequest.new(:handle => container_handle)
         response = promise_warden_call(:info, request).resolve
 
-        raise RuntimeError, "container path is not available" \
-          unless @container_path = response.container_path
+        raise RuntimeError, "container path is not available" unless @container_path = response.container_path
 
         p.deliver(response)
       end

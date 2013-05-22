@@ -8,6 +8,8 @@ describe Dea::StagingTaskRegistry do
   let(:task_1) { Dea::StagingTask.new(bootstrap, nil, valid_staging_attributes) }
   let(:task_2) { Dea::StagingTask.new(bootstrap, nil, valid_staging_attributes) }
 
+  it_behaves_like :handles_registry_enumerations
+
   describe "#register" do
     it "adds task to the registry" do
       expect {
