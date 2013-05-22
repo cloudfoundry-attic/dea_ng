@@ -933,7 +933,7 @@ describe Dea::Instance do
         expect_start.to raise_error
 
         # Instance exit description should be set to the failure message
-        instance.exit_description.should be_eql("Instance unhealthy")
+        instance.exit_description.should be_eql("App instance failed health check")
       end
     end
   end

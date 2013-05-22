@@ -529,13 +529,13 @@ module Dea
         link
 
         if promise_health_check.resolve
-          logger.info("Instance healthy")
+          logger.info("Instance: #{instance_id} HEALTHY")
           promise_state(State::STARTING, State::RUNNING).resolve
 
           promise_exec_hook_script('after_start').resolve
         else
-          logger.warn("Instance unhealthy")
-          p.fail("Instance unhealthy")
+          logger.info("Instance: #{instance_id} UNHEALTHY")
+          p.fail("App instance failed health check")
         end
 
         p.deliver
