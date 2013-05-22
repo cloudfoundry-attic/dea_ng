@@ -504,6 +504,7 @@ describe Dea::Instance do
 
         it "succeeds" do
           expect_start.to_not raise_error
+          instance.exit_description.should be_empty
         end
       end
 
@@ -516,12 +517,17 @@ describe Dea::Instance do
           droplet.stub(:download).and_yield(nil)
 
           expect_start.to_not raise_error
+          instance.exit_description.should be_empty
         end
 
         it "fails when #download fails" do
-          droplet.stub(:download).and_yield(Dea::Instance::BaseError.new("download failed"))
+          msg = "download failed"
+          droplet.stub(:download).and_yield(Dea::Instance::BaseError.new(msg))
 
-          expect_start.to raise_error(Dea::Instance::BaseError, "download failed")
+          expect_start.to raise_error(Dea::Instance::BaseError, msg)
+
+          # Instance exit description should be set to the failure message
+          instance.exit_description.should be_eql(msg)
         end
       end
     end
@@ -543,20 +549,26 @@ describe Dea::Instance do
         end
 
         expect_start.to_not raise_error
+        instance.exit_description.should be_empty
 
         # Warden handle should be set
         instance.attributes["warden_handle"].should == "handle"
       end
 
       it "fails when the call fails" do
+        msg = "promise warden call error for container creation"
+
         instance.stub(:promise_warden_call) do
-          failing_promise(RuntimeError.new("error"))
+          failing_promise(RuntimeError.new(msg))
         end
 
         expect_start.to raise_error(RuntimeError, /error/i)
 
         # Warden handle should not be set
         instance.attributes["warden_handle"].should be_nil
+
+        # Instance exit description should be set to the failure message
+        instance.exit_description.should eql(msg)
       end
     end
 
@@ -583,6 +595,7 @@ describe Dea::Instance do
         end
 
         expect_start.to_not raise_error
+        instance.exit_description.should be_empty
       end
 
       it "should map an instance port" do
@@ -591,6 +604,7 @@ describe Dea::Instance do
         end
 
         expect_start.to_not raise_error
+        instance.exit_description.should be_empty
 
         # Ports should be set
         instance.attributes["instance_host_port"].     should == 1234
@@ -605,6 +619,7 @@ describe Dea::Instance do
         end
 
         expect_start.to_not raise_error
+        instance.exit_description.should be_empty
 
         # Ports should be set
         instance.instance_debug_host_port.     should == 1234
@@ -617,6 +632,7 @@ describe Dea::Instance do
         end
 
         expect_start.to_not raise_error
+        instance.exit_description.should be_empty
 
         # Ports should be set
         instance.instance_console_host_port.     should == 1234
@@ -624,15 +640,20 @@ describe Dea::Instance do
       end
 
       it "can fail" do
+        msg = "promise warden call error for container network setup"
+
         instance.stub(:promise_warden_call) do
-          failing_promise(RuntimeError.new("error"))
+          failing_promise(RuntimeError.new(msg))
         end
 
-        expect_start.to raise_error(RuntimeError, /error/i)
+        expect_start.to raise_error(RuntimeError, msg)
 
         # Ports should not be set
         instance.instance_host_port.     should be_nil
         instance.instance_container_port.should be_nil
+
+        # Instance exit description should be set to the failure message
+        instance.exit_description.should be_eql(msg)
       end
     end
 
@@ -722,14 +743,19 @@ describe Dea::Instance do
         end
 
         expect_start.to_not raise_error
+        instance.exit_description.should be_empty
       end
 
       it "can fail by run failing" do
+        msg = "droplet extraction failure"
         instance.stub(:promise_warden_run) do |*_|
-          failing_promise(RuntimeError.new("failure"))
+          failing_promise(RuntimeError.new(msg))
         end
 
-        expect_start.to raise_error("failure")
+        expect_start.to raise_error(msg)
+
+        # Instance exit description should be set to the failure message
+        instance.exit_description.should be_eql(msg)
       end
     end
 
@@ -746,6 +772,7 @@ describe Dea::Instance do
         end
 
         expect_start.to_not raise_error
+       instance.exit_description.should be_empty
       end
 
       it "should chown the app dir" do
@@ -756,6 +783,7 @@ describe Dea::Instance do
         end
 
         expect_start.to_not raise_error
+        instance.exit_description.should be_empty
       end
 
       it "should symlink the app dir" do
@@ -766,14 +794,20 @@ describe Dea::Instance do
         end
 
         expect_start.to_not raise_error
+        instance.exit_description.should be_empty
       end
 
       it "can fail by run failing" do
+        msg = "environment setup failure"
+
         instance.stub(:promise_warden_run) do |*_|
-          failing_promise(RuntimeError.new("failure"))
+          failing_promise(RuntimeError.new(msg))
         end
 
-        expect_start.to raise_error("failure")
+        expect_start.to raise_error(msg)
+
+        # Instance exit description should be set to the failure message
+        instance.exit_description.should be_eql(msg)
       end
 
     end
@@ -806,7 +840,22 @@ describe Dea::Instance do
           end
 
           expect_start.to_not raise_error
+          instance.exit_description.should be_empty
+
           script_content.should == "echo \"#{hook}\""
+        end
+
+        it "should raise error when script execution fails" do
+          msg = "script execution failed"
+
+          instance.stub(:promise_warden_run) do |_, script|
+            failing_promise(RuntimeError.new(msg))
+          end
+
+          expect_start.to raise_error(msg)
+
+          # Instance exit description should be set to the failure message
+          instance.exit_description.should be_eql(msg)
         end
       end
     end
@@ -835,17 +884,23 @@ describe Dea::Instance do
         end
 
         expect_start.to_not raise_error
+        instance.exit_description.should be_empty
 
         # Job ID should be set
         instance.attributes["warden_job_id"].should == 37
       end
 
       it "can fail" do
+        msg = "can't start the application"
+
         instance.stub(:promise_warden_call) do
-          failing_promise(RuntimeError.new("error"))
+          failing_promise(RuntimeError.new(msg))
         end
 
-        expect_start.to raise_error(RuntimeError, /error/i)
+        expect_start.to raise_error(RuntimeError, msg)
+
+        # Instance exit description should be set to the failure message
+        instance.exit_description.should be_eql(msg)
 
         # Job ID should not be set
         instance.attributes["warden_job_id"].should be_nil
@@ -869,12 +924,16 @@ describe Dea::Instance do
           and_return(delivering_promise)
 
         expect_start.to_not raise_error
+        instance.exit_description.should be_empty
       end
 
       it "fails if the instance is unhealthy" do
         instance.stub(:promise_health_check).and_return(delivering_promise(false))
 
         expect_start.to raise_error
+
+        # Instance exit description should be set to the failure message
+        instance.exit_description.should be_eql("Instance unhealthy")
       end
     end
   end
