@@ -320,6 +320,22 @@ describe Dea::Bootstrap do
     end
   end
 
+  describe "start_component" do
+    it "adds stacks to varz" do
+      @config["stacks"] = ["Linux"]
+
+      bootstrap.stub(:nats).and_return(nats_client_mock)
+
+      # stubbing this to avoid a runtime exception
+      VCAP::Component.stub(:register)
+      VCAP::Component.stub(:uuid => 1)
+
+      bootstrap.start_component
+
+      VCAP::Component.varz[:stacks].should == ["Linux"]
+    end
+  end
+
   describe "#start_nats" do
     before do
       EM.stub(:add_periodic_timer)

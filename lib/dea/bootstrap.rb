@@ -281,11 +281,15 @@ module Dea
         :type     => "DEA",
         :host     => local_ip,
         :index    => config["index"],
-        :config   => config,
         :nats     => self.nats.client,
         :port     => config["status"]["port"],
         :user     => config["status"]["user"],
-        :password => config["status"]["password"])
+        :password => config["status"]["password"]
+      )
+
+      VCAP::Component.varz.synchronize do
+        VCAP::Component.varz[:stacks] = config["stacks"]
+      end
 
       @uuid = VCAP::Component.uuid
     end
