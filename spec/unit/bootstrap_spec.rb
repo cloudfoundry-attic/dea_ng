@@ -166,6 +166,13 @@ describe Dea::Bootstrap do
       bootstrap.setup_directory_server_v2
     end
 
+    it "sends a dea shutdown message" do
+      bootstrap.stub(:nats).and_return(nats_client_mock)
+      bootstrap.should_receive(:send_shutdown_message)
+      bootstrap.stub(:terminate)
+      bootstrap.shutdown
+    end
+
     context "when instances are registered" do
       before do
         bootstrap.instance_registry.register(Dea::Instance.new(bootstrap, {}))
@@ -240,6 +247,15 @@ describe Dea::Bootstrap do
       bootstrap.setup_instance_registry
     end
 
+    it "sends a dea evacuation message" do
+      bootstrap.should_receive(:send_shutdown_message)
+
+      # For shutdown delay
+      EM.stub(:add_timer)
+
+      bootstrap.evacuate
+    end
+
     it "should send an exited message for each instance" do
       instance = Dea::Instance.new(bootstrap, "application_id" => 0)
       instance.state = Dea::Instance::State::RUNNING
@@ -272,6 +288,24 @@ describe Dea::Bootstrap do
 
       shutdown_timestamp.should_not be_nil
       (shutdown_timestamp - start).should be_within(0.05).of(0.2)
+    end
+  end
+
+  describe "send_shutdown_message" do
+    it "publishes a dea.shutdown message on NATS" do
+      bootstrap.stub(:nats).and_return(nats_client_mock)
+
+      bootstrap.setup_instance_registry
+      bootstrap.instance_registry.register(
+        Dea::Instance.new(bootstrap, { "application_id" => "foo" }))
+
+      nats_client_mock.should_receive(:publish).with("dea.shutdown",
+        "id" => bootstrap.uuid,
+        "ip" => bootstrap.local_ip,
+        "version" => Dea::VERSION,
+        "app_id_to_count" => { "foo" => 1 })
+
+      bootstrap.send_shutdown_message
     end
   end
 

@@ -114,6 +114,16 @@ module Dea::Protocol::V1
     end
   end
 
+  class GoodbyeMessage
+    def self.generate(bootstrap)
+      { "id"   => bootstrap.uuid,
+        "ip"   => bootstrap.local_ip,
+        "version" => Dea::VERSION,
+        "app_id_to_count" => bootstrap.instance_registry.app_id_to_count
+      }
+    end
+  end
+
   class DeaStatusResponse
     def self.generate(bootstrap)
       hello = HelloMessage.generate(bootstrap)

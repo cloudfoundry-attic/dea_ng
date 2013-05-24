@@ -528,6 +528,8 @@ module Dea
         @evacuation_processed = true
       end
 
+      send_shutdown_message
+
       ignore_signals
       stop_sweepers
 
@@ -563,6 +565,8 @@ module Dea
         logger.info("Shutting down")
         @shutdown_processed = true
       end
+
+      send_shutdown_message unless evacuating?
 
       ignore_signals
 
@@ -601,6 +605,13 @@ module Dea
     # So we can test shutdown()
     def terminate
       exit
+    end
+
+    def send_shutdown_message
+      msg = Dea::Protocol::V1::GoodbyeMessage.generate(self)
+      nats.publish("dea.shutdown", msg)
+
+      nil
     end
 
     def send_exited_message(instance, reason)
