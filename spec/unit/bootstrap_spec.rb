@@ -219,15 +219,16 @@ describe Dea::Bootstrap do
       nats_mock = mock("nats")
       nats_mock.should_receive(:stop)
       nats_mock.should_receive(:client).and_return(nats_client_mock)
-      nats_mock.should_receive(:publish) do |subject, message|
-        subject.should == "router.unregister"
 
+      nats_mock.should_receive(:publish).with("router.unregister", anything) do |subject, message|
         message.should be_an_instance_of Hash
         message["host"].should == bootstrap.local_ip
         message["port"].should == bootstrap.config["directory_server"]["v2_port"]
         message["uris"].size.should == 1
         message["uris"][0].should match /.*\.#{bootstrap.config["domain"]}$/
       end
+
+      nats_mock.should_receive(:publish).with("dea.shutdown", anything)
 
       nats_client_mock.should_receive(:flush)
 
@@ -245,6 +246,7 @@ describe Dea::Bootstrap do
     before :each do
       bootstrap.setup_signal_handlers
       bootstrap.setup_instance_registry
+      bootstrap.stub(:send_shutdown_message)
     end
 
     it "sends a dea evacuation message" do
@@ -458,10 +460,14 @@ describe Dea::Bootstrap do
   describe "#evacuate" do
     before { EM.stub(:add_periodic_timer => nil, :add_timer => nil) }
 
+    before do
+      bootstrap.stub(:uuid => "unique-dea-id")
+      bootstrap.setup_nats
+      bootstrap.setup_instance_registry
+    end
+
     context "when advertising/locating was set up" do
       before do
-        bootstrap.stub(:uuid => "unique-dea-id")
-        bootstrap.setup_nats
         bootstrap.setup_resource_manager
         bootstrap.start_nats
       end
