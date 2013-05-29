@@ -29,16 +29,8 @@ module Buildpacks
 
     def clone_buildpack(buildpack_url)
       buildpack_path = "/tmp/buildpacks/#{File.basename(buildpack_url)}"
-
-      gitcmd = "git clone"
-      gitcmd << " --depth 1" if buildpack_url =~ /^git/
-
-      ok = system("#{gitcmd} #{buildpack_url} #{buildpack_path}")
+      ok = system("git clone --recursive #{buildpack_url} #{buildpack_path}")
       raise "Failed to git clone buildpack" unless ok
-
-      ok = system("cd #{buildpack_path} && git submodule update --init --recursive")
-      raise "Failed to update submodules" unless ok
-
       Buildpacks::Installer.new(Pathname.new(buildpack_path), app_dir, cache_dir)
     end
 
