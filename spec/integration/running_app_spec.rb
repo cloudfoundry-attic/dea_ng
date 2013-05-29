@@ -11,25 +11,8 @@ describe "Running an app", :type => :integration, :requires_warden => true do
   let(:original_memory) do
     dea_config["resources"]["memory_mb"] * dea_config["resources"]["memory_overcommit_factor"]
   end
-
-  before do
-    setup_fake_buildpack("start_command")
-
-    nats.request("staging", {
-      "async" => false,
-      "app_id" => app_id,
-      "properties" => {
-        "buildpack" => fake_buildpack_url("start_command"),
-      },
-      "download_uri" => unstaged_url,
-      "upload_uri" => staged_url,
-      "buildpack_cache_upload_uri" => buildpack_cache_upload_uri,
-      "buildpack_cache_download_uri" => buildpack_cache_download_uri
-    })
-  end
-
-  before do
-    nats.publish("dea.#{dea_id}.start", {
+  let(:valid_dea_start_message) {
+    {
       "index" => 1,
       "droplet" => app_id,
       "version" => "some-version",
@@ -45,26 +28,80 @@ describe "Running an app", :type => :integration, :requires_warden => true do
         "fds" => 32
       },
       "services" => []
-    })
-    wait_until_instance_started(app_id)
-  end
+    }
+  }
 
-  after do
-    nats.publish("dea.stop", { "droplet" => app_id })
-    wait_until_instance_gone(app_id)
-  end
+  describe 'setting up an invalid application' do
+    it 'does not allocate any memory' do
+      setup_fake_buildpack("start_command")
 
-  describe "starting the app" do
-    it "decreases the dea's available memory" do
-      expect(dea_memory).to eql(original_memory - (64 * 9/8))
+      nats.request("staging", {
+        "async" => false,
+        "app_id" => "A string not an integer ",
+        "properties" => {
+          "buildpack" => fake_buildpack_url("start_command"),
+        },
+        "download_uri" => unstaged_url,
+        "upload_uri" => staged_url,
+        "buildpack_cache_upload_uri" => buildpack_cache_upload_uri,
+        "buildpack_cache_download_uri" => buildpack_cache_download_uri
+      })
+
+
+      nats.publish("dea.#{dea_id}.start", valid_dea_start_message.merge(uris: "this"))
+
+      begin
+        wait_until do
+          nats.request("dea.find.droplet", {
+            "droplet" => app_id,
+          }, :timeout => 1)
+        end
+
+        fail("App was created and should not have been")
+      rescue Timeout::Error
+        expect(dea_memory).to eql(original_memory)
+      end
     end
   end
 
-  describe "stopping the app" do
-    it "restores the dea's available memory" do
-      nats.publish("dea.stop", { "droplet" => app_id })
+  describe 'starting a vaild application' do
+    before do
+      setup_fake_buildpack("start_command")
+
+      nats.request("staging", {
+        "async" => false,
+        "app_id" => app_id,
+        "properties" => {
+          "buildpack" => fake_buildpack_url("start_command"),
+        },
+        "download_uri" => unstaged_url,
+        "upload_uri" => staged_url,
+        "buildpack_cache_upload_uri" => buildpack_cache_upload_uri,
+        "buildpack_cache_download_uri" => buildpack_cache_download_uri
+      })
+
+
+      nats.publish("dea.#{dea_id}.start", valid_dea_start_message)
+      wait_until_instance_started(app_id)
+    end
+
+    after do
+      nats.publish("dea.stop", {"droplet" => app_id})
       wait_until_instance_gone(app_id)
-      expect(dea_memory).to eql(original_memory)
+    end
+
+    describe "starting the app" do
+      it "decreases the dea's available memory" do
+        expect(dea_memory).to eql(original_memory - (64 * 9/8))
+      end
+    end
+
+    describe "stopping the app" do
+      it "restores the dea's available memory" do
+        nats.publish("dea.stop", {"droplet" => app_id})
+        wait_until_instance_gone(app_id)
+        expect(dea_memory).to eql(original_memory)
+      end
     end
   end
 

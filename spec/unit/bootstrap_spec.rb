@@ -564,5 +564,30 @@ describe Dea::Bootstrap do
         instance.should be_a(::Dea::Instance)
       end
     end
+
+    context "when the app message validation fails" do
+      before do
+        bootstrap.instance_variable_set(:@logger, logger)
+        bootstrap.instance_variable_set(:@resource_manager, resource_manager)
+      end
+
+      let(:resource_manager) do
+        manager = double(:resource_manager)
+        manager.stub(:could_reserve?).with(1, 2).and_return(true)
+        manager
+      end
+
+      let(:logger) { mock(:mock_logger) }
+
+      it "does not register and logs" do
+        Dea::Instance.any_instance.stub(:validate).and_raise(RuntimeError)
+        logger.should_receive(:warn)
+
+        bootstrap.setup_instance_registry
+        instance = bootstrap.create_instance(valid_instance_attributes)
+
+        instance.should be_nil
+      end
+    end
   end
 end

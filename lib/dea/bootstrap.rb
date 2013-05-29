@@ -28,19 +28,19 @@ Dir[File.join(File.dirname(__FILE__), "responders/*.rb")].each { |f| require(f) 
 
 module Dea
   class Bootstrap
-    DEFAULT_HEARTBEAT_INTERVAL     = 10 # In secs
-    DROPLET_REAPER_INTERVAL_SECS   = 10
+    DEFAULT_HEARTBEAT_INTERVAL = 10 # In secs
+    DROPLET_REAPER_INTERVAL_SECS = 10
 
     DISCOVER_DELAY_MS_PER_INSTANCE = 10
-    DISCOVER_DELAY_MS_MEM          = 100
-    DISCOVER_DELAY_MS_MAX          = 250
+    DISCOVER_DELAY_MS_MEM = 100
+    DISCOVER_DELAY_MS_MAX = 250
 
-    EXIT_REASON_STOPPED            = "STOPPED"
-    EXIT_REASON_CRASHED            = "CRASHED"
-    EXIT_REASON_SHUTDOWN           = "DEA_SHUTDOWN"
-    EXIT_REASON_EVACUATION         = "DEA_EVACUATION"
+    EXIT_REASON_STOPPED = "STOPPED"
+    EXIT_REASON_CRASHED = "CRASHED"
+    EXIT_REASON_SHUTDOWN = "DEA_SHUTDOWN"
+    EXIT_REASON_EVACUATION = "DEA_EVACUATION"
 
-    SIGNALS_OF_INTEREST            = %W(TERM INT QUIT USR1 USR2)
+    SIGNALS_OF_INTEREST = %W(TERM INT QUIT USR1 USR2)
 
     attr_reader :config
     attr_reader :nats, :responders
@@ -288,12 +288,12 @@ module Dea
 
     def start_component
       VCAP::Component.register(
-        :type     => "DEA",
-        :host     => local_ip,
-        :index    => config["index"],
-        :nats     => self.nats.client,
-        :port     => config["status"]["port"],
-        :user     => config["status"]["user"],
+        :type => "DEA",
+        :host => local_ip,
+        :index => config["index"],
+        :nats => self.nats.client,
+        :port => config["status"]["port"],
+        :user => config["status"]["user"],
         :password => config["status"]["password"]
       )
 
@@ -334,7 +334,7 @@ module Dea
 
     def reap_unreferenced_droplets
       refd_shas = Set.new(instance_registry.map(&:droplet_sha1))
-      all_shas  = Set.new(droplet_registry.keys)
+      all_shas = Set.new(droplet_registry.keys)
 
       (all_shas - refd_shas).each do |unused_sha|
         logger.debug("Removing droplet for sha=#{unused_sha}")
@@ -356,7 +356,6 @@ module Dea
 
       instance = Instance.new(self, attributes)
       instance.setup
-      instance_registry.register(instance)
 
       instance.on(Instance::Transition.new(:starting, :crashed)) do
         send_exited_message(instance, EXIT_REASON_CRASHED)
@@ -401,6 +400,14 @@ module Dea
         EM.next_tick { instance.destroy }
       end
 
+      begin
+        instance.validate
+      rescue => error
+        logger.warn "Error validating instance: #{error.message}"
+        return
+      end
+
+      instance_registry.register(instance)
       instance
     end
 
@@ -427,13 +434,6 @@ module Dea
 
       if config.only_production_apps? && !instance.production_app?
         logger.info("Ignoring instance for non-production app: #{instance}")
-        return
-      end
-
-      begin
-        instance.validate
-      rescue => error
-        logger.warn "Error validating instance: #{error.message}"
         return
       end
 
@@ -506,8 +506,8 @@ module Dea
     def handle_dea_find_droplet(message)
       instances_filtered_by_message(message) do |instance|
         response = Dea::Protocol::V1::FindDropletResponse.generate(self,
-                                                                   instance,
-                                                                   message.data)
+          instance,
+          message.data)
         message.respond(response)
       end
 
@@ -664,20 +664,20 @@ module Dea
       set_or_nil = lambda { |h, k| h.has_key?(k) ? Set.new(h[k]) : nil }
 
       # Optional search filters
-      version        = message.data["version"]
-      instance_ids   = set_or_nil.call(message.data, "instances")
+      version = message.data["version"]
+      instance_ids = set_or_nil.call(message.data, "instances")
       instance_ids ||= set_or_nil.call(message.data, "instance_ids")
-      indices        = set_or_nil.call(message.data, "indices")
-      states         = set_or_nil.call(message.data, "states")
-      states         = states.map { |e| Dea::Instance::State.from_external(e) } unless states.nil?
+      indices = set_or_nil.call(message.data, "indices")
+      states = set_or_nil.call(message.data, "states")
+      states = states.map { |e| Dea::Instance::State.from_external(e) } unless states.nil?
 
       instances.each do |_, instance|
         matched = true
 
-        matched &&= (instance.application_version == version)   unless version.nil?
+        matched &&= (instance.application_version == version) unless version.nil?
         matched &&= instance_ids.include?(instance.instance_id) unless instance_ids.nil?
-        matched &&= indices.include?(instance.instance_index)   unless indices.nil?
-        matched &&= states.include?(instance.state)             unless states.nil?
+        matched &&= indices.include?(instance.instance_index) unless indices.nil?
+        matched &&= states.include?(instance.state) unless states.nil?
 
         if matched
           yield(instance)
