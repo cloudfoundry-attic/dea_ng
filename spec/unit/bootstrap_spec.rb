@@ -363,12 +363,33 @@ describe Dea::Bootstrap do
       bootstrap.stub(:nats).and_return(nats_client_mock)
 
       # stubbing this to avoid a runtime exception
-      VCAP::Component.stub(:register)
-      VCAP::Component.stub(:uuid => 1)
+      EM.stub(:add_periodic_timer)
 
-      bootstrap.start_component
+      bootstrap.setup_varz
 
       VCAP::Component.varz[:stacks].should == ["Linux"]
+    end
+  end
+
+  describe "#periodic_varz_update" do
+    before do
+      bootstrap.setup_resource_manager
+      bootstrap.config.stub(:minimum_staging_memory_mb => 333)
+      bootstrap.config.stub(:minimum_staging_disk_mb => 444)
+    end
+
+    it "is 0 when there is not enough free memory or disk space" do
+      bootstrap.resource_manager.stub(:could_reserve?).with(333, 444).and_return(false)
+      bootstrap.periodic_varz_update
+
+      VCAP::Component.varz[:can_stage].should == 0
+    end
+
+    it "is 1 when there is enough memory and disk space" do
+      bootstrap.resource_manager.stub(:could_reserve?).with(333, 444).and_return(true)
+      bootstrap.periodic_varz_update
+
+      VCAP::Component.varz[:can_stage].should == 1
     end
   end
 
