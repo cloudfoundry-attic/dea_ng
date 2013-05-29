@@ -127,5 +127,13 @@ module Dea
     def crash_inode_usage_ratio_threshold
       self["crash_inode_usage_ratio_threshold"]
     end
+
+    def minimum_staging_memory_mb
+      @config.fetch("staging", {}).fetch("memory_limit_mb", 1024)
+    end
+
+    def minimum_staging_disk_mb
+      @config.fetch("staging", {}).fetch("disk_limit_mb", 2*1024)
+    end
   end
 end

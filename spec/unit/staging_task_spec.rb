@@ -3,6 +3,7 @@
 require "spec_helper"
 require "dea/staging_task"
 require "dea/directory_server_v2"
+require "dea/config"
 require "em-http"
 
 describe Dea::StagingTask do
@@ -31,7 +32,7 @@ describe Dea::StagingTask do
     }
   end
 
-  let(:bootstrap) { mock(:bootstrap, :config => config) }
+  let(:bootstrap) { mock(:bootstrap, :config => Dea::Config.new(config)) }
   let(:dir_server) { Dea::DirectoryServerV2.new("domain", 1234, config) }
 
   let(:logger) do
@@ -492,7 +493,10 @@ YAML
     end
 
     context "when unspecified" do
-      let(:memory_limit_mb) { nil }
+      before do
+        config["staging"].delete("memory_limit_mb")
+      end
+
       it "uses 1GB as a default" do
         staging.memory_limit_in_bytes.should eq(1024*1024*1024)
       end
@@ -505,7 +509,10 @@ YAML
     end
 
     context "when unspecified" do
-      let(:disk_limit_mb) { nil }
+      before do
+        config["staging"].delete("disk_limit_mb")
+      end
+      
       it "uses 2GB as a default" do
         staging.disk_limit_in_bytes.should eq(2*1024*1024*1024)
       end

@@ -82,12 +82,12 @@ module Dea
     end
 
     def memory_limit_in_bytes
-      (staging_config["memory_limit_mb"] || 1024).to_i * 1024 * 1024
+      (config.minimum_staging_memory_mb).to_i * 1024 * 1024
     end
     alias :used_memory_in_bytes :memory_limit_in_bytes
 
     def disk_limit_in_bytes
-      (staging_config["disk_limit_mb"] || 2*1024).to_i * 1024 * 1024
+      (config.minimum_staging_disk_mb).to_i * 1024 * 1024
     end
 
     def stop(&callback)
