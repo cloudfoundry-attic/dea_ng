@@ -48,7 +48,7 @@ describe Dea do
       "uris" => instances[0].application_uris,
       "host" => bootstrap.local_ip,
       "port" => instances[0].instance_host_port,
-      "tags" => {"dea" => bootstrap.uuid },
+      "tags" => { "component" => "dea-#{bootstrap.uuid}" },
       "private_instance_id" => instances[0].private_instance_id,
     }
 
@@ -62,6 +62,28 @@ describe Dea do
     # The directory server is registered at startup, thus we expect two
     # registrations to arrive
     responses.should =~ [expected_0, expected_1, expected_1]
+  end
+
+  describe "router.register message" do
+    # The collector looks for dea- prefixed component tags
+    it "includes a 'component' tag that starts with 'dea-'" do
+      bs = double
+      nats = double
+      instance = double
+
+      bs.stub(:nats).and_return(nats)
+      bs.stub(:uuid).and_return("foo")
+
+      instance.stub(:application_id)
+      instance.stub(:application_uris)
+      bs.stub(:local_ip)
+      instance.stub(:instance_host_port)
+      instance.stub(:private_instance_id)
+
+      nats.should_receive(:publish).with(anything, hash_including("tags" => hash_including("component" => "dea-foo")))
+      client = Dea::RouterClient.new(bs)
+      client.register_instance(instance)
+    end
   end
 
   describe "upon receipt of a message on 'dea.update'" do
