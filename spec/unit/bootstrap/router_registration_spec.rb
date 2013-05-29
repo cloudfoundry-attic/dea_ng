@@ -48,7 +48,7 @@ describe Dea do
       "uris" => instances[0].application_uris,
       "host" => bootstrap.local_ip,
       "port" => instances[0].instance_host_port,
-      "tags" => {},
+      "tags" => {"dea" => bootstrap.uuid },
       "private_instance_id" => instances[0].private_instance_id,
     }
 
