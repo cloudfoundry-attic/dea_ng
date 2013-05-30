@@ -131,7 +131,7 @@ module Dea::Responders
     end
 
     def logger_for_app(app_id)
-      logger = Steno::Logger.new("Staging", Steno.config.sinks)
+      logger = Steno::Logger.new("Staging", Steno.config.sinks, :level => Steno.config.default_log_level)
       logger.tag(:app_guid => app_id)
     end
   end
