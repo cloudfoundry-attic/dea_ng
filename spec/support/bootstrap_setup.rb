@@ -24,6 +24,9 @@ shared_context "bootstrap_setup" do
 
     bootstrap.stub(:validate_config)
 
+    bootstrap.stub(:save_snapshot)
+
+    # No setup (explicitly unstub)
     bootstrap.stub(:setup_logging)
     bootstrap.stub(:setup_droplet_registry)
     bootstrap.stub(:setup_signal_handlers)

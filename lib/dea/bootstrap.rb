@@ -332,6 +332,34 @@ module Dea
       start_finish
     end
 
+    def snapshot_path
+      File.join(config["base_dir"], "db", "instances.json")
+    end
+
+    def save_snapshot
+      start = Time.now
+
+      instances = instance_registry.select do |i|
+        [
+          Dea::Instance::State::RUNNING,
+          Dea::Instance::State::CRASHED,
+        ].include?(i.state)
+      end
+
+      snapshot = {
+        "time"      => start.to_f,
+        "instances" => instances.map(&:attributes),
+      }
+
+      file = Tempfile.new("instances", File.join(config["base_dir"], "tmp"))
+      file.write(::Yajl::Encoder.encode(snapshot, :pretty => true))
+      file.close
+
+      FileUtils.mv(file.path, snapshot_path)
+
+      logger.debug("Saving snapshot took: %.3fs" % [Time.now - start])
+    end
+
     def reap_unreferenced_droplets
       refd_shas = Set.new(instance_registry.map(&:droplet_sha1))
       all_shas = Set.new(droplet_registry.keys)
@@ -393,6 +421,18 @@ module Dea
 
           send_exited_message(instance, reason)
         end
+      end
+
+      instance.on(Instance::Transition.new(:starting, :running)) do
+        save_snapshot
+      end
+
+      instance.on(Instance::Transition.new(:running, :stopping)) do
+        save_snapshot
+      end
+
+      instance.on(Instance::Transition.new(:running, :crashed)) do
+        save_snapshot
       end
 
       instance.on(Instance::Transition.new(:stopping, :stopped)) do
