@@ -26,7 +26,7 @@ class Download
   def download!(&blk)
     FileUtils.mkdir_p(destination_dir)
 
-    file = Tempfile.new("droplet", destination_dir)
+    file = Tempfile.new("droplet", destination_dir, :mode => File::BINARY)
     sha1 = Digest::SHA1.new
 
     http = EM::HttpRequest.new(uri).get
