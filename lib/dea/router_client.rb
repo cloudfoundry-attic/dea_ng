@@ -38,7 +38,7 @@ module Dea
         "uris" => opts[:uris] || instance.application_uris,
         "host" => bootstrap.local_ip,
         "port" => instance.instance_host_port,
-        "tags" => { "component" => "dea-#{bootstrap.uuid}" },
+        "tags" => { "component" => "dea-#{bootstrap.config["index"]}" },
         "private_instance_id" => instance.private_instance_id,
       }
     end

@@ -66,13 +66,14 @@ describe Dea do
 
   describe "router.register message" do
     # The collector looks for dea- prefixed component tags
-    it "includes a 'component' tag that starts with 'dea-'" do
+    it "includes a 'component' tag that starts with 'dea-' and ends with its index" do
       bs = double
       nats = double
       instance = double
 
       bs.stub(:nats).and_return(nats)
-      bs.stub(:uuid).and_return("foo")
+      bs.stub(:uuid).and_return("1-deadbeef")
+      bs.stub(:config).and_return({ "index" => 1 })
 
       instance.stub(:application_id)
       instance.stub(:application_uris)
@@ -80,7 +81,7 @@ describe Dea do
       instance.stub(:instance_host_port)
       instance.stub(:private_instance_id)
 
-      nats.should_receive(:publish).with(anything, hash_including("tags" => hash_including("component" => "dea-foo")))
+      nats.should_receive(:publish).with(anything, hash_including("tags" => hash_including("component" => "dea-1")))
       client = Dea::RouterClient.new(bs)
       client.register_instance(instance)
     end
