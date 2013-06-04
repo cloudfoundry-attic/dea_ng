@@ -33,7 +33,11 @@ module Dea
     end
 
     def available_memory_ratio
-      reserved_memory * 1.0 / memory_capacity
+      1.0 - (reserved_memory.to_f / memory_capacity)
+    end
+
+    def available_disk_ratio
+      1.0 - (reserved_disk.to_f / disk_capacity)
     end
 
     def reserved_memory

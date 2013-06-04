@@ -120,8 +120,19 @@ describe Dea::ResourceManager do
     let(:reserved_instance_memory) { 5 * 1024 * 1024 * 1024 }
     let(:reserved_staging_memory) { 5 * 1024 * 1024 * 1024 }
 
-    it "is the ratio of reserved memory to total memory" do
-      manager.available_memory_ratio.should == 0.25
+    it "is the ratio of available memory to total memory" do
+      manager.available_memory_ratio.should == 0.75
+    end
+  end
+
+  describe "available_disk_ratio" do
+    let(:disk_mb) { 20 * 1024 }
+    let(:disk_overcommit_factor) { 1 }
+    let(:reserved_instance_disk) { 10 * 1024 * 1024 * 1024 }
+    let(:reserved_staging_disk) { 5 * 1024 * 1024 * 1024 }
+
+    it "is the ratio of available disk to total disk" do
+      manager.available_disk_ratio.should == 0.25
     end
   end
 

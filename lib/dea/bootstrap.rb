@@ -731,11 +731,13 @@ module Dea
       disk_required = config.minimum_staging_disk_mb
       reservable_stagers = resource_manager.number_reservable(mem_required, disk_required)
       available_memory_ratio = resource_manager.available_memory_ratio
+      available_disk_ratio = resource_manager.available_disk_ratio
 
       VCAP::Component.varz.synchronize do
         VCAP::Component.varz[:can_stage] = (reservable_stagers > 0) ? 1 : 0
         VCAP::Component.varz[:reservable_stagers] = reservable_stagers
         VCAP::Component.varz[:available_memory_ratio] = available_memory_ratio
+        VCAP::Component.varz[:available_disk_ratio] = available_disk_ratio
       end
     end
 

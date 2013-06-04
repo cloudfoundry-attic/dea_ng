@@ -376,7 +376,9 @@ describe Dea::Bootstrap do
       bootstrap.setup_resource_manager
       bootstrap.config.stub(:minimum_staging_memory_mb => 333)
       bootstrap.config.stub(:minimum_staging_disk_mb => 444)
-      bootstrap.resource_manager.stub(number_reservable: 0, available_memory_ratio: 0)
+      bootstrap.resource_manager.stub(number_reservable: 0,
+                                      available_disk_ratio: 0,
+                                      available_memory_ratio: 0)
     end
 
     describe "can_stage" do
@@ -410,6 +412,15 @@ describe Dea::Bootstrap do
         bootstrap.periodic_varz_update
 
         VCAP::Component.varz[:available_memory_ratio].should == 0.5
+      end
+    end
+
+    describe "available_disk_ratio" do
+      it "uses the value from resource_manager#available_memory_ratio" do
+        bootstrap.resource_manager.stub(:available_disk_ratio).and_return(0.75)
+        bootstrap.periodic_varz_update
+
+        VCAP::Component.varz[:available_disk_ratio].should == 0.75
       end
     end
   end
