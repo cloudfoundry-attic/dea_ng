@@ -76,6 +76,44 @@ describe Dea::ResourceManager do
     end
   end
 
+  describe "number_reservable" do
+    let(:memory_mb) { 600 }
+    let(:memory_overcommit_factor) { 1 }
+    let(:disk_mb) { 4000 }
+    let(:disk_overcommit_factor) { 1 }
+
+    context "when there is not enough memory to reserve any" do
+      it "is 0" do
+        manager.number_reservable(10_000, 1).should == 0
+      end
+    end
+
+    context "when there is not enough disk to reserve any" do
+      it "is 0" do
+        manager.number_reservable(1, 10_000).should == 0
+      end
+    end
+
+    context "when there are enough resources for a single reservation" do
+      it "is 1" do
+        manager.number_reservable(500, 3000).should == 1
+      end
+    end
+
+    context "when there are enough resources for many reservations" do
+      it "is correct" do
+        manager.number_reservable(200, 1500).should == 2
+        manager.number_reservable(200, 1000).should == 3
+      end
+    end
+
+    context "when 0 resources are requested" do
+      it "returns 0" do
+        manager.number_reservable(0, 0).should == 0
+      end
+    end
+  end
+
   describe "could_reserve?" do
     let(:remaining_memory) { nominal_memory_capacity - (reserved_instance_memory - reserved_staging_memory) / 1024 / 1024 }
     let(:remaining_disk) { nominal_disk_capacity - (reserved_instance_disk - reserved_staging_disk) / 1024 / 1024 }

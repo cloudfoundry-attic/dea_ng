@@ -729,10 +729,11 @@ module Dea
     def periodic_varz_update
       mem_required = config.minimum_staging_memory_mb
       disk_required = config.minimum_staging_disk_mb
-      can_stage = resource_manager.could_reserve?(mem_required, disk_required) ? 1 : 0
+      reservable_stagers = resource_manager.number_reservable(mem_required, disk_required)
 
       VCAP::Component.varz.synchronize do
-        VCAP::Component.varz[:can_stage] = can_stage
+        VCAP::Component.varz[:can_stage] = (reservable_stagers > 0) ? 1 : 0
+        VCAP::Component.varz[:reservable_stagers] = reservable_stagers
       end
     end
 
