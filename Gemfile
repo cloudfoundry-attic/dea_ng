@@ -19,7 +19,6 @@ gem "steno", :git => "https://github.com/cloudfoundry/steno.git"
 
 gem 'uuidtools', '~> 2.1.2'
 gem 'nokogiri', '>= 1.4.4'
-gem "vcap_logging", "0.1.4"
 
 gem "sys-filesystem"
 

@@ -294,7 +294,8 @@ module Dea
         :nats => self.nats.client,
         :port => config["status"]["port"],
         :user => config["status"]["user"],
-        :password => config["status"]["password"]
+        :password => config["status"]["password"],
+        :logger => logger
       )
 
       @uuid = VCAP::Component.uuid
