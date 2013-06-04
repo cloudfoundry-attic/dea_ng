@@ -114,6 +114,17 @@ describe Dea::ResourceManager do
     end
   end
 
+  describe "available_memory_ratio" do
+    let(:memory_mb) { 40 * 1024 }
+    let(:memory_overcommit_factor) { 1 }
+    let(:reserved_instance_memory) { 5 * 1024 * 1024 * 1024 }
+    let(:reserved_staging_memory) { 5 * 1024 * 1024 * 1024 }
+
+    it "is the ratio of reserved memory to total memory" do
+      manager.available_memory_ratio.should == 0.25
+    end
+  end
+
   describe "could_reserve?" do
     let(:remaining_memory) { nominal_memory_capacity - (reserved_instance_memory - reserved_staging_memory) / 1024 / 1024 }
     let(:remaining_disk) { nominal_disk_capacity - (reserved_instance_disk - reserved_staging_disk) / 1024 / 1024 }

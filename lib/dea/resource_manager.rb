@@ -32,6 +32,10 @@ module Dea
       [remaining_memory / memory, remaining_disk / disk].min
     end
 
+    def available_memory_ratio
+      reserved_memory * 1.0 / memory_capacity
+    end
+
     def reserved_memory
       total_mb(@instance_registry, :reserved_memory_bytes) +
       total_mb(@staging_task_registry, :reserved_memory_bytes)
