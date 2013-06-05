@@ -286,8 +286,7 @@ module Dea
     end
 
     def memory_limit_in_bytes
-      # Adds a little bit of headroom (inherited from DEA v1)
-      ((limits["mem"].to_i * 1024 * 9) / 8) * 1024
+      limits["mem"].to_i * 1024 * 1024
     end
 
     def disk_limit_in_bytes

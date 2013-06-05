@@ -100,8 +100,8 @@ describe Dea::Instance do
   end
 
   describe "resource limits" do
-    it "exports the memory limit in bytes with a little bit of slack" do
-      instance.memory_limit_in_bytes.should be_within(200_000).of(1_000_000)
+    it "exports the memory limit in bytes" do
+      instance.memory_limit_in_bytes.should == 1024 * 1024
     end
 
     it "exports the disk limit in bytes" do
