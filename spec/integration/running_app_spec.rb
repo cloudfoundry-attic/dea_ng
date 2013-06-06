@@ -92,7 +92,7 @@ describe "Running an app", :type => :integration, :requires_warden => true do
 
     describe "starting the app" do
       it "decreases the dea's available memory" do
-        expect(dea_memory).to eql(original_memory - (64 * 9/8))
+        expect(dea_memory).to eql(original_memory - 64)
       end
     end
 
