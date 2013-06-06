@@ -48,7 +48,7 @@ describe "Running an app", :type => :integration, :requires_warden => true do
       })
 
 
-      nats.publish("dea.#{dea_id}.start", valid_dea_start_message.merge(uris: "this"))
+      nats.publish("dea.#{dea_id}.start", valid_dea_start_message.merge(uris: "this is an invalid application uri"))
 
       begin
         wait_until do
@@ -103,32 +103,5 @@ describe "Running an app", :type => :integration, :requires_warden => true do
         expect(dea_memory).to eql(original_memory)
       end
     end
-  end
-
-  def wait_until_instance_started(app_id)
-    wait_until do
-      nats.request("dea.find.droplet", {
-        "droplet" => app_id,
-        "states" => ["RUNNING"]
-      }, :timeout => 1)
-    end
-  end
-
-  def wait_until_instance_gone(app_id)
-    wait_until do
-      !nats.request("dea.find.droplet", {
-        "droplet" => app_id,
-      }, :timeout => 1)
-    end
-  end
-
-  def wait_until(&block)
-    Timeout.timeout(5) do
-      loop { return if block.call }
-    end
-  end
-
-  def sha1_url(url)
-    `curl --silent #{url} | sha1sum`.split(/\s/).first
   end
 end

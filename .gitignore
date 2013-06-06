@@ -4,7 +4,7 @@ go/bin
 spec_reports
 .idea
 chef/cookbooks
-.vagrant
+.vagrant*
 dump.rdb
 tmp/**/*
 tmp/*

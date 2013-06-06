@@ -44,6 +44,34 @@ module DeaHelpers
     graceful_kill(dea_pid)
   end
 
+  def sha1_url(url)
+    `curl --silent #{url} | sha1sum`.split(/\s/).first
+  end
+
+  def wait_until_instance_started(app_id, timeout = 5)
+    wait_until(timeout) do
+      nats.request("dea.find.droplet", {
+        "droplet" => app_id,
+        "states" => ["RUNNING"]
+      }, :timeout => 1)
+    end
+  end
+
+  def wait_until_instance_gone(app_id, timeout = 5)
+    wait_until(timeout) do
+      res = nats.request("dea.find.droplet", {
+        "droplet" => app_id,
+      }, :timeout => 1)
+      !res || res["state"] == "CRASHED"
+    end
+  end
+
+  def wait_until(timeout = 5, &block)
+    Timeout.timeout(timeout) do
+      loop { return if block.call }
+    end
+  end
+
   private
 
   def nats
