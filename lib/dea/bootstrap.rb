@@ -51,6 +51,7 @@ module Dea
 
     def initialize(config = {})
       @config = Config.new(config)
+      @log_counter = Steno::Sink::Counter.new
     end
 
     def local_ip
@@ -112,6 +113,8 @@ module Dea
       if options[:sinks].empty?
         options[:sinks] << Steno::Sink::IO.new(STDOUT)
       end
+
+      options[:sinks] << @log_counter
 
       Steno.init(Steno::Config.new(options))
     end
@@ -295,7 +298,8 @@ module Dea
         :port => config["status"]["port"],
         :user => config["status"]["user"],
         :password => config["status"]["password"],
-        :logger => logger
+        :logger => logger,
+        :log_counter => @log_counter
       )
 
       @uuid = VCAP::Component.uuid

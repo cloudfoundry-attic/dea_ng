@@ -3,6 +3,7 @@
 require "spec_helper"
 require "dea/bootstrap"
 require "dea/instance"
+require "steno/sink/counter"
 
 describe Dea::Bootstrap do
   stub_nats
@@ -14,7 +15,8 @@ describe Dea::Bootstrap do
       "directory_server" => {
         "v1_port" => 12345,
       },
-      "domain" => "default"
+      "domain" => "default",
+      "logging" => {}
     }
   end
 
@@ -620,6 +622,26 @@ describe Dea::Bootstrap do
 
         instance.should be_nil
       end
+    end
+  end
+
+  describe "counting logs" do
+    it "registers a log counter with the component" do
+      log_counter = Steno::Sink::Counter.new
+      Steno::Sink::Counter.should_receive(:new).once.and_return(log_counter)
+
+      VCAP::Component.stub(:uuid)
+      nats_mock = mock("nats")
+      nats_mock.stub(:client)
+      subject.stub(:nats).and_return(nats_mock)
+
+      Steno.should_receive(:init) do |steno_config|
+        expect(steno_config.sinks).to include log_counter
+      end
+
+      VCAP::Component.should_receive(:register).with(hash_including(:log_counter => log_counter))
+      subject.setup_logging
+      subject.start_component
     end
   end
 end

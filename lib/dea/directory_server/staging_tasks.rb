@@ -16,7 +16,6 @@ class Dea::DirectoryServerV2
     logger Steno.logger(self.class.name)
 
     format :json
-    error_format :json
 
     helpers do
       def json_error!(msg, status)
