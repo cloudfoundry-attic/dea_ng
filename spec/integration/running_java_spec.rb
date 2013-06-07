@@ -63,10 +63,10 @@ describe "Running a Java App", :type => :integration, :requires_warden => true d
       #end
 
       nats.publish("dea.stop", dea_stop_msg)
-      wait_until_instance_gone(app_id, 30)
+      wait_until_instance_gone(app_id, 91) # 91 because it shows up better in the logs
 
       nats.publish("dea.#{dea_id}.start", dea_start_msg.merge("env" => ["crash=true"]))
-      wait_until_instance_gone(app_id, 30)
+      wait_until_instance_gone(app_id, 90)
 
       # TODO: figure out url and ping it to ensure that it is actually not started
       #Net::HTTP.get("")
