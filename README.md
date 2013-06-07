@@ -148,3 +148,9 @@ The following log levels exist, shown with an example of what they are used for:
 * `info` - DEA is shutting down, DEA received a request to stage/run an app, but didn't have the resources
 * `debug2` - DEA received request for instance information, but was not running the specified app
 * `debug` - DEA saved a snapshot, downloaded a droplet
+
+### Log Topics
+
+* droplet.* - logging relevant to an app's instance
+* staging.* - logging relevant to the staging of an app's bits
+* dea.* - component-level logging for the DEA itself

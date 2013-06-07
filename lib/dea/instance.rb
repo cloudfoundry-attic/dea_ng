@@ -493,7 +493,7 @@ module Dea
             script << "exit"
             promise_warden_run(:app, script.join("\n")).resolve
           else
-            logger.warn("The hook(#{key}) script is not found on #{script_path}")
+            log(:warn, "droplet.hook-script.missing", :hook => key, :script_path => script_path)
           end
         end
         p.deliver
@@ -502,7 +502,7 @@ module Dea
 
     def start(&callback)
       p = Promise.new do
-        logger.info("Starting instance")
+        log(:info, "droplet.starting")
 
         promise_state(State::BORN, State::STARTING).resolve
 
@@ -528,12 +528,12 @@ module Dea
         link
 
         if promise_health_check.resolve
-          logger.info("Instance: #{instance_id} HEALTHY")
+          log(:info, "droplet.healthy")
           promise_state(State::STARTING, State::RUNNING).resolve
 
           promise_exec_hook_script('after_start').resolve
         else
-          logger.info("Instance: #{instance_id} UNHEALTHY")
+          log(:warn, "droplet.unhealthy")
           p.fail("App instance failed health check")
         end
 
@@ -566,10 +566,12 @@ module Dea
     def promise_droplet
       Promise.new do |p|
         if !droplet.droplet_exist?
-          logger.info("Starting droplet download")
+          log(:info, "droplet.download.starting")
+          start = Time.now
           promise_droplet_download.resolve
+          log(:info, "droplet.download.finished", :took => Time.now - start)
         else
-          logger.info("Skipping droplet download")
+          log(:info, "droplet.download.skipped")
         end
 
         p.deliver
@@ -578,7 +580,7 @@ module Dea
 
     def stop(&callback)
       p = Promise.new do
-        logger.info("Stopping instance")
+        log(:info, "droplet.stopping")
 
         promise_exec_hook_script('before_stop').resolve
 
@@ -643,8 +645,9 @@ module Dea
     def crash_handler(&callback)
       Promise.resolve(promise_crash_handler) do |error, _|
         if error
-          logger.warn("Error running crash handler: #{error}")
-          logger.log_exception(error)
+          log(
+            :warn, "droplet.crash-handler.error",
+            :error => error, :backtrace => error.backtrace)
         end
 
         callback.call(error) unless callback.nil?
@@ -704,7 +707,10 @@ module Dea
         begin
           info_resp = promise_container_info.resolve
         rescue => error
-          logger.error("Failed getting container info: #{error}")
+          log(
+            :error, "droplet.container-info-retrieval.failed",
+            :error => error, :backtrace => error.backtrace)
+
           raise
         end
 
@@ -748,7 +754,7 @@ module Dea
         request.job_id = attributes["warden_job_id"]
         response = promise_warden_call_with_retry(:link, request).resolve
 
-        logger.info("Linking completed with exit status: %d" % response.exit_status)
+        log(:info, "droplet.warden.link.completed", :exit_status => response.exit_status)
 
         p.deliver(response)
       end
@@ -769,7 +775,7 @@ module Dea
           self.state = State::CRASHED
         when State::RUNNING
           uptime = Time.now - attributes["state_running_timestamp"]
-          logger.info("Instance uptime: %.3fs" % uptime)
+          log(:info, "droplet.instance.uptime", :uptime => uptime)
 
           self.state = State::CRASHED
         else
@@ -801,7 +807,7 @@ module Dea
       Promise.new do |p|
         host = bootstrap.local_ip
 
-        logger.debug("Health check for #{host}:#{port}")
+        log(:debug, "droplet.healthcheck.port", :host => host, :port => port)
 
         @health_check = Dea::HealthCheck::PortOpen.new(host, port) do |hc|
           hc.callback { p.deliver(true) }
@@ -817,7 +823,7 @@ module Dea
 
     def promise_state_file_ready(path)
       Promise.new do |p|
-        logger.debug("Health check for state file #{path}")
+        log(:debug, "droplet.healthcheck.file", :path => path)
 
         @health_check = Dea::HealthCheck::StateFileReady.new(path) do |hc|
           hc.callback { p.deliver(true) }
@@ -888,6 +894,14 @@ module Dea
       }
 
       @logger ||= self.class.logger.tag(tags)
+    end
+
+    def log(level, message, data = {})
+      logger.send(level, message, base_log_data.merge(data))
+    end
+
+    def base_log_data
+      { :attributes => @attributes }
     end
   end
 end
