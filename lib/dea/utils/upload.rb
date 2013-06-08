@@ -4,8 +4,11 @@ class Upload
   attr_reader :logger
 
   class UploadError < StandardError
+    attr_reader :data
+
     def initialize(msg, uri="(unknown)")
-      super("Error uploading: %s (%s)" % [uri, msg])
+      @data = { :message => msg, :uri => uri }
+      super("upload.failed")
     end
   end
 
@@ -28,7 +31,7 @@ class Upload
 
     http.errback do
       error = UploadError.new("Response status: unknown", @destination)
-      logger.warn(error.message)
+      logger.warn(error.message, error.data)
       upload_callback.call(error)
     end
 
@@ -36,12 +39,12 @@ class Upload
       http_status = http.response_header.status
 
       if http_status == 200
-        logger.info("Upload succeeded")
+        logger.info("upload.succeeded", :source => @source)
         upload_callback.call(nil)
       else
         error = UploadError.new("HTTP status: #{http_status} - #{http.response}", @destination)
         logger.warn(error.message)
-        upload_callback.call(error)
+        upload_callback.call(error, error.data)
       end
     end
   end

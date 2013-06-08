@@ -34,8 +34,9 @@ module Dea
         end
 
       rescue => e
-        logger.error("Failed parsing state file: #{e}")
-        logger.log_exception(e)
+        logger.error "dea.state-file-parsing.failed",
+          :exception => e,
+          :backtrace => e.backtrace
         # Ignore errors, health check will time out if errors persist.
       end
 

@@ -156,7 +156,7 @@ module Dea
 
       SIGNALS_OF_INTEREST.each do |signal|
         @old_signal_handlers[signal] = ::Kernel.trap(signal) do
-          logger.warn "caught SIG#{signal}"
+          logger.warn "dea.signal.handling", :signal => signal
           send("trap_#{signal.downcase}")
         end
       end
@@ -188,7 +188,7 @@ module Dea
     def ignore_signals
       SIGNALS_OF_INTEREST.each do |signal|
         ::Kernel.trap(signal) do
-          logger.warn("Caught SIG#{signal}, ignoring.")
+          logger.warn "dea.signal.ignoring", :signal => signal
         end
       end
     end
@@ -228,7 +228,8 @@ module Dea
         pid_file = VCAP::PidFile.new(path, false)
         pid_file.unlink_at_exit
       rescue => err
-        logger.error "Cannot create pid file at #{path} (#{err})"
+        logger.error "dea.pid-file-creation.failed", :path => path,
+           :exception => err, :backtrace => err.backtrace
         raise
       end
     end
@@ -362,7 +363,7 @@ module Dea
 
       FileUtils.mv(file.path, snapshot_path)
 
-      logger.debug("Saving snapshot took: %.3fs" % [Time.now - start])
+      logger.debug "dea.snapshot.saved", :took => Time.now - start
     end
 
     def reap_unreferenced_droplets
@@ -370,7 +371,7 @@ module Dea
       all_shas = Set.new(droplet_registry.keys)
 
       (all_shas - refd_shas).each do |unused_sha|
-        logger.debug("Removing droplet for sha=#{unused_sha}")
+        logger.debug "dea.droplet.reaping", :sha => unushed_sha
 
         droplet = droplet_registry.delete(unused_sha)
         droplet.destroy
@@ -381,9 +382,10 @@ module Dea
       attributes = Instance.translate_attributes(attributes)
 
       unless resource_manager.could_reserve?(attributes["limits"]["mem"], attributes["limits"]["disk"])
-        message = "Unable to start instance: #{attributes["instance_index"]}"
-        message << " for app: #{attributes["application_id"]}, not enough resources available."
-        logger.error(message)
+        logger.error "dea.create-instance.failed",
+          :reason => "not enough resources",
+          :request => attributes
+
         return nil
       end
 
@@ -448,7 +450,8 @@ module Dea
       begin
         instance.validate
       rescue => error
-        logger.warn "Error validating instance: #{error.message}"
+        logger.warn "dea.instance-validation.failed",
+          :exception => error, :backtrace => error.backtrace
         return
       end
 
@@ -478,7 +481,9 @@ module Dea
       return unless instance
 
       if config.only_production_apps? && !instance.production_app?
-        logger.info("Ignoring instance for non-production app: #{instance}")
+        logger.info "dea.create-instance.skipping",
+          :reason => "non-production app",
+          :request => message.data
         return
       end
 
@@ -490,7 +495,11 @@ module Dea
         next if !instance.running?
 
         instance.stop do |error|
-          logger.warn("Failed stopping #{instance}: #{error}") if error
+          if error
+            logger.warn "dea.stop-instance.failed",
+              :exception => error,
+              :backtrace => error.backtrace
+          end
         end
       end
     end
@@ -499,13 +508,13 @@ module Dea
       rs = message.data["limits"]
 
       unless resource_manager.could_reserve?(rs["mem"], rs["disk"])
-        logger.info("Couldn't accomodate resource request")
+        logger.info "dea.discover.rejected", :limits => rs
         return
       end
 
       delay = calculate_discover_delay(message.data["droplet"].to_s)
 
-      logger.debug("Delaying discover response for #{delay} secs.")
+      logger.debug "dea.discover.delaying", :seconds => delay
 
       resp = Dea::Protocol::V1::HelloMessage.generate(self)
       EM.add_timer(delay) { message.respond(resp) }
@@ -531,8 +540,7 @@ module Dea
       instance_registry.instances_for_application(app_id).each do |_, instance|
         current_uris = instance.application_uris
 
-        logger.debug("Mapping new URIs")
-        logger.debug("New: #{uris} Old: #{current_uris}")
+        logger.debug "dea.instance-uris.updating", :old => current_uris, :new => uris
 
         new_uris = uris - current_uris
         unless new_uris.empty?
@@ -573,10 +581,10 @@ module Dea
 
     def evacuate
       if @evacuation_processed
-        logger.info("Evacuation already processed, doing nothing.")
+        logger.info "dea.evacuation.already-started"
         return
       else
-        logger.info("Evacuating apps")
+        logger.info "dea.evacuation.starting"
         @evacuation_processed = true
       end
 
@@ -604,17 +612,17 @@ module Dea
 
     def send_staging_stop
       staging_task_registry.tasks.each do |task|
-        logger.debug "Stopping staging task #{task}"
+        logger.debug "dea.staging-task.stopping", :task => task
         task.stop
       end
     end
 
     def shutdown
       if @shutdown_processed
-        logger.info("Shutdown already processed, doing nothing.")
+        logger.info "dea.shutdown.already-started"
         return
       else
-        logger.info("Shutting down")
+        logger.info "dea.shutdown.starting"
         @shutdown_processed = true
       end
 
@@ -628,9 +636,11 @@ module Dea
       unregister_directory_server_v2
 
       on_pending_empty = proc do
-        logger.info("All instances and staging tasks stopped, exiting.")
-        # Terminate after nats sends all queued messages
-        nats.client.flush { terminate }
+        logger.info "dea.shutdown.flushing-nats"
+        nats.client.flush do
+          logger.info "dea.terminating"
+          terminate
+        end
       end
 
       pending_stops = Set.new([])
@@ -642,9 +652,10 @@ module Dea
           pending_stops.delete(to_be_stopped)
 
           if error
-            logger.warn("#{to_be_stopped} failed to stop: #{error}")
+            logger.warn "dea.stop.failed", :exception => error,
+              :backtrace => error.backtrace
           else
-            logger.debug("#{to_be_stopped} exited")
+            logger.debug "dea.stop.succeeded", :instance => to_be_stopped.attributes
           end
 
           on_pending_empty.call if pending_stops.empty?
@@ -675,11 +686,7 @@ module Dea
 
     def send_heartbeat(instances)
       instances = instances.select do |instance|
-        match = false
-        match ||= instance.starting?
-        match ||= instance.running?
-        match ||= instance.crashed?
-        match
+        instance.starting? || instance.running? || instance.crashed?
       end
 
       return if instances.empty?
@@ -694,15 +701,17 @@ module Dea
       app_id = message.data["droplet"].to_s
 
       if app_id
-        logger.debug2("Filter message for app_id: %s" % app_id, :app_id => app_id)
+        logger.debug2 "dea.find-droplet.request", :request => message.data
       else
-        logger.warn("Filter message missing app_id")
+        logger.warn "dea.find-droplet.invalid",
+          :reason => "missing droplet", :request => message.data
+
         return
       end
 
       instances = instance_registry.instances_for_application(app_id)
       if instances.empty?
-        logger.debug2("No instances found for app_id: %s" % app_id, :app_id => app_id)
+        logger.debug2 "dea.find-droplet.none-found", :request => message.data
         return
       end
 

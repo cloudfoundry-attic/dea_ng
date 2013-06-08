@@ -52,19 +52,20 @@ module Dea
       path_info = Rack::Utils.unescape(env['PATH_INFO'])
       path_parts = path_info.split("/")
 
-      logger.debug2("Handling request for path #{path_info}")
+      logger.debug2("directory-server.request.handle", :path => path_info)
 
       # Lookup container associated with request
       instance_id = path_parts[1]
       instance = @instance_registry.lookup_instance(instance_id)
 
       if instance.nil?
-        logger.warn("Unknown instance_id=#{instance_id}")
+        logger.warn "directory-server.instance.unknown", :instance_id => instance_id
         return entity_not_found
       end
 
       if !instance.instance_path_available?
-        logger.warn("Instance path unavailable for instance_id=#{instance_id}")
+        logger.warn "directory-server.path.unavailable",
+          :instance_id => instance_id
         return entity_not_found
       end
 
@@ -84,15 +85,14 @@ module Dea
 
       resolve_symlink
       if forbidden = check_forbidden
-        logger.warn("Path #{@path} is forbidden.")
-
+        logger.warn "directory-server.path.forbidden", :path => @path
         forbidden
       else
         list_path
       end
     rescue => e
-      logger.error("Caught exception: #{e}")
-      logger.log_exception(e)
+      logger.error "directory-server.exception", :exception => e,
+        :backtrace => e.backtrace
 
       raise e
     end

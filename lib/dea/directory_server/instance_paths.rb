@@ -27,7 +27,8 @@ class Dea::DirectoryServerV2
         max_age_secs = settings[:max_url_age_secs]
 
         if url_age_secs > max_age_secs
-          logger.warn("Url too old (age=#{url_age_secs}s, max=#{max_age_secs})")
+          logger.warn "instance-path.uri.too-old",
+            :age => url_age_secs, :max => max_age_secs
           json_error!("Url expired", 400)
         end
       end
@@ -49,7 +50,7 @@ class Dea::DirectoryServerV2
       end
       get "/:instance_id" do
         unless settings[:directory_server].verify_instance_file_url(request.url)
-          logger.warn("HMAC mismatch")
+          logger.warn "instance-path.hmac.mismatch"
           json_error!("Invalid HMAC", 401)
         end
 
@@ -58,12 +59,12 @@ class Dea::DirectoryServerV2
         instance_id = params[:instance_id]
         instance = settings[:instance_registry].lookup_instance(instance_id)
         if instance.nil?
-          logger.warn("Unknown instance, instance_id=#{instance_id}")
+          logger.warn "instance-path.instance.unknown", :instance_id => instance_id
           json_error!("Unknown instance", 404)
         end
 
         unless instance.instance_path_available?
-          logger.warn("Instance path unavailable, instance_id=#{instance_id}")
+          logger.warn "instance-path.unavailable", :instance_id => instance_id
           json_error!("Instance unavailable", 503)
         end
 
@@ -75,7 +76,9 @@ class Dea::DirectoryServerV2
         # Expand symlinks and '..'
         real_path = File.realpath(full_path)
         unless real_path.start_with?(instance.instance_path)
-          logger.warn("Requested path '#{full_path}' points outside instance to '#{real_path}'")
+          logger.warn "instance-path.requested-path.invalid",
+            :requested => full_path, :resolved => real_path
+
           json_error!("Not accessible", 403)
         end
 

@@ -19,7 +19,9 @@ module Dea
           begin
             yield(result) if block_given?
           rescue => error
-            logger.log_exception(error)
+            logger.debug "dea.promise.failed",
+              :exception => error,
+              :backtrace => error.backtrace
             raise
           end
         end

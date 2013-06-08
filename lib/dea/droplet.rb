@@ -41,7 +41,7 @@ module Dea
       @download_waiting ||= []
       @download_waiting << blk
 
-      logger.debug "Waiting for download to complete"
+      logger.debug "droplet-bits.download.started", :uri => uri
 
       if @download_waiting.size == 1
         # Fire off request when this is the first call to #download
@@ -50,7 +50,8 @@ module Dea
             File.rename(path, droplet_path)
             File.chmod(0744, droplet_path)
 
-            logger.debug "Moved droplet to #{droplet_path}"
+            logger.debug "droplet-bits.download.completed", :uri => uri,
+              :moved_to => droplet_path
           end
 
           while blk = @download_waiting.shift
@@ -66,16 +67,19 @@ module Dea
       # Rename first to both prevent a new instance from referencing a file
       # that is about to be deleted and to avoid doing a potentially expensive
       # operation on the reactor thread.
-      logger.debug("Renaming #{droplet_dirname} to #{dir_to_remove}")
+      logger.debug "droplet-bits.destroy.renaming", :from => droplet_dirname, :to => dir_to_remove
       File.rename(droplet_dirname, dir_to_remove)
 
       operation = lambda do
-        logger.debug("Removing #{dir_to_remove}")
+        logger.debug "droplet-bits.destroy.removing",
+          :removing => dir_to_remove
 
         begin
           FileUtils.rm_rf(dir_to_remove)
         rescue => e
-          logger.log_exception(e)
+          logger.error "droplet-bits.destroy.failed",
+            :exception => e,
+            :backtrace => e.backtrace
         end
       end
 
