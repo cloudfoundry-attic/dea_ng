@@ -213,7 +213,7 @@ module Dea
 
         if r
           logger.debug "instance-registry.disk-pressure.usage",
-            :block_usage_ratio => block_usage_ratio, :inode_usage_ratio => inode_usage_ratio,
+            :block_usage_ratio => block_usage_ratio, :inode_usage_ratio => inode_usage_ratio
         end
 
       rescue => e
