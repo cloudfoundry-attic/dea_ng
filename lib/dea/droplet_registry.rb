@@ -10,7 +10,7 @@ module Dea
 
     def initialize(base_dir)
       super() do |hash, sha1|
-        logger.debug "droplet-registry.droplet.new", :sha1 => sha1
+        logger.debug "New droplet: #{sha1}", :droplet_sha1 => sha1
 
         hash[sha1] = Droplet.new(base_dir, sha1)
       end

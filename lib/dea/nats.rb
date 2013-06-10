@@ -72,15 +72,10 @@ module Dea
       sid = client.subscribe(subject, opts) do |raw_data, respond_to|
         begin
           message = Message.decode(self, subject, raw_data, respond_to)
-          logger.debug2 "dea.nats-message.received",
-            :subject => subject, :payload => message.data
-
+          logger.debug "Received on #{subject.inspect}: #{message.data.inspect}"
           yield message
         rescue => e
-          logger.error "dea.nats-message.failed",
-            :subject => subject, :payload => message ? message.data : raw_data,
-            :exception => e,
-            :backtrace => e.backtrace
+          logger.error "Error \"#{e}\" raised while processing #{subject.inspect}: #{message ? message.data.inspect : raw_data }"
         end
       end
 
@@ -97,7 +92,7 @@ module Dea
     end
 
     def create_nats_client
-      logger.info "dea.nats.connecting", :uri => config["nats_uri"]
+      logger.info "Connecting to NATS on #{config["nats_uri"]}"
       # NATS waits by default for 2s before attempting to reconnect, so a million reconnect attempts would
       # save us from a NATS outage for approximately 23 days - which is large enough.
       ::NATS.connect(:uri => config["nats_uri"], :max_reconnect_attempts => 999999)

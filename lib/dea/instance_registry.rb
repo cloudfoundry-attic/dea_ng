@@ -33,7 +33,7 @@ module Dea
     end
 
     def register(instance)
-      logger.debug2("instance-registry.registering", :instance_id => instance.instance_id)
+      logger.debug2("Registering instance #{instance.instance_id}")
 
       @instances[instance.instance_id] = instance
 
@@ -45,7 +45,7 @@ module Dea
     end
 
     def unregister(instance)
-      logger.debug2("instance-registry.unregistering", :instance_id => instance.instance_id)
+      logger.debug2("Removing instance #{instance.instance_id}")
 
       @instances.delete(instance.instance_id)
 
@@ -94,7 +94,7 @@ module Dea
     end
 
     def reap_orphaned_crashes
-      logger.debug2("instance-registry.orphaned-crashes.reaping")
+      logger.debug2("Reaping orphaned crashes")
 
       crashes = Dir[File.join(config.crashes_path, "*")].map do |path|
         if File.directory?(path)
@@ -113,7 +113,7 @@ module Dea
     end
 
     def reap_crashes
-      logger.debug2("instance-registry.crashes.reaping")
+      logger.debug2("Reaping crashes")
 
       crashes_by_app = Hash.new { |h, k| h[k] = [] }
 
@@ -137,7 +137,7 @@ module Dea
     end
 
     def reap_crashes_under_disk_pressure
-      logger.debug2("instance-registry.crashes-under-disk-pressure.reaping")
+      logger.debug2("Reaping crashes under disk pressure")
 
       if disk_pressure?
         instance = select { |i| i.crashed? }.
@@ -168,11 +168,13 @@ module Dea
         data[:application_name]    = instance.application_name
       end
 
-      logger.debug("instance-registry.crash.removing", data)
+      message = "Removing crash #{instance_id}"
+      logger.debug(message, data)
 
       t = Time.now
       destroy_crash_artifacts(instance_id) do
-        logger.debug("instance-registry.crash.removed", data.merge(:took => Time.now - t))
+        logger.debug(message + ": took %.3fs" % (Time.now - t), data)
+
         blk.call if blk
       end
 
@@ -185,14 +187,12 @@ module Dea
       return if crash_path.nil?
 
       operation = lambda do
-        logger.debug2("instance-registry.crash-artifacts.removing", :path => crash_path)
+        logger.debug2("Removing path #{crash_path}")
 
         begin
           FileUtils.rm_rf(crash_path)
         rescue => e
-          logger.error "instance-registry.crash-artifacts-removal.failure",
-            :exception => e,
-            :backtrace => e.backtrace
+          logger.log_exception(e)
         end
       end
 
@@ -212,14 +212,11 @@ module Dea
         r ||= inode_usage_ratio > config.crash_inode_usage_ratio_threshold
 
         if r
-          logger.debug "instance-registry.disk-pressure.usage",
-            :block_usage_ratio => block_usage_ratio, :inode_usage_ratio => inode_usage_ratio,
+          logger.debug("Disk usage (block/inode): %.3f/%.3f" % [block_usage_ratio, inode_usage_ratio])
         end
 
       rescue => e
-        logger.error "instance-registry.disk-pressure.failure",
-          :exception => e,
-          :backtrace => e.backtrace
+        logger.log_exception(e)
       end
 
       r

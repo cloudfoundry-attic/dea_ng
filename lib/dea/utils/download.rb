@@ -6,9 +6,9 @@ class Download
     attr_reader :data
 
     def initialize(msg, data = {})
-      @data = data.merge(:message => msg)
+      @data = data
 
-      super("download.failed")
+      super("Error downloading: %s (%s)" % [uri, msg])
     end
 
     def uri
@@ -69,7 +69,7 @@ class Download
         if http_status == 200
           sha1_actual   = sha1.hexdigest
           if !sha1_expected || sha1_expected == sha1_actual
-            logger.info "download.succeeded", :uri => @uri
+            logger.info("Download succeeded")
             blk.call(nil, file.path)
           else
             context[:droplet_sha1_expected] = sha1_expected

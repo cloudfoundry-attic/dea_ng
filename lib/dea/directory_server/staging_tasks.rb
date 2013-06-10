@@ -27,8 +27,7 @@ class Dea::DirectoryServerV2
         max_age_secs = settings[:max_url_age_secs]
 
         if url_age_secs > max_age_secs
-          logger.warn "staging-task.uri.too-old",
-            :age => url_age_secs, :max => max_age_secs
+          logger.warn("Url too old (age=#{url_age_secs}s, max=#{max_age_secs})")
           json_error!("Url expired", 400)
         end
       end
@@ -50,7 +49,7 @@ class Dea::DirectoryServerV2
       end
       get "/:task_id/file_path" do
         unless settings[:directory_server].verify_staging_task_file_url(request.url)
-          logger.warn "staging-task.hmac.mismatch"
+          logger.warn("HMAC mismatch")
           json_error!("Invalid HMAC", 401)
         end
 
@@ -58,12 +57,12 @@ class Dea::DirectoryServerV2
         task_id = params[:task_id]
 
         unless task = settings[:staging_task_registry].registered_task(task_id)
-          logger.warn "staging-task.unknown", :task_id => task_id
+          logger.warn("Unknown staging task, task_id=#{task_id}")
           json_error!("Unknown staging task", 404)
         end
 
         unless full_path = task.path_in_container(params[:path])
-          logger.warn "staging-task.path.unavailable", :task_id => task_id
+          logger.warn("Staging task path unavailable, instance_id=#{task_id}")
           json_error!("Staging task unavailable", 503)
         end
 
@@ -74,9 +73,7 @@ class Dea::DirectoryServerV2
         # Expand symlinks and '..'
         real_path = File.realpath(full_path)
         unless real_path.start_with?(full_path)
-          logger.warn "staging-task.requested-path.invalid",
-            :requested => full_path, :resolved => real_path
-
+          logger.warn("Requested path '#{full_path}' points outside staging task to '#{real_path}'")
           json_error!("Not accessible", 403)
         end
 
