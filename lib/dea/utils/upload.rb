@@ -7,10 +7,6 @@ class Upload
     def initialize(msg, uri="(unknown)")
       super("Error uploading: %s (%s)" % [uri, msg])
     end
-
-    def to_s
-      "Error uploading: #{@data[:message]}"
-    end
   end
 
   def initialize(source, destination, custom_logger=nil)
