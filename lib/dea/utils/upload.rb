@@ -10,6 +10,10 @@ class Upload
       @data = { :message => msg, :uri => uri }
       super("upload.failed")
     end
+
+    def to_s
+      "Error uploading: #{@data[:message]}"
+    end
   end
 
   def initialize(source, destination, custom_logger=nil)

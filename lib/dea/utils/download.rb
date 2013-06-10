@@ -14,6 +14,10 @@ class Download
     def uri
       data[:droplet_uri] || "(unknown)"
     end
+
+    def to_s
+      "Error downloading: #{@data[:message]}"
+    end
   end
 
   def initialize(uri, destination_dir, sha1_expected=nil, custom_logger=nil)
