@@ -65,10 +65,7 @@ describe Dea::Nats do
       nats_mock.receive_message("raise_error")
 
       logfile.rewind
-      first_log_entry = Yajl::Parser.parse(logfile.readlines[1])
-      first_log_entry["message"].should == "dea.nats-message.failed"
-      first_log_entry["data"]["subject"].should == "raise_error"
-      first_log_entry["data"]["exception"].should == "Catch Me"
+      Yajl::Parser.parse(logfile.readlines[1])["message"].should == "Error \"Catch Me\" raised while processing \"raise_error\": {}"
     end
   end
 

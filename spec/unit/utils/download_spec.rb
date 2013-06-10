@@ -15,8 +15,7 @@ describe Download do
     end
 
     Download.new("http://127.0.0.1:12345/droplet", Dir.mktmpdir("foo"), "DEADBEEF").download! do |error|
-      error.message.should == "download.failed"
-      error.data[:message].should match(/status: 404/)
+      error.message.should match(/status: 404/)
       done
     end
   end
@@ -30,9 +29,8 @@ describe Download do
       connection.send_data("\r\n")
     end
 
-    Download.new("http://127.0.0.1:12345/droplet", Dir.mktmpdir("foo"), "DEADBEEF").download! do |error|
-      error.message.should == "download.failed"
-      error.data[:message].should match(/SHA1 mismatch/)
+    Download.new("http://127.0.0.1:12345/droplet", Dir.mktmpdir("foo"), "DEADBEEF").download! do |err|
+      err.message.should match(/SHA1 mismatch/)
       done
     end
   end

@@ -53,8 +53,7 @@ describe Dea::Droplet do
 
     it "should fail when server is unreachable" do
       droplet.download("http://127.0.0.1:12346/droplet") do |err|
-        err.message.should == "download.failed"
-        err.data[:message].should match(/status: unknown/)
+        err.message.should match(/status: unknown/)
         done
       end
     end
@@ -66,8 +65,7 @@ describe Dea::Droplet do
       end
 
       droplet.download("http://127.0.0.1:12345/droplet") do |err|
-        err.message.should == "download.failed"
-        err.data[:message].should match(/status: 404/)
+        err.message.should match(/status: 404/)
         done
       end
     end
@@ -82,8 +80,7 @@ describe Dea::Droplet do
       end
 
       droplet.download("http://127.0.0.1:12345/droplet") do |err|
-        err.message.should == "download.failed"
-        err.data[:message].should match(/SHA1 mismatch/)
+        err.message.should match(/SHA1 mismatch/)
         done
       end
     end
