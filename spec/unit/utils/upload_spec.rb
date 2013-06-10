@@ -36,7 +36,9 @@ describe Upload do
       it "calls the block with the exception" do
         subject.upload! do |error|
           error.should be_a(Upload::UploadError)
-          error.message.should == "Error uploading: http://127.0.0.1:12345/ (Response status: unknown)"
+          error.message.should == "upload.failed"
+          error.data[:message].should == "Response status: unknown"
+          error.data[:uri].should == "http://127.0.0.1:12345/"
           done
         end
       end
@@ -55,7 +57,9 @@ describe Upload do
 
         subject.upload! do |error|
           error.should be_a(Upload::UploadError)
-          error.message.should match %r{Error uploading: http://127.0.0.1:12345/ \(HTTP status: 500}
+          error.message.should == "upload.failed"
+          error.data[:message].should =~ /HTTP status: 500/
+          error.data[:uri].should == "http://127.0.0.1:12345/"
           done
         end
       end

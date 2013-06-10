@@ -371,7 +371,7 @@ module Dea
       all_shas = Set.new(droplet_registry.keys)
 
       (all_shas - refd_shas).each do |unused_sha|
-        logger.debug "dea.droplet.reaping", :sha => unushed_sha
+        logger.debug "dea.droplet.reaping", :sha => unused_sha
 
         droplet = droplet_registry.delete(unused_sha)
         droplet.destroy

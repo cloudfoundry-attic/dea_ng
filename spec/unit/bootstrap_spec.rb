@@ -571,8 +571,11 @@ describe Dea::Bootstrap do
       end
       let(:extra_attributes) { {"limits" => {"mem" => 1, "disk" => 2, "fds" => 3}} }
 
-      it 'should log and error and return nil' do
-        logger.should_receive(:error).with(/not enough resources available/)
+      it 'should log an error and return nil' do
+        logger.should_receive(:error).with(
+          "dea.create-instance.failed",
+          hash_including(:reason => "not enough resources"))
+
         instance.should be_nil
       end
     end

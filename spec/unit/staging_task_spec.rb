@@ -623,8 +623,10 @@ YAML
       promise
     end
 
+    let(:error) { Download::DownloadError.new("This is an error") }
+
     context "when there is an error" do
-      before { Download.any_instance.stub(:download!).and_yield("This is an error", nil) }
+      before { Download.any_instance.stub(:download!).and_yield(error, nil) }
       its(:result) { should == [:deliver, nil] }
     end
 
@@ -784,7 +786,7 @@ YAML
 
     it "should print out some info" do
       staging.stub(:copy_out_request)
-      logger.should_receive(:info).with(anything)
+      logger.should_receive(:info)
       subject
     end
 
@@ -820,7 +822,7 @@ YAML
     end
 
     it "should write the staging log to the main logger" do
-      logger.should_receive(:info).with(anything)
+      logger.should_receive(:info)
       staging.should_receive(:copy_out_request).with("/tmp/staged/logs/staging_task.log", /#{workspace_dir}/)
       subject
     end
