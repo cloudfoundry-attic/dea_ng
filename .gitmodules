@@ -3,7 +3,7 @@
 	url = https://github.com/cloudfoundry/heroku-buildpack-nodejs.git
 [submodule "buildpacks/vendor/java"]
 	path = buildpacks/vendor/java
-	url = https://github.com/cloudfoundry/cloudfoundry-buildpack-java.git
+	url = https://github.com/zhanganha/cloudfoundry-buildpack-java.git
 [submodule "buildpacks/vendor/ruby"]
 	path = buildpacks/vendor/ruby
 	url = https://github.com/cloudfoundry/heroku-buildpack-ruby.git
