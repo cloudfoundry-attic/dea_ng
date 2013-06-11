@@ -1,0 +1,14 @@
+---
+applications:
+- name: test-app
+  memory: 256M
+  instances: 1
+  url: test-app.cfapps.io
+  path: .
+  services:
+    cleardb-b50dd:
+      label: cleardb
+      provider: cleardb
+      version: n/a
+      plan: amp
+  command: ruby -e 'while(true); sleep 10; end'

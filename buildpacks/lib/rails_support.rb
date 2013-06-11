@@ -1,9 +1,17 @@
 require "yaml"
 require "fileutils"
 require "securerandom"
+require "uri"
 
 module Buildpacks
   module RailsSupport
+    VALID_DB_TYPES = %w[mysql mysql2 postgres postgresql].freeze
+    DATABASE_TO_ADAPTER_MAPPING = {
+      'mysql' => 'mysql2',
+      'mysql2' => 'mysql2',
+      'postgres' => 'postgresql'
+    }.freeze
+
     def stage_rails_console
       # Copy cf-rails-console to app
       cf_rails_console_dir = app_dir + '/cf-rails-console'
@@ -30,99 +38,48 @@ if [ -n "$VCAP_CONSOLE_PORT" ]; then
 fi
       BASH
     end
-    # Prepares a database.yml file for the app, if needed.
-    # Returns the service binding that was used for the 'production' db entry.
-    def configure_database
-      write_database_yaml if bound_database
-    end
 
     def database_uri
-      "#{database_type}://#{credentials['username']}:#{credentials['password']}@#{credentials['host']}:#{credentials['port']}/#{credentials['database']}"
+      convert_scheme_to_rails_adapter(bound_database_uri).to_s
     end
 
-    # Actually lay down a database.yml in the app's config directory.
-    def write_database_yaml
-      data = database_config
-      conf = File.join(destination_directory, 'app', 'config', 'database.yml')
-      settings = File.exists?(conf) ? YAML.load_file(conf) : {}
-      settings['production']=data
-      File.open(conf, 'w') do |fh|
-        YAML.dump(settings, fh)
-      end
-      binding
-    end
-
-    def bound_database
-      case bound_databases.size
+    def bound_database_uri
+      case bound_relational_databases.size
         when 0
           nil
         when 1
-          bound_databases.first
+          bound_relational_databases.first.first
         else
-          binding = bound_databases.detect { |b| b["name"] && b["name"] =~ /^.*production$|^.*prod$/ }
-          if !binding
+          binding = bound_relational_databases.detect { |_, name| name && name =~ /^.*production$|^.*prod$/ }
+          unless binding
             raise "Unable to determine primary database from multiple. " +
               "Please bind only one database service to Rails applications."
           end
-          binding
+          binding.first
       end
     end
 
-    def database_type
-      case bound_database["label"]
-        when /mysql/
-          "mysql2"
-        when /^postgres/
-          "postgres"
-        else
-          raise "Unable to configure unknown database: #{binding.inspect}"
-      end
-    end
+    private
 
-    DATABASE_TO_ADAPTER_MAPPING = {
-      :mysql => 'mysql2',
-      :mysql2 => 'mysql2',
-      :postgres => 'postgresql'
-    }
-
-
-    def database_config
-      {
-        'adapter' =>  DATABASE_TO_ADAPTER_MAPPING.fetch(database_type),
-        'encoding' => 'utf8',
-        'pool' => 5,
-        'reconnect' => false
-      }.merge(credentials)
-    end
-
-    # return host, port, username, password, and database
-    def credentials
-      creds = bound_database["credentials"]
-      unless creds
-        raise "Database binding failed to include credentials"
-      end
-      {
-        'host' => creds["hostname"],
-        'port' => creds["port"],
-        'username' => creds["user"],
-        'password' => creds["password"],
-        'database' => creds["name"]
-      }
-    end
-
-    def bound_databases
-      @bound_services ||= bound_services.select { |binding| known_database?(binding) }
-    end
-
-    def known_database?(binding)
-      if label = binding["label"]
-        case label
-          when /mysql/
-            binding
-          when /^postgresql/
-            binding
+    def bound_relational_databases
+      @bound_services ||= bound_services.inject([]) do |collection, binding|
+        begin
+          if binding["credentials"]["uri"]
+            uri = URI.parse(binding["credentials"]["uri"])
+            if VALID_DB_TYPES.include?(uri.scheme)
+              collection << [uri, binding["name"]]
+            end
+          end
+        rescue URI::InvalidURIError => e
+          raise "Invalid database uri: #{binding["credentials"]["uri"].gsub(/\/\/.+@/, '//USER_NAME_PASS@')}"
         end
+        collection
       end
+    end
+
+    def convert_scheme_to_rails_adapter(uri)
+      uri.scheme = DATABASE_TO_ADAPTER_MAPPING[uri.scheme] if DATABASE_TO_ADAPTER_MAPPING[uri.scheme]
+      uri
     end
   end
 end

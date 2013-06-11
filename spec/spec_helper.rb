@@ -45,3 +45,13 @@ at_exit do
     FileUtils.rm_r(STAGING_TEMP)
   end
 end
+
+def by(message)
+  if block_given?
+    yield
+  else
+    pending message
+  end
+end
+
+alias and_by by

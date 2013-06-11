@@ -11,7 +11,15 @@ module Helpers
       "tags"        => ["tag1", "tag2"],
       "plan"        => "plan",
       "plan_option" => "plan_option",
-      "credentials" => { "user" => "password" },
+      "credentials" => {
+        "jdbcUrl" => "jdbc:mysql://some_user:some_password@some-db-provider.com:3306/db_name",
+        "uri" => "mysql://some_user:some_password@some-db-provider.com:3306/db_name",
+        "name" => "db_name",
+        "hostname" => "some-db-provider.com",
+        "port" => "3306",
+        "username" => "some_user",
+        "password" => "some_password"
+      },
     }
   end
 

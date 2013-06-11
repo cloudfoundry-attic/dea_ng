@@ -170,6 +170,29 @@ fi
   context "when a rails application is detected by the ruby buildpack" do
     before { app_fixture :node_without_procfile }
     let(:buildpacks_path) { buildpacks_path_with_rails }
+    let(:label) { "postgres" }
+    let(:scheme) { "postgres" }
+    let(:staging_env) do
+      {
+        'services' => [
+          'label' => label,
+          'tags' => {},
+          'credentials' => {
+            'uri' => "#{scheme}://mariah:nick@mariahs-host.com:5678/mariahs_db",
+            'name' => 'mariahs_db',
+            'hostname' => 'mariahs-host.com',
+            'host' => 'mariahs_host.com',
+            'port' => 5678,
+            'user' => 'mariah',
+            'username' => 'mariah',
+            'password' => 'nick',
+          },
+          'options' => {},
+          'plan' => '10mb',
+          'plan_options' => {}
+        ]
+      }
+    end
 
     it "adds rails console to the startup script" do
       stage :environment => staging_env do |staged_dir|
@@ -194,62 +217,100 @@ fi
     end
 
     context "when a postgresql database is bound" do
-      let(:staging_env) {
-        <<-YAML
-        services:
-        - label: postgresql-5.5
-          tags: {}
-          name: postgres-851fd
-          credentials:
-            name: mariahs_db
-            hostname: mariahs_host
-            host: mariahs_host
-            port: 5678
-            user: mariah
-            username: mariah
-            password: nick
-          options: {}
-          plan: '100'
-          plan_options: {}
-        YAML
-      }
+      let(:label) { "postgres" }
+      let(:scheme) { "postgres" }
 
       it "sets the DATABASE_URL in the startup script" do
-        stage :environment => YAML::load(staging_env) do |staged_dir|
-          start_script_body(staged_dir).should include('DATABASE_URL="postgres://mariah:nick@mariahs_host:5678/mariahs_db"')
+        stage :environment => staging_env do |staged_dir|
+          start_script_body(staged_dir).should include('DATABASE_URL="postgresql://mariah:nick@mariahs-host.com:5678/mariahs_db"')
         end
       end
     end
 
     context "when a rds_mysql database is bound" do
-      let(:staging_env) {
-        <<-YAML
-        services:
-        - label: rds_mysql-n/a
-          tags: {}
-          name: rds_mysql-851fd
-          credentials:
-            name: mariahs_db
-            hostname: mariahs_host
-            host: mariahs_host
-            port: 5678
-            user: mariah
-            username: mariah
-            password: nick
-          options: {}
-          plan: '10mb'
-          plan_options: {}
-        YAML
-      }
+      let(:label) { "rds_mysql-n/a" }
+      let(:scheme) { "mysql2" }
 
       it "sets the DATABASE_URL in the startup script" do
-        stage :environment => YAML::load(staging_env) do |staged_dir|
-          start_script_body(staged_dir).should include('DATABASE_URL="mysql2://mariah:nick@mariahs_host:5678/mariahs_db"')
+        stage :environment => staging_env do |staged_dir|
+          start_script_body(staged_dir).should include('DATABASE_URL="mysql2://mariah:nick@mariahs-host.com:5678/mariahs_db"')
+        end
+      end
+    end
+
+    context "when an elephantsql database is bound" do
+      let(:label) { "elephantsql" }
+      let(:scheme) { "postgres" }
+
+      it "sets the DATABASE_URL in the startup script" do
+        stage environment: staging_env do |staged_dir|
+          start_script_body(staged_dir).should include('DATABASE_URL="postgresql://mariah:nick@mariahs-host.com:5678/mariahs_db"')
+        end
+      end
+    end
+
+    context "when a cleardb database is bound" do
+      let(:label) { "cleardb" }
+      let(:scheme) { "mysql" }
+
+      it "sets the DATABASE_URL in the startup script" do
+        stage :environment => staging_env do |staged_dir|
+          start_script_body(staged_dir).should include('DATABASE_URL="mysql2://mariah:nick@mariahs-host.com:5678/mariahs_db"')
+        end
+      end
+    end
+
+    context "when a database is no known scheme" do
+      let(:scheme) { "mongodb" }
+
+      it "does not set the DATABASE_URL in the startup script" do
+        stage :environment => staging_env do |staged_dir|
+          start_script_body(staged_dir).should_not include("DATABASE_URL")
         end
       end
     end
 
     context "when a database is not bound" do
+      let(:staging_env) {{ 'services' => [] }}
+
+      it "does not set the DATABASE_URL in the startup script" do
+        stage :environment => staging_env do |staged_dir|
+          start_script_body(staged_dir).should_not include("DATABASE_URL")
+        end
+      end
+    end
+
+    context "when a database uri is invalid" do
+      let(:staging_env) do
+        {
+          'services' => [
+            'credentials' => {
+              'uri' => "mysql://mariah:nick@invalid_host_name.com:5678/mariahs_db",
+            }
+          ]
+        }
+      end
+
+      it "does not set the DATABASE_URL in the startup script and raise an error" do
+        expect {
+        stage :environment => staging_env do |staged_dir|
+          start_script_body(staged_dir).should_not include("DATABASE_URL")
+        end
+        }.to raise_error(RuntimeError, "Invalid database uri: mysql://USER_NAME_PASS@invalid_host_name.com:5678/mariahs_db")
+      end
+    end
+
+    context "when a database uri is not found" do
+      let(:staging_env) do
+        {
+          'services' => [
+            'credentials' => {
+              'no_uri' => "mysql://mariah:nick@invalid_host_name.com:5678/mariahs_db",
+            }
+          ]
+        }
+      end
+
       it "does not set the DATABASE_URL in the startup script" do
         stage :environment => staging_env do |staged_dir|
           start_script_body(staged_dir).should_not include("DATABASE_URL")

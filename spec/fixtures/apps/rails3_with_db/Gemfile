@@ -1,0 +1,11 @@
+source "http://rubygems.org"
+gem 'rails', '~> 3.0.5'
+gem 'sqlite3'
+gem 'mysql2'
+gem 'thin'
+gem 'json'
+gem 'redis'
+gem 'mongo'
+gem 'mongo_mapper'
+gem 'carrot'
+gem 'pg'
