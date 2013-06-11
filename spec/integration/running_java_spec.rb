@@ -47,7 +47,11 @@ describe "Running a Java App", :type => :integration, :requires_warden => true d
   let(:dea_stop_msg) { {"droplet" => app_id} }
 
   context "when the app has an out of memory exception" do
+
     it "it starts the app normally then after getting an out of memory exception crashes warden" do
+
+      pending "we've removed oome as part of the production push. todo: get this back around 6/15/2013"
+
       nats.request("staging", dea_stage_msg)
 
       nats.publish("dea.#{dea_id}.start", dea_start_msg.merge("env" => ["crash=false"]))
