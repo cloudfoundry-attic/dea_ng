@@ -117,6 +117,7 @@ module Dea
       options[:sinks] << @log_counter
 
       Steno.init(Steno::Config.new(options))
+      logger.info("Dea started")
     end
 
     attr_reader :droplet_registry

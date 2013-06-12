@@ -60,6 +60,14 @@ describe Dea::Bootstrap do
         config.default_log_level.should == :debug
       end
     end
+
+    it "logs the creation of the DEA" do
+      @config = { "logging" => { "level" => "debug" } }
+
+      logger = mock("logger")
+      bootstrap.should_receive(:logger).and_return(logger)
+      logger.should_receive(:info).with("Dea started")
+    end
   end
 
   describe "droplet registry setup" do
