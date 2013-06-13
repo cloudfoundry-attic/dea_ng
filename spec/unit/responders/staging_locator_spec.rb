@@ -12,7 +12,18 @@ describe Dea::Responders::StagingLocator do
   let(:nats) { Dea::Nats.new(bootstrap, config) }
   let(:bootstrap) { mock(:bootstrap, :config => config) }
   let(:dea_id) { "unique-dea-id" }
-  let(:instance_registry) { Dea::InstanceRegistry.new }
+  let(:instance_registry) do
+    instance_registry = nil
+    if !EM.reactor_running?
+      em do
+        instance_registry = Dea::InstanceRegistry.new
+        done
+      end
+    else
+      instance_registry = Dea::InstanceRegistry.new
+    end
+    instance_registry
+  end
   let(:staging_task_registry) { Dea::StagingTaskRegistry.new }
   let(:resource_manager) { Dea::ResourceManager.new(instance_registry, staging_task_registry) }
   let(:config) { Dea::Config.new({}) }

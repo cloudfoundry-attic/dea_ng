@@ -4,7 +4,14 @@ require "dea/instance_registry"
 require "dea/staging_task_registry"
 
 describe Dea::DirectoryServerV2 do
-  let(:instance_registry) { Dea::InstanceRegistry.new({}) }
+  let(:instance_registry) do
+    instance_registry = nil
+    em do
+      instance_registry = Dea::InstanceRegistry.new({})
+      done
+    end
+    instance_registry
+  end
   let(:staging_task_registry) { Dea::StagingTaskRegistry.new }
 
   let(:config) { {"directory_server" => {"file_api_port" => 3456}} }

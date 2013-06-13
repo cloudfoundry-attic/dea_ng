@@ -21,7 +21,16 @@ describe Dea::Bootstrap do
   end
 
   subject(:bootstrap) do
-    Dea::Bootstrap.new(@config)
+    bootstrap = nil
+    if EM.reactor_running?
+      em do
+        bootstrap = Dea::Bootstrap.new(@config)
+        done
+      end
+    else
+      bootstrap = Dea::Bootstrap.new(@config)
+    end
+    bootstrap
   end
 
   let(:nats_client_mock) do
@@ -80,7 +89,11 @@ describe Dea::Bootstrap do
   end
 
   describe "instance registry setup" do
-    before { bootstrap.setup_instance_registry }
+    before do
+      em do
+        bootstrap.setup_instance_registry
+      end
+    end
 
     it "should create a new instance registry" do
       bootstrap.instance_registry.should be_a(Dea::InstanceRegistry)
@@ -170,7 +183,7 @@ describe Dea::Bootstrap do
   describe "shutdown" do
     before do
       bootstrap.setup_signal_handlers
-      bootstrap.setup_instance_registry
+      em { bootstrap.setup_instance_registry; done }
       bootstrap.setup_staging_task_registry
       bootstrap.setup_router_client
       bootstrap.setup_directory_server_v2
@@ -255,7 +268,7 @@ describe Dea::Bootstrap do
   describe "evacuation" do
     before :each do
       bootstrap.setup_signal_handlers
-      bootstrap.setup_instance_registry
+      em { bootstrap.setup_instance_registry; done }
       bootstrap.stub(:send_shutdown_message)
     end
 
@@ -307,7 +320,7 @@ describe Dea::Bootstrap do
     it "publishes a dea.shutdown message on NATS" do
       bootstrap.stub(:nats).and_return(nats_client_mock)
 
-      bootstrap.setup_instance_registry
+      em { bootstrap.setup_instance_registry; done }
       bootstrap.instance_registry.register(
         Dea::Instance.new(bootstrap, { "application_id" => "foo" }))
 
@@ -520,48 +533,51 @@ describe Dea::Bootstrap do
     end
   end
 
-  describe "#evacuate" do
-    before { EM.stub(:add_periodic_timer => nil, :add_timer => nil) }
+  describe "evacuate" do
 
     before do
       bootstrap.stub(:uuid => "unique-dea-id")
       bootstrap.setup_nats
-      bootstrap.setup_instance_registry
+      if !EM.reactor_running?
+        em { bootstrap.setup_instance_registry; done }
+      else
+        bootstrap.setup_instance_registry
+      end
     end
 
     context "when advertising/locating was set up" do
       before do
         bootstrap.setup_resource_manager
-        bootstrap.start_nats
+        em { bootstrap.start_nats; done }
       end
 
       it "stops dea advertising/locating" do
         Dea::Responders::DeaLocator.any_instance.should_receive(:stop)
-        bootstrap.evacuate
+        em { bootstrap.evacuate; done }
       end
 
       it "stops staging advertising/locating" do
         Dea::Responders::StagingLocator.any_instance.should_receive(:stop)
-        bootstrap.evacuate
+        em { bootstrap.evacuate; done }
       end
     end
 
     context "when advertising/locating was not set up" do
       it "does not stop dea locator" do
         Dea::Responders::DeaLocator.any_instance.should_not_receive(:stop)
-        bootstrap.evacuate
+        em { bootstrap.evacuate; done }
       end
 
       it "does not stop staging locator" do
         Dea::Responders::StagingLocator.any_instance.should_not_receive(:stop)
-        bootstrap.evacuate
+        em { bootstrap.evacuate; done }
       end
     end
   end
 
   describe "creating an instance" do
     subject(:instance) do
-      bootstrap.setup_instance_registry
+      em { bootstrap.setup_instance_registry; done }
       bootstrap.create_instance(valid_instance_attributes.merge(extra_attributes))
     end
 
@@ -625,7 +641,7 @@ describe Dea::Bootstrap do
         Dea::Instance.any_instance.stub(:validate).and_raise(RuntimeError)
         logger.should_receive(:warn)
 
-        bootstrap.setup_instance_registry
+        em { bootstrap.setup_instance_registry; done }
         instance = bootstrap.create_instance(valid_instance_attributes)
 
         instance.should be_nil

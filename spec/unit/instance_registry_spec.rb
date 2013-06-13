@@ -5,13 +5,64 @@ require "dea/config"
 require "dea/instance"
 require "dea/instance_registry"
 
+
 describe Dea::InstanceRegistry do
   let(:bootstrap) { mock("bootstrap", :config => {}) }
-  let(:instance_registry) { Dea::InstanceRegistry.new }
-  let(:instance) { Dea::Instance.new(bootstrap, { "application_id" => 1 }) }
-  let(:instance1) { Dea::Instance.new(bootstrap, { "application_id" => 1}) }
+  let(:instance_registry) do
+    instance_registry = nil
+    em do
+      instance_registry = Dea::InstanceRegistry.new
+      done
+    end
+    instance_registry
+  end
+  let(:instance) { Dea::Instance.new(bootstrap, {"application_id" => 1, "warden_handle" => "handle1"}) }
+  let(:instance1) { Dea::Instance.new(bootstrap, {"application_id" => 1, "warden_handle" => "handle2"}) }
 
   it_behaves_like :handles_registry_enumerations
+
+  describe "initialize" do
+    context "when the log level is debug2 or lower" do
+      before do
+        config = Steno::Config.new(
+          :sinks => [Steno::Sink::IO.for_file("/tmp/dea.log")],
+          :default_log_level => :debug2
+        )
+        Steno.init(config)
+      end
+
+      it "creates a periodic timer" do
+        callback = nil
+        EM.should_receive(:add_periodic_timer).with(300) do |&blk|
+          callback = blk
+        end
+
+        instance_registry.register(instance)
+        instance_registry.register(instance1)
+
+        Dea::InstanceRegistry.logger.should_receive(:debug2) do |log_message|
+          expect(log_message).to include instance.attributes["warden_handle"]
+          expect(log_message).to include instance1.attributes["warden_handle"]
+        end
+        callback.call
+      end
+    end
+
+    context "when the log level is higher than debug2" do
+      before do
+        config = Steno::Config.new(
+          :sinks => [Steno::Sink::IO.for_file("/tmp/dea.log")],
+          :default_log_level => :info
+        )
+        Steno.init(config)
+      end
+
+      it "does not create a periodic timer" do
+        EM.should_not_receive(:add_periodic_timer).with(300)
+        instance_registry
+      end
+    end
+  end
 
   describe "#register" do
     before :each do
@@ -123,8 +174,14 @@ describe Dea::InstanceRegistry do
       })
     end
 
-    let(:instance_registry) { Dea::InstanceRegistry.new(config) }
-
+    let(:instance_registry) do
+      instance_registry = nil
+      em do
+        instance_registry = Dea::InstanceRegistry.new(config)
+        done
+      end
+      instance_registry
+    end
     it "should reap orphaned crashes" do
       instance = register_crashed_instance(nil)
 
@@ -164,7 +221,14 @@ describe Dea::InstanceRegistry do
       })
     end
 
-    let(:instance_registry) { Dea::InstanceRegistry.new(config) }
+    let(:instance_registry) do
+      instance_registry = nil
+      em do
+        instance_registry = Dea::InstanceRegistry.new(config)
+        done
+      end
+      instance_registry
+    end
     let(:crash_lifetime) { 10 }
     let(:time_of_check) { 20 }
 
@@ -222,8 +286,14 @@ describe Dea::InstanceRegistry do
         "base_dir" => tmpdir,
       })
     end
-
-    let(:instance_registry) { Dea::InstanceRegistry.new(config) }
+    let(:instance_registry) do
+      instance_registry = nil
+      em do
+        instance_registry = Dea::InstanceRegistry.new(config)
+        done
+      end
+      instance_registry
+    end
 
     it "should reap under disk pressure" do
       instance_registry.should_receive(:disk_pressure?).and_return(true, false)
@@ -277,7 +347,14 @@ describe Dea::InstanceRegistry do
       })
     end
 
-    let(:instance_registry) { Dea::InstanceRegistry.new(config) }
+    let(:instance_registry) do
+      instance_registry = nil
+      em do
+        instance_registry = Dea::InstanceRegistry.new(config)
+        done
+      end
+      instance_registry
+    end
 
     it "should return false when #stat raises" do
       Sys::Filesystem.should_receive(:stat).and_raise("error")

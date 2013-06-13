@@ -22,8 +22,7 @@ describe "Dea::Bootstrap#create_instance" do
     bootstrap.stub(:router_client).and_return(router_client)
     bootstrap.stub(:nats).and_return(nats_mock)
     bootstrap.stub(:resource_manager).and_return(resource_manager)
-    bootstrap.setup
-
+    em { bootstrap.setup; done }
     Dea::Instance.any_instance.stub(:setup_link)
     bootstrap.stub(:instances_filtered_by_message).and_yield(instance)
 

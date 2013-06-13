@@ -14,8 +14,12 @@ describe Dea::Directory do
   let(:instance) { Dea::Instance.new(bootstrap, {}) }
 
   let(:instance_registry) do
-    instance_registry = Dea::InstanceRegistry.new
-    instance_registry.register(instance)
+    instance_registry = nil
+    em do
+      instance_registry = Dea::InstanceRegistry.new
+      instance_registry.register(instance)
+      done
+    end
     instance_registry
   end
 

@@ -22,6 +22,13 @@ module Dea
       @instances = {}
       @instances_by_app_id = {}
       @crash_lifetime_secs = config["crash_lifetime_secs"] || DEFAULT_CRASH_LIFETIME_SECS
+
+      if logger.level <= :debug2
+        EM.add_periodic_timer(300) do
+          logger.debug2(Yajl::Encoder.encode(@instances.map{|_, v| v.attributes }))
+        end
+      end
+
     end
 
     def start_reaper

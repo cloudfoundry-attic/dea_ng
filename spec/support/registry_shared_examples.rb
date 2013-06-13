@@ -1,5 +1,13 @@
 shared_examples :handles_registry_enumerations do
-  let(:registry) { described_class.new }
+
+  let(:registry) do
+    registry = nil
+    em do
+      registry = described_class.new
+      done
+    end
+    registry
+  end
 
   before do
     @instance_id = 0
