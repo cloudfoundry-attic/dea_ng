@@ -6,5 +6,5 @@ config_vars:
   PATH: bin:/usr/local/bin:/usr/bin:/bin
   FROM_BUILD_PACK: "yes"
 default_process_types:
-  web:  while :; do echo 'Running app...'; sleep 1; done
+  web: while true; do (echo hi | nc -l \$PORT); done
 EOF

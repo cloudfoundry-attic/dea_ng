@@ -64,7 +64,7 @@ describe "Running an app", :type => :integration, :requires_warden => true do
     end
   end
 
-  describe 'starting a vaild application' do
+  describe 'starting a valid application' do
     before do
       setup_fake_buildpack("start_command")
 
@@ -79,10 +79,6 @@ describe "Running an app", :type => :integration, :requires_warden => true do
         "buildpack_cache_upload_uri" => buildpack_cache_upload_uri,
         "buildpack_cache_download_uri" => buildpack_cache_download_uri
       })
-
-
-      nats.publish("dea.#{dea_id}.start", valid_dea_start_message)
-      wait_until_instance_started(app_id)
     end
 
     after do
@@ -91,6 +87,11 @@ describe "Running an app", :type => :integration, :requires_warden => true do
     end
 
     describe "starting the app" do
+      before do
+        nats.publish("dea.#{dea_id}.start", valid_dea_start_message)
+        wait_until_instance_started(app_id)
+      end
+
       it "decreases the dea's available memory" do
         expect(dea_memory).to eql(original_memory - 64)
       end
@@ -98,9 +99,42 @@ describe "Running an app", :type => :integration, :requires_warden => true do
 
     describe "stopping the app" do
       it "restores the dea's available memory" do
+        nats.publish("dea.#{dea_id}.start", valid_dea_start_message)
+        wait_until_instance_started(app_id)
+
         nats.publish("dea.stop", {"droplet" => app_id})
         wait_until_instance_gone(app_id)
         expect(dea_memory).to eql(original_memory)
+      end
+
+      it "actually stops the app" do
+        id = dea_id
+        checked_port = false
+        droplet_message = Yajl::Encoder.encode({"droplet" => app_id, "states" => ["RUNNING"]})
+        NATS.start do
+          NATS.subscribe("router.register") do |_|
+            NATS.request("dea.find.droplet", droplet_message, :timeout => 5) do |response|
+              droplet_info = Yajl::Parser.parse(response)
+              instance_info = instance_snapshot(droplet_info["instance"])
+              ip = instance_info["warden_host_ip"]
+              port = instance_info["instance_host_port"]
+              expect(is_port_open?(ip, port)).to eq(true)
+
+              NATS.publish("dea.stop", Yajl::Encoder.encode({"droplet" => app_id})) do
+                EM.defer do
+                  checked_port = true
+                  expect(is_port_open?(ip, port)).to eq(false)
+
+                  NATS.stop
+                end
+              end
+            end
+          end
+
+          NATS.publish("dea.#{id}.start", Yajl::Encoder.encode(valid_dea_start_message))
+        end
+
+        expect(checked_port).to eq(true)
       end
     end
   end

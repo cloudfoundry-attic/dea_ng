@@ -141,7 +141,7 @@ fi
 
       it "uses the default start command" do
         stage :environment => staging_env do |staged_dir|
-          packages_with_start_script(staged_dir, "while :; do echo 'Running app...'; sleep 1; done")
+          packages_with_start_script(staged_dir, "while true; do (echo hi | nc -l $PORT); done")
         end
       end
     end

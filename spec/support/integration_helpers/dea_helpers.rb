@@ -1,6 +1,32 @@
 require "yaml"
 
 module DeaHelpers
+  def is_port_open?(ip, port)
+    begin
+      Timeout::timeout(1) do
+        begin
+          s = TCPSocket.new(ip, port)
+          s.close
+          return true
+        rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH
+          return false
+        end
+      end
+    rescue Timeout::Error
+    end
+
+    return false
+  end
+
+  def snapshot_path
+    File.join(dea_config["base_dir"], "db", "instances.json")
+  end
+
+  def instance_snapshot(instance_id)
+    instances_config = YAML.load_file(snapshot_path)
+    instances_config["instances"].find { |instance| instance["instance_id"] == instance_id }
+  end
+
   def dea_id
     nats.request("dea.discover", {
       "limits" => { "mem" => 1, "disk" => 1 }

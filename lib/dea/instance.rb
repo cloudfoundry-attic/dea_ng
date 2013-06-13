@@ -473,6 +473,7 @@ module Dea
 
         response = promise_warden_call(:info, request).resolve
         @attributes["warden_container_path"] = response.container_path
+        @attributes["warden_host_ip"] = response.host_ip
 
         p.deliver(response)
       end
