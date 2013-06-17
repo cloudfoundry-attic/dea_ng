@@ -3,18 +3,17 @@ require "yaml"
 module DeaHelpers
   def is_port_open?(ip, port)
     begin
-      p "!!!!!!!!!!!!!!! Attempting to connect to #{ip} : #{port}"
       Timeout::timeout(5) do
         begin
           s = TCPSocket.new(ip, port)
           s.close
           return true
         rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH
-          p '!!!!!!!!!!!!!! Connection refused or host unreachable'
           return false
         end
       end
     rescue Timeout::Error
+      p "Timed out attempting to connect to #{ip}:#{port}"
     end
 
     return false
@@ -26,13 +25,7 @@ module DeaHelpers
 
   def instance_snapshot(instance_id)
     instances_config = YAML.load_file(snapshot_path)
-    res = instances_config["instances"].find { |instance| instance["instance_id"] == instance_id }
-    p '!!!!!!!!!!!!!!'
-    p instances_config
-    p '!!!!!!!!!!!!!!'
-    p res
-    p '!!!!!!!!!!!!!!'
-    return res
+    instances_config["instances"].find { |instance| instance["instance_id"] == instance_id }
   end
 
   def dea_id

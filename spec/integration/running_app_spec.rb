@@ -121,12 +121,14 @@ describe "Running an app", :type => :integration, :requires_warden => true do
               expect(is_port_open?(ip, port)).to eq(true)
 
               NATS.publish("dea.stop", Yajl::Encoder.encode({"droplet" => app_id})) do
-                EM.defer do
-                  checked_port = true
-                  expect(is_port_open?(ip, port)).to eq(false)
-
-                  NATS.stop
+                port_open = true
+                wait_until do
+                  port_open = is_port_open?(ip, port)
+                  ! port_open
                 end
+                expect(port_open).to eq(false)
+                checked_port = true
+                NATS.stop
               end
             end
           end
