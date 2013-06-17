@@ -214,6 +214,7 @@ DEPENDENCIES
   timecop
   uuidtools (~> 2.1.2)
   vcap_common!
+  vmstat
   warden-client!
   warden-protocol!
   yajl-ruby

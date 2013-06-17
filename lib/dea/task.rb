@@ -4,6 +4,7 @@ require "em/warden/client/connection"
 require "steno"
 require "steno/core_ext"
 require "dea/promise"
+require "vmstat"
 
 module Dea
   class Task
@@ -93,10 +94,9 @@ module Dea
           begin
             response = result.get
           rescue => error
-          end
-
-          if error
-            logger.warn "Request failed: #{request.inspect}"
+            file_touched = FileUtils.touch && "pass" rescue "failed"
+            vmstat = Vmstat.snapshot rescue "Unable to get Vmstat.snapshot"
+            logger.warn "Request failed: #{request.inspect} file touched: #{file_touched} VMstat out: #{vmstat}"
             logger.log_exception(error)
 
             p.fail(error)
@@ -110,13 +110,19 @@ module Dea
     def promise_warden_call_with_retry(connection_name, request)
       Promise.new do |p|
         response = nil
+        count = 0
 
         begin
           response = promise_warden_call(connection_name, request).resolve
         rescue ::EM::Warden::Client::ConnectionError => error
-          logger.warn("Request failed: #{request.inspect}, retrying")
+          count += 1
+          logger.warn("Request failed: #{request.inspect}, retrying ##{count}.")
           logger.log_exception(error)
           retry
+        end
+
+        if count > 0
+          logger.debug("Request succeeded after #{count} retries: #{request.inspect}")
         end
 
         p.deliver(response)

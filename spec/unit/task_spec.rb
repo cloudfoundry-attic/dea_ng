@@ -114,26 +114,37 @@ describe Dea::Task do
       result.should_receive(:get).and_return("OK")
 
       resolve do |error, result|
-        expect do
-          raise error if error
-        end.to_not raise_error
-
-        # Check result
-        result.should == "OK"
+        expect(error).to be_nil
+        expect(result).to eq "OK"
 
         done
       end
     end
 
-    it "fails when request fails" do
-      result.should_receive(:get).and_raise(RuntimeError.new("ERR"))
+    context "when it fails" do
+      before do
+        result.should_receive(:get).and_raise(RuntimeError.new("ERR FAKE"))
+        Vmstat.stub(:snapshot) { "vmstat" }
+      end
 
-      resolve do |error, result|
-        expect do
-          raise error if error
-        end.to raise_error(/ERR/)
+      it "fails when request fails" do
+        resolve do |error, _|
+          expect(error).to_not be_nil
 
-        done
+          done
+        end
+      end
+
+      it "when system status for filesystem fails" do
+        FileUtils.should_receive(:touch).and_raise(RuntimeError)
+        task.logger.should_receive(:warn).with(/file\s+touched:\s+failed/)
+        resolve { |_, _| done }
+      end
+
+      it "includes the system status" do
+        FileUtils.should_receive(:touch).and_return(true)
+        task.logger.should_receive(:warn).with(/.*file\s+touched:\s+pass.*vmstat/)
+        resolve { |_, _| done }
       end
     end
   end
