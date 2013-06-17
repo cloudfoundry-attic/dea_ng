@@ -4,7 +4,7 @@ module DeaHelpers
   def is_port_open?(ip, port)
     begin
       p "!!!!!!!!!!!!!!! Attempting to connect to #{ip} : #{port}"
-      Timeout::timeout(1) do
+      Timeout::timeout(5) do
         begin
           s = TCPSocket.new(ip, port)
           s.close
