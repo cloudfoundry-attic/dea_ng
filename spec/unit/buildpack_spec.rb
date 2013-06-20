@@ -112,6 +112,12 @@ fi
         packages_with_start_script(staged_dir, "node app.js --from-manifest=true")
       end
     end
+
+    it "tee's stderr and stdout to logfiles and their normal pipes" do
+      stage :environment => staging_env do |staged_dir|
+        start_script_body(staged_dir).should include(" > >(tee $DROPLET_BASE_DIR/logs/stdout.log) 2> >(tee $DROPLET_BASE_DIR/logs/stderr.log >&2) &")
+      end
+    end
   end
 
   context "when the application has a procfile" do
@@ -375,6 +381,6 @@ fi
   end
 
   def packages_with_start_script(staged_dir, start_command)
-    start_script_body(staged_dir).should include("(#{start_command}) > $DROPLET_BASE_DIR/logs/stdout.log 2> $DROPLET_BASE_DIR/logs/stderr.log &")
+    start_script_body(staged_dir).should include("#{start_command}")
   end
 end

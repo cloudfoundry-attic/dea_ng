@@ -76,38 +76,19 @@ module Buildpacks
       end
     end
 
-    def change_directory_for_start
-      "cd app"
-    end
-
-    def get_launched_process_pid
-      "STARTED=$!"
-    end
-
-    def wait_for_launched_process
-      "wait $STARTED"
-    end
-
-    def pidfile_dir
-      "$DROPLET_BASE_DIR"
-    end
-
     def generate_startup_script(env_vars = {})
       after_env_before_script = block_given? ? yield : "\n"
-      template = <<-SCRIPT
-#!/bin/bash
-<%= environment_statements_for(env_vars) %>
-<%= after_env_before_script %>
-DROPLET_BASE_DIR=$PWD
-<%= change_directory_for_start %>
-(<%= start_command %>) > $DROPLET_BASE_DIR/logs/stdout.log 2> $DROPLET_BASE_DIR/logs/stderr.log &
-<%= get_launched_process_pid %>
-echo "$STARTED" >> #{pidfile_dir}/run.pid
-<%= wait_for_launched_process %>
+      <<-SCRIPT.gsub(/^\s{8}/, "")
+        #!/bin/bash
+        #{environment_statements_for(env_vars)}
+        #{after_env_before_script}
+        DROPLET_BASE_DIR=$PWD
+        cd app
+        (#{start_command}) > >(tee $DROPLET_BASE_DIR/logs/stdout.log) 2> >(tee $DROPLET_BASE_DIR/logs/stderr.log >&2) &
+        STARTED=$!
+        echo "$STARTED" >> $DROPLET_BASE_DIR/run.pid
+        wait $STARTED
       SCRIPT
-      # TODO - ERB is pretty irritating when it comes to blank lines, such as when 'after_env_before_script' is nil.
-      # There is probably a better way that doesn't involve making the above Heredoc horrible.
-      ERB.new(template).result(binding).lines.reject {|l| l =~ /^\s*$/}.join
     end
 
     # Generates newline-separated exports for the specified environment variables.
