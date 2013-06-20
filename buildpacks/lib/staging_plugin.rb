@@ -84,7 +84,7 @@ module Buildpacks
         #{after_env_before_script}
         DROPLET_BASE_DIR=$PWD
         cd app
-        #{start_command} &
+        (#{start_command}) > >(tee $DROPLET_BASE_DIR/logs/stdout.log) 2> >(tee $DROPLET_BASE_DIR/logs/stderr.log >&2) &
         STARTED=$!
         echo "$STARTED" >> $DROPLET_BASE_DIR/run.pid
         wait $STARTED
