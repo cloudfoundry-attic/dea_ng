@@ -529,9 +529,8 @@ module Dea
         link
 
         if promise_health_check.resolve
-          log(:info, "droplet.healthy")
           promise_state(State::STARTING, State::RUNNING).resolve
-
+          log(:info, "droplet.healthy")
           promise_exec_hook_script('after_start').resolve
         else
           log(:warn, "droplet.unhealthy")
