@@ -27,6 +27,7 @@ class Download
     FileUtils.mkdir_p(destination_dir)
 
     file = Tempfile.new("droplet", destination_dir)
+    file.binmode
     sha1 = Digest::SHA1.new
 
     http = EM::HttpRequest.new(uri).get
@@ -42,7 +43,7 @@ class Download
       begin
         inner.call
       ensure
-        File.unlink(file.path) if File.exist?(file.path)
+        FileUtils.rm_f(file.path)
       end
     end
 

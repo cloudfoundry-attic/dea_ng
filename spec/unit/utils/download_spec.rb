@@ -56,6 +56,27 @@ describe Download do
     end
   end
 
+  it "saves the file in binary mode to work on Windows" do
+    body = "The Body"
+
+    start_http_server(12345) do |connection, data|
+      connection.send_data("HTTP/1.1 200 OK\r\n")
+      connection.send_data("Content-Length: #{body.length}\r\n")
+      connection.send_data("\r\n")
+      connection.send_data(body)
+      connection.send_data("\r\n")
+    end
+
+    expected = Digest::SHA1.new
+    expected << body
+
+    the_tempfile = double("tempfile").as_null_object
+    Tempfile.stub(:new => the_tempfile)
+    Tempfile.should_receive(:new).once
+    the_tempfile.should_receive(:binmode).once
+    Download.new("http://127.0.0.1:12345/droplet", Dir.mktmpdir("foo"), expected.hexdigest).download! { done }
+  end
+
   context "when the sha is not given" do
     it "does not verify the sha1" do
       body = "The Body"
