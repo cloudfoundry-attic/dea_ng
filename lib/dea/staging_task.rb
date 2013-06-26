@@ -249,7 +249,7 @@ module Dea
       Promise.new do |p|
         promise_warden_run(:app, <<-BASH).resolve
           droplet_size=`du -h #{workspace.warden_staged_droplet} | cut -f1`
-          echo "-----> Uploading staged droplet ($droplet_size)" >> #{workspace.warden_staging_log}
+          echo "-----> Uploading droplet ($droplet_size)" >> #{workspace.warden_staging_log}
         BASH
         p.deliver
       end

@@ -39,7 +39,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
       response["task_log"].tap do |log|
         expect(log).to include("-----> Downloaded app package (4.0K)\n")
         expect(log).to include("-----> Some compilation output\n")
-        expect(log).to include("-----> Uploading staged droplet (4.0K)\n")
+        expect(log).to include("-----> Uploading droplet (4.0K)\n")
         expect(log).to include("-----> Uploaded droplet\n")
       end
     end
