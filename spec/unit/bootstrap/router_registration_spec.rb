@@ -64,6 +64,34 @@ describe Dea do
     responses.should =~ [expected_0, expected_1, expected_1]
   end
 
+  it 'should set up a periodic timer with the requested interval' do
+    em do
+      bootstrap.setup
+      bootstrap.start
+
+      EM.should_receive(:add_periodic_timer).with(13)
+      nats_mock.publish("router.start", {:minimumRegisterIntervalInSeconds => 13})
+
+      done
+    end
+  end
+
+  it 'should clear previous timer and create a new one if a timer already exists' do
+    em do
+      bootstrap.setup
+      bootstrap.start
+
+      EM.should_receive(:add_periodic_timer).with(13).and_return(:foobar)
+      nats_mock.publish("router.start", {:minimumRegisterIntervalInSeconds => 13})
+
+      EM.should_receive(:cancel_timer).with(:foobar)
+      EM.should_receive(:add_periodic_timer).with(14)
+      nats_mock.publish("router.start", {:minimumRegisterIntervalInSeconds => 14})
+
+      done
+    end
+  end
+
   describe "router.register message" do
     # The collector looks for dea- prefixed component tags
     it "includes a 'component' tag that starts with 'dea-' and ends with its index" do
