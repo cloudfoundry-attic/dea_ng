@@ -77,6 +77,18 @@ describe Dea do
     end
   end
 
+  it "does not set up a periodic timer when no interval is given" do
+    em do
+      bootstrap.setup
+      bootstrap.start
+
+      EM.should_not_receive(:add_periodic_timer)
+      nats_mock.publish("router.start", {})
+
+      done
+    end
+  end
+
   it "clears previous timer and creates a new one if a timer already exists" do
     em do
       bootstrap.setup

@@ -472,10 +472,12 @@ module Dea
       interval = message.data.nil? ? nil : message.data["minimumRegisterIntervalInSeconds"]
       register_routes
 
-      EM.cancel_timer(@registration_timer) if @registration_timer
+      if interval
+        EM.cancel_timer(@registration_timer) if @registration_timer
 
-      @registration_timer = EM.add_periodic_timer(interval) do
-        register_routes
+        @registration_timer = EM.add_periodic_timer(interval) do
+          register_routes
+        end
       end
     end
 
