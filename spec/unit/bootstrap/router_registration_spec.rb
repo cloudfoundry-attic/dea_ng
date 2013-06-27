@@ -11,6 +11,7 @@ describe Dea do
     bootstrap.unstub(:setup_directory_server_v2)
     bootstrap.unstub(:directory_server_v2)
     bootstrap.unstub(:register_directory_server_v2)
+    bootstrap.unstub(:greet_router)
   end
 
   it "should publish two messages on 'router.register' upon receipt of a message on 'router.start'" do

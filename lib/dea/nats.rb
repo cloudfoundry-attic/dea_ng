@@ -66,7 +66,11 @@ module Dea
 
     def request(subject, data = {})
       client.request(subject, Yajl::Encoder.encode(data)) do |raw_data, respond_to|
-        yield handle_incoming_message("response to #{subject}", raw_data, respond_to)
+        begin
+          yield handle_incoming_message("response to #{subject}", raw_data, respond_to)
+        rescue => e
+          logger.error "Error \"#{e}\" raised while processing #{subject.inspect}: #{raw_data}"
+        end
       end
     end
 
@@ -76,7 +80,11 @@ module Dea
       do_not_track_subscription = opts.delete(:do_not_track_subscription)
 
       sid = client.subscribe(subject, opts) do |raw_data, respond_to|
-        yield handle_incoming_message(subject, raw_data, respond_to)
+        begin
+          yield handle_incoming_message(subject, raw_data, respond_to)
+        rescue => e
+          logger.error "Error \"#{e}\" raised while processing #{subject.inspect}: #{raw_data}"
+        end
       end
 
       @sids[subject] = sid unless do_not_track_subscription
@@ -136,8 +144,6 @@ module Dea
       message = Message.decode(self, subject, raw_data, respond_to)
       logger.debug "Received on #{subject.inspect}: #{message.data.inspect}"
       message
-    rescue => e
-      logger.error "Error \"#{e}\" raised while processing #{subject.inspect}: #{message ? message.data.inspect : raw_data }"
     end
 
     def logger

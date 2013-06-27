@@ -60,7 +60,7 @@ MockClass.define(:NatsClientMock, NatsInstance) do
     end
   end
 
-  add :respond_to_channel do |subject, data = {}|
+  add :respond_to_channel do |subject, data = {}, respond_to = nil|
     if (subscription = @request_inboxes[subject])
       if data.kind_of?(String)
         raw_data = data
@@ -69,7 +69,6 @@ MockClass.define(:NatsClientMock, NatsInstance) do
       end
 
       @subscriptions[subscription].each do |blk|
-        p [:calling, subject, subscription]
         blk.call(raw_data, respond_to)
       end
     end
