@@ -31,9 +31,9 @@ describe Dea do
                 Dea::Instance::State::RUNNING]
       all_uris = [["foo"], ["bar"], []]
 
-      states.zip(all_uris).each_with_index do |(state, uris), ii|
+      states.zip(all_uris).each_with_index do |(state, uris), app_id|
         instance = create_and_register_instance(bootstrap,
-                                                "application_id"   => ii.to_s,
+                                                "application_id"   => app_id.to_s,
                                                 "application_uris" => uris)
         instance.state = state
         instances << instance
@@ -64,7 +64,7 @@ describe Dea do
     responses.should =~ [expected_0, expected_1, expected_1]
   end
 
-  it 'should set up a periodic timer with the requested interval' do
+  it "sets up a periodic timer with the requested interval" do
     em do
       bootstrap.setup
       bootstrap.start
@@ -76,7 +76,7 @@ describe Dea do
     end
   end
 
-  it 'should clear previous timer and create a new one if a timer already exists' do
+  it "clears previous timer and creates a new one if a timer already exists" do
     em do
       bootstrap.setup
       bootstrap.start
@@ -87,6 +87,19 @@ describe Dea do
       EM.should_receive(:cancel_timer).with(:foobar)
       EM.should_receive(:add_periodic_timer).with(14)
       nats_mock.publish("router.start", {:minimumRegisterIntervalInSeconds => 14})
+
+      done
+    end
+  end
+
+  it "sends router.greet on startup and registers a timer" do
+    em do
+      bootstrap.setup
+      bootstrap.start
+
+      EM.should_receive(:add_periodic_timer).with(13)
+
+      nats_mock.respond_to_channel("router.greet", :minimumRegisterIntervalInSeconds => 13)
 
       done
     end

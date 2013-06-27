@@ -64,19 +64,19 @@ module Dea
       client.publish(subject, Yajl::Encoder.encode(data))
     end
 
+    def request(subject, data = {})
+      client.request(subject, Yajl::Encoder.encode(data)) do |raw_data, respond_to|
+        yield handle_incoming_message("response to #{subject}", raw_data, respond_to)
+      end
+    end
+
     def subscribe(subject, opts={})
       # Do not track subscription option is used with responders
       # since we want them to be responsible for subscribe/unsubscribe.
       do_not_track_subscription = opts.delete(:do_not_track_subscription)
 
       sid = client.subscribe(subject, opts) do |raw_data, respond_to|
-        begin
-          message = Message.decode(self, subject, raw_data, respond_to)
-          logger.debug "Received on #{subject.inspect}: #{message.data.inspect}"
-          yield message
-        rescue => e
-          logger.error "Error \"#{e}\" raised while processing #{subject.inspect}: #{message ? message.data.inspect : raw_data }"
-        end
+        yield handle_incoming_message(subject, raw_data, respond_to)
       end
 
       @sids[subject] = sid unless do_not_track_subscription
@@ -131,6 +131,14 @@ module Dea
     end
 
     private
+
+    def handle_incoming_message(subject, raw_data, respond_to)
+      message = Message.decode(self, subject, raw_data, respond_to)
+      logger.debug "Received on #{subject.inspect}: #{message.data.inspect}"
+      message
+    rescue => e
+      logger.error "Error \"#{e}\" raised while processing #{subject.inspect}: #{message ? message.data.inspect : raw_data }"
+    end
 
     def logger
       @logger ||= self.class.logger

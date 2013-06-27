@@ -14,6 +14,8 @@ MockClass.define(:NatsClientMock, NatsInstance) do
   overrides :initialize do |options|
     @options = options
     @subscriptions = Hash.new { |h, k| h[k] = [] }
+    @request_inboxes = {}
+    @requests = 0
   end
 
   overrides :subscribe do |subject, opts={}, &callback|
@@ -34,10 +36,14 @@ MockClass.define(:NatsClientMock, NatsInstance) do
   overrides :request do |subject, data=nil, opts={}, &cb|
     inbox = nil
 
+    @requests += 1
+
     if cb
-      inbox = "nats_mock_request_#{Time.now.nsec}"
+      inbox = "nats_mock_request_#{@requests}"
       subscribe(inbox, &cb)
     end
+
+    @request_inboxes[subject] = inbox
 
     publish(subject, data, inbox)
   end
@@ -51,6 +57,21 @@ MockClass.define(:NatsClientMock, NatsInstance) do
 
     @subscriptions[subject].each do |blk|
       blk.call(raw_data, respond_to)
+    end
+  end
+
+  add :respond_to_channel do |subject, data = {}|
+    if (subscription = @request_inboxes[subject])
+      if data.kind_of?(String)
+        raw_data = data
+      else
+        raw_data = Yajl::Encoder.encode(data)
+      end
+
+      @subscriptions[subscription].each do |blk|
+        p [:calling, subject, subscription]
+        blk.call(raw_data, respond_to)
+      end
     end
   end
 end

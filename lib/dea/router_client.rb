@@ -2,7 +2,6 @@
 
 module Dea
   class RouterClient
-
     attr_reader :bootstrap
 
     def initialize(bootstrap)
@@ -27,6 +26,10 @@ module Dea
     def unregister_instance(instance, opts = {})
       req = generate_instance_request(instance, opts)
       bootstrap.nats.publish("router.unregister", req)
+    end
+
+    def greet(&blk)
+      bootstrap.nats.request("router.greet", &blk)
     end
 
     private
