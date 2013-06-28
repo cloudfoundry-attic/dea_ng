@@ -136,6 +136,10 @@ See [staging.rb](lib/dea/responders/staging.rb) for staging flow.
 - `staging`: Stagers (in a queue group) respond to requests to stage an app
   (old protocol)
 
+## Warden rootfs
+
+For details about how to use and update the Warden rootfs, see [the stacks documentation](https://github.com/cloudfoundry/stacks).
+
 ## Logs
 
 The DEA's logging is handled by [Steno](https://github.com/cloudfoundry/steno).
