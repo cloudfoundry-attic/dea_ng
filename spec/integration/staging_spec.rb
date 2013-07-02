@@ -60,6 +60,18 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
         end
       end
     end
+
+    it "cleans buildpack cache between staging" do
+      nats.request("staging", start_staging_message)
+      Dir.mktmpdir do |tmp|
+        Dir.chdir(tmp) do
+          buildpack_cache_file = File.join(FILE_SERVER_DIR, "buildpack_cache.tgz")
+          `tar -zxvf #{buildpack_cache_file}`
+          expect(File.exist?("new_cached_file")).to be_true
+          expect(File.exist?("cached_file")).to_not be_true
+        end
+      end
+    end
   end
 
   context "when staging is running" do

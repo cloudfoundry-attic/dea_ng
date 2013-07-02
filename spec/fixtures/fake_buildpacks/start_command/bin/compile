@@ -4,5 +4,8 @@ echo "-----> Some compilation output"
 if [ -d $2 ]; then
   echo "-----> Copying files from cache"
   cp $2/* $1
+
+  echo "-----> Saving files to cache"
+  touch $2/new_cached_file
 fi
 exit 0
