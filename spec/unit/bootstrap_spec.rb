@@ -89,11 +89,7 @@ describe Dea::Bootstrap do
   end
 
   describe "instance registry setup" do
-    before do
-      em do
-        bootstrap.setup_instance_registry
-      end
-    end
+    before { bootstrap.setup_instance_registry }
 
     it "should create a new instance registry" do
       bootstrap.instance_registry.should be_a(Dea::InstanceRegistry)
@@ -397,6 +393,7 @@ describe Dea::Bootstrap do
   describe "#periodic_varz_update" do
     before do
       bootstrap.setup_resource_manager
+      bootstrap.setup_instance_registry
       bootstrap.config.stub(:minimum_staging_memory_mb => 333)
       bootstrap.config.stub(:minimum_staging_disk_mb => 444)
       bootstrap.resource_manager.stub(number_reservable: 0,
@@ -444,6 +441,63 @@ describe Dea::Bootstrap do
         bootstrap.periodic_varz_update
 
         VCAP::Component.varz[:available_disk_ratio].should == 0.75
+      end
+    end
+
+    describe "instance_registry" do
+      let(:instance_1) do
+        Dea::Instance.new(bootstrap, "application_id" => "app-1")
+      end
+
+      let(:instance_2) do
+        Dea::Instance.new(bootstrap, "application_id" => "app-1")
+      end
+
+      context "when an empty registry" do
+        it "is an empty hash" do
+          bootstrap.periodic_varz_update
+
+          VCAP::Component.varz[:instance_registry].should == {}
+        end
+      end
+
+      context "with a registry with an instance of an app" do
+        around { |example| Timecop.freeze(&example) }
+
+        before do
+          bootstrap.instance_registry.register(instance_1)
+        end
+
+        it "inlines the instance registry grouped by app ID" do
+          bootstrap.periodic_varz_update
+
+          varz = VCAP::Component.varz[:instance_registry]
+
+          varz.keys.should == ["app-1"]
+          varz["app-1"][instance_1.instance_id].should include(
+            "state" => "BORN",
+            "state_timestamp" => Time.now.to_f
+          )
+        end
+      end
+
+      context "with a registry containing two instances of one app" do
+        before do
+          bootstrap.instance_registry.register(instance_1)
+          bootstrap.instance_registry.register(instance_2)
+        end
+
+        it "inlines the instance registry grouped by app ID" do
+          bootstrap.periodic_varz_update
+
+          varz = VCAP::Component.varz[:instance_registry]
+
+          varz.keys.should == ["app-1"]
+          varz["app-1"].keys.should =~ [
+            instance_1.instance_id,
+            instance_2.instance_id
+          ]
+        end
       end
     end
   end
@@ -534,7 +588,6 @@ describe Dea::Bootstrap do
   end
 
   describe "evacuate" do
-
     before do
       bootstrap.stub(:uuid => "unique-dea-id")
       bootstrap.setup_nats

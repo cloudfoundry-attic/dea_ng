@@ -76,6 +76,15 @@ module Dea
       @instances[instance_id]
     end
 
+    def to_hash
+      @instances_by_app_id.each.with_object({}) do |(app_id, instances), hash|
+        hash[app_id] =
+          instances.each.with_object({}) do |(id, instance), is|
+            is[id] = instance.attributes
+          end
+      end
+    end
+
     def app_id_to_count
       app_count = {}
       @instances_by_app_id.each do |app_id, instance_hash|
