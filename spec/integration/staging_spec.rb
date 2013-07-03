@@ -74,6 +74,26 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
     end
   end
 
+  context "when environment variable was specified in staging request" do
+    let(:buildpack_url) do
+      setup_fake_buildpack("start_command")
+      fake_buildpack_url("start_command")
+    end
+    let(:properties) do
+      {
+        "buildpack" => buildpack_url,
+        "environment" => ["FOO=BAR","BLAH=WHATEVER"]
+      }
+    end
+
+    it "has access to application environment variables" do
+      response = nats.request("staging", start_staging_message)
+      response["task_log"].tap do |log|
+        expect(log).to include("-----> Running foo based script\n")
+      end
+    end
+  end
+
   context "when staging is running" do
     let(:async_staging) { true }
     let(:properties) do
