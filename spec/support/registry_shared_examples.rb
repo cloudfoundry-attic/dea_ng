@@ -15,7 +15,13 @@ shared_examples :handles_registry_enumerations do
 
   def make_instance(options = {})
     @instance_id += 1
-    double(:instance, {:instance_id => @instance_id, :application_id => 123, :task_id => @instance_id}.merge(options))
+    double(:instance, {
+      :consuming_memory? => true,
+      :consuming_disk? => true,
+      :instance_id => @instance_id,
+      :application_id => 123,
+      :task_id => @instance_id
+    }.merge(options))
   end
 
   describe "reserved_memory_bytes" do

@@ -126,7 +126,7 @@ module Dea
 
       crashes_by_app = Hash.new { |h, k| h[k] = [] }
 
-      select { |i| i.crashed? }.each { |i| crashes_by_app[i.application_id] << i }
+      select(&:crashed?).each { |i| crashes_by_app[i.application_id] << i }
 
       now = Time.now.to_i
 

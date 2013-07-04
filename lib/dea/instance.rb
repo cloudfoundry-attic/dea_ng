@@ -305,6 +305,25 @@ module Dea
       state == State::RUNNING || state == State::CRASHED
     end
 
+    def consuming_memory?
+      case state
+      when State::BORN, State::STARTING, State::RUNNING, State::STOPPING
+        true
+      else
+        false
+      end
+    end
+
+    def consuming_disk?
+      case state
+      when State::BORN, State::STARTING, State::RUNNING, State::STOPPING,
+           State::CRASHED
+        true
+      else
+        false
+      end
+    end
+
     def instance_path
       attributes["instance_path"] ||=
         begin

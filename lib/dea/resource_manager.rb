@@ -42,7 +42,7 @@ module Dea
 
     def reserved_memory
       total_mb(@instance_registry, :reserved_memory_bytes) +
-      total_mb(@staging_task_registry, :reserved_memory_bytes)
+        total_mb(@staging_task_registry, :reserved_memory_bytes)
     end
 
     def used_memory
@@ -51,7 +51,7 @@ module Dea
 
     def reserved_disk
       total_mb(@instance_registry, :reserved_disk_bytes) +
-      total_mb(@staging_task_registry, :reserved_disk_bytes)
+        total_mb(@staging_task_registry, :reserved_disk_bytes)
     end
 
     def remaining_memory

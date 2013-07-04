@@ -300,5 +300,13 @@ module Dea
         logger.warn("Error copying files out of container: #{error.message}")
       end
     end
+
+    def consuming_memory?
+      true
+    end
+
+    def consuming_disk?
+      true
+    end
   end
 end

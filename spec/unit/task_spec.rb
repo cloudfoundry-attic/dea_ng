@@ -299,4 +299,16 @@ describe Dea::Task do
       expect{ task.promise_limit_memory.resolve }.to raise_error(RuntimeError, /error/i)
     end
   end
+
+  describe "#consuming_memory?" do
+    it "returns true" do
+      expect(task.consuming_memory?).to be_true
+    end
+  end
+
+  describe "#consuming_disk?" do
+    it "returns true" do
+      expect(task.consuming_disk?).to be_true
+    end
+  end
 end

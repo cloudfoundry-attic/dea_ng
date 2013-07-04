@@ -6,21 +6,19 @@ require "dea/instance_registry"
 require "dea/staging_task_registry"
 require "dea/staging_task"
 require "dea/instance"
+require "dea/bootstrap"
 
 describe Dea::ResourceManager do
-  let(:instance_registry) { double(:instance_registry, :reserved_memory_bytes => reserved_instance_memory, :reserved_disk_bytes => reserved_instance_disk) }
-  let(:staging_registry) { double(:staging_registry, :reserved_memory_bytes => reserved_staging_memory, :reserved_disk_bytes => reserved_staging_disk) }
-  let(:reserved_instance_disk) { 512 }
-  let(:reserved_staging_disk) { 1 }
-  let(:reserved_instance_memory) { 512 }
-  let(:reserved_staging_memory) { 1 }
-
   let(:memory_mb) { 600 }
   let(:memory_overcommit_factor) { 4 }
   let(:disk_mb) { 4000 }
   let(:disk_overcommit_factor) { 2 }
   let(:nominal_memory_capacity) { memory_mb * memory_overcommit_factor }
   let(:nominal_disk_capacity) { disk_mb * disk_overcommit_factor }
+
+  let(:bootstrap) { Dea::Bootstrap.new }
+  let(:instance_registry) { Dea::InstanceRegistry.new }
+  let(:staging_registry) { Dea::StagingTaskRegistry.new }
 
   let(:manager) do
     Dea::ResourceManager.new(instance_registry, staging_registry, {
@@ -33,17 +31,27 @@ describe Dea::ResourceManager do
 
   describe "#remaining_memory" do
     context "when no instances or staging tasks are registered" do
-      let(:reserved_instance_memory) { 0 }
-      let(:reserved_staging_memory) { 0 }
-
       it "returns the full memory capacity" do
         manager.remaining_memory.should eql(memory_mb * memory_overcommit_factor)
       end
     end
 
-    it "returns the correct remaining memory" do
-      reserved_in_mb = (reserved_instance_memory - reserved_staging_memory) / 1024 / 1024
-      manager.remaining_memory.should eql(nominal_memory_capacity - reserved_in_mb)
+    context "when instances are registered" do
+      before do
+        instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "mem" => 1 }).tap { |i| i.state = "BORN" })
+        instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "mem" => 2 }).tap { |i| i.state = "STARTING" })
+        instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "mem" => 4 }).tap { |i| i.state = "RUNNING" })
+        instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "mem" => 8 }).tap { |i| i.state = "STOPPING" })
+        instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "mem" => 16 }).tap { |i| i.state = "STOPPED" })
+        instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "mem" => 32 }).tap { |i| i.state = "CRASHED" })
+        instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "mem" => 64 }).tap { |i| i.state = "DELETED" })
+
+        staging_registry.register(Dea::StagingTask.new(bootstrap, nil, {}))
+      end
+
+      it "returns the correct remaining memory" do
+        manager.remaining_memory.should eql(nominal_memory_capacity - (1 + 2 + 4 + 8 + 1024))
+      end
     end
   end
 
@@ -57,22 +65,49 @@ describe Dea::ResourceManager do
       end
     end
 
-    it "returns the correct remaining disk" do
-      reserved_in_mb = (reserved_instance_disk - reserved_staging_disk) / 1024 / 1024
-      manager.remaining_disk.should eql(nominal_disk_capacity - reserved_in_mb)
+    context "when instances are registered" do
+      before do
+        instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "disk" => 1 }).tap { |i| i.state = "BORN" })
+        instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "disk" => 2 }).tap { |i| i.state = "STARTING" })
+        instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "disk" => 4 }).tap { |i| i.state = "RUNNING" })
+        instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "disk" => 8 }).tap { |i| i.state = "STOPPING" })
+        instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "disk" => 16 }).tap { |i| i.state = "STOPPED" })
+        instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "disk" => 32 }).tap { |i| i.state = "CRASHED" })
+        instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "disk" => 64 }).tap { |i| i.state = "DELETED" })
+
+        staging_registry.register(Dea::StagingTask.new(bootstrap, nil, {}))
+      end
+
+      it "returns the correct remaining disk" do
+        manager.remaining_disk.should eql(nominal_disk_capacity - (1 + 2 + 4 + 8 + 32 + 2048))
+      end
     end
   end
 
   describe "app_id_to_count" do
-    it "calls app_id_to_count on the instance_registry" do
-      instance_registry.stub(:app_id_to_count => {
-        'app1' => 4,
-        'app2' => 7,
-      })
-      expect(manager.app_id_to_count).to eq( {
-        'app1' => 4,
-        'app2' => 7,
-      })
+    before do
+      instance_registry.register(Dea::Instance.new(bootstrap, "application_id" => "a").tap { |i| i.state = "BORN" })
+      instance_registry.register(Dea::Instance.new(bootstrap, "application_id" => "b").tap { |i| i.state = "STARTING" })
+      instance_registry.register(Dea::Instance.new(bootstrap, "application_id" => "b").tap { |i| i.state = "STARTING" })
+      instance_registry.register(Dea::Instance.new(bootstrap, "application_id" => "c").tap { |i| i.state = "RUNNING" })
+      instance_registry.register(Dea::Instance.new(bootstrap, "application_id" => "c").tap { |i| i.state = "RUNNING" })
+      instance_registry.register(Dea::Instance.new(bootstrap, "application_id" => "c").tap { |i| i.state = "RUNNING" })
+      instance_registry.register(Dea::Instance.new(bootstrap, "application_id" => "d").tap { |i| i.state = "STOPPING" })
+      instance_registry.register(Dea::Instance.new(bootstrap, "application_id" => "e").tap { |i| i.state = "STOPPED" })
+      instance_registry.register(Dea::Instance.new(bootstrap, "application_id" => "f").tap { |i| i.state = "CRASHED" })
+      instance_registry.register(Dea::Instance.new(bootstrap, "application_id" => "g").tap { |i| i.state = "DELETED" })
+    end
+
+    it "should return all registered instances regardless of state" do
+      manager.app_id_to_count.should == {
+        "a" => 1,
+        "b" => 2,
+        "c" => 3,
+        "d" => 1,
+        "e" => 1,
+        "f" => 1,
+        "g" => 1,
+      }
     end
   end
 
@@ -115,46 +150,51 @@ describe Dea::ResourceManager do
   end
 
   describe "available_memory_ratio" do
-    let(:memory_mb) { 40 * 1024 }
-    let(:memory_overcommit_factor) { 1 }
-    let(:reserved_instance_memory) { 5 * 1024 * 1024 * 1024 }
-    let(:reserved_staging_memory) { 5 * 1024 * 1024 * 1024 }
+    before do
+      instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "mem" => 512 }).tap { |i| i.state = "RUNNING" })
+      staging_registry.register(Dea::StagingTask.new(bootstrap, nil, {}))
+    end
 
     it "is the ratio of available memory to total memory" do
-      manager.available_memory_ratio.should == 0.75
+      manager.available_memory_ratio.should == 1 - (512.0 + 1024.0) / nominal_memory_capacity
     end
   end
 
   describe "available_disk_ratio" do
-    let(:disk_mb) { 20 * 1024 }
-    let(:disk_overcommit_factor) { 1 }
-    let(:reserved_instance_disk) { 10 * 1024 * 1024 * 1024 }
-    let(:reserved_staging_disk) { 5 * 1024 * 1024 * 1024 }
+    before do
+      instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "disk" => 512 }).tap { |i| i.state = "RUNNING" })
+      staging_registry.register(Dea::StagingTask.new(bootstrap, nil, {}))
+    end
 
     it "is the ratio of available disk to total disk" do
-      manager.available_disk_ratio.should == 0.25
+      manager.available_disk_ratio.should == 1 - (512.0 + 2048.0) / nominal_disk_capacity
     end
   end
 
   describe "could_reserve?" do
-    let(:remaining_memory) { nominal_memory_capacity - (reserved_instance_memory - reserved_staging_memory) / 1024 / 1024 }
-    let(:remaining_disk) { nominal_disk_capacity - (reserved_instance_disk - reserved_staging_disk) / 1024 / 1024 }
+    before do
+      instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "mem" => 512, "disk" => 1024 }).tap { |i| i.state = "RUNNING" })
+      staging_registry.register(Dea::StagingTask.new(bootstrap, nil, {}))
+
+      @remaining_memory = nominal_memory_capacity - 512 - 1024
+      @remaining_disk = nominal_disk_capacity - 1024 - 2048
+    end
 
     context "when the given amounts of memory and disk are available (including extra 'headroom' memory)" do
       it "can reserve" do
-        manager.could_reserve?(remaining_memory - 1, remaining_disk - 1).should be_true
+        manager.could_reserve?(@remaining_memory - 1, @remaining_disk - 1).should be_true
       end
     end
 
     context "when too much memory is being used" do
       it "can't reserve" do
-        manager.could_reserve?(remaining_memory , 1).should be_false
+        manager.could_reserve?(@remaining_memory, 1).should be_false
       end
     end
 
     context "when too much disk is being used" do
       it "can't reserve" do
-        manager.could_reserve?(1, remaining_disk).should be_false
+        manager.could_reserve?(1, @remaining_disk).should be_false
       end
     end
   end

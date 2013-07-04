@@ -145,6 +145,57 @@ describe Dea::Instance do
     end
   end
 
+  describe "consuming_memory?" do
+    states = Dea::Instance::State
+
+    [states::BORN, states::STARTING, states::RUNNING,
+     states::STOPPING].each do |state|
+      context "when the state is #{state}" do
+        before { instance.state = state }
+
+        it "returns true" do
+          instance.consuming_memory?.should be_true
+        end
+      end
+    end
+
+    [states::STOPPED, states::CRASHED, states::DELETED,
+     states::RESUMING].each do |state|
+      context "when the state is #{state}" do
+        before { instance.state = state }
+
+        it "returns false" do
+          instance.consuming_memory?.should be_false
+        end
+      end
+    end
+  end
+
+  describe "consuming_disk?" do
+    states = Dea::Instance::State
+
+    [states::BORN, states::STARTING, states::RUNNING,
+     states::STOPPING, states::CRASHED].each do |state|
+      context "when the state is #{state}" do
+        before { instance.state = state }
+
+        it "returns true" do
+          instance.consuming_disk?.should be_true
+        end
+      end
+    end
+
+    [states::STOPPED, states::DELETED, states::RESUMING].each do |state|
+      context "when the state is #{state}" do
+        before { instance.state = state }
+
+        it "returns false" do
+          instance.consuming_disk?.should be_false
+        end
+      end
+    end
+  end
+
   describe "predicate methods" do
     it "should be present for each state" do
       instance = Dea::Instance.new(bootstrap, {})
