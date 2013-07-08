@@ -30,7 +30,7 @@ describe "snapshot" do
       bootstrap.stub(:instance_registry).and_return(instances)
     end
 
-    it "should save a snapshot" do
+    it "should save a snapshot so loggregator know what apps are running" do
       bootstrap.save_snapshot
 
       snapshot = ::Yajl::Parser.parse(File.read(bootstrap.snapshot_path))
