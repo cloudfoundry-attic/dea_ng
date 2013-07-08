@@ -39,6 +39,7 @@ describe "Dea::Bootstrap#handle_dea_stop" do
     end
 
     Dea::Instance.any_instance.stub(:setup_link)
+    Dea::Responders::DeaLocator.any_instance.stub(:start) # to deal with test pollution
     bootstrap.stub(:resource_manager).and_return(resource_manager)
     bootstrap.stub(:instances_filtered_by_message).and_yield(instance_mock)
 
