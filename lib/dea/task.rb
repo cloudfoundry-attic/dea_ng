@@ -216,6 +216,24 @@ module Dea
       end
     end
 
+    def promise_container_info
+      Promise.new do |p|
+        request = ::Warden::Protocol::InfoRequest.new
+        request.handle = container_handle
+
+        response =
+          begin
+            promise_warden_call(:info, request).resolve
+          rescue => error
+            log(
+              :error, "droplet.container-info-retrieval.failed",
+              :error => error, :backtrace => error.backtrace)
+          end
+
+        p.deliver(response)
+      end
+    end
+
     def promise_stop
       Promise.new do |p|
         request = ::Warden::Protocol::StopRequest.new
