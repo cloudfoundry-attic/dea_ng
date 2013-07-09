@@ -30,7 +30,7 @@ describe "Staging a ruby app", :type => :integration, :requires_warden => true d
       expect(staged_response["error"]).to be_nil
 
       download_tgz(staged_url) do |dir|
-        expect(Dir.entries("#{dir}/app/vendor")).to include("ruby-1.9.2")
+        expect(Dir.entries("#{dir}/app/vendor")).to include("ruby-1.9.3")
       end
     end
 
