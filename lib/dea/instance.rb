@@ -485,19 +485,6 @@ module Dea
       end
     end
 
-    def promise_container_info
-      Promise.new do |p|
-        handle = @attributes["warden_handle"]
-        request = ::Warden::Protocol::InfoRequest.new(:handle => handle)
-
-        response = promise_warden_call(:info, request).resolve
-        @attributes["warden_container_path"] = response.container_path
-        @attributes["warden_host_ip"] = response.host_ip
-
-        p.deliver(response)
-      end
-    end
-
     def promise_exec_hook_script(key)
       Promise.new do |p|
         if bootstrap.config['hooks'] && bootstrap.config['hooks'][key]
@@ -723,35 +710,29 @@ module Dea
 
     def promise_collect_stats
       Promise.new do |p|
-        begin
-          info_resp = promise_container_info.resolve
-        rescue => error
-          log(
-            :error, "droplet.container-info-retrieval.failed",
-            :error => error, :backtrace => error.backtrace)
+        info_resp = promise_container_info.resolve
 
-          raise
-        end
+        if info_resp
+          @used_memory_in_bytes = info_resp.memory_stat.rss * 1024
 
-        @used_memory_in_bytes = info_resp.memory_stat.rss * 1024
+          @used_disk_in_bytes = info_resp.disk_stat.bytes_used
 
-        @used_disk_in_bytes = info_resp.disk_stat.bytes_used
+          now = Time.now
 
-        now = Time.now
+          @cpu_samples << {
+            :timestamp_ns => now.to_i * 1_000_000_000 + now.nsec,
+            :ns_used      => info_resp.cpu_stat.usage,
+          }
 
-        @cpu_samples << {
-          :timestamp_ns => now.to_i * 1_000_000_000 + now.nsec,
-          :ns_used      => info_resp.cpu_stat.usage,
-        }
+          @cpu_samples.shift if @cpu_samples.size > 2
 
-        @cpu_samples.shift if @cpu_samples.size > 2
+          if @cpu_samples.size == 2
+            used = @cpu_samples[1][:ns_used] - @cpu_samples[0][:ns_used]
+            elapsed = @cpu_samples[1][:timestamp_ns] - @cpu_samples[0][:timestamp_ns]
 
-        if @cpu_samples.size == 2
-          used = @cpu_samples[1][:ns_used] - @cpu_samples[0][:ns_used]
-          elapsed = @cpu_samples[1][:timestamp_ns] - @cpu_samples[0][:timestamp_ns]
-
-          if elapsed > 0
-            @computed_pcpu = used.to_f / elapsed
+            if elapsed > 0
+              @computed_pcpu = used.to_f / elapsed
+            end
           end
         end
 
@@ -869,7 +850,7 @@ module Dea
 
         manifest = promise_read_instance_manifest(info.container_path).resolve
 
-        if manifest["state_file"]
+        if manifest && manifest["state_file"]
           manifest_path = container_relative_path(info.container_path, manifest["state_file"])
           p.deliver(promise_state_file_ready(manifest_path).resolve)
         elsif !application_uris.empty?
@@ -881,6 +862,26 @@ module Dea
     end
 
     private
+
+    def promise_container_info
+      Promise.new do |p|
+        handle = @attributes["warden_handle"]
+        request = ::Warden::Protocol::InfoRequest.new(:handle => handle)
+        response = nil
+
+        begin
+          response = promise_warden_call(:info, request).resolve
+          @attributes["warden_container_path"] = response.container_path
+          @attributes["warden_host_ip"] = response.host_ip
+        rescue => error
+          log(
+            :error, "droplet.container-info-retrieval.failed",
+            :error => error, :backtrace => error.backtrace)
+        end
+
+        p.deliver(response)
+      end
+    end
 
     def determine_exit_description(link_response)
       info = link_response.info

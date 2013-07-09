@@ -348,12 +348,32 @@ describe Dea::Instance do
       end
       instance.cpu_samples.should have(2).items
     end
+
+    context "when failing to collect the stats" do
+      let(:error) { RuntimeError.new("Some Error in warden") }
+
+      before { instance.stub_chain(:promise_warden_call, :resolve).and_raise(error) }
+
+      subject { instance.promise_collect_stats.resolve }
+
+      it "doesn't raise an error" do
+        expect {
+          subject
+        }.to_not raise_error error
+      end
+
+      it "should log the fail" do
+        instance.instance_variable_get(:@logger).should_receive(:error)
+        subject
+      end
+    end
   end
 
   describe "#promise_health_check" do
     let(:info_response) do
       info_response = mock("InfoResponse")
       info_response.stub(:container_path).and_return("/")
+      info_response.stub(:host_ip).and_return("127.0.0.1")
       info_response
     end
 
@@ -363,7 +383,7 @@ describe Dea::Instance do
 
     before do
       bootstrap.stub(:local_ip).and_return("127.0.0.1")
-      instance.stub(:promise_container_info).and_return(delivering_promise(info_response))
+      instance.stub(:promise_warden_call).with(:info, instance_of(::Warden::Protocol::InfoRequest)).and_return(delivering_promise(info_response))
       instance.stub(:promise_read_instance_manifest).and_return(delivering_promise({}))
       instance.stub(:instance_host_port).and_return(1234)
     end
@@ -468,6 +488,25 @@ describe Dea::Instance do
       it "should succeed" do
         result = execute_health_check
         result.should be_true
+      end
+    end
+
+    context "when failing to collect the stats" do
+      let(:error) { RuntimeError.new("Some Error in warden") }
+
+      before { instance.stub_chain(:promise_warden_call, :resolve).and_raise(error) }
+
+      subject { Dea::Promise.resolve(instance.promise_health_check) }
+
+      it "doesn't raise an error" do
+        expect {
+          subject
+        }.to_not raise_error
+      end
+
+      it "should log the fail" do
+        instance.instance_variable_get(:@logger).should_receive(:error)
+        subject
       end
     end
   end
