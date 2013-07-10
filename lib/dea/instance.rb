@@ -778,7 +778,9 @@ module Dea
     def promise_health_check
       Promise.new do |p|
         begin
+          logger.debug "droplet.health-check.get-container-info"
           info = container.info
+          logger.debug "droplet.health-check.container-info-ok"
         rescue => e
           logger.error "droplet.health-check.container-info-failed",
             :error => e, :backtrace => e.backtrace

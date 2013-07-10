@@ -20,20 +20,20 @@ describe Dea::Container do
   end
 
   describe "interacting with the container" do
-    let(:connection) { double("connection") }
+    let(:client) { double("client") }
 
     # can't yield from root fiber, and this object is
     # assumed to be run from another fiber anyway
     around { |example| Fiber.new(&example).resume }
 
-    before { container.stub(:connection => connection) }
+    before { container.stub(:client => client) }
 
     describe "#info" do
       let(:result) { double("result") }
 
       it "sends an info request to the container" do
         called = false
-        connection.should_receive(:call) do |request|
+        client.should_receive(:call) do |request|
           called = true
           expect(request).to be_a(::Warden::Protocol::InfoRequest)
           expect(request.handle).to eq("17deadbeef")
@@ -44,21 +44,9 @@ describe Dea::Container do
         expect(called).to be_true
       end
 
-      context "when the request succeeds" do
-        before { result.stub(:get => 42) }
-
-        it "waits for the response" do
-          connection.should_receive(:call).and_yield(result)
-
-          expect(container.info).to eq(42)
-        end
-      end
-
       context "when the request fails" do
-        before { result.stub(:get) { raise "foo" } }
-
         it "raises an exception" do
-          connection.should_receive(:call).and_yield(result)
+          client.should_receive(:call).and_raise("foo")
 
           expect { container.info }.to raise_error("foo")
         end

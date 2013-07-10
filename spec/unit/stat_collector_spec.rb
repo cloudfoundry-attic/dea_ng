@@ -25,7 +25,13 @@ describe Dea::StatCollector do
     Dea::StatCollector.new(container)
   end
 
-  before { EM::Timer.stub(:new).and_yield }
+  before do
+    called = false
+    EM::Timer.stub(:new) do |_, &blk|
+      called = true
+      blk.call unless called
+    end
+  end
 
   its(:used_memory_in_bytes) { should eq 0 }
   its(:used_disk_in_bytes) { should eq 0 }
@@ -35,48 +41,52 @@ describe Dea::StatCollector do
     before { container.stub(:info) { info_response } }
 
     context "first time started" do
-      it "runs #retrieve_stats every X seconds" do
-        called = false
-        ::EM::Timer.should_receive(:new).with(Dea::StatCollector::INTERVAL) do |_, &blk|
-          called = true
+      it "retrieves stats" do
+        collector.should_receive(:retrieve_stats)
+        collector.start
+      end
 
-          collector.should_receive(:retrieve_stats)
-          blk.call
+      it "runs #retrieve_stats every X seconds" do
+        collector.should_receive(:retrieve_stats).twice
+
+        called = 0
+        ::EM::Timer.stub(:new).with(Dea::StatCollector::INTERVAL) do |_, &blk|
+          called += 1
+
+          blk.call unless called == 2
         end
 
         collector.start
 
-        expect(called).to be_true
+        expect(called).to eq(2)
       end
     end
 
     context "when already started" do
-      before { EM::Timer.stub(:new) { Object.new } }
-
-      it "reuses the same timer" do
-        expect(collector.start).to equal(collector.start)
+      it "return false" do
+        expect(collector.start).to be_true
+        expect(collector.start).to be_false
       end
     end
   end
 
   describe "#stop" do
     context "when already running" do
-      before do
-        EM::Timer.stub(:new) do
-          double("timer", :cancel => nil)
-        end
-      end
-
       it "stops the collector" do
-        timer = collector.start
-        timer.should_receive(:cancel)
-        collector.stop
-      end
+        # check that calling stop stops the callback from recursing
+        # by stopping it in the callback and ensuring it's not called again
+        #
+        # sorry
+        calls = 0
+        EM::Timer.stub(:new) do |_, &blk|
+          calls += 1
+          collector.stop if calls == 2
+          blk.call unless calls == 5
+        end
 
-      it "removes the timer" do
-        expect {
-          collector.stop
-        }.to change { collector.start }
+        collector.start
+
+        expect(calls).to eq(2)
       end
     end
 

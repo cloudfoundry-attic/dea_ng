@@ -15,23 +15,19 @@ module Dea
     end
 
     def start
-      @timer ||= ::EM::Timer.new(INTERVAL) do
-        retrieve_stats(Time.now)
-      end
+      start_stat_collector
     end
 
     def stop
-      if @timer
-        @timer.cancel
-        @timer = nil
-      end
+      stop_stat_collector
     end
 
     def retrieve_stats(now)
       info = @container.info
-    rescue
-      logger.error("container.info-retrieval.failed",
-                  :handle => @container.handle)
+    rescue => e
+      logger.error "stat-collector.info-retrieval.failed",
+        :handle => @container.handle,
+        :error => e, :backtrace => e.backtrace
     else
       @used_memory_in_bytes = info.memory_stat.rss * 1024
       @used_disk_in_bytes = info.disk_stat.bytes_used
@@ -39,6 +35,43 @@ module Dea
     end
 
     private
+
+    def start_stat_collector
+      return false if @run_stat_collector
+
+      @run_stat_collector = true
+
+      run_stat_collector
+
+      true
+    end
+
+    def stop_stat_collector
+      @run_stat_collector = false
+
+      if @run_stat_collector_timer
+        @run_stat_collector_timer.cancel
+        @run_stat_collector_timer = nil
+      end
+    end
+
+    def run_stat_collector
+      Promise.resolve(promise_retrieve_stats(Time.now)) do
+        if @run_stat_collector
+          @run_stat_collector_timer =
+            ::EM::Timer.new(INTERVAL) do
+              run_stat_collector
+            end
+        end
+      end
+    end
+
+    def promise_retrieve_stats(now)
+      Promise.new do |p|
+        retrieve_stats(now)
+        p.deliver
+      end
+    end
 
     def compute_cpu_usage(usage, now)
       @cpu_samples << {
