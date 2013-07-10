@@ -6,14 +6,12 @@ require "steno/core_ext"
 require "vcap/common"
 require "yaml"
 
-require "dea/container"
 require "dea/env"
+require "dea/utils/event_emitter"
 require "dea/health_check/port_open"
 require "dea/health_check/state_file_ready"
 require "dea/promise"
-require "dea/stat_collector"
 require "dea/task"
-require "dea/utils/event_emitter"
 
 module Dea
   class Instance < Task
@@ -242,6 +240,11 @@ module Dea
 
     attr_reader :bootstrap
     attr_reader :attributes
+    attr_reader :start_timestamp
+    attr_reader :used_memory_in_bytes
+    attr_reader :used_disk_in_bytes
+    attr_reader :computed_pcpu    # See `man ps`
+    attr_reader :cpu_samples
     attr_accessor :exit_status
     attr_accessor :exit_description
 
@@ -263,6 +266,10 @@ module Dea
       # Assume non-production app when not specified
       @attributes["application_prod"] ||= false
 
+      @used_memory_in_bytes  = 0
+      @used_disk_in_bytes    = 0
+      @computed_pcpu         = 0
+      @cpu_samples           = []
       @exit_status           = -1
       @exit_description      = ""
     end
@@ -371,26 +378,26 @@ module Dea
     end
 
     def promise_state(from, to = nil)
-      Promise.new do |p|
+      promise_state = Promise.new do
         if !Array(from).include?(state)
-          p.fail(TransitionError.new(state, to))
+          promise_state.fail(TransitionError.new(state, to))
         else
           if to
             self.state = to
           end
 
-          p.deliver
+          promise_state.deliver
         end
       end
     end
 
     def promise_droplet_download
-      Promise.new do |p|
+      promise_droplet_download = Promise.new do
         droplet.download(droplet_uri) do |error|
           if error
-            p.fail(error)
+            promise_droplet_download.fail(error)
           else
-            p.deliver
+            promise_droplet_download.deliver
           end
         end
       end
@@ -655,19 +662,81 @@ module Dea
 
     def setup_stat_collector
       on(Transition.new(:resuming, :running)) do
-        stat_collector.start
+        start_stat_collector
       end
 
       on(Transition.new(:starting, :running)) do
-        stat_collector.start
+        start_stat_collector
       end
 
       on(Transition.new(:running, :stopping)) do
-        stat_collector.stop
+        stop_stat_collector
       end
 
       on(Transition.new(:running, :crashed)) do
-        stat_collector.stop
+        stop_stat_collector
+      end
+    end
+
+    def start_stat_collector
+      @run_stat_collector = true
+
+      run_stat_collector
+    end
+
+    def stop_stat_collector
+      @run_stat_collector = false
+
+      if @run_stat_collector_timer
+        @run_stat_collector_timer.cancel
+        @run_stat_collector_timer = nil
+      end
+    end
+
+    def stat_collection_interval_secs
+      STAT_COLLECTION_INTERVAL_SECS
+    end
+
+    def run_stat_collector
+      Promise.resolve(promise_collect_stats) do
+        if @run_stat_collector
+          @run_stat_collector_timer =
+            ::EM::Timer.new(stat_collection_interval_secs) do
+              run_stat_collector
+            end
+        end
+      end
+    end
+
+    def promise_collect_stats
+      Promise.new do |p|
+        info_resp = promise_container_info.resolve
+
+        if info_resp
+          @used_memory_in_bytes = info_resp.memory_stat.rss * 1024
+
+          @used_disk_in_bytes = info_resp.disk_stat.bytes_used
+
+          now = Time.now
+
+          @cpu_samples << {
+            :timestamp_ns => now.to_i * 1_000_000_000 + now.nsec,
+            :ns_used      => info_resp.cpu_stat.usage,
+          }
+
+          @cpu_samples.shift if @cpu_samples.size > 2
+
+          if @cpu_samples.size == 2
+            used = @cpu_samples[1][:ns_used] - @cpu_samples[0][:ns_used]
+            elapsed = @cpu_samples[1][:timestamp_ns] - @cpu_samples[0][:timestamp_ns]
+
+            if elapsed > 0
+              @computed_pcpu = used.to_f / elapsed
+            end
+          end
+        end
+
+        p.deliver
       end
     end
 
@@ -777,52 +846,42 @@ module Dea
 
     def promise_health_check
       Promise.new do |p|
-        begin
-          info = container.info
-        rescue => e
-          logger.error "droplet.health-check.container-info-failed",
-            :error => e, :backtrace => e.backtrace
+        info = promise_container_info.resolve
 
-          p.deliver(false)
+        manifest = promise_read_instance_manifest(info.container_path).resolve
+
+        if manifest && manifest["state_file"]
+          manifest_path = container_relative_path(info.container_path, manifest["state_file"])
+          p.deliver(promise_state_file_ready(manifest_path).resolve)
+        elsif !application_uris.empty?
+          p.deliver(promise_port_open(instance_host_port).resolve)
         else
-          attributes["warden_container_path"] = info.container_path
-          attributes["warden_host_ip"] = info.host_ip
-
-          manifest = promise_read_instance_manifest(info.container_path).resolve
-
-          if manifest && manifest["state_file"]
-            manifest_path = container_relative_path(info.container_path, manifest["state_file"])
-            p.deliver(promise_state_file_ready(manifest_path).resolve)
-          elsif !application_uris.empty?
-            p.deliver(promise_port_open(instance_host_port).resolve)
-          else
-            p.deliver(true)
-          end
+          p.deliver(true)
         end
       end
     end
 
-    def used_memory_in_bytes
-      stat_collector.used_memory_in_bytes
-    end
-
-    def used_disk_in_bytes
-      stat_collector.used_disk_in_bytes
-    end
-
-    def computed_pcpu
-      stat_collector.computed_pcpu
-    end
-
-    def container
-      @container ||= Dea::Container.new(@attributes["warden_handle"], config["warden_socket"])
-    end
-
-    def stat_collector
-      @stat_collector ||= StatCollector.new(container)
-    end
-
     private
+
+    def promise_container_info
+      Promise.new do |p|
+        handle = @attributes["warden_handle"]
+        request = ::Warden::Protocol::InfoRequest.new(:handle => handle)
+        response = nil
+
+        begin
+          response = promise_warden_call(:info, request).resolve
+          @attributes["warden_container_path"] = response.container_path
+          @attributes["warden_host_ip"] = response.host_ip
+        rescue => error
+          log(
+            :error, "droplet.container-info-retrieval.failed",
+            :error => error, :backtrace => error.backtrace)
+        end
+
+        p.deliver(response)
+      end
+    end
 
     def determine_exit_description(link_response)
       info = link_response.info

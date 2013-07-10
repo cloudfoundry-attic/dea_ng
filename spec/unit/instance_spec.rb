@@ -214,9 +214,20 @@ describe Dea::Instance do
   describe "stat collector" do
     before do
       instance.setup_stat_collector
+    end
 
-      instance.stat_collector.stub(:start)
-      instance.stat_collector.stub(:stop)
+    attr_reader :calls
+
+    before do
+      @calls = 0
+
+      instance.stub(:stat_collection_interval_secs).and_return(0.001)
+      instance.stub(:promise_collect_stats) do
+        Dea::Promise.new do |p|
+          @calls += 1
+          p.deliver
+        end
+      end
 
       instance.state = Dea::Instance::State::STARTING
     end
@@ -226,10 +237,17 @@ describe Dea::Instance do
       Dea::Instance::State::STARTING,
     ].each do |state|
       it "starts when moving from #{state.inspect} to #{Dea::Instance::State::RUNNING.inspect}" do
-        instance.stat_collector.should_receive(:start)
-        instance.state = state
+        em do
+          instance.state = state
+          instance.state = Dea::Instance::State::RUNNING
 
-        instance.state = Dea::Instance::State::RUNNING
+          calls.should == 1
+
+          ::EM.add_timer(0.001) do
+            calls.should == 2
+            done
+          end
+        end
       end
     end
 
@@ -239,11 +257,114 @@ describe Dea::Instance do
         Dea::Instance::State::CRASHED,
       ].each do |state|
         it "stops when the instance moves to the #{state.inspect} state" do
-          instance.stat_collector.should_receive(:stop)
-          instance.state = Dea::Instance::State::RUNNING
+          em do
+            instance.state = Dea::Instance::State::RUNNING
 
-          instance.state = state
+            calls.should == 1
+
+            instance.state = state
+
+            ::EM.add_timer(0.001) do
+              calls.should == 1
+              done
+            end
+          end
         end
+      end
+    end
+  end
+
+  describe "collect_stats" do
+    let(:info_response1) do
+      mem_stat = ::Warden::Protocol::InfoResponse::MemoryStat.new(:rss => 1024)
+      cpu_stat = ::Warden::Protocol::InfoResponse::CpuStat.new(:usage => 2048)
+      disk_stat = ::Warden::Protocol::InfoResponse::DiskStat.new(:bytes_used => 4096)
+      ::Warden::Protocol::InfoResponse.new(:events => [],
+                                           :memory_stat => mem_stat,
+                                           :disk_stat => disk_stat,
+                                           :cpu_stat => cpu_stat)
+    end
+
+    let(:info_response2) do
+      mem_stat = ::Warden::Protocol::InfoResponse::MemoryStat.new(:rss => 2048)
+      cpu_stat = ::Warden::Protocol::InfoResponse::CpuStat.new(:usage => 4096)
+      disk_stat = ::Warden::Protocol::InfoResponse::DiskStat.new(:bytes_used => 8192)
+      ::Warden::Protocol::InfoResponse.new(:events => [],
+                                           :memory_stat => mem_stat,
+                                           :disk_stat => disk_stat,
+                                           :cpu_stat => cpu_stat)
+    end
+
+    it "should update memory" do
+      instance.stub(:promise_container_info).and_return(delivering_promise(info_response1))
+
+      delivered = false
+      Dea::Promise.resolve(instance.promise_collect_stats) do
+        delivered = true
+      end
+
+      delivered.should be_true
+
+      instance.used_memory_in_bytes.should == info_response1.memory_stat.rss * 1024
+    end
+
+    it "should update disk" do
+      instance.stub(:promise_container_info).and_return(delivering_promise(info_response1))
+
+      delivered = false
+      Dea::Promise.resolve(instance.promise_collect_stats) do
+        delivered = true
+      end
+
+      delivered.should be_true
+
+      instance.used_disk_in_bytes.should == info_response1.disk_stat.bytes_used
+    end
+
+    it "should update computed_pcpu after 2 samples have been taken" do
+      [info_response1, info_response2].each do |resp|
+        instance.stub(:promise_container_info).and_return(delivering_promise(resp))
+
+        delivered = false
+        Dea::Promise.resolve(instance.promise_collect_stats) do
+          delivered = true
+        end
+
+        delivered.should be_true
+
+        # Give some time between samples for pcpu computation
+        sleep(0.001)
+      end
+
+      instance.computed_pcpu.should > 0
+    end
+
+    it "should keep only 2 cpu samples" do
+      instance.cpu_samples.should have(0).items
+      5.times do
+        instance.stub(:promise_container_info).and_return(delivering_promise(info_response1))
+        Dea::Promise.resolve(instance.promise_collect_stats)
+        sleep(0.001)
+      end
+      instance.cpu_samples.should have(2).items
+    end
+
+    context "when failing to collect the stats" do
+      let(:error) { RuntimeError.new("Some Error in warden") }
+
+      before { instance.stub_chain(:promise_warden_call, :resolve).and_raise(error) }
+
+      subject { instance.promise_collect_stats.resolve }
+
+      it "doesn't raise an error" do
+        expect {
+          subject
+        }.to_not raise_error error
+      end
+
+      it "should log the fail" do
+        instance.instance_variable_get(:@logger).should_receive(:error)
+        subject
       end
     end
   end
@@ -262,7 +383,7 @@ describe Dea::Instance do
 
     before do
       bootstrap.stub(:local_ip).and_return("127.0.0.1")
-      instance.container.stub(:info => info_response)
+      instance.stub(:promise_warden_call).with(:info, instance_of(::Warden::Protocol::InfoRequest)).and_return(delivering_promise(info_response))
       instance.stub(:promise_read_instance_manifest).and_return(delivering_promise({}))
       instance.stub(:instance_host_port).and_return(1234)
     end
@@ -370,10 +491,10 @@ describe Dea::Instance do
       end
     end
 
-    context "when failing to check the health" do
+    context "when failing to collect the stats" do
       let(:error) { RuntimeError.new("Some Error in warden") }
 
-      before { instance.container.stub(:info).and_raise(error) }
+      before { instance.stub_chain(:promise_warden_call, :resolve).and_raise(error) }
 
       subject { Dea::Promise.resolve(instance.promise_health_check) }
 
@@ -383,7 +504,7 @@ describe Dea::Instance do
         }.to_not raise_error
       end
 
-      it "should log the failure" do
+      it "should log the fail" do
         instance.instance_variable_get(:@logger).should_receive(:error)
         subject
       end
