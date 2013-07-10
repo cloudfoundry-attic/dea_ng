@@ -12,7 +12,6 @@ module Buildpacks
     end
 
     def compile
-      puts "Installing #{path.basename}."
       ok = system "#{command('compile')} #{cache_dir}"
       raise "Buildpack compilation step failed:\n" unless ok
     end
