@@ -315,7 +315,6 @@ YAML
          pack_buildpack_cache
          copy_out_buildpack_cache
          buildpack_cache_upload
-         log_upload_finished
          staging_info
          task_log
          destroy
@@ -478,7 +477,6 @@ YAML
          log_upload_started
          app_upload
          save_buildpack_cache
-         log_upload_finished
          staging_info
          task_log
          destroy).each do |step|

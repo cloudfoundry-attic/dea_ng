@@ -301,15 +301,6 @@ module Dea
       end
     end
 
-    def promise_log_upload_finished
-      Promise.new do |p|
-        promise_warden_run(:app, <<-BASH).resolve
-          echo "-----> Uploaded droplet" >> #{workspace.warden_staging_log}
-        BASH
-        p.deliver
-      end
-    end
-
     def promise_copy_out
       Promise.new do |p|
         logger.info("Copying out to #{workspace.staged_droplet_path}")
@@ -420,7 +411,6 @@ module Dea
         promise_log_upload_started,
         promise_app_upload,
         promise_save_buildpack_cache,
-        promise_log_upload_finished,
         promise_staging_info
       )
     ensure
