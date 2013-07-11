@@ -323,11 +323,22 @@ YAML
       end
     end
 
+    def stub_staging_upload
+      %w(
+      app_upload
+      save_buildpack_cache
+      destroy
+      ).each do |step|
+        staging.stub("promise_#{step}").and_return(successful_promise)
+      end
+    end
+
     def self.it_calls_callback(callback_name, options={})
       describe "after_#{callback_name}_callback" do
         before do
           stub_staging_setup
           stub_staging
+          stub_staging_upload
         end
 
         context "when there is no callback registered" do
@@ -408,12 +419,14 @@ YAML
     it_calls_callback :setup, :failure_cause => :promise_app_download
 
     it_calls_callback :complete, {
-      :failure_cause => :promise_destroy,
+      :failure_cause => :promise_stage,
       :callback_failure_cleanup_assertions => true
     }
 
     it "should clean up after itself" do
       staging.stub(:prepare_workspace).and_raise("Error")
+      stub_staging_upload
+
       expect { staging.start }.to raise_error(/Error/)
       File.exists?(workspace_dir).should be_false
     end
@@ -449,6 +462,7 @@ YAML
       end
 
       stub_staging
+      stub_staging_upload
       staging.start
     end
 
@@ -475,15 +489,28 @@ YAML
          pack_app
          copy_out
          log_upload_started
-         app_upload
-         save_buildpack_cache
          staging_info
          task_log
-         destroy).each do |step|
+         ).each do |step|
         staging.should_receive("promise_#{step}").ordered.and_return(successful_promise)
       end
 
       stub_staging_setup
+      stub_staging_upload
+      staging.start
+    end
+
+    it "performs staging upload operations in correct order" do
+      %w(
+      app_upload
+      save_buildpack_cache
+      destroy
+      ).each do |step|
+        staging.should_receive("promise_#{step}").ordered.and_return(successful_promise)
+      end
+
+      stub_staging_setup
+      stub_staging
       staging.start
     end
   end
@@ -518,6 +545,7 @@ YAML
 
     it "unregisters after complete callback" do
       staging.stub(:resolve_staging_setup)
+      staging.stub(:resolve_staging_upload)
       # Emulate staging stop while running staging
       staging.stub(:resolve_staging) { staging.stop }
 

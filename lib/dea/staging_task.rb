@@ -55,6 +55,7 @@ module Dea
         begin
           logger.info("Finished staging task")
           trigger_after_complete(error)
+          resolve_staging_upload unless error
           raise(error) if error
         ensure
           FileUtils.rm_rf(workspace.workspace_dir)
@@ -409,12 +410,19 @@ module Dea
         promise_pack_app,
         promise_copy_out,
         promise_log_upload_started,
-        promise_app_upload,
-        promise_save_buildpack_cache,
         promise_staging_info
       )
     ensure
       promise_task_log.resolve
+    end
+
+    def resolve_staging_upload
+      # TODO: can this be done in parallel?
+      Promise.run_serially(
+        promise_app_upload,
+        promise_save_buildpack_cache,
+      )
+    ensure
       promise_destroy.resolve
     end
 
