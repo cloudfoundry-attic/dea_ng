@@ -104,6 +104,11 @@ module Dea::Responders
           :error => (error.to_s if error),
           :detected_buildpack => task.detected_buildpack
         })
+
+        if message.data["start_message"]
+          bootstrap.handle_dea_directed_start(message.data["start_message"])
+        end
+
         staging_task_registry.unregister(task)
       end
     end

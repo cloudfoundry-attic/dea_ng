@@ -125,6 +125,17 @@ describe Dea::Responders::Staging do
       staging_task.stub(:start)
     end
 
+    shared_examples_for(:starts_instance) do
+      context "when staging includes start message" do
+        let(:message) { Dea::Nats::Message.new(nats, nil, {"start_message" => "some start message"}, "respond-to") }
+
+        it "starts the instance" do
+          bootstrap.should_receive(:handle_dea_directed_start).with("some start message")
+          subject.handle(message)
+        end
+      end
+    end
+
     def self.it_registers_task
       it "adds staging task to registry" do
         expect {
