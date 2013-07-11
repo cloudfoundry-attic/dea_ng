@@ -56,20 +56,13 @@ module Dea
     end
 
     def run_stat_collector
-      Promise.resolve(promise_retrieve_stats(Time.now)) do
-        if @run_stat_collector
-          @run_stat_collector_timer =
-            ::EM::Timer.new(INTERVAL) do
-              run_stat_collector
-            end
-        end
-      end
-    end
+      retrieve_stats(Time.now)
 
-    def promise_retrieve_stats(now)
-      Promise.new do |p|
-        retrieve_stats(now)
-        p.deliver
+      if @run_stat_collector
+        @run_stat_collector_timer =
+          ::EM::Timer.new(INTERVAL) do
+            run_stat_collector
+          end
       end
     end
 

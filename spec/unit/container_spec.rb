@@ -22,10 +22,6 @@ describe Dea::Container do
   describe "interacting with the container" do
     let(:client) { double("client") }
 
-    # can't yield from root fiber, and this object is
-    # assumed to be run from another fiber anyway
-    around { |example| Fiber.new(&example).resume }
-
     before { container.stub(:client => client) }
 
     describe "#info" do
