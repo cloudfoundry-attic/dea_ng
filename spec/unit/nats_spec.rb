@@ -21,8 +21,7 @@ describe Dea::Nats do
       "dea.UUID.start"      => :handle_dea_directed_start,
       "dea.stop"            => :handle_dea_stop,
       "dea.update"          => :handle_dea_update,
-      "dea.find.droplet"    => :handle_dea_find_droplet,
-      "droplet.status"      => :handle_droplet_status
+      "dea.find.droplet"    => :handle_dea_find_droplet
     }.each do |subject, method|
       it "should subscribe to #{subject.inspect}" do
         data = { "subject" => subject }

@@ -551,14 +551,6 @@ module Dea
       nil
     end
 
-    def handle_droplet_status(message)
-      instance_registry.each do |instance|
-        next unless instance.starting? || instance.running?
-        resp = Dea::Protocol::V1::DropletStatusResponse.generate(instance)
-        message.respond(resp)
-      end
-    end
-
     def evacuating?
       @evacuation_processed == true
     end

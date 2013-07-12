@@ -12,38 +12,6 @@ describe Dea do
     bootstrap.unstub(:directory_server_v2)
   end
 
-  it "should reply to messages on 'droplet.status' with all live droplets" do
-    responses = []
-    instances = {}
-
-    nats_mock.subscribe("result") do |msg, _|
-      responses << Yajl::Parser.parse(msg)
-      done if responses.size == 2
-    end
-
-    em(:timeout => 1) do
-      bootstrap.setup
-      bootstrap.start
-
-      # Register one instance per state
-      Dea::Instance::State.constants.each do |state|
-        name = state.to_s
-        instance = create_and_register_instance(bootstrap,
-                                                "application_name" => name,
-                                                "application_uris" => ["http://www.foo.bar/#{name}"])
-        instance.state = Dea::Instance::State.const_get(state)
-        instances[instance.application_name] = instance
-      end
-
-      nats_mock.publish("droplet.status", {}, "result")
-    end
-
-    responses.each do |r|
-      ["RUNNING", "STARTING"].include?(r["name"]).should be_true
-      r["uris"].should == instances[r["name"]].application_uris
-    end
-  end
-
   describe "responses to messages received on 'dea.find.droplet'" do
     def run
       em(:timeout => 1) do
