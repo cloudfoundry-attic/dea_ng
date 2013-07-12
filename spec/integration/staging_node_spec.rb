@@ -7,26 +7,22 @@ describe "Staging a node app", :type => :integration, :requires_warden => true d
   let(:staged_url) { "http://localhost:9999/staged/node_with_procfile" }
   let(:properties) { {} }
 
-  subject(:staged_response) do
-    nats.request("staging", {
-        "async" => false,
+  subject(:staged_responses) do
+    nats.send_message("staging", {
+        "async" => true,
         "app_id" => "some-node-app-id",
         "properties" => properties,
         "download_uri" => unstaged_url,
         "upload_uri" => staged_url,
         "buildpack_cache_upload_uri" => "http://localhost:9999/buildpack_cache",
         "buildpack_cache_download_uri" => "http://localhost:9999/buildpack_cache"
-    })
+    }, 2)
   end
 
   it "packages up the node dependencies and stages the app properly" do
-    expect(staged_response["detected_buildpack"]).to eq("Node.js")
-    expect(staged_response["task_log"]).to include("Resolving engine versions")
-    expect(staged_response["task_log"]).to include("Fetching Node.js binaries")
-    expect(staged_response["task_log"]).to include("Vendoring node into slug")
-    expect(staged_response["task_log"]).to include("Installing dependencies with npm")
-    expect(staged_response["task_log"]).to include("Building runtime environment")
-    expect(staged_response["error"]).to be_nil
+    expect(staged_responses[1]["detected_buildpack"]).to eq("Node.js")
+    expect(staged_responses[1]["task_log"]).to include("Resolving engine versions")
+    expect(staged_responses[1]["error"]).to be_nil
 
     download_tgz(staged_url) do |dir|
       entries = Dir.entries(dir).join(" ")
@@ -42,10 +38,10 @@ describe "Staging a node app", :type => :integration, :requires_warden => true d
     let(:staged_url) { "http://localhost:9999/staged/node_with_incompatibility" }
 
     it "fails to stage" do
-      expect(staged_response["error"]).to include "Script exited with status 1"
+      expect(staged_responses[1]["error"]).to include "Script exited with status 1"
       # Bcrypt 0.4.1 is incompatible with node 0.10, using node-waf and node-gyp respectively
-      expect(staged_response["task_log"]).to include("make: node-waf: Command not found")
-      expect(staged_response["task_log"]).to_not include("Building runtime environment")
+      expect(staged_responses[1]["task_log"]).to include("make: node-waf: Command not found")
+      expect(staged_responses[1]["task_log"]).to_not include("Building runtime environment")
     end
   end
 
@@ -59,7 +55,7 @@ describe "Staging a node app", :type => :integration, :requires_warden => true d
     end
 
     it "runs the tests" do
-      expect(staged_response["task_log"]).to include "OK"
+      expect(staged_responses[1]["task_log"]).to include "OK"
     end
   end
 end

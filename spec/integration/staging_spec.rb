@@ -1,5 +1,7 @@
 require "spec_helper"
+require "spec_helper"
 require "net/http"
+require "uri"
 
 describe "Staging an app", :type => :integration, :requires_warden => true do
   FILE_SERVER_DIR = "/tmp/dea"
@@ -9,13 +11,13 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
   let(:staged_url) { "http://localhost:9999/staged/sinatra" }
   let(:buildpack_cache_download_uri) { "http://localhost:9999/buildpack_cache" }
   let(:buildpack_cache_upload_uri) { "http://localhost:9999/buildpack_cache" }
-  let(:async_staging) { false }
   let(:app_id) { "some-app-id" }
   let(:properties) { {} }
   let(:start_staging_message) do
     {
-      "async" => async_staging,
+      "async" => true,
       "app_id" => app_id,
+      "task_id" => "foobar",
       "properties" => properties,
       "download_uri" => unstaged_url,
       "upload_uri" => staged_url,
@@ -33,21 +35,19 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
 
 
     it "downloads the buildpack and runs it" do
-      response = nats.request("staging", start_staging_message)
+      responses = nats.send_message("staging", start_staging_message, 2)
 
-      expect(response["error"]).to be_nil
-      response["task_log"].tap do |log|
-        expect(log).to include("-----> Downloaded app package (4.0K)\n")
-        expect(log).to include("-----> Some compilation output\n")
-        expect(log).to include("-----> Uploading droplet (4.0K)\n")
-        expect(log).to include("-----> Uploaded droplet\n")
-      end
+      expect(responses[1]["error"]).to be_nil
+      log = responses[1]["task_log"]
+      expect(log).to include("-----> Downloaded app package")
+      expect(log).to include("-----> Uploading droplet")
     end
+
 
     it "uploads buildpack cache after staging" do
       buildpack_cache_file = File.join(FILE_SERVER_DIR, "buildpack_cache.tgz")
       FileUtils.rm_rf(buildpack_cache_file)
-      nats.request("staging", start_staging_message)
+      nats.send_message("staging", start_staging_message, 2)
       expect(File.exist?(buildpack_cache_file)).to be_true
     end
 
@@ -87,32 +87,49 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
     end
 
     it "has access to application environment variables" do
-      response = nats.request("staging", start_staging_message)
-      response["task_log"].tap do |log|
-        expect(log).to include("-----> Running foo based script\n")
-      end
+      responses = nats.send_message("staging", start_staging_message, 2)
+      expect(responses[1]["task_log"]).to include("-----> Running foo based script\n")
     end
   end
 
-  context "when staging is running" do
-    let(:async_staging) { true }
+  context "while staging is running" do
     let(:properties) do
       setup_fake_buildpack("start_command")
       {"buildpack" => fake_buildpack_url("start_command")}
     end
 
-    it "decreases the DEA's available memory" do
-      expect {
-        nats.request("staging", start_staging_message)
-      }.to change { dea_memory }.by(-1024)
+    it "decreases the DEA's available memory (could be fickle)" do
+      initial_mem = dea_memory
+      available_memory_while_staging = nil
+      nats.send_message("staging", start_staging_message, 2) do |index, _|
+        if index == 0
+          NATS.publish("dea.locate", Yajl::Encoder.encode({}))
+          NATS.subscribe("dea.advertise") do |resp|
+            available_memory_while_staging = Yajl::Parser.parse(resp)["available_memory"]
+          end
+        end
+      end
+      expect(available_memory_while_staging).to equal(initial_mem - 1024)
+    end
 
-      # TODO: explore better approach
-      # This test require async staging, wait for it to finish
-      sleep 2
+    it "streams the logs back to the user" do
+      first_line_streamed = nil
+
+      nats.send_message("staging", start_staging_message, 2) do |index, response|
+        if index == 0
+          uri = URI.parse(response["task_streaming_log_url"])
+          uri.host = "127.0.0.1"
+          uri.port = 5678
+
+          first_line_streamed = Net::HTTP.get(uri)
+        end
+      end
+
+      expect(first_line_streamed).to include("Downloaded app package")
     end
   end
 
-  context "when a invalid upload URI is given" do
+  context "when an invalid upload URI is given" do
     let(:staged_url) { "http://localhost:45459/not_real" }
     let(:properties) do
       setup_fake_buildpack("start_command")
@@ -120,8 +137,8 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
     end
 
     it "does not crash" do
-      response = nats.request("staging", start_staging_message)
-      expect(response["error"]).to include("Error uploading")
+      responses = nats.send_message("staging", start_staging_message, 2)
+      expect(responses[1]["error"]).to include("Error uploading")
       expect(dea_memory).to be > 0
     end
   end
@@ -136,58 +153,25 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
     context "when the shutdown started" do
       after { dea_start }
 
-      context "when asynchronous staging is in process" do
-        let(:async_staging) { true }
+      context "when staging is in process" do
         it "stops staging tasks" do
-          message = Yajl::Encoder.encode(start_staging_message)
-          task_id = nil
-
-          first_response = lambda do |response|
-            task_id = response["task_id"]
+          responses = nats.send_message("staging", start_staging_message, 2) do
             Process.kill("USR2", dea_pid)
           end
 
-          second_response = lambda do |response|
-            expect(response["error"]).to eq("Error staging: task stopped")
-            expect(response["task_id"]).to eq(task_id)
-          end
-
-          nats.with_async_staging message, first_response, second_response
-        end
-      end
-
-      context "when synchronous staging is in process" do
-        it "stops staging tasks" do
-          NATS.start do
-            message = Yajl::Encoder.encode(start_staging_message)
-            sid = NATS.request("staging", message) do |response|
-              response = Yajl::Parser.parse(response)
-              expect(response["error"]).to eq("Error staging: task stopped")
-              NATS.stop
-            end
-            sleep 2
-            Process.kill("USR2", dea_pid)
-            NATS.timeout(sid, 10) { raise "Staging task did not stopped within timeout" }
-          end
+          expect(responses[1]["error"]).to eq("Error staging: task stopped")
+          expect(responses[1]["task_id"]).to eq(responses[0]["task_id"])
         end
       end
     end
 
     context "when stop request is published" do
-      let(:async_staging) { true }
-
       it "stops staging task" do
-        message = Yajl::Encoder.encode(start_staging_message)
-
-        first_response = lambda do |_|
+        responses = nats.send_message("staging", start_staging_message, 2) do
           NATS.publish("staging.stop", Yajl::Encoder.encode({"app_id" => app_id}))
         end
 
-        second_response = lambda do |response|
-          expect(response["error"]).to eq("Error staging: task stopped")
-        end
-
-        nats.with_async_staging message, first_response, second_response
+        expect(responses[1]["error"]).to eq("Error staging: task stopped")
       end
     end
   end

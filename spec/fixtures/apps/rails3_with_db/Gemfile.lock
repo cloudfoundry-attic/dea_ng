@@ -50,7 +50,7 @@ GEM
       activemodel (~> 3.0.0)
       activesupport (~> 3.0.0)
       plucky (~> 0.3.6)
-    mysql2 (0.2.7)
+    mysql2 (0.3.11)
     pg (0.11.0)
     plucky (0.3.7)
       mongo (~> 1.1)

@@ -7,11 +7,11 @@ class NatsHelper
   end
 
   def request(key, data, options={})
-    send_message(:request, key, data, options)
+    send_message_x(:request, key, data, options)
   end
 
   def publish(key, data, options={})
-    send_message(:publish, key, data, options)
+    send_message_x(:publish, key, data, options)
   end
 
   def with_subscription(key)
@@ -28,30 +28,29 @@ class NatsHelper
     Yajl::Parser.parse(response) if response
   end
 
-  def with_async_staging(message, first_response_blk, second_response_blk)
-    response_number = 0
+  def send_message(key, message, number_of_expected_responses, timeout=10)
+    responses = []
+
     NATS.start do
-      sid = NATS.request("staging", message, :max => 2) do |response|
-        response_number += 1
+      sid = NATS.request(key, Yajl::Encoder.encode(message), :max => number_of_expected_responses) do |response|
         response = Yajl::Parser.parse(response)
-        if response_number == 1
-          first_response_blk.call(response)
-        elsif response_number == 2
-          NATS.stop
-          second_response_blk.call(response)
-        end
+        responses << response
+        yield(responses.count - 1, response) if block_given?
+        NATS.stop if responses.count == number_of_expected_responses
       end
 
-      NATS.timeout(sid, 10, :expected => 2) do
+      NATS.timeout(sid, timeout) do
         NATS.stop
         fail "Timeout getting staging response"
       end
     end
+
+    responses
   end
 
   private
 
-  def send_message(method, key, data, options)
+  def send_message_x(method, key, data, options)
     response = nil
 
     if options[:async]

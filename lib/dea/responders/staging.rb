@@ -32,15 +32,13 @@ module Dea::Responders
     end
 
     def handle(message)
-      should_do_async_staging = message.data["async"]
-
       logger = logger_for_app(message.data["app_id"])
-      logger.info("Got #{"a" if should_do_async_staging}sync staging request with #{message.data.inspect}")
+      logger.info("Got staging request with #{message.data.inspect}")
 
       task = Dea::StagingTask.new(bootstrap, dir_server, message.data, logger)
       staging_task_registry.register(task)
 
-      notify_setup_completion(message, task) if should_do_async_staging
+      notify_setup_completion(message, task)
       notify_completion(message, task)
       notify_stop(message, task)
 

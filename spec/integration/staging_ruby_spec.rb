@@ -7,22 +7,22 @@ describe "Staging a ruby app", :type => :integration, :requires_warden => true d
   let(:staged_url) { "http://localhost:9999/staged/sinatra" }
   let(:properties) { {} }
 
-  subject(:staged_response) do
-    nats.request("staging", {
-        "async" => false,
+  subject(:staged_responses) do
+    nats.send_message("staging", {
+        "async" => true,
         "app_id" => "some-ruby-app-id",
         "properties" => properties,
         "download_uri" => unstaged_url,
         "upload_uri" => staged_url,
         "buildpack_cache_upload_uri" => "http://localhost:9999/buildpack_cache",
         "buildpack_cache_download_uri" => "http://localhost:9999/buildpack_cache"
-    })
+    }, 2)
   end
 
   it "packages a ruby binary and the app's gems" do
-    expect(staged_response["detected_buildpack"]).to eq("Ruby/Rack")
-    expect(staged_response["task_log"]).to include("Your bundle is complete!")
-    expect(staged_response["error"]).to be_nil
+    expect(staged_responses[1]["detected_buildpack"]).to eq("Ruby/Rack")
+    expect(staged_responses[1]["task_log"]).to include("Your bundle is complete!")
+    expect(staged_responses[1]["error"]).to be_nil
 
     download_tgz(staged_url) do |dir|
       expect(Dir.entries("#{dir}/app/vendor")).to include("ruby-1.9.3")
