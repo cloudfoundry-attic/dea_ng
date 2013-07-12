@@ -36,7 +36,6 @@ describe "Running an app", :type => :integration, :requires_warden => true do
       setup_fake_buildpack("start_command")
 
       nats.make_blocking_request("staging", {
-        "async" => true,
         "app_id" => "A string not an integer ",
         "properties" => {
           "buildpack" => fake_buildpack_url("start_command"),
@@ -69,7 +68,6 @@ describe "Running an app", :type => :integration, :requires_warden => true do
       setup_fake_buildpack("start_command")
 
       nats.make_blocking_request("staging", {
-        "async" => true,
         "app_id" => app_id,
         "properties" => {
           "buildpack" => fake_buildpack_url("start_command"),

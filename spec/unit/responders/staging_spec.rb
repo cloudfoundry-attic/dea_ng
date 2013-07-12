@@ -146,7 +146,7 @@ describe Dea::Responders::Staging do
     end
 
     describe "staging async" do
-      let(:message) { Dea::Nats::Message.new(nats, nil, {"async" => true}, "respond-to") }
+      let(:message) { Dea::Nats::Message.new(nats, nil, {}, "respond-to") }
 
       it "starts staging task with registered callbacks" do
         Dea::StagingTask

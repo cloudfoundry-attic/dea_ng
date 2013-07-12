@@ -9,7 +9,6 @@ describe "Staging a node app", :type => :integration, :requires_warden => true d
 
   subject(:staged_responses) do
     nats.make_blocking_request("staging", {
-        "async" => true,
         "app_id" => "some-node-app-id",
         "properties" => properties,
         "download_uri" => unstaged_url,

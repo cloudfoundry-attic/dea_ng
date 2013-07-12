@@ -13,7 +13,6 @@ describe "Staging a ruby app", :type => :integration, :requires_warden => true d
 
   let(:staged_responses) do
     nats.make_blocking_request("staging", {
-        "async" => true,
         "app_id" => app_id,
         "properties" => { "services" => [cleardb_service] },
         "download_uri" => unstaged_url,

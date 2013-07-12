@@ -15,7 +15,6 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
   let(:properties) { {} }
   let(:start_staging_message) do
     {
-      "async" => true,
       "app_id" => app_id,
       "task_id" => "foobar",
       "properties" => properties,

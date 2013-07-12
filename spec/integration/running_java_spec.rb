@@ -14,7 +14,6 @@ describe "Running a Java App", :type => :integration, :requires_warden => true d
 
   let(:dea_stage_msg) do
     {
-      "async" => true,
       "app_id" => app_id,
       "properties" => {},
       "download_uri" => unstaged_url,
