@@ -7,11 +7,11 @@ class NatsHelper
   end
 
   def request(key, data, options={})
-    send_message_x(:request, key, data, options)
+    send_message(:request, key, data, options)
   end
 
   def publish(key, data, options={})
-    send_message_x(:publish, key, data, options)
+    send_message(:publish, key, data, options)
   end
 
   def with_subscription(key)
@@ -28,7 +28,7 @@ class NatsHelper
     Yajl::Parser.parse(response) if response
   end
 
-  def send_message(key, message, number_of_expected_responses, timeout=10)
+  def make_blocking_request(key, message, number_of_expected_responses, timeout=10)
     responses = []
 
     NATS.start do
@@ -41,7 +41,7 @@ class NatsHelper
 
       NATS.timeout(sid, timeout) do
         NATS.stop
-        fail "Timeout getting staging response"
+        fail "Timeout getting response"
       end
     end
 
@@ -50,16 +50,16 @@ class NatsHelper
 
   private
 
-  def send_message_x(method, key, data, options)
+  def send_message(method, key, data, options)
     response = nil
 
     if options[:async]
-      _send_message(method, key, data) do |resp|
+      NATS.public_send(method, key, Yajl::Encoder.encode(data)) do |resp|
         response = resp
       end
     else
       NATS.start do
-        sid = _send_message(method, key, data) do |resp|
+        sid = NATS.public_send(method, key, Yajl::Encoder.encode(data)) do |resp|
           response = resp
           NATS.stop
         end
@@ -71,9 +71,5 @@ class NatsHelper
     end
 
     Yajl::Parser.parse(response) if response
-  end
-
-  def _send_message(method, key, data, &block)
-    NATS.public_send(method, key, Yajl::Encoder.encode(data), &block)
   end
 end

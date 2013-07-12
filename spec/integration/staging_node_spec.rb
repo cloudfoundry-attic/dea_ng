@@ -8,7 +8,7 @@ describe "Staging a node app", :type => :integration, :requires_warden => true d
   let(:properties) { {} }
 
   subject(:staged_responses) do
-    nats.send_message("staging", {
+    nats.make_blocking_request("staging", {
         "async" => true,
         "app_id" => "some-node-app-id",
         "properties" => properties,

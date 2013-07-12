@@ -35,7 +35,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
 
 
     it "downloads the buildpack and runs it" do
-      responses = nats.send_message("staging", start_staging_message, 2)
+      responses = nats.make_blocking_request("staging", start_staging_message, 2)
 
       expect(responses[1]["error"]).to be_nil
       log = responses[1]["task_log"]
@@ -47,12 +47,12 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
     it "uploads buildpack cache after staging" do
       buildpack_cache_file = File.join(FILE_SERVER_DIR, "buildpack_cache.tgz")
       FileUtils.rm_rf(buildpack_cache_file)
-      nats.send_message("staging", start_staging_message, 2)
+      nats.make_blocking_request("staging", start_staging_message, 2)
       expect(File.exist?(buildpack_cache_file)).to be_true
     end
 
     it "downloads buildpack cache before staging" do
-      nats.request("staging", start_staging_message)
+      nats.make_blocking_request("staging", start_staging_message, 2)
       Dir.mktmpdir do |tmp|
         Dir.chdir(tmp) do
           `curl -s #{staged_url} | tar xfz -`
@@ -62,7 +62,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
     end
 
     it "cleans buildpack cache between staging" do
-      nats.request("staging", start_staging_message)
+      nats.make_blocking_request("staging", start_staging_message, 2)
       Dir.mktmpdir do |tmp|
         Dir.chdir(tmp) do
           buildpack_cache_file = File.join(FILE_SERVER_DIR, "buildpack_cache.tgz")
@@ -87,7 +87,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
     end
 
     it "has access to application environment variables" do
-      responses = nats.send_message("staging", start_staging_message, 2)
+      responses = nats.make_blocking_request("staging", start_staging_message, 2)
       expect(responses[1]["task_log"]).to include("-----> Running foo based script\n")
     end
   end
@@ -101,7 +101,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
     it "decreases the DEA's available memory (could be fickle)" do
       initial_mem = dea_memory
       available_memory_while_staging = nil
-      nats.send_message("staging", start_staging_message, 2) do |index, _|
+      nats.make_blocking_request("staging", start_staging_message, 2) do |index, _|
         if index == 0
           NATS.publish("dea.locate", Yajl::Encoder.encode({}))
           NATS.subscribe("dea.advertise") do |resp|
@@ -115,7 +115,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
     it "streams the logs back to the user" do
       first_line_streamed = nil
 
-      nats.send_message("staging", start_staging_message, 2) do |index, response|
+      nats.make_blocking_request("staging", start_staging_message, 2) do |index, response|
         if index == 0
           uri = URI.parse(response["task_streaming_log_url"])
           uri.host = "127.0.0.1"
@@ -137,7 +137,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
     end
 
     it "does not crash" do
-      responses = nats.send_message("staging", start_staging_message, 2)
+      responses = nats.make_blocking_request("staging", start_staging_message, 2)
       expect(responses[1]["error"]).to include("Error uploading")
       expect(dea_memory).to be > 0
     end
@@ -155,7 +155,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
 
       context "when staging is in process" do
         it "stops staging tasks" do
-          responses = nats.send_message("staging", start_staging_message, 2) do
+          responses = nats.make_blocking_request("staging", start_staging_message, 2) do
             Process.kill("USR2", dea_pid)
           end
 
@@ -167,7 +167,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
 
     context "when stop request is published" do
       it "stops staging task" do
-        responses = nats.send_message("staging", start_staging_message, 2) do
+        responses = nats.make_blocking_request("staging", start_staging_message, 2) do
           NATS.publish("staging.stop", Yajl::Encoder.encode({"app_id" => app_id}))
         end
 

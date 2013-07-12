@@ -35,7 +35,7 @@ describe "Running an app", :type => :integration, :requires_warden => true do
     it 'does not allocate any memory' do
       setup_fake_buildpack("start_command")
 
-      nats.request("staging", {
+      nats.make_blocking_request("staging", {
         "async" => true,
         "app_id" => "A string not an integer ",
         "properties" => {
@@ -45,7 +45,7 @@ describe "Running an app", :type => :integration, :requires_warden => true do
         "upload_uri" => staged_url,
         "buildpack_cache_upload_uri" => buildpack_cache_upload_uri,
         "buildpack_cache_download_uri" => buildpack_cache_download_uri
-      })
+      }, 2)
 
 
       nats.publish("dea.#{dea_id}.start", valid_dea_start_message.merge(uris: "this is an invalid application uri"))
@@ -68,7 +68,7 @@ describe "Running an app", :type => :integration, :requires_warden => true do
     before do
       setup_fake_buildpack("start_command")
 
-      nats.request("staging", {
+      nats.make_blocking_request("staging", {
         "async" => true,
         "app_id" => app_id,
         "properties" => {
@@ -78,7 +78,7 @@ describe "Running an app", :type => :integration, :requires_warden => true do
         "upload_uri" => staged_url,
         "buildpack_cache_upload_uri" => buildpack_cache_upload_uri,
         "buildpack_cache_download_uri" => buildpack_cache_download_uri
-      })
+      }, 2)
     end
 
     after do

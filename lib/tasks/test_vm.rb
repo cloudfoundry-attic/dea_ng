@@ -17,4 +17,3 @@ task :test_vm do
 
   puts "Created base test VM at: #{BOX_PATH}"
 end
-r

@@ -12,7 +12,7 @@ describe "Staging a ruby app", :type => :integration, :requires_warden => true d
   end
 
   let(:staged_responses) do
-    nats.send_message("staging", {
+    nats.make_blocking_request("staging", {
         "async" => true,
         "app_id" => app_id,
         "properties" => { "services" => [cleardb_service] },
@@ -23,9 +23,8 @@ describe "Staging a ruby app", :type => :integration, :requires_warden => true d
     }, 2)
   end
 
-  xit "runs a rails 3 app" do
+  it "runs a rails 3 app" do
     by "staging the app" do
-      puts staged_responses[1]["task_log"]
       expect(staged_responses[1]["detected_buildpack"]).to eq("Ruby/Rails")
       expect(staged_responses[1]["task_log"]).to include("Your bundle is complete!")
       expect(staged_responses[1]["error"]).to be_nil

@@ -47,25 +47,13 @@ describe "Running a Java App", :type => :integration, :requires_warden => true d
   let(:dea_stop_msg) { {"droplet" => app_id} }
 
   context "when the app has an out of memory exception" do
-
     it "it starts the app normally then after getting an out of memory exception crashes warden" do
-      pending "we've removed oome as part of the production push. todo: get this back around 6/15/2013"
+      pending "wait until the java buildpack team has pushed the new buildpack and verify that this passes."
 
       by "staging the app" do
-        nats.request("staging", dea_stage_msg)
+        nats.make_blocking_request("staging", dea_stage_msg, 2)
         nats.publish("dea.#{dea_id}.start", dea_start_msg.merge("env" => ["crash=false"]))
         wait_until_instance_started(app_id, 90)
-      end
-
-      by "checking if the app is running" do
-        #Net::HTTP.get("http://")
-        #expect something back
-      end
-
-      by "checking if nats gets a crash message" do
-        #nats.subscribe("crash") do
-        #  expect_to_be_called
-        #end
       end
 
       by "restart the app" do
@@ -74,11 +62,6 @@ describe "Running a Java App", :type => :integration, :requires_warden => true d
 
         nats.publish("dea.#{dea_id}.start", dea_start_msg.merge("env" => ["crash=true"]))
         wait_until_instance_gone(app_id, 90)
-      end
-
-      by "checking if the app is not running" do
-        #Net::HTTP.get("")
-        #expect empty
       end
     end
   end
