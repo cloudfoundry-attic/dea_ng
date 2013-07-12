@@ -38,10 +38,6 @@ module Dea
         bootstrap.handle_dea_stop(message)
       end
 
-      subscribe("dea.discover") do |message|
-        bootstrap.handle_dea_discover(message)
-      end
-
       subscribe("dea.update") do |message|
         bootstrap.handle_dea_update(message)
       end

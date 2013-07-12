@@ -29,7 +29,7 @@ module DeaHelpers
   end
 
   def dea_id
-    nats.request("dea.discover", {
+    nats.request("dea.status", {
       "limits" => { "mem" => 1, "disk" => 1 }
     })["id"]
   end

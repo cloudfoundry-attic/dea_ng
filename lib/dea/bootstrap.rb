@@ -516,35 +516,6 @@ module Dea
       end
     end
 
-    def handle_dea_discover(message)
-      rs = message.data["limits"]
-
-      unless resource_manager.could_reserve?(rs["mem"], rs["disk"])
-        logger.info("Couldn't accomodate resource request")
-        return
-      end
-
-      delay = calculate_discover_delay(message.data["droplet"].to_s)
-
-      logger.debug("Delaying discover response for #{delay} secs.")
-
-      resp = Dea::Protocol::V1::HelloMessage.generate(self)
-      EM.add_timer(delay) { message.respond(resp) }
-    end
-
-    def calculate_discover_delay(app_id)
-      delay = 0.0
-
-      # Penalize for instances of the same app
-      instances = instance_registry.instances_for_application(app_id)
-      delay += (instances.size * DISCOVER_DELAY_MS_PER_INSTANCE)
-
-      # Penalize for mem usage
-      delay += (resource_manager.reserved_memory / resource_manager.memory_capacity.to_f) * DISCOVER_DELAY_MS_MEM
-
-      [delay, DISCOVER_DELAY_MS_MAX].min.to_f / 1000
-    end
-
     def handle_dea_update(message)
       app_id = message.data["droplet"].to_s
       uris = message.data["uris"]
