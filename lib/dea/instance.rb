@@ -116,6 +116,7 @@ module Dea
       attributes["instance_index"]      ||= attributes.delete("index")
 
       attributes["application_id"]      ||= attributes.delete("droplet").to_s
+      attributes["application_space_id"]||= attributes.delete("space").to_s
       attributes["application_version"] ||= attributes.delete("version")
       attributes["application_name"]    ||= attributes.delete("name")
       attributes["application_uris"]    ||= attributes.delete("uris")
@@ -185,9 +186,10 @@ module Dea
           "droplet_sha1"        => enum(nil, String),
           "droplet_uri"         => enum(nil, String),
 
-          optional("runtime_name")   => String,
-          optional("runtime_info")   => dict(String, any),
-          optional("framework_name") => String,
+          optional("application_space_id") => String,
+          optional("runtime_name")         => String,
+          optional("runtime_info")         => dict(String, any),
+          optional("framework_name")       => String,
 
           # TODO: use proper schema
           "limits"              => limits_schema,

@@ -66,6 +66,18 @@ describe Dea::Instance do
       its(:application_uris)    { should == ["foo.com", "bar.com"] }
     end
 
+    describe "space attributes" do
+      let(:start_message_data) do
+        {
+            "droplet" => 37,
+            "space" => "af6c9790-08f7-429d-9528-4afbf07a3559",
+        }
+      end
+
+      its(:application_id)      { should == "37" }
+      its(:application_space_id) { should == "af6c9790-08f7-429d-9528-4afbf07a3559" }
+    end
+
     describe "droplet attributes" do
       let(:start_message_data) do
         {
