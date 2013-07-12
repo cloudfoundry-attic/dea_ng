@@ -128,4 +128,45 @@ describe Dea::Droplet do
       end
     end
   end
+
+  describe "local_copy" do
+    let(:source_file) { source_file = File.join(tmpdir, "source_file") }
+
+    context "when copy was successful" do
+      before { File.open(source_file, "w+") { |f| f.write("some data") } }
+      after { FileUtils.rm_f(source_file) }
+
+      it "saves file in droplet path" do
+        droplet.local_copy(source_file) {}
+        expect{
+          File.exists?(droplet.droplet_path)
+        }.to be_true
+
+        File.read(source_file).should eq("some data")
+      end
+
+      it "calls the callback without error" do
+        called = false
+        droplet.local_copy(source_file) do |err|
+          called = true
+          err.should be_nil
+        end
+        called.should be_true
+      end
+    end
+
+    context "when copy failed" do
+      let(:wrong_source_file) { source_file = File.join(tmpdir, "wrong_source_file") }
+      before { FileUtils.rm_f(wrong_source_file) }
+
+      it "calls callback with error" do
+        called = false
+        droplet.local_copy(source_file) do |err|
+          called = true
+          err.should_not be_nil
+        end
+        called.should be_true
+      end
+    end
+  end
 end

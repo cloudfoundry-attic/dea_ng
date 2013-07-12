@@ -374,10 +374,11 @@ module Dea
     end
 
     def reap_unreferenced_droplets
-      refd_shas = Set.new(instance_registry.map(&:droplet_sha1))
+      instance_registry_shas = Set.new(instance_registry.map(&:droplet_sha1))
+      staging_registry_shas = Set.new(staging_task_registry.map(&:droplet_sha1))
       all_shas = Set.new(droplet_registry.keys)
 
-      (all_shas - refd_shas).each do |unused_sha|
+      (all_shas - instance_registry_shas - staging_registry_shas).each do |unused_sha|
         logger.debug("Removing droplet for sha=#{unused_sha}")
 
         droplet = droplet_registry.delete(unused_sha)

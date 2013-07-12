@@ -60,6 +60,16 @@ module Dea
       end
     end
 
+    def local_copy(source, &blk)
+      logger.debug "Copying local droplet to droplet registry"
+      begin
+        FileUtils.cp(source, droplet_path)
+        blk.call
+      rescue => e
+        blk.call(e)
+      end
+    end
+
     def destroy(&callback)
       dir_to_remove = droplet_dirname + ".deleted." + Time.now.to_i.to_s
 

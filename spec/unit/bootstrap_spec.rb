@@ -333,7 +333,7 @@ describe Dea::Bootstrap do
   describe "#reap_unreferenced_droplets" do
     let(:droplet_registry) do
       droplet_registry = {}
-      ["a", "b", "c", "d"].each do |sha|
+      ["a", "b", "c", "d", "e", "f"].each do |sha|
         droplet_registry[sha] = mock("droplet_#{sha}")
         droplet_registry[sha].stub(:destroy)
       end
@@ -349,16 +349,26 @@ describe Dea::Bootstrap do
       instance_registry
     end
 
+    let(:staging_task_registry) do
+      staging_task_registry= []
+      ["e", "f"].each do |sha|
+        staging_task_registry << mock("staging_task_#{sha}")
+        staging_task_registry.last.stub(:droplet_sha1).and_return(sha)
+      end
+      staging_task_registry
+    end
+
     let(:unreferenced_shas) do
-      droplet_registry.keys - instance_registry.map(&:droplet_sha1)
+      droplet_registry.keys - instance_registry.map(&:droplet_sha1) - staging_task_registry.map(&:droplet_sha1)
     end
 
     let(:referenced_shas) do
-      instance_registry.map(&:droplet_sha1)
+      instance_registry.map(&:droplet_sha1) + staging_task_registry.map(&:droplet_sha1)
     end
 
     before do
       bootstrap.stub(:instance_registry).and_return(instance_registry)
+      bootstrap.stub(:staging_task_registry).and_return(staging_task_registry)
       bootstrap.stub(:droplet_registry).and_return(droplet_registry)
     end
 

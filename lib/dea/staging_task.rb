@@ -31,7 +31,7 @@ module Dea
       end
     end
 
-    attr_reader :bootstrap, :dir_server, :attributes, :container_path, :task_id
+    attr_reader :bootstrap, :dir_server, :attributes, :container_path, :task_id, :droplet_sha1
 
     def initialize(bootstrap, dir_server, attributes, custom_logger=nil)
       super(bootstrap.config, custom_logger)
@@ -311,6 +311,20 @@ module Dea
       end
     end
 
+    def promise_save_droplet
+      Promise.new do |p|
+        @droplet_sha1 = Digest::SHA1.file(workspace.staged_droplet_path).hexdigest
+        bootstrap.droplet_registry[@droplet_sha1].local_copy(workspace.staged_droplet_path) do |error|
+          if error
+            logger.error("Failed copying droplet locally after staging")
+            p.fail
+          else
+            p.deliver
+          end
+        end
+      end
+    end
+
     def promise_container_info
       Promise.new do |p|
         raise ArgumentError, "container handle must not be nil" unless container_handle
@@ -409,6 +423,7 @@ module Dea
         promise_stage,
         promise_pack_app,
         promise_copy_out,
+        promise_save_droplet,
         promise_log_upload_started,
         promise_staging_info
       )

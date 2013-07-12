@@ -310,6 +310,7 @@ YAML
          stage
          pack_app
          copy_out
+         save_droplet
          log_upload_started
          app_upload
          pack_buildpack_cache
@@ -488,6 +489,7 @@ YAML
          stage
          pack_app
          copy_out
+         save_droplet
          log_upload_started
          staging_info
          task_log
@@ -858,6 +860,32 @@ YAML
     it "should send copying out request" do
       staging.should_receive(:copy_out_request).with("/tmp/droplet.tgz", /.{5,}/)
       subject
+    end
+  end
+
+  describe "#promise_save_droplet" do
+    subject do
+      promise = staging.promise_save_droplet
+      promise.resolve
+      promise
+    end
+
+    let(:droplet) { mock(:droplet) }
+    let(:droplet_sha) { Digest::SHA1.file(__FILE__).hexdigest }
+
+    before do
+      staging.workspace.stub(:staged_droplet_path) { __FILE__ }
+      bootstrap.stub(:droplet_registry) do
+        {
+          droplet_sha => droplet
+        }
+      end
+    end
+
+    it "saves droplet and droplet sha" do
+      droplet.should_receive(:local_copy).and_yield(nil)
+      subject
+      staging.droplet_sha1.should eq (droplet_sha)
     end
   end
 
