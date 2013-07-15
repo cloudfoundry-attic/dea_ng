@@ -12,6 +12,7 @@ task :test_vm do
 
   sh "git clone #{GIT_URL} #{REPO_PATH}"
   Dir.chdir(REPO_PATH) do
+    sh "git submodule update --init"
     sh "./create_vagrant_box.sh"
   end
 
