@@ -1,6 +1,7 @@
 require "tempfile"
 require "tmpdir"
 require "yaml"
+require "shellwords"
 
 require "dea/utils/download"
 require "dea/utils/upload"
@@ -170,7 +171,7 @@ module Dea
     def promise_stage
       Promise.new do |p|
         script = [
-          staging_environment,
+          staging_environment_variables,
           config["dea_ruby"],
           run_plugin_path,
           workspace.plugin_config_path,
@@ -439,13 +440,19 @@ module Dea
       File.expand_path("../../../buildpacks", __FILE__)
     end
 
-    def staging_environment
+    def staging_environment_variables
       env = attributes["properties"]["environment"] || []
+
+      env.map! do |var|
+        key, value = var.split("=", 2)
+        "export #{key}=#{Shellwords.escape(value)};"
+      end
+
       env.concat({
         "PLATFORM_CONFIG" => workspace.platform_config_path,
         "BUILDPACK_CACHE" => staging_config["environment"]["BUILDPACK_CACHE"],
         "STAGING_TIMEOUT" => staging_timeout
-      }.map { |k, v| "#{k}=#{v}" })
+      }.map { |k, v| "export #{k}=#{Shellwords.escape(v.to_s)};" })
 
       env.join(" ")
     end

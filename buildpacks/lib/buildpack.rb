@@ -81,7 +81,7 @@ module Buildpacks
     end
 
     def startup_script
-      generate_startup_script(environment_variables) do
+      generate_startup_script(running_environment_variables) do
         script_content = <<-BASH
 unset GEM_PATH
 if [ -d app/.profile.d ]; then
@@ -111,7 +111,7 @@ BASH
       File.open(staging_info_path, 'w') { |f| YAML.dump(buildpack_info, f) }
     end
 
-    def environment_variables
+    def running_environment_variables
       vars = release_info['config_vars'] || {}
       vars.each { |k, v| vars[k] = "${#{k}:-#{v}}" }
       vars["HOME"] = "$PWD/app"

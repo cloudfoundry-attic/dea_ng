@@ -9,7 +9,7 @@ if [ -d $2 ]; then
   touch $2/new_cached_file
 fi
 
-if [ "$FOO" = "BAR" ] && [ "$BLAH" = "WHATEVER" ]; then
-  echo "-----> Running foo based script"
+if [ "$FOO" = "bar baz" ] && [ "$BLAH" = "WHATEVER" ]; then
+  echo "-----> Env variables are: $FOO, $BLAH;"
 fi
 exit 0

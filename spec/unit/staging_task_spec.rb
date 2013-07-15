@@ -23,7 +23,7 @@ describe Dea::StagingTask do
         "file_api_port" => 1234
       },
       "staging" => {
-        "environment" => {},
+        "environment" => {"BUILDPACK_CACHE" => "buildpack_cache_url"},
         "platform_config" => {},
         "memory_limit_mb" => memory_limit_mb,
         "disk_limit_mb" => disk_limit_mb,
@@ -56,15 +56,56 @@ describe Dea::StagingTask do
   end
 
   describe "#promise_stage" do
-    let(:staging_env) { "PATH=x FOO=y" }
+    let(:attributes) { {"properties" => {"environment" => ["PATH=x", "FOO=z"]}} }
+
     it "assembles a shell command and initiates collection of task log" do
-      staging.should_receive(:staging_environment).and_return(staging_env)
-      staging.should_receive(:promise_warden_run) do |connection_name, cmd|
-        cmd.should match %r{^PATH=x FOO=y .*/bin/run .*/plugin_config >> /tmp/staged/logs/staging_task.log 2>&1$}
+      staging.should_receive(:promise_warden_run) do |_, cmd|
+        expect(cmd).to include %Q{export PATH=x;}
+        expect(cmd).to include %Q{export FOO=z;}
+        expect(cmd).to match %r{export PLATFORM_CONFIG=.+/platform_config;}
+        expect(cmd).to include %Q{export BUILDPACK_CACHE=buildpack_cache_url;}
+        expect(cmd).to include %Q{export STAGING_TIMEOUT=900.0;}
+        expect(cmd).to match %r{.*/bin/run .*/plugin_config >> /tmp/staged/logs/staging_task.log 2>&1$}
+
         mock("promise", :resolve => nil)
       end
-
       staging.promise_stage.resolve
+    end
+
+    context "when env variables need to be escaped" do
+      let(:attributes) { {"properties" => {"environment" => ["PATH=x y z", "FOO=z'y\"d", "BAR=", "BAZ=foo=baz"]}} }
+
+      it "copes with spaces" do
+        staging.should_receive(:promise_warden_run) do |_, cmd|
+          expect(cmd).to include(%Q{export PATH=x\\ y\\ z;})
+          mock("promise", :resolve => nil)
+        end
+        staging.promise_stage.resolve
+      end
+
+      it "copes with quotes" do
+        staging.should_receive(:promise_warden_run) do |_, cmd|
+          expect(cmd).to include(%Q{export FOO=z\\'y\\\"d;})
+          mock("promise", :resolve => nil)
+        end
+        staging.promise_stage.resolve
+      end
+
+      it "copes with blank" do
+        staging.should_receive(:promise_warden_run) do |_, cmd|
+          expect(cmd).to include(%Q{export BAR=\'\';})
+          mock("promise", :resolve => nil)
+        end
+        staging.promise_stage.resolve
+      end
+
+      it "copes with equal sign" do
+        staging.should_receive(:promise_warden_run) do |_, cmd|
+          expect(cmd).to include(%Q{export BAZ=foo\\=baz;})
+          mock("promise", :resolve => nil)
+        end
+        staging.promise_stage.resolve
+      end
     end
 
     describe "timeouts" do

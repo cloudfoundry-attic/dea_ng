@@ -81,13 +81,13 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
     let(:properties) do
       {
         "buildpack" => buildpack_url,
-        "environment" => ["FOO=BAR","BLAH=WHATEVER"]
+        "environment" => ["FOO=bar baz","BLAH=WHATEVER"]
       }
     end
 
     it "has access to application environment variables" do
       responses = nats.make_blocking_request("staging", start_staging_message, 2)
-      expect(responses[1]["task_log"]).to include("-----> Running foo based script\n")
+      expect(responses[1]["task_log"]).to include("-----> Env variables are: bar baz, WHATEVER;\n")
     end
   end
 
