@@ -150,13 +150,13 @@ module Dea
       Membrane::SchemaParser.parse do
         {
           "name"        => String,
-          "label"       => String,
-          "vendor"      => String,
-          "version"     => String,
-          "plan"        => String,
+          "label"        => String,
           "credentials" => any,
 
           # Deprecated fields
+          optional("plan")        => String,
+          optional("vendor")      => String,
+          optional("version")     => String,
           optional("type")        => String,
           optional("tags")        => [String],
           optional("plan_option") => enum(String, nil),

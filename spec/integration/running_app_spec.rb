@@ -11,6 +11,11 @@ describe "Running an app", :type => :integration, :requires_warden => true do
   let(:original_memory) do
     dea_config["resources"]["memory_mb"] * dea_config["resources"]["memory_overcommit_factor"]
   end
+  let(:valid_provided_service) {{"credentials"=>{"user"=>"Jerry", "password"=>"Jellison"},
+                                 "options"=>{},
+                                 "label"=>"Unmanaged Service abcdefg",
+                                 "name"=>"monacle"}}
+
   let(:valid_dea_start_message) {
     {
       "index" => 1,
@@ -27,7 +32,7 @@ describe "Running an app", :type => :integration, :requires_warden => true do
         "disk" => 128,
         "fds" => 32
       },
-      "services" => []
+      "services" => [valid_provided_service]
     }
   }
 
