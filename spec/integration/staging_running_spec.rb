@@ -28,8 +28,8 @@ describe "Running an app", :type => :integration, :requires_warden => true do
         "name" => "some-app-name",
         "uris" => [],
         "prod" => false,
-        "sha1" => sha1_url(staged_url),
-        "executableUri" => staged_url,
+        "sha1" => nil,
+        "executableUri" => nil,
         "cc_partition" => "foo",
         "limits" => {
           "mem" => 64,

@@ -182,8 +182,8 @@ module Dea
           "application_uris"    => [String],
           "application_prod"    => bool,
 
-          "droplet_sha1"        => String,
-          "droplet_uri"         => String,
+          "droplet_sha1"        => enum(nil, String),
+          "droplet_uri"         => enum(nil, String),
 
           optional("runtime_name")   => String,
           optional("runtime_info")   => dict(String, any),
