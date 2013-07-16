@@ -509,7 +509,6 @@ module Dea
         ].each(&:run).each(&:resolve)
 
         [
-          promise_setup_network,
           promise_extract_droplet,
           promise_exec_hook_script('before_start'),
           promise_start
