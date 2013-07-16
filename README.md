@@ -67,6 +67,7 @@ Follow these steps to set up DEA to run locally on your computer:
 
 ```shell
 # clone the repo
+cd ~/workspace
 git clone http://github.com/cloudfoundry/dea_ng
 git submodule update --init
 bundle install
@@ -88,6 +89,7 @@ Install Vagrant version 1.1 or higher.
 
 ```shell
 # initialize the test VM
+cd ~/workspace/dea_ng
 vagrant up
 
 # shell into the VM
