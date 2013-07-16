@@ -67,10 +67,6 @@ describe Dea::Env do
       instance.stub(:services).and_return(services)
     end
 
-    it "returns a Hash" do
-      services_for_json.should be_a(Hash)
-    end
-
     keys = %W(
       name
       label
