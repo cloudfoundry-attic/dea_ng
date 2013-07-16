@@ -400,22 +400,16 @@ module Dea
 
     def promise_setup_network
       Promise.new do |p|
-        net_in = lambda do
-          request = ::Warden::Protocol::NetInRequest.new
-          request.handle = @attributes["warden_handle"]
-          promise_warden_call(:app, request).resolve
-        end
-
-        response = net_in.call
+        response = get_new_warden_net_in
         attributes["instance_host_port"]      = response.host_port
         attributes["instance_container_port"] = response.container_port
 
-        response = net_in.call
+        response = get_new_warden_net_in
         attributes["instance_console_host_port"]      = response.host_port
         attributes["instance_console_container_port"] = response.container_port
 
         if attributes["debug"]
-          response = net_in.call
+          response = get_new_warden_net_in
           attributes["instance_debug_host_port"]      = response.host_port
           attributes["instance_debug_container_port"] = response.container_port
         end
@@ -727,11 +721,11 @@ module Dea
         end
 
         manifest_path = container_relative_path(container_path, "droplet.yaml")
-        if !File.exist?(manifest_path)
-          p.deliver({})
-        else
+        if File.exist?(manifest_path)
           manifest = YAML.load_file(manifest_path)
           p.deliver(manifest)
+        else
+          p.deliver({})
         end
       end
     end
@@ -827,6 +821,12 @@ module Dea
     end
 
     private
+
+    def get_new_warden_net_in
+      request = ::Warden::Protocol::NetInRequest.new
+      request.handle = @attributes["warden_handle"]
+      promise_warden_call(:app, request).resolve
+    end
 
     def determine_exit_description(link_response)
       info = link_response.info

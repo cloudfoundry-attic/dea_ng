@@ -53,9 +53,7 @@ module Dea
       private
 
       def attempt_connect
-        if !done?
-          @conn = ::EM.connect(host, port, ConnectionNotifier, self)
-        end
+        @conn = ::EM.connect(host, port, ConnectionNotifier, self) unless done?
       end
 
       def cleanup
