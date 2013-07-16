@@ -119,7 +119,6 @@ module Dea
       attributes["application_version"] ||= attributes.delete("version")
       attributes["application_name"]    ||= attributes.delete("name")
       attributes["application_uris"]    ||= attributes.delete("uris")
-      attributes["application_prod"]    ||= attributes.delete("prod")
 
       attributes["droplet_sha1"]        ||= attributes.delete("sha1")
       attributes["droplet_uri"]         ||= attributes.delete("executableUri")
@@ -180,7 +179,6 @@ module Dea
           "application_version" => String,
           "application_name"    => String,
           "application_uris"    => [String],
-          "application_prod"    => bool,
 
           "droplet_sha1"        => String,
           "droplet_uri"         => String,
@@ -260,9 +258,6 @@ module Dea
 
       self.state = State::BORN
 
-      # Assume non-production app when not specified
-      @attributes["application_prod"] ||= false
-
       @exit_status           = -1
       @exit_description      = ""
     end
@@ -288,10 +283,6 @@ module Dea
 
     def file_descriptor_limit
       limits["fds"].to_i
-    end
-
-    def production_app?
-      attributes["application_prod"]
     end
 
     def instance_path_available?

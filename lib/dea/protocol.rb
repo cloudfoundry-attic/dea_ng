@@ -23,7 +23,6 @@ module Dea::Protocol::V1
 
       { "droplets" => hbs,
         "dea"      => bootstrap.uuid,
-        "prod"     => bootstrap.config.only_production_apps?,
       }
     end
   end
@@ -96,7 +95,6 @@ module Dea::Protocol::V1
   class AdvertiseMessage
     def self.generate(message={})
       { "id" => message[:id],
-        "prod" => message[:prod],
         "stacks" => message[:stacks],
         "available_memory" => message[:available_memory],
         "app_id_to_count" => message[:app_id_to_count],

@@ -11,7 +11,6 @@ module Dea
       "crash_lifetime_secs" => 60 * 60,
       "evacuation_delay_secs" => 30,
       "bind_mounts" => [],
-      "only_production_apps" => false,
       "crash_block_usage_ratio_threshold" => 0.8,
       "crash_inode_usage_ratio_threshold" => 0.8,
     }
@@ -29,7 +28,6 @@ module Dea
             optional("syslog") => String,
           },
 
-          "only_production_apps" => bool,
           "nats_uri" => String,
           "pid_filename" => String,
           "warden_socket" => String,
@@ -110,10 +108,6 @@ module Dea
 
     def validate
       self.class.schema.validate(@config)
-    end
-
-    def only_production_apps?
-      self["only_production_apps"]
     end
 
     def crashes_path

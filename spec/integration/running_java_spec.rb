@@ -30,7 +30,6 @@ describe "Running a Java App", :type => :integration, :requires_warden => true d
       "version" => "some-version",
       "name" => "oome",
       "uris" => [],
-      "prod" => false,
       "sha1" => sha1_url(staged_url),
       "executableUri" => staged_url,
       "cc_partition" => "foo",
