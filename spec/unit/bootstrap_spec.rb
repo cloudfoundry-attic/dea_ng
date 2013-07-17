@@ -731,4 +731,43 @@ describe Dea::Bootstrap do
       subject.start_component
     end
   end
+
+  describe "handle_dea_directed_start" do
+    let(:instance_data) do
+      {
+        "index" => 0,
+        "droplet" => "some-droplet"
+      }
+    end
+
+    let(:instance) { mock("instance", :start => nil) }
+    let(:production_app) { false }
+
+    before do
+      bootstrap.stub(:create_instance) do
+        instance.stub(:production_app?) { production_app }
+        instance
+      end
+    end
+
+    it "creates an instance" do
+      bootstrap.should_receive(:create_instance).with(instance_data)
+      bootstrap.handle_dea_directed_start(Dea::Nats::Message.new(nil, nil, instance_data, nil))
+    end
+
+    context "when only production apps" do
+      before do
+        bootstrap.config.stub(:only_production_apps?) { true }
+      end
+
+      context "if instance is not a production app" do
+        let(:production_app) { false }
+
+        it "does not start an instance" do
+          instance.should_not_receive(:start)
+          bootstrap.handle_dea_directed_start(Dea::Nats::Message.new(nil, nil, instance_data, nil))
+        end
+      end
+    end
+  end
 end

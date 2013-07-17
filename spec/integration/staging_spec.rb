@@ -4,8 +4,6 @@ require "net/http"
 require "uri"
 
 describe "Staging an app", :type => :integration, :requires_warden => true do
-  FILE_SERVER_DIR = "/tmp/dea"
-
   let(:nats) { NatsHelper.new }
   let(:unstaged_url) { "http://localhost:9999/unstaged/sinatra" }
   let(:staged_url) { "http://localhost:9999/staged/sinatra" }

@@ -76,12 +76,14 @@ module DeaHelpers
   end
 
   def wait_until_instance_started(app_id, timeout = 5)
+    response = nil
     wait_until(timeout) do
-      nats.request("dea.find.droplet", {
+      response = nats.request("dea.find.droplet", {
         "droplet" => app_id,
         "states" => ["RUNNING"]
       }, :timeout => 1)
     end
+    response
   end
 
   def wait_until_instance_gone(app_id, timeout = 5)

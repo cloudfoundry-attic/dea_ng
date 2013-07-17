@@ -16,7 +16,8 @@ describe Dea::Responders::Staging do
       :attributes => {"app_id" => "some_app_id"},
       :task_id => "task-id",
       :task_log => "task-log",
-      :detected_buildpack => nil)
+      :detected_buildpack => nil,
+      :droplet_sha1 => "some-droplet-sha")
   end
   let(:dir_server) { Dea::DirectoryServerV2.new("domain", 1234, config) }
   let(:config) { {"directory_server" => {"file_api_port" => 2345}} }
@@ -121,19 +122,9 @@ describe Dea::Responders::Staging do
       Dea::StagingTask.stub(:new => staging_task)
       staging_task.stub(:after_setup_callback)
       staging_task.stub(:after_complete_callback)
+      staging_task.stub(:after_upload_callback)
       staging_task.stub(:after_stop_callback)
       staging_task.stub(:start)
-    end
-
-    shared_examples_for(:starts_instance) do
-      context "when staging includes start message" do
-        let(:message) { Dea::Nats::Message.new(nats, nil, {"start_message" => "some start message"}, "respond-to") }
-
-        it "starts the instance" do
-          bootstrap.should_receive(:handle_dea_directed_start).with("some start message")
-          subject.handle(message)
-        end
-      end
     end
 
     def self.it_registers_task
@@ -167,6 +158,7 @@ describe Dea::Responders::Staging do
 
         staging_task.should_receive(:after_setup_callback).ordered
         staging_task.should_receive(:after_complete_callback).ordered
+        staging_task.should_receive(:after_upload_callback).ordered
         staging_task.should_receive(:start).ordered
 
         subject.handle(message)
@@ -186,7 +178,8 @@ describe Dea::Responders::Staging do
               "task_log" => nil,
               "task_streaming_log_url" => "streaming-log-url",
               "detected_buildpack" => nil,
-              "error" => nil
+              "error" => nil,
+              "droplet_sha1" => nil
             ))
             subject.handle(message)
           end
@@ -202,6 +195,7 @@ describe Dea::Responders::Staging do
               "task_streaming_log_url" => "streaming-log-url",
               "detected_buildpack" => nil,
               "error" => "error-description",
+              "droplet_sha1" => nil
             ))
             subject.handle(message)
           end
@@ -209,10 +203,30 @@ describe Dea::Responders::Staging do
       end
 
       describe "after staging completion" do
-        before { staging_task.stub(:task_log).and_return("task-log") }
-
         context "when successfully" do
+          let(:start_message) { {"app_id" => "blah"} }
+          let(:message) { Dea::Nats::Message.new(nats, nil, {"start_message" => start_message}, "respond-to") }
           before { staging_task.stub(:after_complete_callback).and_yield(nil) }
+
+          it "handles instance start with updated droplet sha" do
+            bootstrap.should_receive(:start_app).with(start_message.merge({"sha1" => "some-droplet-sha"}))
+            subject.handle(message)
+          end
+        end
+
+        context "when failed" do
+          before { staging_task.stub(:after_complete_callback).and_yield(RuntimeError.new("error-description")) }
+
+          it "does not start an instance" do
+            bootstrap.should_not_receive(:start_app)
+            subject.handle(message)
+          end
+        end
+      end
+
+      describe "after staging upload" do
+        context "when successfully" do
+          before { staging_task.stub(:after_upload_callback).and_yield(nil) }
 
           it "responds successful message" do
             nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
@@ -220,7 +234,8 @@ describe Dea::Responders::Staging do
               "task_log" => "task-log",
               "task_streaming_log_url" => nil,
               "detected_buildpack" => nil,
-              "error" => nil
+              "error" => nil,
+              "droplet_sha1" => "some-droplet-sha"
             ))
             subject.handle(message)
           end
@@ -229,7 +244,12 @@ describe Dea::Responders::Staging do
         end
 
         context "when failed" do
-          before { staging_task.stub(:after_complete_callback).and_yield(RuntimeError.new("error-description")) }
+          before do
+            staging_task.stub(:after_upload_callback) do |&blk|
+              staging_task.stub(:droplet_sha1) { nil }
+              blk.call(RuntimeError.new("error-description"))
+            end
+          end
 
           it "responds with error message" do
             nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
@@ -238,6 +258,7 @@ describe Dea::Responders::Staging do
               "task_streaming_log_url" => nil,
               "detected_buildpack" => nil,
               "error" => "error-description",
+              "droplet_sha1" => nil
             ))
             subject.handle(message)
           end
@@ -255,6 +276,7 @@ describe Dea::Responders::Staging do
               "task_streaming_log_url" => nil,
               "detected_buildpack" => nil,
               "error" => "Error staging: task stopped",
+              "droplet_sha1" => nil
             ))
             subject.handle(message)
           end

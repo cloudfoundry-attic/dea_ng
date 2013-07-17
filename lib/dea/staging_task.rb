@@ -55,9 +55,18 @@ module Dea
         begin
           logger.info("Finished staging task")
           trigger_after_complete(error)
-          resolve_staging_upload unless error
+          unless error
+            begin
+              resolve_staging_upload
+            rescue => e
+              error = e
+            end
+          end
+
+          trigger_after_upload(error)
           raise(error) if error
         ensure
+          promise_destroy.resolve
           FileUtils.rm_rf(workspace.workspace_dir)
         end
       end
@@ -124,6 +133,15 @@ module Dea
       @after_complete_callback.call(error) if @after_complete_callback
     end
     private :trigger_after_complete
+
+    def after_upload_callback(&blk)
+      @after_upload_callback = blk
+    end
+
+    def trigger_after_upload(error)
+      @after_upload_callback.call(error) if @after_upload_callback
+    end
+    private :trigger_after_upload
 
     def after_stop_callback(&blk)
       @after_stop_callback = blk
@@ -432,13 +450,8 @@ module Dea
     end
 
     def resolve_staging_upload
-      # TODO: can this be done in parallel?
-      Promise.run_serially(
-        promise_app_upload,
-        promise_save_buildpack_cache,
-      )
-    ensure
-      promise_destroy.resolve
+      promise_app_upload.resolve
+      promise_save_buildpack_cache.resolve
     end
 
     def paths_to_bind

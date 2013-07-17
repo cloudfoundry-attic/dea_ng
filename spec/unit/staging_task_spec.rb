@@ -447,6 +447,22 @@ YAML
       it "propagates the error" do
         expect { staging.start }.to raise_error(/Script Failed/)
       end
+
+      it "returns an error in response" do
+        response = nil
+        staging.after_upload_callback do |callback_response|
+          response = callback_response
+        end
+
+        staging.start rescue nil
+
+        expect(response.message).to match /Script Failed/
+      end
+
+      it "does not uploads droplet" do
+        staging.should_not_receive(:resolve_staging_upload)
+        staging.start rescue nil
+      end
     end
 
     it "performs staging setup operations in correct order" do
@@ -515,6 +531,55 @@ YAML
       stub_staging
       staging.start
     end
+
+    it "triggers callbacks in correct order" do
+      stub_staging_setup
+      stub_staging
+      stub_staging_upload
+
+      staging.should_receive(:resolve_staging).ordered
+      staging.should_receive(:trigger_after_complete).ordered
+      staging.should_receive(:resolve_staging_upload).ordered.and_call_original
+      staging.should_receive(:promise_app_upload).ordered
+      staging.should_receive(:promise_save_buildpack_cache).ordered
+      staging.should_receive(:trigger_after_upload).ordered
+
+      staging.start
+    end
+
+    context "when the upload fails" do
+      let(:some_terrible_error) { RuntimeError.new("error") }
+      before do
+        stub_staging_setup
+        stub_staging
+        stub_staging_upload
+      end
+
+      def it_raises_and_returns_an_error
+        response = nil
+        staging.after_upload_callback do |callback_response|
+          response = callback_response
+        end
+
+        expect {
+          staging.start
+        }.to raise_error(some_terrible_error)
+
+        expect(response).to eq(some_terrible_error)
+      end
+
+      it "copes with uploading errors" do
+        staging.stub(:promise_app_upload).and_raise(some_terrible_error)
+
+        it_raises_and_returns_an_error
+      end
+
+      it "copes with buildpack cache errors" do
+        staging.stub(:promise_save_buildpack_cache).and_raise(some_terrible_error)
+
+        it_raises_and_returns_an_error
+      end
+    end
   end
 
   describe "#stop" do
@@ -548,6 +613,7 @@ YAML
     it "unregisters after complete callback" do
       staging.stub(:resolve_staging_setup)
       staging.stub(:resolve_staging_upload)
+      staging.stub(:promise_destroy).and_return(successful_promise)
       # Emulate staging stop while running staging
       staging.stub(:resolve_staging) { staging.stop }
 

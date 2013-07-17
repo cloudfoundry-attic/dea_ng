@@ -40,6 +40,7 @@ module Dea::Responders
 
       notify_setup_completion(message, task)
       notify_completion(message, task)
+      notify_upload(message, task)
       notify_stop(message, task)
 
       task.start
@@ -98,16 +99,22 @@ module Dea::Responders
 
     def notify_completion(message, task)
       task.after_complete_callback do |error|
+        if message.data["start_message"] && !error
+          message.data["start_message"]["sha1"] = task.droplet_sha1
+          bootstrap.start_app(message.data["start_message"])
+        end
+      end
+    end
+
+    def notify_upload(message, task)
+      task.after_upload_callback do |error|
         respond_to_message(message, {
           :task_id => task.task_id,
           :task_log => task.task_log,
           :error => (error.to_s if error),
-          :detected_buildpack => task.detected_buildpack
+          :detected_buildpack => task.detected_buildpack,
+          :droplet_sha1 => task.droplet_sha1
         })
-
-        if message.data["start_message"]
-          bootstrap.handle_dea_directed_start(message.data["start_message"])
-        end
 
         staging_task_registry.unregister(task)
       end
@@ -130,6 +137,7 @@ module Dea::Responders
         "task_streaming_log_url" => params[:streaming_log_url],
         "detected_buildpack" => params[:detected_buildpack],
         "error" => params[:error],
+        "droplet_sha1" => params[:droplet_sha1]
       )
     end
 

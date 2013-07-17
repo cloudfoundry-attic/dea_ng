@@ -51,7 +51,6 @@ describe "Running an app", :type => :integration, :requires_warden => true do
         "buildpack_cache_download_uri" => buildpack_cache_download_uri
       }, 2)
 
-
       nats.publish("dea.#{dea_id}.start", valid_dea_start_message.merge(uris: "this is an invalid application uri"))
 
       begin

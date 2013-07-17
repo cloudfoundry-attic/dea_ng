@@ -496,7 +496,11 @@ module Dea
     end
 
     def handle_dea_directed_start(message)
-      instance = create_instance(message.data)
+      start_app(message.data)
+    end
+
+    def start_app(data)
+      instance = create_instance(data)
       return unless instance
 
       if config.only_production_apps? && !instance.production_app?

@@ -39,6 +39,7 @@ RSpec.configure do |config|
 end
 
 STAGING_TEMP = Dir.mktmpdir
+FILE_SERVER_DIR = "/tmp/dea"
 
 at_exit do
   if File.directory?(STAGING_TEMP)
