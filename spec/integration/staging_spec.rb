@@ -152,8 +152,12 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
 
       context "when staging is in process" do
         it "stops staging tasks" do
+          called = false
           responses = nats.make_blocking_request("staging", start_staging_message, 2) do
-            Process.kill("USR2", dea_pid)
+            unless called
+              Process.kill("USR2", dea_pid)
+              called = true
+            end
           end
 
           expect(responses[1]["error"]).to eq("Error staging: task stopped")

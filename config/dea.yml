@@ -24,7 +24,7 @@ pid_filename: /tmp/dea_ng.pid
 
 warden_socket: /tmp/warden.sock
 
-evacuation_delay_secs: 5
+evacuation_delay_secs: 10
 
 index: 0
 
