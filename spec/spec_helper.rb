@@ -20,6 +20,8 @@ RSpec.configure do |config|
   config.include DeaHelpers, :type => :integration
 
   config.before do
+    RSpecRandFix.call_kernel_srand # TODO: remove this once we have a fix
+
     steno_config = {
       :default_log_level => :all,
       :codec => Steno::Codec::Json.new,
