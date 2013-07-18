@@ -160,7 +160,8 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
             end
           end
 
-          expect(responses[1]["error"]).to eq("Error staging: task stopped")
+          # We either get response from failed staging or stop request
+          expect(responses[1]["error"]).to match /Error staging: task stopped|Script exited with status 255/
           expect(responses[1]["task_id"]).to eq(responses[0]["task_id"])
         end
       end
