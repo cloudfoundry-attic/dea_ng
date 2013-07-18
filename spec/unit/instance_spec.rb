@@ -70,12 +70,12 @@ describe Dea::Instance do
       let(:start_message_data) do
         {
             "droplet" => 37,
-            "space" => "af6c9790-08f7-429d-9528-4afbf07a3559",
+            "tags" => {"space" => "af6c9790-08f7-429d-9528-4afbf07a3559"},
         }
       end
 
       its(:application_id)      { should == "37" }
-      its(:application_space_id) { should == "af6c9790-08f7-429d-9528-4afbf07a3559" }
+      its(:tags) { should == {"space" => "af6c9790-08f7-429d-9528-4afbf07a3559" } }
     end
 
     describe "droplet attributes" do
