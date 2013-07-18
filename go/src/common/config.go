@@ -6,7 +6,6 @@ import (
 )
 
 type Config struct {
-	Route  string          "local_route"
 	Server DirServerConfig "directory_server"
 }
 

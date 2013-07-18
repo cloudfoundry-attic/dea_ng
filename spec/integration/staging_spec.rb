@@ -2,6 +2,7 @@ require "spec_helper"
 require "spec_helper"
 require "net/http"
 require "uri"
+require "vcap/common"
 
 describe "Staging an app", :type => :integration, :requires_warden => true do
   let(:nats) { NatsHelper.new }
@@ -115,7 +116,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
       nats.make_blocking_request("staging", start_staging_message, 2) do |index, response|
         if index == 0
           uri = URI.parse(response["task_streaming_log_url"])
-          uri.host = "127.0.0.1"
+          uri.host = VCAP.local_ip
           uri.port = 5678
 
           first_line_streamed = Net::HTTP.get(uri)

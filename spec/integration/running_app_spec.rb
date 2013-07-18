@@ -118,6 +118,7 @@ describe "Running an app", :type => :integration, :requires_warden => true do
             NATS.request("dea.find.droplet", droplet_message, :timeout => 5) do |response|
               droplet_info = Yajl::Parser.parse(response)
               instance_info = instance_snapshot(droplet_info["instance"])
+              # This is a lie. should be hitting VCAP.local_ip (which is eth0). See story #53675073
               ip = instance_info["warden_host_ip"]
               port = instance_info["instance_host_port"]
               expect(is_port_open?(ip, port)).to eq(true)

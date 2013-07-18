@@ -55,7 +55,7 @@ module Dea
     end
 
     def local_ip
-      @local_ip ||= VCAP.local_ip(config["local_route"])
+      @local_ip ||= VCAP.local_ip
     end
 
     def validate_config

@@ -21,8 +21,6 @@ module Dea
         {
           "base_dir" => String,
 
-          optional("local_route") => String,
-
           "logging" => {
             "level"            => String,
             optional("file")   => String,

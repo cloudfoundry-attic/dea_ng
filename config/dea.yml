@@ -6,8 +6,6 @@ base_dir: /tmp/dea_ng
 logging:
   level: debug
 
-local_route: localhost
-
 resources:
   memory_mb: 2048
   memory_overcommit_factor: 2

@@ -22,18 +22,14 @@ const rootServer = "198.41.0.4"
 /*
  Returns the local IP address.
 */
-func getLocalIp(route string) (*string, error) {
-	conn, err := net.Dial("udp", route+":1")
+func getLocalIp() (*string, error) {
+	conn, err := net.Dial("udp", rootServer+":1")
 	if err != nil {
 		return nil, err
 	}
 
 	// The method call: conn.LocalAddr().String() returns ip_address:port
 	return &strings.Split(conn.LocalAddr().String(), ":")[0], nil
-}
-
-func getLocalIpWithDefaultRoute() (*string, error) {
-	return getLocalIp(rootServer)
 }
 
 func main() {
@@ -52,11 +48,7 @@ func main() {
 	log := steno.NewLogger("runner")
 
 	var localIp *string
-	if config.Route != "" {
-		localIp, err = getLocalIp(config.Route)
-	} else {
-		localIp, err = getLocalIpWithDefaultRoute()
-	}
+    localIp, err = getLocalIp()
 
 	if err != nil {
 		log.Fatal(err.Error())
