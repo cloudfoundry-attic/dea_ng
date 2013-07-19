@@ -178,16 +178,18 @@ fi
     let(:buildpacks_path) { buildpacks_path_with_rails }
     let(:label) { "postgres" }
     let(:scheme) { "postgres" }
+    let(:uri) { "#{scheme}://mariah:nick@mariahs-host.com:5678/mariahs_db" }
+
     let(:staging_env) do
       {
         'services' => [
           'label' => label,
           'tags' => {},
           'credentials' => {
-            'uri' => "#{scheme}://mariah:nick@mariahs-host.com:5678/mariahs_db",
+            'uri' => uri,
             'name' => 'mariahs_db',
             'hostname' => 'mariahs-host.com',
-            'host' => 'mariahs_host.com',
+            'host' => 'mariahs-host.com',
             'port' => 5678,
             'user' => 'mariah',
             'username' => 'mariah',
@@ -236,6 +238,7 @@ fi
     context "when a rds_mysql database is bound" do
       let(:label) { "rds_mysql-n/a" }
       let(:scheme) { "mysql2" }
+      let(:uri) { nil }
 
       it "sets the DATABASE_URL in the startup script" do
         stage :environment => staging_env do |staged_dir|
@@ -299,9 +302,9 @@ fi
 
       it "does not set the DATABASE_URL in the startup script and raise an error" do
         expect {
-        stage :environment => staging_env do |staged_dir|
-          start_script_body(staged_dir).should_not include("DATABASE_URL")
-        end
+          stage :environment => staging_env do |staged_dir|
+            start_script_body(staged_dir).should_not include("DATABASE_URL")
+          end
         }.to raise_error(RuntimeError, "Invalid database uri: mysql://USER_NAME_PASS@invalid_host_name.com:5678/mariahs_db")
       end
     end

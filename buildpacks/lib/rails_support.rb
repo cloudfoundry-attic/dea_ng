@@ -53,7 +53,7 @@ fi
           binding = bound_relational_databases.detect { |_, name| name && name =~ /^.*production$|^.*prod$/ }
           unless binding
             raise "Unable to determine primary database from multiple. " +
-              "Please bind only one database service to Rails applications."
+                    "Please bind only one database service to Rails applications."
           end
           binding.first
       end
@@ -64,14 +64,33 @@ fi
     def bound_relational_databases
       @bound_services ||= bound_services.inject([]) do |collection, binding|
         begin
-          if binding["credentials"]["uri"]
-            uri = URI.parse(binding["credentials"]["uri"])
-            if VALID_DB_TYPES.include?(uri.scheme)
-              collection << [uri, binding["name"]]
+          uri =
+            if binding["credentials"]["uri"]
+              URI.parse(binding["credentials"]["uri"])
+            else
+              db_type = VALID_DB_TYPES.find { |type| binding["label"] =~ /#{type}/ }
+
+              if db_type
+                credentials = binding["credentials"]
+                uri_string = "%s://%s:%s@%s:%s/%s" % [
+                  db_type,
+                  credentials["username"],
+                  credentials["password"],
+                  credentials["hostname"],
+                  credentials["port"],
+                  credentials["name"]
+                ]
+
+                URI.parse(uri_string)
+              end
             end
+
+          if uri && VALID_DB_TYPES.include?(uri.scheme)
+            collection << [uri, binding["name"]]
           end
         rescue URI::InvalidURIError => e
-          raise "Invalid database uri: #{binding["credentials"]["uri"].gsub(/\/\/.+@/, '//USER_NAME_PASS@')}"
+          uri = binding["credentials"]["uri"]
+          raise uri ? "Invalid database uri: #{uri.gsub(/\/\/.+@/, '//USER_NAME_PASS@')}" : "No uri found"
         end
         collection
       end
