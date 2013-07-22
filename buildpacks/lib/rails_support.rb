@@ -40,35 +40,41 @@ fi
     end
 
     def database_uri
-      convert_scheme_to_rails_adapter(bound_database_uri).to_s
+      convert_scheme_to_rails_adapter(bound_database_uri).to_s if bound_database_uri
     end
 
-    def bound_database_uri
-      case bound_relational_databases.size
-        when 0
-          nil
-        when 1
-          bound_relational_databases.first.first
-        else
-          binding = bound_relational_databases.detect { |_, name| name && name =~ /^.*production$|^.*prod$/ }
-          unless binding
-            raise "Unable to determine primary database from multiple. " +
-              "Please bind only one database service to Rails applications."
-          end
-          binding.first
-      end
+
+    # TODO - remove this when we have the ability to ssh to a locally-running console
+    def rails_buildpack?(buildpack)
+      buildpack.name == "Ruby/Rails"
     end
 
     private
 
-    def bound_relational_databases
+
+    def bound_database_uri
+      case bound_relational_valid_databases.size
+        when 0
+          nil
+        when 1
+          bound_relational_valid_databases.first[:uri]
+        else
+          binding = bound_relational_valid_databases.detect { |binding| binding[:name] && binding[:name] =~ /^.*production$|^.*prod$/ }
+          unless binding
+            raise "Unable to determine primary database from multiple. " +
+              "Please bind only one database service to Rails applications."
+          end
+          binding[:uri]
+      end
+    end
+
+
+    def bound_relational_valid_databases
       @bound_services ||= bound_services.inject([]) do |collection, binding|
         begin
           if binding["credentials"]["uri"]
             uri = URI.parse(binding["credentials"]["uri"])
-            if VALID_DB_TYPES.include?(uri.scheme)
-              collection << [uri, binding["name"]]
-            end
+            collection << {uri: uri, name: binding["name"]} if VALID_DB_TYPES.include?(uri.scheme)
           end
         rescue URI::InvalidURIError => e
           raise "Invalid database uri: #{binding["credentials"]["uri"].gsub(/\/\/.+@/, '//USER_NAME_PASS@')}"

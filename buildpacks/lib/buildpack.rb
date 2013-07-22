@@ -9,7 +9,7 @@ module Buildpacks
     include RailsSupport
 
     attr_accessor :source_directory, :destination_directory, :staging_info_path, :environment_json
-    attr_reader :procfile
+    attr_reader :procfile, :environment
 
     def self.platform_config
       YAML.load_file(ENV['PLATFORM_CONFIG'])
@@ -62,10 +62,6 @@ module Buildpacks
       destination_directory
     end
 
-    def environment
-      @environment
-    end
-
     def application_memory
       if environment["resources"] && environment["resources"]["memory"]
         environment["resources"]["memory"]
@@ -106,6 +102,11 @@ module Buildpacks
       lines.sort.join("\n")
     end
 
+    def bound_services
+      environment["services"] || []
+    end
+
+
     def create_app_directories
       FileUtils.mkdir_p(app_dir)
       FileUtils.mkdir_p(log_dir)
@@ -120,9 +121,6 @@ module Buildpacks
       FileUtils.chmod(0500, path)
     end
 
-    def bound_services
-      environment["services"] || []
-    end
 
     def copy_source_files(dest=nil)
       system "cp -a #{File.join(source_directory, ".")} #{dest || app_dir}"
@@ -136,7 +134,7 @@ module Buildpacks
 
         compile_with_timeout(staging_timeout)
 
-        stage_rails_console if rails_buildpack?
+        stage_rails_console if rails_buildpack?(build_pack)
         create_startup_script
         save_buildpack_info
       end
@@ -158,8 +156,8 @@ module Buildpacks
     def build_pack
       return @build_pack if @build_pack
 
-      custom_url = environment["buildpack"]
-      return @build_pack = clone_buildpack(custom_url) if custom_url
+      custom_buildpack_url = environment["buildpack"]
+      return @build_pack = clone_buildpack(custom_buildpack_url) if custom_buildpack_url
 
       @build_pack = installers.detect(&:detect)
       raise "Unable to detect a supported application type" unless @build_pack
@@ -184,10 +182,6 @@ module Buildpacks
           raise("Please specify a web start command in your manifest.yml or Procfile")
     end
 
-    # TODO - remove this when we have the ability to ssh to a locally-running console
-    def rails_buildpack?
-      @build_pack.name == "Ruby/Rails"
-    end
 
     def startup_script
       generate_startup_script(running_environment_variables) do
@@ -203,7 +197,7 @@ if [ -d app/.profile.d ]; then
 fi
 env > logs/env.log
 BASH
-        script_content += console_start_script if rails_buildpack?
+        script_content += console_start_script if rails_buildpack?(build_pack)
         script_content
       end
     end
@@ -225,7 +219,7 @@ BASH
       vars.each { |k, v| vars[k] = "${#{k}:-#{v}}" }
       vars["HOME"] = "$PWD/app"
       vars["PORT"] = "$VCAP_APP_PORT"
-      vars["DATABASE_URL"] = database_uri if rails_buildpack? && bound_database_uri
+      vars["DATABASE_URL"] = database_uri if rails_buildpack?(build_pack) && database_uri
       vars["MEMORY_LIMIT"] = "#{application_memory}m"
       vars
     end

@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 describe Buildpacks::Buildpack, :type => :buildpack do
-  let(:fake_buildpacks_dir) { File.expand_path("../../fixtures/fake_buildpack_dirs", __FILE__) }
+  let(:fake_buildpacks_dir) { File.expand_path("../../../fixtures/fake_buildpack_dirs", __FILE__) }
   let(:buildpacks_path_with_start_cmd) { "#{fake_buildpacks_dir}/with_start_cmd" }
   let(:buildpacks_path_with_rails) { "#{fake_buildpacks_dir}/with_rails" }
   let(:buildpacks_path_without_start_cmd) { "#{fake_buildpacks_dir}/without_start_cmd" }

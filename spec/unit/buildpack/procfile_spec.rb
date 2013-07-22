@@ -1,6 +1,6 @@
 require "spec_helper"
 
-describe Buildpacks::Procfile do
+describe Buildpacks::Procfile, :type => :buildpack do
   let(:contents) { {"web" => "something"} }
   let(:path) { procfile.path }
   let(:procfile) do
