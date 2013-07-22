@@ -41,7 +41,7 @@ module Buildpacks
       @staging_info_path = config["staging_info_path"]
       @cache_dir = config["cache_dir"]
       @procfile = Procfile.new("#{app_dir}/Procfile")
-      @services = Services.new(config["services"])
+      @services = Services.new(@environment["services"])
     end
 
     def app_dir
