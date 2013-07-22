@@ -3,6 +3,7 @@ require "pathname"
 require "installer"
 require "rails_support"
 require "procfile"
+require "services"
 
 module Buildpacks
   class Buildpack
@@ -40,6 +41,7 @@ module Buildpacks
       @staging_info_path = config["staging_info_path"]
       @cache_dir = config["cache_dir"]
       @procfile = Procfile.new("#{app_dir}/Procfile")
+      @services = Services.new(config["services"])
     end
 
     def app_dir
@@ -102,11 +104,6 @@ module Buildpacks
       lines.sort.join("\n")
     end
 
-    def bound_services
-      environment["services"] || []
-    end
-
-
     def create_app_directories
       FileUtils.mkdir_p(app_dir)
       FileUtils.mkdir_p(log_dir)
@@ -120,7 +117,6 @@ module Buildpacks
       end
       FileUtils.chmod(0500, path)
     end
-
 
     def copy_source_files(dest=nil)
       system "cp -a #{File.join(source_directory, ".")} #{dest || app_dir}"
@@ -182,7 +178,6 @@ module Buildpacks
           raise("Please specify a web start command in your manifest.yml or Procfile")
     end
 
-
     def startup_script
       generate_startup_script(running_environment_variables) do
         script_content = <<-BASH
@@ -219,7 +214,7 @@ BASH
       vars.each { |k, v| vars[k] = "${#{k}:-#{v}}" }
       vars["HOME"] = "$PWD/app"
       vars["PORT"] = "$VCAP_APP_PORT"
-      vars["DATABASE_URL"] = database_uri if rails_buildpack?(build_pack) && database_uri
+      vars["DATABASE_URL"] = @services.database_uri if rails_buildpack?(build_pack) && @services.database_uri
       vars["MEMORY_LIMIT"] = "#{application_memory}m"
       vars
     end

@@ -299,10 +299,10 @@ fi
 
       it "does not set the DATABASE_URL in the startup script and raise an error" do
         expect {
-        stage :environment => staging_env do |staged_dir|
+          stage :environment => staging_env do |staged_dir|
           start_script_body(staged_dir).should_not include("DATABASE_URL")
         end
-        }.to raise_error(RuntimeError, "Invalid database uri: mysql://USER_NAME_PASS@invalid_host_name.com:5678/mariahs_db")
+        }.to raise_error(URI::InvalidURIError, "Invalid database uri: mysql://USER_NAME_PASS@invalid_host_name.com:5678/mariahs_db")
       end
     end
 

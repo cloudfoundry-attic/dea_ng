@@ -1,4 +1,3 @@
-
 module Buildpacks
   class Procfile
     def initialize(path)
