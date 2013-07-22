@@ -1,12 +1,133 @@
 require "timeout"
 require "pathname"
-require "staging_plugin"
 require "installer"
 require "rails_support"
+require "procfile"
 
 module Buildpacks
-  class Buildpack < StagingPlugin
+  class Buildpack
     include RailsSupport
+
+    attr_accessor :source_directory, :destination_directory, :staging_info_path, :environment_json
+    attr_reader :procfile
+
+    def self.platform_config
+      YAML.load_file(ENV['PLATFORM_CONFIG'])
+    end
+
+    def self.validate_arguments!(*args)
+      source, dest, env = args
+      argfail!(args) unless source && dest && env
+      argfail!(args) unless File.directory?(File.expand_path(source))
+      argfail!(args) unless File.directory?(File.expand_path(dest))
+    end
+
+    def self.argfail!(args)
+      puts "Invalid arguments for staging: #{args.inspect}"
+      exit 1
+    end
+
+    def self.from_file(file_path)
+      config = YAML.load_file(file_path)
+      validate_arguments!(config["source_dir"], config["dest_dir"], config["environment"])
+      new(config)
+    end
+
+    def initialize(config = {})
+      @source_directory = File.expand_path(config["source_dir"])
+      @destination_directory = File.expand_path(config["dest_dir"])
+      @environment = config["environment"]
+      @staging_info_path = config["staging_info_path"]
+      @cache_dir = config["cache_dir"]
+      @procfile = Procfile.new("#{app_dir}/Procfile")
+    end
+
+    def app_dir
+      File.join(destination_directory, "app")
+    end
+
+    def log_dir
+      File.join(destination_directory, "logs")
+    end
+
+    def tmp_dir
+      File.join(destination_directory, "tmp")
+    end
+
+    def cache_dir
+      @cache_dir || "/tmp/cache"
+    end
+
+    def script_dir
+      destination_directory
+    end
+
+    def environment
+      @environment
+    end
+
+    def application_memory
+      if environment["resources"] && environment["resources"]["memory"]
+        environment["resources"]["memory"]
+      else
+        512 #MB
+      end
+    end
+
+    def generate_startup_script(env_vars = {})
+      after_env_before_script = block_given? ? yield : "\n"
+      <<-SCRIPT.gsub(/^\s{8}/, "")
+        #!/bin/bash
+        #{environment_statements_for(env_vars)}
+      #{after_env_before_script}
+        DROPLET_BASE_DIR=$PWD
+        cd app
+        (#{start_command}) > >(tee $DROPLET_BASE_DIR/logs/stdout.log) 2> >(tee $DROPLET_BASE_DIR/logs/stderr.log >&2) &
+        STARTED=$!
+        echo "$STARTED" >> $DROPLET_BASE_DIR/run.pid
+        wait $STARTED
+      SCRIPT
+    end
+
+    # Generates newline-separated exports for the specified environment variables.
+    # If the value of one of the keys is false or nil, it will be an 'unset' instead of an 'export'
+    def environment_statements_for(vars)
+      # Passed vars should overwrite common vars
+      common_env_vars = { "TMPDIR" => tmp_dir.gsub(destination_directory,"$PWD") }
+      vars = common_env_vars.merge(vars)
+      lines = []
+      vars.each do |name, value|
+        if value
+          lines << "export #{name}=\"#{value}\""
+        else
+          lines << "unset #{name}"
+        end
+      end
+      lines.sort.join("\n")
+    end
+
+    def create_app_directories
+      FileUtils.mkdir_p(app_dir)
+      FileUtils.mkdir_p(log_dir)
+      FileUtils.mkdir_p(tmp_dir)
+    end
+
+    def create_startup_script
+      path = File.join(script_dir, 'startup')
+      File.open(path, 'wb') do |f|
+        f.puts startup_script
+      end
+      FileUtils.chmod(0500, path)
+    end
+
+    def bound_services
+      environment["services"] || []
+    end
+
+    def copy_source_files(dest=nil)
+      system "cp -a #{File.join(source_directory, ".")} #{dest || app_dir}"
+      FileUtils.chmod_R(0744, app_dir)
+    end
 
     def stage_application
       Dir.chdir(destination_directory) do
@@ -58,21 +179,9 @@ module Buildpacks
 
     def start_command
       return environment["meta"]["command"] if environment["meta"] && environment["meta"]["command"]
-      procfile["web"] ||
+      procfile.web ||
         release_info.fetch("default_process_types", {})["web"] ||
           raise("Please specify a web start command in your manifest.yml or Procfile")
-    end
-
-    def procfile
-      @procfile ||= procfile_contents ? YAML.load(procfile_contents) : {}
-      raise "Invalid Procfile format.  Please ensure it is a valid YAML hash" unless @procfile.kind_of?(Hash)
-      @procfile
-    end
-
-    def procfile_contents
-      procfile_path = "#{app_dir}/Procfile"
-
-      File.read(procfile_path) if File.exists?(procfile_path)
     end
 
     # TODO - remove this when we have the ability to ssh to a locally-running console
