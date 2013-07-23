@@ -96,20 +96,6 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
       {"buildpack" => fake_buildpack_url("start_command")}
     end
 
-    it "decreases the DEA's available memory (could be fickle)" do
-      initial_mem = dea_memory
-      available_memory_while_staging = nil
-      nats.make_blocking_request("staging", start_staging_message, 2) do |index, _|
-        if index == 0
-          NATS.publish("dea.locate", Yajl::Encoder.encode({}))
-          NATS.subscribe("dea.advertise") do |resp|
-            available_memory_while_staging = Yajl::Parser.parse(resp)["available_memory"]
-          end
-        end
-      end
-      expect(available_memory_while_staging).to equal(initial_mem - 1024)
-    end
-
     it "streams the logs back to the user" do
       first_line_streamed = nil
 
@@ -147,6 +133,21 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
       fake_buildpack_url("long_compiling_buildpack")
     end
     let(:properties) { {"buildpack" => buildpack_url} }
+
+    it "decreases the DEA's available memory" do
+      initial_mem = dea_memory
+      available_memory_while_staging = nil
+      nats.make_blocking_request("staging", start_staging_message, 2) do |index, _|
+        if index == 0
+          NATS.publish("dea.locate", Yajl::Encoder.encode({}))
+          NATS.subscribe("dea.advertise") do |resp|
+            available_memory_while_staging = Yajl::Parser.parse(resp)["available_memory"]
+          end
+          NATS.publish("staging.stop", Yajl::Encoder.encode({"app_id" => app_id}))
+        end
+      end
+      expect(available_memory_while_staging).to equal(initial_mem - 1024)
+    end
 
     context "when the shutdown started" do
       after { dea_start }
