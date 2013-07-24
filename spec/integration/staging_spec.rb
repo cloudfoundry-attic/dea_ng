@@ -1,8 +1,8 @@
 require "spec_helper"
-require "spec_helper"
 require "net/http"
 require "uri"
 require "vcap/common"
+require "securerandom"
 
 describe "Staging an app", :type => :integration, :requires_warden => true do
   let(:nats) { NatsHelper.new }
@@ -12,10 +12,11 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
   let(:buildpack_cache_upload_uri) { "http://localhost:9999/buildpack_cache" }
   let(:app_id) { "some-app-id" }
   let(:properties) { {} }
+  let(:task_id) { SecureRandom.uuid }
   let(:start_staging_message) do
     {
       "app_id" => app_id,
-      "task_id" => "foobar",
+      "task_id" => task_id,
       "properties" => properties,
       "download_uri" => unstaged_url,
       "upload_uri" => staged_url,
