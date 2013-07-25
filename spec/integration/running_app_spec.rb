@@ -125,7 +125,7 @@ describe "Running an app", :type => :integration, :requires_warden => true do
 
               NATS.publish("dea.stop", Yajl::Encoder.encode({"droplet" => app_id})) do
                 port_open = true
-                wait_until do
+                wait_until(10) do
                   port_open = is_port_open?(ip, port)
                   ! port_open
                 end
