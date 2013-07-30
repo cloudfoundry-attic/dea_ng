@@ -23,7 +23,6 @@ describe "Running an app", :type => :integration, :requires_warden => true do
       "version" => "some-version",
       "name" => "some-app-name",
       "uris" => [],
-      "prod" => false,
       "sha1" => sha1_url(staged_url),
       "executableUri" => staged_url,
       "cc_partition" => "foo",
