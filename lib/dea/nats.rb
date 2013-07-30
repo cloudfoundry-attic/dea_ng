@@ -45,10 +45,6 @@ module Dea
       subscribe("dea.find.droplet") do |message|
         bootstrap.handle_dea_find_droplet(message)
       end
-
-      subscribe("droplet.status") do |message|
-        bootstrap.handle_droplet_status(message)
-      end
     end
 
     def stop

@@ -80,18 +80,6 @@ module Dea::Protocol::V1
     end
   end
 
-  class DropletStatusResponse
-    def self.generate(instance)
-      { "name" => instance.application_name,
-        "uris" => instance.application_uris,
-        # TODO: Fill in when available
-        # host
-        # port
-        # uptime
-      }
-    end
-  end
-
   class AdvertiseMessage
     def self.generate(message={})
       { "id" => message[:id],
