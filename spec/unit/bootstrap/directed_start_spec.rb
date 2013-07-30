@@ -53,33 +53,6 @@ describe Dea do
       publish
     end
 
-    describe "when only production apps may be started" do
-      before do
-        bootstrap.config["only_production_apps"] = true
-      end
-
-      it "doesn't call #start when the instance doesn't have a production flag" do
-        instance_mock.attributes.delete("application_prod")
-        instance_mock.should_not_receive(:start)
-
-        publish
-      end
-
-      it "doesn't call #start when the instance is not a production app" do
-        instance_mock.attributes["application_prod"] = false
-        instance_mock.should_not_receive(:start)
-
-        publish
-      end
-
-      it "calls #start when the instance is a production app" do
-        instance_mock.attributes["application_prod"] = true
-        instance_mock.should_receive(:start)
-
-        publish
-      end
-    end
-
     describe "when start completes" do
       describe "with failure" do
         before do

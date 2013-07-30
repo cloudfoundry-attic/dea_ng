@@ -134,49 +134,12 @@ describe Dea::Responders::DeaLocator do
       resource_manager.stub(:remaining_memory => available_memory)
     end
 
-    context "when config specifies that dea is for prod-only apps" do
-      before { config["only_production_apps"] = true }
-
-      it "publishes 'dea.advertise' message" do
-        nats_mock.should_receive(:publish).with("dea.advertise", JSON.dump(
-          "id" => dea_id,
-          "prod" => true,
-          "stacks" => [],
-          "available_memory" => available_memory,
-          "app_id_to_count" => {
-            "app_id_1" => 1,
-            "app_id_2" => 3
-          }
-        ))
-        subject.advertise
-      end
-    end
-
-    context "when config specifies that dea is not prod-only apps" do
-      before { config["only_production_apps"] = false }
-
-      it "publishes 'dea.advertise' message" do
-        nats_mock.should_receive(:publish).with("dea.advertise", JSON.dump(
-          "id" => dea_id,
-          "prod" => false,
-          "stacks" => [],
-          "available_memory" => available_memory,
-          "app_id_to_count" => {
-            "app_id_1" => 1,
-            "app_id_2" => 3
-          }
-        ))
-        subject.advertise
-      end
-    end
-
     context "when config specifies stacks" do
       before { config["stacks"] = ["stack-1", "stack-2"] }
 
       it "publishes 'dea.advertise' message with stacks" do
         nats_mock.should_receive(:publish).with("dea.advertise", JSON.dump(
           "id" => dea_id,
-          "prod" => false,
           "stacks" => ["stack-1", "stack-2"],
           "available_memory" => available_memory,
           "app_id_to_count" => {

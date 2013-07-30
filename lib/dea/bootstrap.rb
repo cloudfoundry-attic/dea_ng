@@ -503,11 +503,6 @@ module Dea
       instance = create_instance(data)
       return unless instance
 
-      if config.only_production_apps? && !instance.production_app?
-        logger.info("Ignoring instance for non-production app: #{instance}")
-        return
-      end
-
       instance.start
     end
 

@@ -12,10 +12,6 @@ resources:
   disk_mb: 2048
   disk_overcommit_factor: 2
 
-# The this flag determines whether or not this DEA should only host
-# production apps. (default: false)
-only_production_apps: false
-
 nats_uri: nats://localhost:4222/
 
 pid_filename: /tmp/dea_ng.pid
