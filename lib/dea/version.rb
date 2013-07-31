@@ -1,5 +1,5 @@
 # coding: UTF-8
 
 module Dea
-  VERSION = "0.0.1"
+  VERSION = "0.0.1-dev"
 end
