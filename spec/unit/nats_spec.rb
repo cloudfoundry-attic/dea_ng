@@ -54,17 +54,38 @@ describe Dea::Nats do
       nats_mock.receive_message("echo", { "hello" => "world" }, "echo.reply")
     end
 
-    it "should catch and log errors raised while processing a message" do
+    it "catches invalid Json errors and logs them while processing a message" do
       logfile = Tempfile.open("dea_nats")
       Steno.init(Steno::Config.new({:sinks => [Steno::Sink::IO.new(logfile)]}))
 
-      nats.subscribe("raise_error") do |message|
-        raise "Catch Me"
+      nats.subscribe("some.subject") do |message|
+        raise "This should not be called"
       end
-      nats_mock.receive_message("raise_error")
+
+      nats_mock.receive_message("some.subject", "{\"foo\": oops an error in the json", "echo.reply")
 
       logfile.rewind
-      Yajl::Parser.parse(logfile.readlines[1])["message"].should == "Error \"Catch Me\" raised while processing \"raise_error\": {}"
+      Yajl::Parser.parse(logfile.readlines[1])["message"].should =~ /^Parse error/
+    end
+
+    it "ignores rspec errors" do
+      logfile = Tempfile.open("dea_nats")
+      Steno.init(Steno::Config.new({:sinks => [Steno::Sink::IO.new(logfile)]}))
+
+      nats.subscribe("some.subject") do |message|
+        "this should fail".should be_nil
+      end
+
+      exception =
+        begin
+          expect {
+            nats_mock.receive_message("some.subject", {"foo" => "bar"}, "echo.reply")
+          }.to_not change(logfile.readlines, :size)
+        rescue => e
+          e
+        end
+
+      exception.should be_kind_of(RSpec::Expectations::ExpectationNotMetError)
     end
   end
 
