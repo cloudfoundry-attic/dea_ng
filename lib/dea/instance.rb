@@ -246,11 +246,12 @@ module Dea
     attr_accessor :exit_status
     attr_accessor :exit_description
 
-    def initialize(bootstrap, attributes)
+    def initialize(bootstrap, attributes, raw_attributes)
       super(bootstrap.config)
       @bootstrap = bootstrap
 
       @attributes = attributes.dup
+      @raw_attributes = raw_attributes
       @attributes["application_uris"] ||= []
 
       # Generate unique ID
@@ -430,7 +431,7 @@ module Dea
     end
 
     def promise_start
-      env = Env.new(self)
+      env = Env.new(@raw_attributes, self)
 
       start_script = if task_info
         Dea::StartupScriptGenerator.new(
