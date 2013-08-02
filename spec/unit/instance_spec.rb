@@ -1,5 +1,3 @@
-# coding: UTF-8
-
 require "spec_helper"
 require "dea/instance"
 
@@ -412,9 +410,7 @@ describe Dea::Instance do
       droplet
     end
 
-    let(:warden_connection) do
-      mock("warden_connection")
-    end
+    let(:warden_connection) { mock("warden_connection") }
 
     before do
       bootstrap.stub(:config).and_return({ "bind_mounts" => [] })
@@ -845,22 +841,27 @@ describe Dea::Instance do
     it_behaves_like 'start script hook', 'after_start'
 
     describe "starting the application" do
-      let(:response) do
-        response = mock("spawn_response")
-        response.stub(:job_id => 37)
-        response
+      let(:response) { mock("spawn_response", job_id: 37) }
+      let(:env) do
+        double("environment 1",
+          all_envs_with_user_last: [['system', 'sytem_value'], ['user', 'user_value']],
+          user_environment_variables: [['user', 'user_value']],
+          system_environment_variables: [['system', 'sytem_value']]
+        )
       end
 
-      before { instance.unstub(:promise_start) }
+      before do
+        instance.unstub(:promise_start)
+        instance.stub(:task_info).and_return(nil)
+        Dea::Env.stub(:new).and_return(env)
+      end
 
       it "executes a SpawnRequest" do
         instance.attributes["warden_handle"] = "handle"
+        actual_request = nil
 
         instance.stub(:promise_warden_call) do |_, request|
-          request.should be_kind_of(::Warden::Protocol::SpawnRequest)
-          request.handle.should == "handle"
-          request.script.should_not be_empty
-
+          actual_request = request
           delivering_promise(response)
         end
 
@@ -869,6 +870,9 @@ describe Dea::Instance do
 
         # Job ID should be set
         instance.attributes["warden_job_id"].should == 37
+
+        expect(actual_request).to be_kind_of(::Warden::Protocol::SpawnRequest)
+        expect(actual_request.handle).to eq("handle")
       end
 
       it "can fail" do
@@ -885,6 +889,44 @@ describe Dea::Instance do
 
         # Job ID should not be set
         instance.attributes["warden_job_id"].should be_nil
+      end
+
+      context "when there is a task info yaml in the droplet" do
+        before do
+          instance.stub(:task_info).and_return(
+            "detected_buildpack" => "FakeBuildpack",
+            "start_command" => "fake_start_command.sh"
+          )
+        end
+
+        let(:generator) { double('script generator', generate: 'a script') }
+
+        it "generates the correct script" do
+          Dea::StartupScriptGenerator.should_receive(:new).with(
+            "fake_start_command.sh",
+            env.system_environment_variables,
+            env.user_environment_variables,
+            "FakeBuildpack"
+          ).and_return(generator)
+          expect_start
+        end
+      end
+
+      context "when there is no task info yaml in the droplet only a startup script (old DEA)" do
+        # TODO delete after two phase migration
+
+        it "runs the startup script instead of generating one" do
+          actual_script = ""
+
+          instance.stub(:promise_warden_call) do |_, request|
+            actual_script = request.script
+            delivering_promise(response)
+          end
+
+          expect_start
+
+          expect(actual_script).to match %r{export.+startup.+exit}m
+        end
       end
     end
 
@@ -924,11 +966,14 @@ describe Dea::Instance do
       mock("warden_connection")
     end
 
+    let(:env) { double("environment").as_null_object }
+
     before do
       bootstrap.stub(:config).and_return({})
       instance.stub(:promise_state).and_return(delivering_promise)
       instance.stub(:promise_warden_connection).and_return(delivering_promise(warden_connection))
       instance.stub(:promise_stop).and_return(delivering_promise)
+      Dea::Env.stub(:new).and_return(env)
     end
 
     def expect_stop
@@ -979,19 +1024,23 @@ describe Dea::Instance do
           runtime.stub(:environment).and_return({})
           runtime
         end
+
+        let(:env) do
+          double("environment", :all_envs_with_user_last => [["A", "B"]])
+        end
+
         before do
-          bootstrap.stub(:config).and_return({
+          Dea::Env.stub(:new).with(instance).and_return(env)
+          bootstrap.stub(:config).and_return(
             "hooks" => {
               hook => File.join(File.dirname(__FILE__), "hooks/#{hook}")
             }
-          })
-          instance.stub(:runtime).and_return(runtime)
-          instance.stub(:state_starting_timestamp).and_return(Time.now)
+          )
         end
-        it "should execute script file" do
+
+        it "executes the #{hook} script file" do
           script_content = nil
           instance.stub(:promise_warden_run) do |_, script|
-            script.should_not be_empty
             lines = script.split("\n")
             script_content = lines[-2]
             delivering_promise
@@ -999,8 +1048,19 @@ describe Dea::Instance do
           expect_stop.to_not raise_error
           script_content.should == "echo \"#{hook}\""
         end
+
+        it "exports the variables in the hook files" do
+          actual_script_content = nil
+          instance.stub(:promise_warden_run) do |_, script|
+            actual_script_content = script
+            delivering_promise
+          end
+          expect_stop.to_not raise_error
+          actual_script_content.should match /export A=B/
+        end
       end
     end
+
     it_behaves_like 'stop script hook', 'before_stop'
     it_behaves_like 'stop script hook', 'after_stop'
   end
@@ -1342,6 +1402,43 @@ describe Dea::Instance do
         end
 
         expect_crash_handler.to_not raise_error
+      end
+    end
+  end
+
+  describe "#task_info" do
+    before do
+      instance.stub(:copy_out_request)
+    end
+
+    context 'when the files does exist' do
+      before do
+        YAML.stub(:load_file).and_return(a: 1)
+        File.stub(:exists?).
+          with(match(/staging_info\.yml/)).
+          and_return(true)
+      end
+
+      it "sends copying out request" do
+        instance.should_receive(:copy_out_request).with("/home/vcap/staging_info.yml", ".")
+        instance.task_info
+      end
+
+      it "reads the file from the copy out" do
+        YAML.should_receive(:load_file).with("./staging_info.yml")
+        expect(instance.task_info).to eq(a: 1)
+      end
+
+      it "should only be called once" do
+        YAML.should_receive(:load_file).once
+        instance.task_info
+        instance.task_info
+      end
+    end
+
+    context "when the yaml file does not exist" do
+      it "returns nil" do
+        expect(instance.task_info).to be_nil
       end
     end
   end

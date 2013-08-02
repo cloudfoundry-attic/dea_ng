@@ -20,18 +20,6 @@ module Buildpacks
       end
     end
 
-    def console_start_script
-      <<-BASH
-if [ -n "$VCAP_CONSOLE_PORT" ]; then
-  cd app
-  bundle exec ruby cf-rails-console/rails_console.rb >> ../logs/console.log 2>> ../logs/console.log &
-  CONSOLE_STARTED=$!
-  echo "$CONSOLE_STARTED" >> ../console.pid
-  cd ..
-fi
-      BASH
-    end
-
     # TODO - remove this when we have the ability to ssh to a locally-running console
     def rails_buildpack?(buildpack)
       buildpack.name == "Ruby/Rails"

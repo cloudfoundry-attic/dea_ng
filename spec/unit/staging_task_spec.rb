@@ -65,6 +65,8 @@ describe Dea::StagingTask do
         expect(cmd).to match %r{export PLATFORM_CONFIG=.+/platform_config;}
         expect(cmd).to include %Q{export BUILDPACK_CACHE=buildpack_cache_url;}
         expect(cmd).to include %Q{export STAGING_TIMEOUT=900.0;}
+        expect(cmd).to include "export MEMORY_LIMIT=#{memory_limit_mb}m;"
+
         expect(cmd).to match %r{.*/bin/run .*/plugin_config >> /tmp/staged/logs/staging_task.log 2>&1$}
 
         mock("promise", :resolve => nil)
@@ -227,13 +229,8 @@ YAML
         expect(subject["cache_dir"]).to eq("/tmp/cache")
       end
 
-      it "includes the specified environment config" do
-        environment_config = attributes["properties"]
-        expect(subject["environment"]).to eq(environment_config)
-      end
-
       it "includes the staging info path" do
-        expect(subject["staging_info_path"]).to eq("/tmp/staging_info.yml")
+        expect(subject["staging_info_name"]).to eq("staging_info.yml")
       end
     end
 
@@ -995,7 +992,7 @@ YAML
     end
 
     it "should send copying out request" do
-      staging.should_receive(:copy_out_request).with("/tmp/staging_info.yml", /#{workspace_dir}/)
+      staging.should_receive(:copy_out_request).with("/tmp/staged/staging_info.yml", /#{workspace_dir}/)
       subject
     end
   end

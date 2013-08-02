@@ -2,11 +2,15 @@ require 'spec_helper'
 
 describe Buildpacks::Buildpack, :type => :buildpack do
   let(:fake_buildpacks_dir) { File.expand_path("../../../fixtures/fake_buildpack_dirs", __FILE__) }
-  let(:buildpacks_path_with_start_cmd) { "#{fake_buildpacks_dir}/with_start_cmd" }
-  let(:buildpacks_path_with_rails) { "#{fake_buildpacks_dir}/with_rails" }
-  let(:buildpacks_path_without_start_cmd) { "#{fake_buildpacks_dir}/without_start_cmd" }
-  let(:buildpacks_path_with_no_match) { "#{fake_buildpacks_dir}/with_no_match" }
-  let(:buildpacks_path) { buildpacks_path_with_start_cmd }
+  let(:config) do
+    {
+      "environment" => {"services" => []},
+      "source_dir" => "fakesrcdir",
+      "dest_dir" => "fakedestdir",
+      "staging_info_name" => "fake_staging_info.yml",
+    }
+  end
+  let(:build_pack) { Buildpacks::Buildpack.new(config) }
 
   before do
     Buildpacks::Buildpack.any_instance.stub(:buildpacks_path) { Pathname.new(buildpacks_path) }
@@ -40,7 +44,7 @@ describe Buildpacks::Buildpack, :type => :buildpack do
 
     it "stores everything in profile" do
       stage :environment => staging_env do |staged_dir|
-        start_script = File.join(staged_dir, 'startup')
+        start_script = File.join(staged_dir, 'start_cmd')
         start_script.should be_executable_file
         script_body = File.read(start_script)
         script_body.should include(<<-EXPECTED)
@@ -57,330 +61,232 @@ fi
     end
   end
 
-  let(:staging_env) { {} }
+  describe "#stage_application" do
+    let(:buildpack_name) { "Not Rubby" }
 
-  context "when a buildpack URL is passed" do
-    let(:buildpack_url) { "git://github.com/heroku/heroku-buildpack-java.git" }
-    let(:staging_env) { { "buildpack" => buildpack_url } }
-    let(:staging_config) {
-      {
-        "source_dir" => ".",
-        "dest_dir" => ".",
-        "environment" => staging_env
-      }
-    }
-    let(:plugin) { Buildpacks::Buildpack.new(staging_config) }
+    before { build_pack.stub(:build_pack) { mock(:build_pack, name: buildpack_name) } }
 
-    subject { plugin.build_pack }
-
-    it "clones the buildpack URL" do
-      plugin.should_receive(:system).with(anything) do |cmd|
-        expect(cmd).to match /git clone --recursive #{buildpack_url} \/tmp\/buildpacks/
-        true
-      end
-
-      subject
+    it "runs from the correct folder" do
+      Dir.should_receive(:chdir).with(File.expand_path "fakedestdir").and_yield
+      build_pack.should_receive(:create_app_directories).ordered
+      build_pack.should_receive(:copy_source_files).ordered
+      build_pack.should_receive(:compile_with_timeout).ordered
+      build_pack.should_not_receive(:stage_rails_console)
+      build_pack.should_receive(:save_buildpack_info).ordered
+      build_pack.stage_application
     end
 
-    it "does not try to detect the buildpack" do
-      plugin.stub(:system).with(anything) { true }
-
-      plugin.installers.each do |i|
-        i.should_not_receive(:detect)
-      end
-
-      subject
-    end
-
-    context "when the cloning fails" do
-      it "gives up and raises an error" do
-        plugin.stub(:system).with(anything) { false }
-        expect { subject }.to raise_error("Failed to git clone buildpack")
+    context "when rails buildpack" do
+      let(:buildpack_name) { "Ruby/Rails" }
+      it "stages the console" do
+        Dir.should_receive(:chdir).with(File.expand_path "fakedestdir").and_yield
+        build_pack.should_receive(:create_app_directories)
+        build_pack.should_receive(:copy_source_files)
+        build_pack.should_receive(:compile_with_timeout)
+        build_pack.should_receive(:stage_rails_console)
+        build_pack.should_receive(:save_buildpack_info)
+        build_pack.stage_application
       end
     end
   end
 
-  context "when a start command is passed" do
-    let(:staging_env) { {"meta" => {"command" => "node app.js --from-manifest=true"}} }
+  describe "#create_app_directories" do
+    it "should make the correct directories" do
+      FileUtils.should_receive(:mkdir_p).with(File.expand_path "fakedestdir/app")
+      FileUtils.should_receive(:mkdir_p).with(File.expand_path "fakedestdir/logs")
+      FileUtils.should_receive(:mkdir_p).with(File.expand_path "fakedestdir/tmp")
 
-    before { app_fixture :node_without_procfile }
-
-    it_behaves_like "successful buildpack compilation"
-
-    it "uses the passed start command" do
-      stage :environment => staging_env do |staged_dir|
-        packages_with_start_script(staged_dir, "node app.js --from-manifest=true")
-      end
-    end
-
-    it "tee's stderr and stdout to logfiles and their normal pipes" do
-      stage :environment => staging_env do |staged_dir|
-        start_script_body(staged_dir).should include(" > >(tee $DROPLET_BASE_DIR/logs/stdout.log) 2> >(tee $DROPLET_BASE_DIR/logs/stderr.log >&2) &")
-      end
+      build_pack.create_app_directories
     end
   end
 
-  context "when the application has a procfile" do
-    before { app_fixture :node_with_procfile }
-
-    it_behaves_like "successful buildpack compilation"
-
-    it "uses the start command specified by the 'web' key in the procfile" do
-      stage :environment => staging_env do |staged_dir|
-        packages_with_start_script(staged_dir, "node app.js --from-procfile=true")
-      end
-    end
-
-    it "raise a good error if the procfile is not a hash" do
-      app_fixture :node_with_invalid_procfile
-      expect {
-        stage :environment => staging_env
-      }.to raise_error("Invalid Procfile format.  Please ensure it is a valid YAML hash")
-    end
-  end
-
-  context "when no start command is passed and the application does not have a procfile" do
-    before { app_fixture :node_without_procfile }
-
-    context "when the buildpack provides a default start command" do
-      it_behaves_like "successful buildpack compilation"
-
-      it "uses the default start command" do
-        stage :environment => staging_env do |staged_dir|
-          packages_with_start_script(staged_dir, "while true; do (echo hi | nc -l $PORT); done")
-        end
-      end
-    end
-
-    context "when the buildpack does not provide a default start command" do
-      let(:buildpacks_path) { buildpacks_path_without_start_cmd }
-
-      it "raises an error " do
-        expect {
-          stage :environment => staging_env
-        }.to raise_error("Please specify a web start command in your manifest.yml or Procfile")
-      end
-    end
-
-    context "when staging an app which does not match any build packs" do
-      let(:buildpacks_path) { buildpacks_path_with_no_match }
-
-      it "raises an error" do
-        expect {
-          stage :environment => staging_env
-        }.to raise_error("Unable to detect a supported application type")
-      end
-    end
-  end
-
-  context "when a rails application is detected by the ruby buildpack" do
-    before { app_fixture :node_without_procfile }
-    let(:buildpacks_path) { buildpacks_path_with_rails }
-    let(:label) { "postgres" }
-    let(:scheme) { "postgres" }
-    let(:staging_env) do
-      {
-        'services' => [
-          'label' => label,
-          'tags' => {},
-          'credentials' => {
-            'uri' => "#{scheme}://mariah:nick@mariahs-host.com:5678/mariahs_db",
-            'name' => 'mariahs_db',
-            'hostname' => 'mariahs-host.com',
-            'host' => 'mariahs_host.com',
-            'port' => 5678,
-            'user' => 'mariah',
-            'username' => 'mariah',
-            'password' => 'nick',
-          },
-          'options' => {},
-          'plan' => '10mb',
-          'plan_options' => {}
-        ]
-      }
-    end
-
-    it "adds rails console to the startup script" do
-      stage :environment => staging_env do |staged_dir|
-        packages_with_start_script(staged_dir, "bundle exec rails server --from-buildpack=true")
-        expect(start_script_body(staged_dir)).to include("bundle exec ruby cf-rails-console/rails_console.rb")
-      end
-    end
-
-    it "puts the necessary files in the app" do
-      stage :environment => staging_env do |staged_dir|
-        packages_with_start_script(staged_dir, "bundle exec rails server --from-buildpack=true")
-        expect(File.exists?(File.join(staged_dir, "app", "cf-rails-console/rails_console.rb"))).to be_true
-        config_file_contents = YAML.load_file(File.join(staged_dir, "app", "cf-rails-console/.consoleaccess"))
-        expect(config_file_contents.keys).to match_array(["username", "password"])
-      end
-    end
-
-    it "saves buildpack info" do
-      stage :environment => staging_env do |_|
-        expect(File.exists?(staging_info_path)).to be_true
-      end
-    end
-
-    context "when a postgresql database is bound" do
-      let(:label) { "postgres" }
-      let(:scheme) { "postgres" }
-
-      it "sets the DATABASE_URL in the startup script" do
-        stage :environment => staging_env do |staged_dir|
-          start_script_body(staged_dir).should include('DATABASE_URL="postgresql://mariah:nick@mariahs-host.com:5678/mariahs_db"')
-        end
-      end
-    end
-
-    context "when a rds_mysql database is bound" do
-      let(:label) { "rds_mysql-n/a" }
-      let(:scheme) { "mysql2" }
-
-      it "sets the DATABASE_URL in the startup script" do
-        stage :environment => staging_env do |staged_dir|
-          start_script_body(staged_dir).should include('DATABASE_URL="mysql2://mariah:nick@mariahs-host.com:5678/mariahs_db"')
-        end
-      end
-    end
-
-    context "when an elephantsql database is bound" do
-      let(:label) { "elephantsql" }
-      let(:scheme) { "postgres" }
-
-      it "sets the DATABASE_URL in the startup script" do
-        stage environment: staging_env do |staged_dir|
-          start_script_body(staged_dir).should include('DATABASE_URL="postgresql://mariah:nick@mariahs-host.com:5678/mariahs_db"')
-        end
-      end
-    end
-
-    context "when a cleardb database is bound" do
-      let(:label) { "cleardb" }
-      let(:scheme) { "mysql" }
-
-      it "sets the DATABASE_URL in the startup script" do
-        stage :environment => staging_env do |staged_dir|
-          start_script_body(staged_dir).should include('DATABASE_URL="mysql2://mariah:nick@mariahs-host.com:5678/mariahs_db"')
-        end
-      end
-    end
-
-    context "when a database is no known scheme" do
-      let(:scheme) { "mongodb" }
-
-      it "does not set the DATABASE_URL in the startup script" do
-        stage :environment => staging_env do |staged_dir|
-          start_script_body(staged_dir).should_not include("DATABASE_URL")
-        end
-      end
-    end
-
-    context "when a database is not bound" do
-      let(:staging_env) {{ 'services' => [] }}
-
-      it "does not set the DATABASE_URL in the startup script" do
-        stage :environment => staging_env do |staged_dir|
-          start_script_body(staged_dir).should_not include("DATABASE_URL")
-        end
-      end
-    end
-
-    context "when a database uri is invalid" do
-      let(:staging_env) do
-        {
-          'services' => [
-            'credentials' => {
-              'uri' => "mysql://mariah:nick@invalid_host_name.com:5678/mariahs_db",
-            }
-          ]
-        }
-      end
-
-      it "does not set the DATABASE_URL in the startup script and raise an error" do
-        expect {
-          stage :environment => staging_env do |staged_dir|
-          start_script_body(staged_dir).should_not include("DATABASE_URL")
-        end
-        }.to raise_error(URI::InvalidURIError, "Invalid database uri: mysql://USER_NAME_PASS@invalid_host_name.com:5678/mariahs_db")
-      end
-    end
-
-    context "when a database uri is not found" do
-      let(:staging_env) do
-        {
-          'services' => [
-            'credentials' => {
-              'no_uri' => "mysql://mariah:nick@invalid_host_name.com:5678/mariahs_db",
-            }
-          ]
-        }
-      end
-
-      it "does not set the DATABASE_URL in the startup script" do
-        stage :environment => staging_env do |staged_dir|
-          start_script_body(staged_dir).should_not include("DATABASE_URL")
-        end
-      end
-    end
-  end
-
-  context "when a rails application is NOT detected" do
-    before { app_fixture :node_without_procfile }
-    let(:buildpacks_path) { buildpacks_path_with_start_cmd }
-
-    it "doesn't add rails console to the startup script" do
-      stage :environment => staging_env do |staged_dir|
-        expect(start_script_body(staged_dir)).not_to include("bundle exec ruby cf-rails-console/rails_console.rb")
-        expect(File.exists?(File.join(staged_dir, "cf-rails-console/rails_console.rb"))).to be_false
-      end
+  describe "#copy_source_files" do
+    it "Copy all the files from the source dir into the dest dir" do
+      # recursively (-r) while not following symlinks (-P) and preserving dir structure (-p)
+      # this is why we use system copy not FileUtil
+      build_pack.should_receive(:system).with("cp -a #{File.expand_path "fakesrcdir"}/. #{File.expand_path "fakedestdir/app"}")
+      FileUtils.should_receive(:chmod_R).with(0744, File.expand_path("fakedestdir/app"))
+      build_pack.copy_source_files
     end
   end
 
   describe "#compile_with_timeout" do
-    let(:duration) { 0 }
-
-    before do
-      subject.stub_chain(:build_pack, :compile) do
-        sleep duration
-      end
-    end
-
-    let(:staging_config) {
-      {
-        "source_dir" => ".",
-        "dest_dir" => ".",
-        "environment" => staging_env
-      }
-    }
-    subject { Buildpacks::Buildpack.new(staging_config) }
+    before { build_pack.stub_chain(:build_pack, :compile) { sleep duration } }
 
     context "when the staging takes too long" do
       let(:duration) { 1 }
 
       it "times out" do
         expect {
-          subject.compile_with_timeout(0.01)
+          build_pack.compile_with_timeout(0.01)
         }.to raise_error(Timeout::Error)
       end
     end
 
     context "when the staging completes within the timeout" do
+      let(:duration) { 0 }
+
       it "does not time out" do
         expect {
-          subject.compile_with_timeout(0.1)
+          build_pack.compile_with_timeout(0.1)
         }.to_not raise_error
       end
     end
   end
 
-  def start_script_body(staged_dir)
-    start_script = File.join(staged_dir, 'startup')
-    start_script.should be_executable_file
-    File.read(start_script)
+  describe "#stage_rails_console" do
+    before do
+      FileUtils.stub(:mkdir_p)
+      FileUtils.stub(:cp_r)
+      File.stub(:open)
+    end
+
+    context "when a rails application is detected by the ruby buildpack" do
+      let(:buildpacks_path) { buildpacks_path_with_rails }
+
+      it "puts in the cf-rails-console app files" do
+        FileUtils.should_receive(:mkdir_p).with(File.expand_path("fakedestdir/app/cf-rails-console"))
+        FileUtils.should_receive(:cp_r).with(%r{.+dea_ng/buildpacks/lib/resources/cf-rails-console}, File.expand_path("fakedestdir/app"))
+
+        build_pack.stage_rails_console
+      end
+
+      it "puts in the console access file" do
+        fake_file = StringIO.new
+        File.should_receive(:open).with(File.expand_path("fakedestdir/app/cf-rails-console/.consoleaccess"), "w").and_yield(fake_file)
+
+        build_pack.stage_rails_console
+
+        fake_file = fake_file.string
+        expect(fake_file).to include("username: !binary ")
+        expect(fake_file).to include("password: !binary ")
+      end
+    end
   end
 
-  def packages_with_start_script(staged_dir, start_command)
-    start_script_body(staged_dir).should include("#{start_command}")
+  describe "#save_buildpack_info" do
+    let(:config) do
+      {
+        "environment" => {
+          "meta" => meta,
+          "services" => []
+        },
+        "source_dir" => "",
+        "dest_dir" => app_source,
+        "staging_info_name" => "fake_staging_info.yml"
+      }
+    end
+    let(:meta) { {} }
+    let(:buildpack_name) { "fake ruby" }
+    let(:buildpack) do
+      build_pack = Buildpacks::Buildpack.new(config)
+      build_pack.stub(:build_pack) do
+        mock(:build_pack,
+          name: buildpack_name,
+          release_info: {"default_process_types" => {"web" => "fake start command from buildpack"}}
+        )
+      end
+      build_pack
+    end
+
+    let(:buildpack_info_path) { File.join(buildpack.destination_directory, "fake_staging_info.yml") }
+    let(:buildpack_info) do
+      buildpack.save_buildpack_info
+      YAML.load_file(buildpack_info_path)
+    end
+
+    before { app_fixture :node_without_procfile }
+
+    after { FileUtils.rm(buildpack_info_path) if File.exists?(buildpack_info_path) }
+
+    it "has the detected buildpack" do
+      expect(buildpack_info["detected_buildpack"]).to eq("fake ruby")
+    end
+
+    context "when a start command is passed" do
+      let(:meta) { {"command" => "fake user defined start command"} }
+
+      it "has the start command" do
+        expect(buildpack_info["start_command"]).to eq("fake user defined start command")
+      end
+    end
+
+    context "when the application has a procfile" do
+      before do
+        Buildpacks::Procfile.stub(:new) { mock(:proc_file, web: "Mocked start command") }
+      end
+
+      it "uses the start command specified by the 'web' key in the procfile" do
+        expect(buildpack_info["start_command"]).to eq("Mocked start command")
+      end
+    end
+
+    context "when no start command is passed and the application does not have a procfile" do
+      before { app_fixture :node_without_procfile }
+
+      context "when the buildpack provides a default start command" do
+        it "uses the default start command" do
+          expect(buildpack_info["start_command"]).to eq("fake start command from buildpack")
+        end
+      end
+
+      context "when the buildpack does not provide a default start command" do
+        let(:buildpacks_path) { "#{fake_buildpacks_dir}/without_start_cmd" }
+
+        it "raises an error " do
+          expect {
+            stage :environment => config["environment"]
+          }.to raise_error("Please specify a web start command in your manifest.yml or Procfile")
+        end
+      end
+
+      context "when staging an app which does not match any build packs" do
+        let(:buildpacks_path) { "#{fake_buildpacks_dir}/with_no_match" }
+
+        it "raises an error" do
+          expect {
+            stage :environment => config["environment"]
+          }.to raise_error("Unable to detect a supported application type")
+        end
+      end
+    end
+  end
+
+  describe "#build_pack" do
+    let(:buildpacks_path) { "#{fake_buildpacks_dir}/with_start_cmd" }
+
+    context "when a buildpack URL is passed" do
+      let(:buildpack_url) { "git://github.com/heroku/heroku-buildpack-java.git" }
+      before { config["environment"]["buildpack"] = buildpack_url }
+
+      subject { build_pack.build_pack }
+
+      it "clones the buildpack URL" do
+        build_pack.should_receive(:system).with(anything) do |cmd|
+          expect(cmd).to match /git clone --recursive #{buildpack_url} \/tmp\/buildpacks/
+          true
+        end
+
+        subject
+      end
+
+      it "does not try to detect the buildpack" do
+        build_pack.stub(:system).with(anything) { true }
+
+        build_pack.send(:installers).each do |i|
+          i.should_not_receive(:detect)
+        end
+
+        subject
+      end
+
+      context "when the cloning fails" do
+        it "gives up and raises an error" do
+          build_pack.stub(:system).with(anything) { false }
+          expect { subject }.to raise_error("Failed to git clone buildpack")
+        end
+      end
+    end
   end
 end
+

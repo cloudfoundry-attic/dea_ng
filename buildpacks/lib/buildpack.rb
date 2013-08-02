@@ -3,14 +3,13 @@ require "pathname"
 require "installer"
 require "rails_support"
 require "procfile"
-require "services"
 
 module Buildpacks
   class Buildpack
     include RailsSupport
 
     attr_accessor :source_directory, :destination_directory, :staging_info_path, :environment_json
-    attr_reader :procfile, :environment
+    attr_reader :procfile, :environment, :app_dir, :log_dir, :tmp_dir, :cache_dir, :buildpacks_path, :staging_timeout, :staging_info_name
 
     def self.platform_config
       YAML.load_file(ENV['PLATFORM_CONFIG'])
@@ -35,92 +34,21 @@ module Buildpacks
     end
 
     def initialize(config = {})
+      @environment = config["environment"]
+      @staging_info_name = config["staging_info_name"]
+      @cache_dir = config["cache_dir"]
+
+      @staging_timeout = ENV.fetch("STAGING_TIMEOUT", "900").to_i
+
       @source_directory = File.expand_path(config["source_dir"])
       @destination_directory = File.expand_path(config["dest_dir"])
-      @environment = config["environment"]
-      @staging_info_path = config["staging_info_path"]
-      @cache_dir = config["cache_dir"]
+      @app_dir = File.join(destination_directory, "app")
+      @log_dir = File.join(destination_directory, "logs")
+      @tmp_dir = File.join(destination_directory, "tmp")
+      @cache_dir ||= "/tmp/cache"
+      @buildpacks_path = Pathname.new(__FILE__) + '../../vendor/'
+
       @procfile = Procfile.new("#{app_dir}/Procfile")
-      @services = Services.new(@environment["services"])
-    end
-
-    def app_dir
-      File.join(destination_directory, "app")
-    end
-
-    def log_dir
-      File.join(destination_directory, "logs")
-    end
-
-    def tmp_dir
-      File.join(destination_directory, "tmp")
-    end
-
-    def cache_dir
-      @cache_dir || "/tmp/cache"
-    end
-
-    def script_dir
-      destination_directory
-    end
-
-    def application_memory
-      if environment["resources"] && environment["resources"]["memory"]
-        environment["resources"]["memory"]
-      else
-        512 #MB
-      end
-    end
-
-    def generate_startup_script(env_vars = {})
-      after_env_before_script = block_given? ? yield : "\n"
-      <<-SCRIPT.gsub(/^\s{8}/, "")
-        #!/bin/bash
-        #{environment_statements_for(env_vars)}
-      #{after_env_before_script}
-        DROPLET_BASE_DIR=$PWD
-        cd app
-        (#{start_command}) > >(tee $DROPLET_BASE_DIR/logs/stdout.log) 2> >(tee $DROPLET_BASE_DIR/logs/stderr.log >&2) &
-        STARTED=$!
-        echo "$STARTED" >> $DROPLET_BASE_DIR/run.pid
-        wait $STARTED
-      SCRIPT
-    end
-
-    # Generates newline-separated exports for the specified environment variables.
-    # If the value of one of the keys is false or nil, it will be an 'unset' instead of an 'export'
-    def environment_statements_for(vars)
-      # Passed vars should overwrite common vars
-      common_env_vars = { "TMPDIR" => tmp_dir.gsub(destination_directory,"$PWD") }
-      vars = common_env_vars.merge(vars)
-      lines = []
-      vars.each do |name, value|
-        if value
-          lines << "export #{name}=\"#{value}\""
-        else
-          lines << "unset #{name}"
-        end
-      end
-      lines.sort.join("\n")
-    end
-
-    def create_app_directories
-      FileUtils.mkdir_p(app_dir)
-      FileUtils.mkdir_p(log_dir)
-      FileUtils.mkdir_p(tmp_dir)
-    end
-
-    def create_startup_script
-      path = File.join(script_dir, 'startup')
-      File.open(path, 'wb') do |f|
-        f.puts startup_script
-      end
-      FileUtils.chmod(0500, path)
-    end
-
-    def copy_source_files(dest=nil)
-      system "cp -a #{File.join(source_directory, ".")} #{dest || app_dir}"
-      FileUtils.chmod_R(0744, app_dir)
     end
 
     def stage_application
@@ -131,14 +59,58 @@ module Buildpacks
         compile_with_timeout(staging_timeout)
 
         stage_rails_console if rails_buildpack?(build_pack)
-        create_startup_script
         save_buildpack_info
       end
+    end
+
+    def create_app_directories
+      FileUtils.mkdir_p(app_dir)
+      FileUtils.mkdir_p(log_dir)
+      FileUtils.mkdir_p(tmp_dir)
+    end
+
+    def copy_source_files
+      system "cp -a #{File.join(source_directory, ".")} #{app_dir}"
+      FileUtils.chmod_R(0744, app_dir)
     end
 
     def compile_with_timeout(timeout)
       Timeout.timeout(timeout) do
         build_pack.compile
+      end
+    end
+
+    def save_buildpack_info
+      buildpack_info = {
+        "detected_buildpack"  => build_pack.name,
+        "start_command" => start_command # TODO: change to just release info; calculate start command at runtime not compile time
+      }
+
+      File.open(File.join(destination_directory, staging_info_name), 'w') { |f| YAML.dump(buildpack_info, f) }
+    end
+
+    def build_pack
+      @build_pack ||= begin
+        custom_buildpack_url = environment["buildpack"]
+        if custom_buildpack_url
+          clone_buildpack(custom_buildpack_url)
+        else
+          build_pack = installers.detect(&:detect)
+          raise "Unable to detect a supported application type" unless build_pack
+          build_pack
+        end
+      end
+    end
+
+    private
+
+    def release_info
+      build_pack.release_info
+    end
+
+    def installers
+      buildpacks_path.children.map do |buildpack|
+        Buildpacks::Installer.new(buildpack, app_dir, cache_dir)
       end
     end
 
@@ -149,78 +121,11 @@ module Buildpacks
       Buildpacks::Installer.new(Pathname.new(buildpack_path), app_dir, cache_dir)
     end
 
-    def build_pack
-      return @build_pack if @build_pack
-
-      custom_buildpack_url = environment["buildpack"]
-      return @build_pack = clone_buildpack(custom_buildpack_url) if custom_buildpack_url
-
-      @build_pack = installers.detect(&:detect)
-      raise "Unable to detect a supported application type" unless @build_pack
-
-      @build_pack
-    end
-
-    def buildpacks_path
-      Pathname.new(__FILE__) + '../../vendor/'
-    end
-
-    def installers
-      buildpacks_path.children.map do |buildpack|
-        Buildpacks::Installer.new(buildpack, app_dir, cache_dir)
-      end
-    end
-
     def start_command
       return environment["meta"]["command"] if environment["meta"] && environment["meta"]["command"]
       procfile.web ||
         release_info.fetch("default_process_types", {})["web"] ||
-          raise("Please specify a web start command in your manifest.yml or Procfile")
-    end
-
-    def startup_script
-      generate_startup_script(running_environment_variables) do
-        script_content = <<-BASH
-unset GEM_PATH
-if [ -d app/.profile.d ]; then
-  for i in app/.profile.d/*.sh; do
-    if [ -r $i ]; then
-      . $i
-    fi
-  done
-  unset i
-fi
-env > logs/env.log
-BASH
-        script_content += console_start_script if rails_buildpack?(build_pack)
-        script_content
-      end
-    end
-
-    def release_info
-      build_pack.release_info
-    end
-
-    def save_buildpack_info
-      buildpack_info = {
-        "detected_buildpack"  => @build_pack.name
-      }
-
-      File.open(staging_info_path, 'w') { |f| YAML.dump(buildpack_info, f) }
-    end
-
-    def running_environment_variables
-      vars = release_info['config_vars'] || {}
-      vars.each { |k, v| vars[k] = "${#{k}:-#{v}}" }
-      vars["HOME"] = "$PWD/app"
-      vars["PORT"] = "$VCAP_APP_PORT"
-      vars["DATABASE_URL"] = @services.database_uri if rails_buildpack?(build_pack) && @services.database_uri
-      vars["MEMORY_LIMIT"] = "#{application_memory}m"
-      vars
-    end
-
-    def staging_timeout
-      ENV.fetch("STAGING_TIMEOUT", "900").to_i
+        raise("Please specify a web start command in your manifest.yml or Procfile")
     end
   end
 end

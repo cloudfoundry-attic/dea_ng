@@ -24,6 +24,7 @@ gem "vmstat"
 gem "sys-filesystem"
 
 group :test do
+  gem "debugger"
   gem "timecop"
   gem "patron"
   gem "foreman"

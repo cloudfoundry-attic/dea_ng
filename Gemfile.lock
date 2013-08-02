@@ -79,8 +79,15 @@ GEM
       yajl-ruby (~> 1.1)
     ci_reporter (1.7.0)
       builder (>= 2.1.2)
+    columnize (0.3.6)
     cookiejar (0.3.0)
     daemons (1.1.9)
+    debugger (1.6.0)
+      columnize (>= 0.3.1)
+      debugger-linecache (~> 1.2.0)
+      debugger-ruby_core_source (~> 1.2.1)
+    debugger-linecache (1.2.0)
+    debugger-ruby_core_source (1.2.3)
     descendants_tracker (0.0.1)
     diff-lcs (1.2.1)
     em-http-request (1.0.3)
@@ -193,6 +200,7 @@ PLATFORMS
 
 DEPENDENCIES
   ci_reporter
+  debugger
   em-http-request
   em-warden-client!
   eventmachine

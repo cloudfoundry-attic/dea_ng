@@ -1,5 +1,5 @@
-module Buildpacks
-  class Services
+module Dea
+  class DatabaseUriGenerator
     VALID_DB_TYPES = %w[mysql mysql2 postgres postgresql].freeze
     DATABASE_TO_ADAPTER_MAPPING = {
       'mysql' => 'mysql2',

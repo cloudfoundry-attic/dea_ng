@@ -1,9 +1,7 @@
 # coding: UTF-8
 
 require "spec_helper"
-
 require "vcap/common"
-
 require "dea/env"
 
 describe Dea::Env do
@@ -21,30 +19,12 @@ describe Dea::Env do
         "user" => "password",
         "host" => "host",
         "port" => "port",
+        "uri"  => "postgres://user:pass@host/db"
       },
       "invalid"     => "invalid",
     }
   end
-
-  let(:instance_attributes) do
-    {
-      "instance_id"         => VCAP.secure_uuid,
-      "instance_index"      => 37,
-
-      "application_id"      => 37,
-      "application_version" => "some_version",
-      "application_name"    => "my_application",
-      "application_uris"    => ["foo.com", "bar.com"],
-
-      "droplet_sha1"        => "deadbeef",
-      "droplet_uri"         => "http://foo.com/file.ext",
-
-      "limits"              => { "mem" => 1, "disk" => 2, "fds" => 3 },
-      "environment"         => { "FOO" => "BAR" },
-      "services"            => { "name" => "redis", "type" => "redis" },
-      "flapping"            => false,
-    }
-  end
+  let(:services) { [service] }
 
   let(:instance) do
     mock("Dea::Instance")
@@ -54,14 +34,9 @@ describe Dea::Env do
     Dea::Env.new(instance)
   end
 
-  describe "#services_for_json" do
-    let(:services) do
-      [service]
-    end
 
-    let(:services_for_json) do
-      env.services_for_json
-    end
+  describe "#services_for_json" do
+    let(:services_for_json) { env.send(:services_for_json) }
 
     before do
       instance.stub(:services).and_return(services)
@@ -116,8 +91,25 @@ describe Dea::Env do
   end
 
   describe "#application_for_json" do
-    let(:application_for_json) do
-      env.application_for_json
+    let(:application_for_json) { env.send(:application_for_json) }
+    let(:instance_attributes) do
+      {
+        "instance_id"         => VCAP.secure_uuid,
+        "instance_index"      => 37,
+
+        "application_id"      => 37,
+        "application_version" => "some_version",
+        "application_name"    => "my_application",
+        "application_uris"    => ["foo.com", "bar.com"],
+
+        "droplet_sha1"        => "deadbeef",
+        "droplet_uri"         => "http://foo.com/file.ext",
+
+        "limits"              => { "mem" => 1, "disk" => 2, "fds" => 3 },
+        "environment"         => { "FOO" => "BAR" },
+        "services"            => { "name" => "redis", "type" => "redis" },
+        "flapping"            => false,
+      }
     end
 
     before do
@@ -183,7 +175,7 @@ describe Dea::Env do
     end
   end
 
-  describe "#env" do
+  describe "#system_environment_variables" do
     let(:application_for_json) do
       {
         "host"        => "localhost",
@@ -215,18 +207,18 @@ describe Dea::Env do
       instance.stub(:instance_container_port).and_return(4567)
       instance.stub(:instance_debug_container_port).and_return(4568)
       instance.stub(:instance_console_container_port).and_return(4569)
-      instance.stub(:services).and_return([service])
+      instance.stub(:services).and_return(services)
 
       instance.stub(:debug).and_return(nil)
 
-      instance.stub(:environment).and_return({ "ENVIRONMENT" => "yep" })
+      instance.stub(:limits).and_return({ "mem" => 1, "disk" => 2, "fds" => 3 })
       instance.stub(:bootstrap).and_return do
         mock("bootstrap", :config => {})
       end
     end
 
     def find(key)
-      pair = subject.env.find { |e| e[0] == key }
+      pair = subject.system_environment_variables.find { |e| e[0] == key }
       pair[1] if pair
     end
 
@@ -263,12 +255,34 @@ describe Dea::Env do
       find("VCAP_DEBUG_MODE").should_not be
     end
 
-    it "includes the user-specified environment" do
-      find("ENVIRONMENT").should be
+    it "includes HOME environment var" do
+      find("HOME").should == "'$PWD/app'"
     end
 
-    it "wraps user-specified environment in double quotes if it isn't already" do
-      find("ENVIRONMENT").should == %{"yep"}
+    it "includes PORT environment var" do
+      find("PORT").should == "'$VCAP_APP_PORT'"
+    end
+
+    it "includes MEMORY_LIMIT environment var in MB" do
+      find("MEMORY_LIMIT").should == "'1m'"
+    end
+
+    it "includes TMPDIR environment var in MB" do
+      find("TMPDIR").should == "'$PWD/tmp'"
+    end
+
+    context "when it has a DB" do
+      it "include a DATABASE_URL" do
+        find("DATABASE_URL").should == "'postgresql://user:pass@host/db'"
+      end
+    end
+
+    context "when it has no DB" do
+      let(:services) { [] }
+
+      it "doesn't include DATABASE_URL" do
+        find("DATABASE_URL").should be_nil
+      end
     end
 
     context "when in debug mode" do
@@ -280,4 +294,17 @@ describe Dea::Env do
       end
     end
   end
+
+  describe "#user_environment_variables" do
+    before do
+      instance.stub(:environment).and_return({ 'FOO' => '"BAR"' })
+    end
+
+    it "includes the user-specified environment in double quotes" do
+      expect(subject.user_environment_variables).to eq([['FOO', '"BAR"']])
+    end
+  end
+
+  xit "shell escapes the values"
+  xit "should write the export or unset string"
 end

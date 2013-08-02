@@ -1,8 +1,9 @@
 require "spec_helper"
+require "dea/starting/database_uri_generator"
 
-describe Buildpacks::Services, :type => :buildpack do
+describe Dea::DatabaseUriGenerator do
   let(:services_env) { [{"credentials" => {"uri" => "postgres://username:password@host/db"}}] }
-  let(:services) { Buildpacks::Services.new(services_env) }
+  let(:services) { Dea::DatabaseUriGenerator.new(services_env) }
 
   describe "#database_uri" do
     subject(:database_uri) { services.database_uri }
@@ -10,6 +11,7 @@ describe Buildpacks::Services, :type => :buildpack do
     context "when there are relational database services" do
       context "and there uri is for mysql" do
         let(:services_env) { [{"credentials" => {"uri" => "mysql://username:password@host/db"}}] }
+
         it { should eq "mysql2://username:password@host/db" }
       end
 

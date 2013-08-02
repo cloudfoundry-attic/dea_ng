@@ -3,6 +3,7 @@
 require "steno"
 require "steno/core_ext"
 require "yajl"
+require "dea/starting/database_uri_generator"
 
 module Dea
   class Env
@@ -11,6 +12,51 @@ module Dea
     def initialize(instance)
       @instance = instance
     end
+
+    def system_environment_variables
+      application = application_for_json
+      services    = services_for_json
+
+      env = []
+      env << ["HOME", "$PWD/app"]
+      env << ["PORT", "$VCAP_APP_PORT"]
+      env << ["DATABASE_URL", DatabaseUriGenerator.new(instance.services).database_uri] if instance.services.any?
+      env << ["TMPDIR", "$PWD/tmp"]
+      env << ["MEMORY_LIMIT", "#{instance.limits.fetch("mem")}m"]
+
+      env << ["VCAP_APPLICATION",  Yajl::Encoder.encode(application)]
+      env << ["VCAP_SERVICES",     Yajl::Encoder.encode(services)]
+
+      env << ["VCAP_APP_HOST",     application["host"]]
+      env << ["VCAP_APP_PORT",     instance.instance_container_port]
+
+      env << ["VCAP_CONSOLE_IP",   application["host"]]
+      env << ["VCAP_CONSOLE_PORT", instance.instance_console_container_port]
+
+      if instance.debug
+        env << ["VCAP_DEBUG_IP",     application["host"]]
+        env << ["VCAP_DEBUG_PORT",   instance.instance_debug_container_port]
+        # Set debug environment for buildpacks to process
+        env << ["VCAP_DEBUG_MODE", instance.debug]
+      end
+
+      # Wrap variables above in single quotes (no interpolation)
+      env = env.map do |(key, value)|
+        [key, %{'%s'} % value.to_s]
+      end
+
+      env
+    end
+
+    def user_environment_variables
+      translate_env(instance.environment)
+    end
+
+    def all_envs_with_user_last
+      system_environment_variables + user_environment_variables
+    end
+
+    private
 
     # The format used by VCAP_SERVICES
     def services_for_json
@@ -73,38 +119,6 @@ module Dea
       hash["state_timestamp"] = hash["started_at_timestamp"]
 
       hash
-    end
-
-    def env
-      application = application_for_json
-      services    = services_for_json
-
-      env = []
-      env << ["VCAP_APPLICATION",  Yajl::Encoder.encode(application)]
-      env << ["VCAP_SERVICES",     Yajl::Encoder.encode(services)]
-
-      env << ["VCAP_APP_HOST",     application["host"]]
-      env << ["VCAP_APP_PORT",     instance.instance_container_port]
-
-      env << ["VCAP_CONSOLE_IP",   application["host"]]
-      env << ["VCAP_CONSOLE_PORT", instance.instance_console_container_port]
-
-      if instance.debug
-        env << ["VCAP_DEBUG_IP",     application["host"]]
-        env << ["VCAP_DEBUG_PORT",   instance.instance_debug_container_port]
-        # Set debug environment for buildpacks to process
-        env << ["VCAP_DEBUG_MODE", instance.debug]
-      end
-
-      # Wrap variables above in single quotes (no interpolation)
-      env = env.map do |(key, value)|
-        [key, %{'%s'} % value.to_s]
-      end
-
-      # Include user-specified environment
-      env.concat(translate_env(instance.environment))
-
-      env
     end
 
     def translate_env(env)

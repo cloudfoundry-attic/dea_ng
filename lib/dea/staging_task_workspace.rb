@@ -12,12 +12,6 @@ module Dea
     end
 
     def workspace_dir
-      #return @workspace_dir if @workspace_dir
-      #staging_base_dir = File.join(@base_dir, "staging")
-      #@workspace_dir = Dir.mktmpdir(nil, staging_base_dir)
-      #File.chmod(0755, @workspace_dir)
-      #@workspace_dir
-
       @workspace_dir ||= begin
         staging_dir = File.join(@base_dir, "staging")
         FileUtils.mkdir_p(staging_dir)
@@ -53,11 +47,11 @@ module Dea
     end
 
     def warden_staging_log
-      "/tmp/staged/logs/#{STAGING_LOG}"
+      "#{warden_staged_dir}/logs/#{STAGING_LOG}"
     end
 
     def warden_staging_info
-      "/tmp/#{STAGING_INFO}"
+      "#{warden_staged_dir}/#{STAGING_INFO}"
     end
 
     def staged_droplet_path

@@ -14,6 +14,7 @@ require "dea/promise"
 require "dea/stat_collector"
 require "dea/task"
 require "dea/utils/event_emitter"
+require "dea/starting/startup_script_generator"
 
 module Dea
   class Instance < Task
@@ -429,29 +430,25 @@ module Dea
     end
 
     def promise_start
+      env = Env.new(self)
+
+      start_script = if task_info
+        Dea::StartupScriptGenerator.new(
+          task_info.fetch("start_command"),
+          env.system_environment_variables,
+          env.user_environment_variables,
+          task_info.fetch("detected_buildpack")
+        ).generate
+      else
+        env.all_envs_with_user_last.inject("") do |memo, (key, value)|
+          memo << "export %s=%s\n" % [key, value]
+        end << "./startup;\nexit"
+      end
+
       Promise.new do |p|
-        script = []
-
-        script << "umask 077"
-
-        env = Env.new(self)
-        env.env.each do |(key, value)|
-          script << "export %s=%s" % [key, value]
-        end
-
-        startup = "./startup"
-
-        # Pass port to `startup` if we have one
-        if self.instance_host_port
-          startup << " -p %d" % self.instance_host_port
-        end
-
-        script << startup
-        script << "exit"
-
         request = ::Warden::Protocol::SpawnRequest.new
         request.handle = attributes["warden_handle"]
-        request.script = script.join("\n")
+        request.script = start_script
 
         request.rlimits = ::Warden::Protocol::ResourceLimits.new
         request.rlimits.nofile = self.file_descriptor_limit
@@ -473,7 +470,7 @@ module Dea
             script = []
             script << "umask 077"
             env = Env.new(self)
-            env.env.each do |k, v|
+            env.all_envs_with_user_last.each do |k, v|
               script << "export %s=%s" % [k, v]
             end
             script << File.read(script_path)
@@ -808,6 +805,14 @@ module Dea
 
     def stat_collector
       @stat_collector ||= StatCollector.new(container)
+    end
+
+    def task_info
+      @task_info ||= begin
+        staging_file_name = "./staging_info.yml"
+        copy_out_request(File.expand_path("/home/vcap/#{staging_file_name}"), ".")
+        YAML.load_file(staging_file_name) if File.exists?(staging_file_name)
+      end
     end
 
     private

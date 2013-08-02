@@ -18,28 +18,21 @@ module StagingSpecHelpers
       "environment" => []
     }.merge(stringified_config)
 
-    config["staging_info_path"] = staging_info_path
-
     Buildpacks::Buildpack.new(config).stage_application
     Dir.chdir(working_dir) do
       yield Pathname.new(working_dir) if block_given?
     end
   ensure
     FileUtils.rm_r(working_dir) if working_dir
-    FileUtils.rm_f(staging_info_path)
   end
 
-  def staging_info_path
-    @staging_info_path ||= Tempfile.new("staging_info").path
+  def app_source
+    app_fixture_base_directory.join(@app_fixture).to_s
   end
 
   private
 
   def app_fixture_base_directory
     Pathname.new(File.expand_path('../../fixtures/apps', __FILE__))
-  end
-
-  def app_source
-    app_fixture_base_directory.join(@app_fixture).to_s
   end
 end
