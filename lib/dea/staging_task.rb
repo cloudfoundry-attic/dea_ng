@@ -157,6 +157,7 @@ module Dea
         "source_dir" => workspace.warden_unstaged_dir,
         "dest_dir" => workspace.warden_staged_dir,
         "cache_dir" => workspace.warden_cache,
+        "environment" => attributes["properties"],
         "staging_info_name" => Dea::StagingTaskWorkspace::STAGING_INFO
       }
 

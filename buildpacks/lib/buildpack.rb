@@ -23,8 +23,7 @@ module Buildpacks
     end
 
     def self.argfail!(args)
-      puts "Invalid arguments for staging: #{args.inspect}"
-      exit 1
+      fail "Invalid arguments for staging: #{args.inspect}"
     end
 
     def self.from_file(file_path)
@@ -86,7 +85,9 @@ module Buildpacks
         "start_command" => start_command # TODO: change to just release info; calculate start command at runtime not compile time
       }
 
-      File.open(File.join(destination_directory, staging_info_name), 'w') { |f| YAML.dump(buildpack_info, f) }
+      File.open(File.join(destination_directory, staging_info_name), 'w') do |f|
+        YAML.dump(buildpack_info, f)
+      end
     end
 
     def build_pack

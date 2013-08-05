@@ -146,7 +146,7 @@ fi
 
       it "puts in the cf-rails-console app files" do
         FileUtils.should_receive(:mkdir_p).with(File.expand_path("fakedestdir/app/cf-rails-console"))
-        FileUtils.should_receive(:cp_r).with(%r{.+dea_ng/buildpacks/lib/resources/cf-rails-console}, File.expand_path("fakedestdir/app"))
+        FileUtils.should_receive(:cp_r).with(%r{.+buildpacks/lib/resources/cf-rails-console}, File.expand_path("fakedestdir/app"))
 
         build_pack.stage_rails_console
       end

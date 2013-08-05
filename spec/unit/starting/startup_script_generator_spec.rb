@@ -2,8 +2,8 @@ require "spec_helper"
 require "dea/starting/startup_script_generator"
 
 describe Dea::StartupScriptGenerator do
-  let(:user_envs) { [["usr1", "'usrval1'"], ["usr2", "'usrval2'"], ["unset_var", nil]] }
-  let(:system_envs) { [["usr1", "'sys_user_val1'"], ["sys1", "'sysval1'"]] }
+  let(:user_envs) { %Q{export usr1="usrval1";\nexport usr2="usrval2";\nunset unset_var;\n} }
+  let(:system_envs) { %Q{export usr1="sys_user_val1";\nexport sys1="sysval1";\n} }
   let(:used_buildpack) { '' }
   let(:start_command) { 'go_nuts' }
 
@@ -20,17 +20,11 @@ describe Dea::StartupScriptGenerator do
 
     describe "environment variables" do
       it "exports the user env variables" do
-        script.should include "export usr1='usrval1';"
-        script.should include "export usr2='usrval2';"
-      end
-
-      it "unsets any blank user variables" do
-        script.should include "unset unset_var;"
+        script.should include user_envs
       end
 
       it "exports the system env variables" do
-        script.should include "export usr1='sys_user_val1';"
-        script.should include "export sys1='sysval1';"
+        script.should include system_envs
       end
 
       it "sources the buildpack env variables" do
@@ -39,11 +33,11 @@ describe Dea::StartupScriptGenerator do
       end
 
       it "exports user variables after system variables" do
-        script.should match /usr1='sys_user_val1'.*usr1='usrval1'/m
+        script.should match /usr1="sys_user_val1".*usr1="usrval1"/m
       end
 
       it "exports build pack variables after system variables" do
-        script.should match /'sysval1'.*\.profile\.d/m
+        script.should match /"sysval1".*\.profile\.d/m
       end
 
       it "sets user variables after buildpack variables" do

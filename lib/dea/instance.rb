@@ -114,16 +114,15 @@ module Dea
     def self.translate_attributes(attributes)
       attributes = attributes.dup
 
-      attributes["instance_index"]      ||= attributes.delete("index")
+      transfer_attr_with_existance_check(attributes, "instance_index", "index")
+      transfer_attr_with_existance_check(attributes, "application_version", "version")
+      transfer_attr_with_existance_check(attributes, "application_name", "name")
+      transfer_attr_with_existance_check(attributes, "application_uris", "uris")
 
-      attributes["application_id"]      ||= attributes.delete("droplet").to_s
-      attributes["tags"]                ||= attributes.delete("tags") { |_| {} }
-      attributes["application_version"] ||= attributes.delete("version")
-      attributes["application_name"]    ||= attributes.delete("name")
-      attributes["application_uris"]    ||= attributes.delete("uris")
-
-      attributes["droplet_sha1"]        ||= attributes.delete("sha1")
-      attributes["droplet_uri"]         ||= attributes.delete("executableUri")
+      attributes["application_id"] ||= attributes.delete("droplet").to_s if attributes["droplet"]
+      attributes["tags"] ||= attributes.delete("tags") { |_| {} } if attributes["tags"]
+      attributes["droplet_sha1"] ||= attributes.delete("sha1")
+      attributes["droplet_uri"] ||= attributes.delete("executableUri")
 
       # Translate environment to dictionary (it is passed as Array with VAR=VAL)
       env = attributes.delete("env") || []
@@ -135,6 +134,10 @@ module Dea
       end]
 
       attributes
+    end
+
+    def self.transfer_attr_with_existance_check(attr, new_key, old_key)
+      attr[new_key] ||= attr.delete(old_key) if attr[old_key]
     end
 
     def self.limits_schema
@@ -246,12 +249,12 @@ module Dea
     attr_accessor :exit_status
     attr_accessor :exit_description
 
-    def initialize(bootstrap, attributes, raw_attributes)
+    def initialize(bootstrap, attributes)
       super(bootstrap.config)
       @bootstrap = bootstrap
 
-      @attributes = attributes.dup
-      @raw_attributes = raw_attributes
+      @raw_attributes = attributes.dup
+      @attributes = Instance.translate_attributes(@raw_attributes)
       @attributes["application_uris"] ||= []
 
       # Generate unique ID
@@ -328,7 +331,7 @@ module Dea
     end
 
     def validate
-      self.class.schema.validate(@attributes)
+      self.class.schema.validate(attributes)
     end
 
     def state
@@ -431,22 +434,23 @@ module Dea
     end
 
     def promise_start
-      env = Env.new(@raw_attributes, self)
-
-      start_script = if task_info
-        Dea::StartupScriptGenerator.new(
-          task_info.fetch("start_command"),
-          env.system_environment_variables,
-          env.user_environment_variables,
-          task_info.fetch("detected_buildpack")
-        ).generate
-      else
-        env.all_envs_with_user_last.inject("") do |memo, (key, value)|
-          memo << "export %s=%s\n" % [key, value]
-        end << "./startup;\nexit"
-      end
-
       Promise.new do |p|
+        env = Env.new(@raw_attributes, self)
+
+        start_script =
+          if staged_info
+             Dea::StartupScriptGenerator.new(
+               staged_info.fetch("start_command"),
+               env.exported_user_environment_variables,
+               env.exported_system_environment_variables,
+               staged_info.fetch("detected_buildpack")
+             ).generate
+           else
+             env.exported_environment_variables + "./startup;\nexit"
+           end
+
+        log(:info, "foo.bal", staged_info: staged_info, start_script: start_script)
+
         request = ::Warden::Protocol::SpawnRequest.new
         request.handle = attributes["warden_handle"]
         request.script = start_script
@@ -470,10 +474,7 @@ module Dea
           if File.exist?(script_path)
             script = []
             script << "umask 077"
-            env = Env.new(self)
-            env.all_envs_with_user_last.each do |k, v|
-              script << "export %s=%s" % [k, v]
-            end
+            script << Env.new(@raw_attributes, self).exported_environment_variables
             script << File.read(script_path)
             script << "exit"
             promise_warden_run(:app, script.join("\n")).resolve
@@ -808,11 +809,15 @@ module Dea
       @stat_collector ||= StatCollector.new(container)
     end
 
-    def task_info
-      @task_info ||= begin
-        staging_file_name = "./staging_info.yml"
-        copy_out_request(File.expand_path("/home/vcap/#{staging_file_name}"), ".")
-        YAML.load_file(staging_file_name) if File.exists?(staging_file_name)
+    def staged_info
+      @staged_info ||= begin
+        destination_dir = Dir.mktmpdir
+        staging_file_name = "staging_info.yml"
+        copied_file_name = "#{destination_dir}/#{staging_file_name}"
+
+        copy_out_request("/home/vcap/#{staging_file_name}", destination_dir)
+
+        YAML.load_file(copied_file_name) if File.exists?(copied_file_name)
       end
     end
 

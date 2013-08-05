@@ -45,25 +45,13 @@ module Dea
     def generate
       script = []
       script << "umask 077"
-      script << export_envs(@system_envs)
+      script << @system_envs
       script << EXPORT_BUILDPACK_ENV_VARIABLES_SCRIPT
-      script << export_envs(@user_envs)
+      script << @user_envs
       script << "env > logs/env.log"
       script << RAILS_CONSOLE_SCRIPT if @used_buildpack == "Ruby/Rails"
       script << START_SCRIPT % @start_command
       script.join("\n")
-    end
-
-    private
-
-    def export_envs(envs)
-      envs.map do |(key, value)|
-        if value
-          "export %s=%s;" % [key, value]
-        else
-          "unset %s;" % key
-        end
-      end
     end
   end
 end

@@ -33,9 +33,11 @@ describe "Staging a ruby app", :type => :integration, :requires_warden => true d
       end
     end
 
-    and_by "starting the app with the correct DATABASE_URL" do
+    and_by "starting the app" do
       download_tgz(staged_url) do |dir|
-        expect(File.read("#{dir}/startup")).to include('export DATABASE_URL="mysql2://some_user:some_password@some-db-provider.com:3306/db_name"')
+        staging_info = File.read("#{dir}/staging_info.yml")
+        expect(staging_info).to include('start_command: ')
+        expect(staging_info).to include('detected_buildpack: ')
       end
     end
   end

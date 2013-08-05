@@ -33,7 +33,7 @@ describe Dea::Instance do
     end
 
     subject(:instance) do
-      Dea::Instance.new(bootstrap, Dea::Instance.translate_attributes(start_message.data))
+      Dea::Instance.new(bootstrap, start_message.data)
     end
 
     describe "instance attributes" do
@@ -133,6 +133,7 @@ describe Dea::Instance do
     it "should raise when attributes are missing" do
       attributes = valid_instance_attributes.dup
       attributes.delete("application_id")
+      attributes.delete("droplet")
       instance = Dea::Instance.new(bootstrap, attributes)
 
       expect { instance.validate }.to raise_error
@@ -844,15 +845,15 @@ describe Dea::Instance do
       let(:response) { mock("spawn_response", job_id: 37) }
       let(:env) do
         double("environment 1",
-          all_envs_with_user_last: [['system', 'sytem_value'], ['user', 'user_value']],
-          user_environment_variables: [['user', 'user_value']],
-          system_environment_variables: [['system', 'sytem_value']]
+          exported_environment_variables: 'system="sytem_value";\nexport user="user_value";\n',
+          exported_user_environment_variables: 'user="user_value";\n',
+          exported_system_environment_variables: 'system="sytem_value";\n'
         )
       end
 
       before do
         instance.unstub(:promise_start)
-        instance.stub(:task_info).and_return(nil)
+        instance.stub(:staged_info).and_return(nil)
         Dea::Env.stub(:new).and_return(env)
       end
 
@@ -893,7 +894,7 @@ describe Dea::Instance do
 
       context "when there is a task info yaml in the droplet" do
         before do
-          instance.stub(:task_info).and_return(
+          instance.stub(:staged_info).and_return(
             "detected_buildpack" => "FakeBuildpack",
             "start_command" => "fake_start_command.sh"
           )
@@ -904,8 +905,8 @@ describe Dea::Instance do
         it "generates the correct script" do
           Dea::StartupScriptGenerator.should_receive(:new).with(
             "fake_start_command.sh",
-            env.system_environment_variables,
-            env.user_environment_variables,
+            env.exported_user_environment_variables,
+            env.exported_system_environment_variables,
             "FakeBuildpack"
           ).and_return(generator)
           expect_start
@@ -1025,9 +1026,7 @@ describe Dea::Instance do
           runtime
         end
 
-        let(:env) do
-          double("environment", :all_envs_with_user_last => [["A", "B"]])
-        end
+        let(:env) { double("environment", exported_environment_variables: "export A=B;\n") }
 
         before do
           Dea::Env.stub(:new).with(instance).and_return(env)
@@ -1406,12 +1405,12 @@ describe Dea::Instance do
     end
   end
 
-  describe "#task_info" do
+  describe "#staged_info" do
     before do
       instance.stub(:copy_out_request)
     end
 
-    context 'when the files does exist' do
+    context "when the files does exist" do
       before do
         YAML.stub(:load_file).and_return(a: 1)
         File.stub(:exists?).
@@ -1420,25 +1419,25 @@ describe Dea::Instance do
       end
 
       it "sends copying out request" do
-        instance.should_receive(:copy_out_request).with("/home/vcap/staging_info.yml", ".")
-        instance.task_info
+        instance.should_receive(:copy_out_request).with("/home/vcap/staging_info.yml", instance_of(String))
+        instance.staged_info
       end
 
       it "reads the file from the copy out" do
-        YAML.should_receive(:load_file).with("./staging_info.yml")
-        expect(instance.task_info).to eq(a: 1)
+        YAML.should_receive(:load_file).with(/.+staging_info\.yml/)
+        expect(instance.staged_info).to eq(a: 1)
       end
 
       it "should only be called once" do
         YAML.should_receive(:load_file).once
-        instance.task_info
-        instance.task_info
+        instance.staged_info
+        instance.staged_info
       end
     end
 
     context "when the yaml file does not exist" do
       it "returns nil" do
-        expect(instance.task_info).to be_nil
+        expect(instance.staged_info).to be_nil
       end
     end
   end

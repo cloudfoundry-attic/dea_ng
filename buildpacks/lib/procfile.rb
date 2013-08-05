@@ -8,7 +8,7 @@ module Buildpacks
       @contents ||= begin
         if File.exists?(@path)
           contents = YAML.load(File.read(@path))
-          raise(ArgumentError, "Invalid Procfile format.  Please ensure it is a valid YAML hash") unless contents.is_a? Hash
+          raise(ArgumentError, "Invalid Procfile format. Please ensure it is a valid YAML hash") unless contents.is_a? Hash
           contents
         end
       end

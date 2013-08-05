@@ -387,16 +387,14 @@ module Dea
     end
 
     def create_instance(attributes)
-      translated_attributes = Instance.translate_attributes(attributes)
-
-      unless resource_manager.could_reserve?(translated_attributes["limits"]["mem"], translated_attributes["limits"]["disk"])
-        message = "Unable to start instance: #{translated_attributes["instance_index"]}"
-        message << " for app: #{translated_attributes["application_id"]}, not enough resources available."
+      unless resource_manager.could_reserve?(attributes["limits"]["mem"], attributes["limits"]["disk"])
+        message = "Unable to start instance: #{attributes["instance_index"]}"
+        message << " for app: #{attributes["application_id"]}, not enough resources available."
         logger.error(message)
         return nil
       end
 
-      instance = Instance.new(self, translated_attributes, attributes)
+      instance = Instance.new(self, attributes)
       instance.setup
 
       instance.on(Instance::Transition.new(:starting, :crashed)) do

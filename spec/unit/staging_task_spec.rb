@@ -229,6 +229,11 @@ YAML
         expect(subject["cache_dir"]).to eq("/tmp/cache")
       end
 
+      it "includes the specified environment config" do
+        environment_config = attributes["properties"]
+        expect(subject["environment"]).to eq(environment_config)
+      end
+
       it "includes the staging info path" do
         expect(subject["staging_info_name"]).to eq("staging_info.yml")
       end
