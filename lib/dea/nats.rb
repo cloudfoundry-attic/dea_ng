@@ -3,18 +3,18 @@
 require "steno"
 require "steno/core_ext"
 require "nats/client"
+require "dea/buildpack_manager"
 
 module Dea
   class Nats
-    attr_reader :bootstrap
-    attr_reader :config
-    attr_reader :sids
+    attr_reader :bootstrap, :config, :sids, :buildpack_manager
 
-    def initialize(bootstrap, config)
+    def initialize(bootstrap, config, buildpack_manager = BuildpackManager.new)
       @bootstrap = bootstrap
       @config    = config
       @sids      = {}
       @client    = nil
+      @buildpack_manager = buildpack_manager
     end
 
     def start
@@ -44,6 +44,14 @@ module Dea
 
       subscribe("dea.find.droplet") do |message|
         bootstrap.handle_dea_find_droplet(message)
+      end
+
+      subscribe("droplet.status") do |message|
+        bootstrap.handle_droplet_status(message)
+      end
+
+      subscribe("buildpacks.add") do |message|
+        buildpack_manager.add_buildpack(message)
       end
     end
 

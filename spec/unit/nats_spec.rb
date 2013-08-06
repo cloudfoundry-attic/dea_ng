@@ -34,7 +34,20 @@ describe Dea::Nats do
         nats_mock.receive_message(subject, data)
       end
     end
+
+    it "subscribes to \"buildpacks.add\"" do
+      message_name = "buildpacks.add"
+      data = { "subject" => message_name}
+
+      nats.buildpack_manager.should_receive(:add_buildpack).with(kind_of(Dea::Nats::Message)) do |message|
+        message.subject.should == message_name
+        message.data.should == data
+      end
+
+      nats_mock.receive_message(message_name, data)
+    end
   end
+
 
   describe "subscription teardown" do
     it "should unsubscribe from everything when stop is called" do
