@@ -729,7 +729,7 @@ module Dea
       end
     end
 
-    def promise_port_open(port)
+    def promise_port_open(port,timeout)
       Promise.new do |p|
         host = bootstrap.local_ip
 
@@ -741,13 +741,13 @@ module Dea
           hc.errback  { p.deliver(false) }
 
           if attributes["debug"] != "suspend"
-            hc.timeout(60)
+            hc.timeout(timeout)
           end
         end
       end
     end
 
-    def promise_state_file_ready(path)
+    def promise_state_file_ready(path,timeout)
       Promise.new do |p|
         log(:debug, "droplet.healthcheck.file", :path => path)
 
@@ -757,7 +757,7 @@ module Dea
           hc.errback { p.deliver(false) }
 
           if attributes["debug"] != "suspend"
-            hc.timeout(60 * 5)
+            hc.timeout(timeout)
           end
         end
       end
@@ -786,12 +786,17 @@ module Dea
           attributes["warden_host_ip"] = info.host_ip
 
           manifest = promise_read_instance_manifest(info.container_path).resolve
+          if manifest && manifest["start_timeout"]
+            start_timeout = manifest["start_timeout"]
+          else
+            start_timeout = 60
+          end
 
           if manifest && manifest["state_file"]
             manifest_path = container_relative_path(info.container_path, manifest["state_file"])
-            p.deliver(promise_state_file_ready(manifest_path).resolve)
+            p.deliver(promise_state_file_ready(manifest_path,start_timeout).resolve)
           elsif !application_uris.empty?
-            p.deliver(promise_port_open(instance_host_port).resolve)
+            p.deliver(promise_port_open(instance_host_port,start_timeout).resolve)
           else
             p.deliver(true)
           end
