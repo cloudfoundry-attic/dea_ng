@@ -160,3 +160,7 @@ The following log levels exist, shown with an example of what they are used for:
 * droplet.* - logging relevant to an app's instance
 * staging.* - logging relevant to the staging of an app's bits
 * dea.* - component-level logging for the DEA itself
+
+## Contributing
+
+Please read the [contributors' guide](https://github.com/cloudfoundry/dea_ng/blob/master/CONTRIBUTING.md)
