@@ -30,64 +30,53 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
       setup_fake_buildpack("start_command")
       fake_buildpack_url("start_command")
     end
-    let(:properties) { {"buildpack" => buildpack_url} }
+    let(:properties) { {"buildpack" => buildpack_url, "environment" => ["FOO=bar baz","BLAH=WHATEVER"]} }
 
-
-    it "downloads the buildpack and runs it" do
-      responses = nats.make_blocking_request("staging", start_staging_message, 2)
-
-      expect(responses[1]["error"]).to be_nil
-      log = responses[1]["task_log"]
-      expect(log).to include("-----> Downloaded app package")
-      expect(log).to include("-----> Uploading droplet")
-    end
-
-
-    it "uploads buildpack cache after staging" do
+    it "works" do
       buildpack_cache_file = File.join(FILE_SERVER_DIR, "buildpack_cache.tgz")
       FileUtils.rm_rf(buildpack_cache_file)
-      nats.make_blocking_request("staging", start_staging_message, 2)
-      expect(File.exist?(buildpack_cache_file)).to be_true
-    end
 
-    it "downloads buildpack cache before staging" do
-      nats.make_blocking_request("staging", start_staging_message, 2)
-      Dir.mktmpdir do |tmp|
-        Dir.chdir(tmp) do
-          `curl -s #{staged_url} | tar xfz -`
-          expect(File.exist?(File.join("app", "cached_file"))).to be_true
-        end
-      end
-    end
-
-    it "cleans buildpack cache between staging" do
-      nats.make_blocking_request("staging", start_staging_message, 2)
-      Dir.mktmpdir do |tmp|
-        Dir.chdir(tmp) do
-          buildpack_cache_file = File.join(FILE_SERVER_DIR, "buildpack_cache.tgz")
-          `tar -zxvf #{buildpack_cache_file}`
-          expect(File.exist?("new_cached_file")).to be_true
-          expect(File.exist?("cached_file")).to_not be_true
-        end
-      end
-    end
-  end
-
-  context "when environment variable was specified in staging request" do
-    let(:buildpack_url) do
-      setup_fake_buildpack("start_command")
-      fake_buildpack_url("start_command")
-    end
-    let(:properties) do
-      {
-        "buildpack" => buildpack_url,
-        "environment" => ["FOO=bar baz","BLAH=WHATEVER"]
-      }
-    end
-
-    it "has access to application environment variables" do
       responses = nats.make_blocking_request("staging", start_staging_message, 2)
-      expect(responses[1]["task_log"]).to include("-----> Env variables are: bar baz, WHATEVER;\n")
+
+      by "downloading the buildpack and runs it" do
+        expect(responses[1]["error"]).to be_nil
+        log = responses[1]["task_log"]
+        expect(log).to include("-----> Downloaded app package")
+        expect(log).to include("-----> Uploading droplet")
+      end
+
+      and_by "uploads buildpack cache after staging" do
+        expect(File.exist?(buildpack_cache_file)).to be_true
+      end
+
+      and_by "downloads buildpack cache before staging" do
+        Dir.mktmpdir do |tmp|
+          Dir.chdir(tmp) do
+            `curl -s #{staged_url} | tar xfz -`
+            expect(File.exist?(File.join("app", "cached_file"))).to be_true
+          end
+        end
+      end
+
+      and_by "cleans buildpack cache between staging" do
+        Dir.mktmpdir do |tmp|
+          Dir.chdir(tmp) do
+            buildpack_cache_file = File.join(FILE_SERVER_DIR, "buildpack_cache.tgz")
+            `tar -zxvf #{buildpack_cache_file}`
+            expect(File.exist?("new_cached_file")).to be_true
+            expect(File.exist?("cached_file")).to_not be_true
+          end
+        end
+      end
+
+      and_by "setting the correct user environment variables" do
+        expect(responses[1]["task_log"]).to include("FOO=bar baz")
+        expect(responses[1]["task_log"]).to include("BLAH=WHATEVER")
+      end
+
+      and_by "setting the correct system environment variables" do
+        #expect(responses[1]["task_log"]).to include("PORT=WHATEVER")
+      end
     end
   end
 

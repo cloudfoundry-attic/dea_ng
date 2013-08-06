@@ -9,7 +9,8 @@ if [ -d $2 ]; then
   touch $2/new_cached_file
 fi
 
-if [ "$FOO" = "bar baz" ] && [ "$BLAH" = "WHATEVER" ]; then
-  echo "-----> Env variables are: $FOO, $BLAH;"
-fi
+echo "-----> Env variables are:"
+env
+echo "-----> End"
+
 exit 0

@@ -22,12 +22,12 @@ describe Dea::DatabaseUriGenerator do
 
       context "and there uri is for postgres" do
         let(:services_env) { [{"credentials" => {"uri" => "postgres://username:password@host/db"}}] }
-        it { should eq "postgresql://username:password@host/db" }
+        it { should eq "postgres://username:password@host/db" }
       end
 
       context "and there uri is for postgresql" do
         let(:services_env) { [{"credentials" => {"uri" => "postgresql://username:password@host/db"}}] }
-        it { should eq "postgresql://username:password@host/db" }
+        it { should eq "postgres://username:password@host/db" }
       end
 
       context "and there are more than one production relational database" do
@@ -38,7 +38,7 @@ describe Dea::DatabaseUriGenerator do
           ]
         end
 
-        it { should eq "postgresql://username:password@host/db1" }
+        it { should eq "postgres://username:password@host/db1" }
       end
 
       context "and the uri is invalid" do

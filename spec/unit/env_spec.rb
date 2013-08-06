@@ -195,7 +195,7 @@ describe Dea::Env do
       it_exports "TMPDIR", "#{Dir.pwd}/tmp"
 
       context "when it has a DB" do
-        it_exports "DATABASE_URL", "postgresql://user:pass@host:5432/db"
+        it_exports "DATABASE_URL", "postgres://user:pass@host:5432/db"
       end
 
       context "when it does NOT have a DB" do
@@ -361,7 +361,7 @@ describe Dea::Env do
       it_exports "TMPDIR", "#{Dir.pwd}/tmp"
 
       context "when it has a DB" do
-        it_exports "DATABASE_URL", "postgresql://user:pass@host:5432/db"
+        it_exports "DATABASE_URL", "postgres://user:pass@host:5432/db"
       end
 
       context "when it does NOT have a DB" do
