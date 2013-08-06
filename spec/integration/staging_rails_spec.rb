@@ -11,16 +11,38 @@ describe "Staging a ruby app", :type => :integration, :requires_warden => true d
     valid_service_attributes.merge("label" => "cleardb", "credentials" => { "uri" => "mysql2://some_user:some_password@some-db-provider.com:3306/db_name"})
   end
 
-  let(:staged_responses) do
-    nats.make_blocking_request("staging", {
-        "app_id" => app_id,
-        "properties" => { "services" => [cleardb_service] },
-        "download_uri" => unstaged_url,
-        "upload_uri" => staged_url,
-        "buildpack_cache_upload_uri" => "http://localhost:9999/buildpack_cache",
-        "buildpack_cache_download_uri" => "http://localhost:9999/buildpack_cache"
-    }, 2)
+  let(:start_message) do
+    {
+      "index" => 1,
+      "droplet" => "some-app-id",
+      "version" => "some-version",
+      "name" => "some-app-name",
+      "uris" => [],
+      "prod" => false,
+      "sha1" => nil,
+      "executableUri" => nil,
+      "cc_partition" => "foo",
+      "limits" => {
+        "mem" => 64,
+        "disk" => 128,
+        "fds" => 32
+      },
+      "services" => []
+    }
   end
+  let(:staging_message) do
+    {
+      "app_id" => app_id,
+      "properties" => { "services" => [cleardb_service] },
+      "download_uri" => unstaged_url,
+      "upload_uri" => staged_url,
+      "buildpack_cache_upload_uri" => "http://localhost:9999/buildpack_cache",
+      "buildpack_cache_download_uri" => "http://localhost:9999/buildpack_cache",
+      "start_message" => start_message
+    }
+  end
+
+  let(:staged_responses) { nats.make_blocking_request("staging", staging_message, 2) }
 
   it "runs a rails 3 app" do
     by "staging the app" do

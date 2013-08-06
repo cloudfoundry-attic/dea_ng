@@ -7,16 +7,39 @@ describe "Staging a node app", :type => :integration, :requires_warden => true d
   let(:staged_url) { "http://localhost:9999/staged/node_with_procfile" }
   let(:properties) { {} }
 
-  subject(:staged_responses) do
-    nats.make_blocking_request("staging", {
-        "app_id" => "some-node-app-id",
-        "properties" => properties,
-        "download_uri" => unstaged_url,
-        "upload_uri" => staged_url,
-        "buildpack_cache_upload_uri" => "http://localhost:9999/buildpack_cache",
-        "buildpack_cache_download_uri" => "http://localhost:9999/buildpack_cache"
-    }, 2)
+  let(:start_message) do
+    {
+      "index" => 1,
+      "droplet" => "some-app-id",
+      "version" => "some-version",
+      "name" => "some-app-name",
+      "uris" => [],
+      "prod" => false,
+      "sha1" => nil,
+      "executableUri" => nil,
+      "cc_partition" => "foo",
+      "limits" => {
+        "mem" => 64,
+        "disk" => 128,
+        "fds" => 32
+      },
+      "services" => []
+    }
   end
+
+  let(:staging_message) do
+    {
+      "app_id" => "some-node-app-id",
+      "properties" => properties,
+      "download_uri" => unstaged_url,
+      "upload_uri" => staged_url,
+      "buildpack_cache_upload_uri" => "http://localhost:9999/buildpack_cache",
+      "buildpack_cache_download_uri" => "http://localhost:9999/buildpack_cache",
+      "start_message" => start_message
+    }
+  end
+
+  subject(:staged_responses) { nats.make_blocking_request("staging", staging_message, 2) }
 
   it "packages up the node dependencies and stages the app properly" do
     expect(staged_responses[1]["detected_buildpack"]).to eq("Node.js")

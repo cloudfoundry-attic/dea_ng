@@ -11,19 +11,22 @@ describe "Running a Java App", :type => :integration, :requires_warden => true d
   let(:original_memory) do
     dea_config["resources"]["memory_mb"] * dea_config["resources"]["memory_overcommit_factor"]
   end
+  let(:env) { ["crash=false"] }
 
-  let(:dea_stage_msg) do
+  let(:staging_message) do
     {
       "app_id" => app_id,
       "properties" => {},
       "download_uri" => unstaged_url,
       "upload_uri" => staged_url,
       "buildpack_cache_upload_uri" => "http://localhost:9999/buildpack_cache",
-      "buildpack_cache_download_uri" => "http://localhost:9999/buildpack_cache"
+      "buildpack_cache_download_uri" => "http://localhost:9999/buildpack_cache",
+      "start_message" => start_message,
+      "environment" => env
     }
   end
 
-  let(:dea_start_msg) do
+  let(:start_message) do
     {
       "index" => 1,
       "droplet" => app_id,
@@ -38,27 +41,27 @@ describe "Running a Java App", :type => :integration, :requires_warden => true d
         "disk" => 1024,
         "fds" => 999
       },
-      "services" => []
+      "services" => [],
+      "env" => env
     }
   end
 
-  let(:dea_stop_msg) { {"droplet" => app_id} }
+  let(:stop_message) { {"droplet" => app_id} }
 
   context "when the app has an out of memory exception" do
     it "it starts the app normally then after getting an out of memory exception crashes warden" do
       pending "wait until the java buildpack team has pushed the new buildpack and verify that this passes."
 
-      by "staging the app" do
-        nats.make_blocking_request("staging", dea_stage_msg, 2)
-        nats.publish("dea.#{dea_id}.start", dea_start_msg.merge("env" => ["crash=false"]))
+      by "staging and starting the app" do
+        nats.make_blocking_request("staging", staging_message, 2)
         wait_until_instance_started(app_id, 90)
       end
 
       by "restart the app" do
-        nats.publish("dea.stop", dea_stop_msg)
+        nats.publish("dea.stop", stop_message)
         wait_until_instance_gone(app_id, 91) # 91 because it shows up better in the logs
 
-        nats.publish("dea.#{dea_id}.start", dea_start_msg.merge("env" => ["crash=true"]))
+        nats.publish("dea.#{dea_id}.start", start_message.merge("env" => ["crash=true"]))
         wait_until_instance_gone(app_id, 90)
       end
     end

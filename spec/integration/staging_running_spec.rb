@@ -12,6 +12,26 @@ describe "Running an app", :type => :integration, :requires_warden => true do
 
   let(:app_id) { "some-app-id" }
 
+  let(:start_message) do
+    {
+      "index" => 1,
+      "droplet" => "some-app-id",
+      "version" => "some-version",
+      "name" => "some-app-name",
+      "uris" => [],
+      "prod" => false,
+      "sha1" => nil,
+      "executableUri" => nil,
+      "cc_partition" => "foo",
+      "limits" => {
+        "mem" => 64,
+        "disk" => 128,
+        "fds" => 32
+      },
+      "services" => []
+    }
+  end
+
   let(:staging_running_message) do
     {
       "app_id" => app_id,
@@ -21,23 +41,7 @@ describe "Running an app", :type => :integration, :requires_warden => true do
       "upload_uri" => staged_url,
       "buildpack_cache_upload_uri" => buildpack_cache_upload_uri,
       "buildpack_cache_download_uri" => buildpack_cache_download_uri,
-      "start_message" => {
-        "index" => 1,
-        "droplet" => "some-app-id",
-        "version" => "some-version",
-        "name" => "some-app-name",
-        "uris" => [],
-        "prod" => false,
-        "sha1" => nil,
-        "executableUri" => nil,
-        "cc_partition" => "foo",
-        "limits" => {
-          "mem" => 64,
-          "disk" => 128,
-          "fds" => 32
-        },
-        "services" => []
-      }
+      "start_message" => start_message
     }
   end
 
