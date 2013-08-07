@@ -8,6 +8,7 @@ require "dea/utils/upload"
 require "dea/promise"
 require "dea/task"
 require "dea/staging_task_workspace"
+require "dea/env"
 
 module Dea
   class StagingTask < Task
@@ -189,8 +190,10 @@ module Dea
 
     def promise_stage
       Promise.new do |p|
+        env = Env.new(attributes, self)
+
         script = [
-          staging_environment_variables,
+          env.exported_environment_variables,
           config["dea_ruby"],
           run_plugin_path,
           workspace.plugin_config_path,
@@ -410,6 +413,14 @@ module Dea
       File.join(container_path, "tmp", "rootfs", path.to_s) if container_path
     end
 
+    def staging_config
+      config["staging"]
+    end
+
+    def staging_timeout
+      (staging_config["max_staging_duration"] || "900").to_f
+    end
+
     private
 
     def resolve_staging_setup
@@ -466,32 +477,8 @@ module Dea
       File.expand_path("../../../buildpacks", __FILE__)
     end
 
-    def staging_environment_variables
-      env = attributes["properties"]["environment"] || []
-      env += %W[
-        PLATFORM_CONFIG=#{workspace.platform_config_path}
-        BUILDPACK_CACHE=#{staging_config["environment"]["BUILDPACK_CACHE"]}
-        STAGING_TIMEOUT=#{staging_timeout}
-        MEMORY_LIMIT=#{(config.minimum_staging_memory_mb).to_i}m
-      ]
-      env.map! do |var|
-        key, value = var.split("=", 2)
-        "export #{key}=#{Shellwords.escape(value)};"
-      end
-
-      env.join(" ")
-    end
-
-    def staging_timeout
-      (staging_config["max_staging_duration"] || "900").to_f
-    end
-
     def staging_timeout_grace_period
       60
-    end
-
-    def staging_config
-      config["staging"]
     end
   end
 end

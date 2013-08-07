@@ -34,7 +34,7 @@ describe "Staging a ruby app", :type => :integration, :requires_warden => true d
       "upload_uri" => staged_url,
       "buildpack_cache_upload_uri" => "http://localhost:9999/buildpack_cache",
       "buildpack_cache_download_uri" => "http://localhost:9999/buildpack_cache",
-      "starting_message" => start_message
+      "start_message" => start_message
     }
   end
 

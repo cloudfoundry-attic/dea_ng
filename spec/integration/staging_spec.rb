@@ -14,6 +14,13 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
   let(:properties) { {} }
   let(:task_id) { SecureRandom.uuid }
   let(:env) { ["FOO=bar baz","BLAH=WHATEVER"] }
+  let(:limits) do
+    {
+      "mem" => 2048,
+      "disk" => 128,
+      "fds" => 32
+    }
+  end
   let(:start_message) do
     {
       "index" => 1,
@@ -25,11 +32,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
       "sha1" => nil,
       "executableUri" => nil,
       "cc_partition" => "foo",
-      "limits" => {
-        "mem" => 64,
-        "disk" => 128,
-        "fds" => 32
-      },
+      "limits" => limits,
       "services" => [],
       "env" => env
     }
@@ -53,7 +56,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
       setup_fake_buildpack("start_command")
       fake_buildpack_url("start_command")
     end
-    let(:properties) { {"buildpack" => buildpack_url, "environment" => env} }
+    let(:properties) { {"buildpack" => buildpack_url, "environment" => env, "resources" => limits} }
 
     it "works" do
       buildpack_cache_file = File.join(FILE_SERVER_DIR, "buildpack_cache.tgz")
@@ -98,7 +101,8 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
       end
 
       and_by "setting the correct system environment variables" do
-        #expect(responses[1]["task_log"]).to include("MEMORY_LIMIT=64m")
+        expect(responses[1]["task_log"]).to include("VCAP_APPLICATION=")
+        expect(responses[1]["task_log"]).to include("MEMORY_LIMIT=2048m")
       end
     end
   end

@@ -38,8 +38,8 @@ module Helpers
       "droplet_sha1"        => "deadbeef",
       "droplet_uri"         => "http://foo.com/file.ext",
 
-      "limits"              => { "mem" => 1, "disk" => 2, "fds" => 3 },
-      "environment"         => { "FOO" => "BAR" },
+      "limits"              => { "mem" => 512, "disk" => 128, "fds" => 5000 },
+      "env"                 => ["FOO=BAR"],
       "services"            => [valid_service_attributes],
       "flapping"            => false,
     }
@@ -49,8 +49,9 @@ module Helpers
     {
       "properties" => {
         "services" => [],
+        "environment" => ["FOO=BAR"],
         "resources" => {
-          "memory" => 128,
+          "memory" => 512,
           "disk" => 128,
           "fds" => 5000,
         }
@@ -59,7 +60,8 @@ module Helpers
       "task_id" => VCAP.secure_uuid,
       "download_uri" => "http://127.0.0.1:12346/download",
       "upload_uri" => "http://127.0.0.1:12346/upload",
-      "staged_path" => ""
+      "staged_path" => "",
+      "start_message" => valid_instance_attributes
     }
   end
 end

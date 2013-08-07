@@ -42,8 +42,8 @@ describe "Staging a node app", :type => :integration, :requires_warden => true d
   subject(:staged_responses) { nats.make_blocking_request("staging", staging_message, 2) }
 
   it "packages up the node dependencies and stages the app properly" do
-    expect(staged_responses[1]["detected_buildpack"]).to eq("Node.js")
     expect(staged_responses[1]["task_log"]).to include("Resolving engine versions")
+    expect(staged_responses[1]["detected_buildpack"]).to eq("Node.js")
     expect(staged_responses[1]["error"]).to be_nil
 
     download_tgz(staged_url) do |dir|

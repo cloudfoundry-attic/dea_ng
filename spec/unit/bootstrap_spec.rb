@@ -694,7 +694,7 @@ describe Dea::Bootstrap do
 
       let(:resource_manager) do
         manager = double(:resource_manager)
-        manager.stub(:could_reserve?).with(1, 2).and_return(true)
+        manager.stub(:could_reserve?).with(512, 128).and_return(true)
         manager
       end
 

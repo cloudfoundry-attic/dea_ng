@@ -111,15 +111,15 @@ describe Dea::Instance do
 
   describe "resource limits" do
     it "exports the memory limit in bytes" do
-      instance.memory_limit_in_bytes.should == 1024 * 1024
+      instance.memory_limit_in_bytes.should == 512 * 1024 * 1024
     end
 
     it "exports the disk limit in bytes" do
-      instance.disk_limit_in_bytes.should == 2048 * 1024
+      instance.disk_limit_in_bytes.should == 128 * 1024 * 1024
     end
 
     it "exports the file descriptor limit" do
-      instance.file_descriptor_limit.should == 3
+      instance.file_descriptor_limit.should == 5000
     end
   end
 

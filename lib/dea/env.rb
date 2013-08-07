@@ -3,45 +3,38 @@
 require "steno"
 require "steno/core_ext"
 require "yajl"
+require "dea/staging_task"
 require "dea/starting/database_uri_generator"
+require "dea/starting/running_env"
+require "dea/staging/staging_env"
 
 module Dea
   class Env
-    attr_reader :message_json, :instance
+    WHITELIST_SERVICE_KEYS = %W[name label tags plan plan_option credentials].freeze
 
-    def initialize(message_json, instance=nil)
-      @message_json = message_json["start_message"] ? message_json["start_message"] : message_json
-      @instance = instance
+    attr_reader :strategy_env
+
+    def initialize(message_json, instance_or_staging_task=nil)
+      @strategy_env = if instance_or_staging_task.is_a? Dea::StagingTask
+        StagingEnv.new(message_json, instance_or_staging_task)
+      else
+        RunningEnv.new(message_json, instance_or_staging_task)
+      end
+    end
+
+    def message_json
+      strategy_env.message_json
     end
 
     def exported_system_environment_variables
-      env = []
-      env << ["HOME", "$PWD/app"]
+      env = [
+        ["VCAP_APPLICATION",  Yajl::Encoder.encode(vcap_application)],
+        ["VCAP_SERVICES",     Yajl::Encoder.encode(vcap_services)],
+        ["MEMORY_LIMIT", "#{message_json['limits']['mem']}m"]
+      ]
       env << ["DATABASE_URL", DatabaseUriGenerator.new(message_json["services"]).database_uri] if message_json["services"].any?
-      env << ["TMPDIR", "$PWD/tmp"]
 
-      env << ["VCAP_APPLICATION",  Yajl::Encoder.encode(vcap_application)]
-      env << ["VCAP_SERVICES",     Yajl::Encoder.encode(vcap_services)]
-      env << ["MEMORY_LIMIT", "#{message_json['limits']['mem']}m"]
-
-      if instance
-        env << ["VCAP_APP_HOST",     vcap_application["host"]]
-        env << ["VCAP_APP_PORT",     instance.instance_container_port]
-
-        env << ["VCAP_CONSOLE_IP",   vcap_application["host"]]
-        env << ["VCAP_CONSOLE_PORT", instance.instance_console_container_port]
-
-        if message_json["debug"]
-          env << ["VCAP_DEBUG_IP",     vcap_application["host"]]
-          env << ["VCAP_DEBUG_PORT",   instance.instance_debug_container_port]
-          # Set debug environment for buildpacks to process
-          env << ["VCAP_DEBUG_MODE", message_json["debug"]]
-        end
-
-        env << ["PORT", "$VCAP_APP_PORT"]
-      end
-
-      to_export(env)
+      to_export(env + strategy_env.exported_system_environment_variables)
     end
 
     def exported_user_environment_variables
@@ -57,13 +50,11 @@ module Dea
     def vcap_services
       @vcap_services ||=
         begin
-          whitelist = %W[name label tags plan plan_option credentials]
-
           services_hash = Hash.new { |h, k| h[k] = [] }
 
           message_json["services"].each do |service|
             service_hash = {}
-            whitelist.each do |key|
+            WHITELIST_SERVICE_KEYS.each do |key|
               service_hash[key] = service[key] if service[key]
             end
 
@@ -77,31 +68,12 @@ module Dea
     def vcap_application
       @vcap_application ||=
         begin
-          # TODO(kowshik): Eliminate application_users as it is deprecated.
-          hash = { "application_users" => [] }
-
-          if instance
-            %W[instance_id instance_index].each do |key|
-              hash[key] = instance.send(key)
-            end
-            hash["port"] = instance.instance_container_port
-
-            started_at = Time.at(instance.state_starting_timestamp)
-
-            hash["started_at"] = started_at
-            hash["started_at_timestamp"] = started_at.to_i
-
-            hash["start"] = hash["started_at"]
-            hash["state_timestamp"] = hash["started_at_timestamp"]
-          end
-
-          hash["host"] = "0.0.0.0"
+          hash = strategy_env.vcap_application
 
           hash["limits"] = message_json["limits"]
           hash["application_version"] = message_json["version"]
           hash["application_name"] = message_json["name"]
           hash["application_uris"] = message_json["uris"]
-
           # Translate keys for backwards compatibility
           hash["version"] = hash["application_version"]
           hash["name"] = hash["application_name"]
