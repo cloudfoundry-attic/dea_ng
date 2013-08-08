@@ -94,9 +94,7 @@ module Dea
           begin
             response = result.get
           rescue => error
-            file_touched = FileUtils.touch && "pass" rescue "failed"
-            vmstat = Vmstat.snapshot rescue "Unable to get Vmstat.snapshot"
-            logger.warn "Request failed: #{request.inspect} file touched: #{file_touched} VMstat out: #{vmstat}"
+            logger.warn "Request failed: #{request.inspect} file touched: #{file_touch_output} VMstat out: #{vmstat_snapshot_output}"
             logger.log_exception(error)
 
             p.fail(error)
@@ -325,6 +323,20 @@ module Dea
 
     def consuming_disk?
       true
+    end
+
+    private
+
+    def file_touch_output
+      FileUtils.touch(File.join(config["base_dir"], "tmp", "test_promise_warden_call")) && "passed"
+    rescue
+      "failed"
+    end
+
+    def vmstat_snapshot_output
+      Vmstat.snapshot.inspect
+    rescue
+      "Unable to get Vmstat.snapshot"
     end
   end
 end

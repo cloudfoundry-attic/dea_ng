@@ -124,7 +124,6 @@ describe Dea::Task do
     context "when it fails" do
       before do
         result.should_receive(:get).and_raise(RuntimeError.new("ERR FAKE"))
-        Vmstat.stub(:snapshot) { "vmstat" }
       end
 
       it "fails when request fails" do
@@ -135,16 +134,39 @@ describe Dea::Task do
         end
       end
 
-      it "when system status for filesystem fails" do
-        FileUtils.should_receive(:touch).and_raise(RuntimeError)
-        task.logger.should_receive(:warn).with(/file\s+touched:\s+failed/)
-        resolve { |_, _| done }
+      context "when create file fails" do
+        before { File.stub(:open).and_raise(RuntimeError) }
+
+        it "contains 'file touch: failed'" do
+          task.logger.should_receive(:warn).with(/file touched: failed/)
+          resolve { |_, _| done }
+        end
       end
 
-      it "includes the system status" do
-        FileUtils.should_receive(:touch).and_return(true)
-        task.logger.should_receive(:warn).with(/.*file\s+touched:\s+pass.*vmstat/)
-        resolve { |_, _| done }
+      context "when create file succeeds" do
+        let(:config) { { "base_dir" => STAGING_TEMP } }
+        before { FileUtils.mkdir(File.join(STAGING_TEMP, "tmp")) }
+
+        it "contains 'file touch: passed'" do
+          task.logger.should_receive(:warn).with(/file touched: passed/)
+          resolve { |_, _| done }
+        end
+      end
+
+      context "when Vmstat.snapshot fails" do
+        before { Vmstat.stub(:snapshot).and_raise(RuntimeError) }
+
+        it "contains 'file touch: failed'" do
+          task.logger.should_receive(:warn).with(/VMstat out: Unable to get Vmstat\.snapshot/)
+          resolve { |_, _| done }
+        end
+      end
+
+      context "when Vmstat.snapshot succeeds" do
+        it "contains 'file touch: passed'" do
+          task.logger.should_receive(:warn).with(/VMstat out: #<Vmstat::Snapshot:.+memory/)
+          resolve { |_, _| done }
+        end
       end
     end
   end
