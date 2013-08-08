@@ -64,16 +64,23 @@ describe Dea::Instance do
       its(:application_uris)    { should == ["foo.com", "bar.com"] }
     end
 
-    describe "space attributes" do
+    describe "instance data from message data" do
       let(:start_message_data) do
         {
             "droplet" => 37,
-            "tags" => {"space" => "af6c9790-08f7-429d-9528-4afbf07a3559"},
+            "tags" => {
+                "any_tag" => "any value"
+            },
         }
       end
 
       its(:application_id)      { should == "37" }
-      its(:tags) { should == {"space" => "af6c9790-08f7-429d-9528-4afbf07a3559" } }
+
+      it "sets all tags from the message" do
+        expect(subject.tags).to eql(
+          "any_tag" => "any value"
+        )
+      end
     end
 
     describe "droplet attributes" do
