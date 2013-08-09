@@ -4,7 +4,7 @@ bundle install
 foreman start &
 
 exit_code=0
-bundle exec rspec || exit_code=$?
+bundle exec rspec -fd || exit_code=$?
 
 echo "Tests finished: killing background jobs:"
 jobs
