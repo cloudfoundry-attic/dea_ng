@@ -14,7 +14,7 @@ describe Dea::DirectoryServerV2 do
   end
   let(:staging_task_registry) { Dea::StagingTaskRegistry.new }
 
-  let(:config) { {"directory_server" => {"file_api_port" => 3456}} }
+  let(:config) { {"directory_server" => {"file_api_port" => 3456, "protocol" => "http"}} }
   subject { Dea::DirectoryServerV2.new("domain", 1234, config) }
 
   describe "#initialize" do
@@ -103,7 +103,7 @@ describe Dea::DirectoryServerV2 do
   describe "url generation" do
     def self.it_generates_url(path)
       it "includes external host" do
-        url.should start_with("http://#{subject.uuid}.domain")
+        url.should start_with("#{config["directory_server"]["protocol"]}://#{subject.uuid}.domain")
       end
 
       it "includes path" do
@@ -126,6 +126,7 @@ describe Dea::DirectoryServerV2 do
     end
 
     describe "#hmaced_url_for" do
+      let(:config) { {"directory_server" => {"protocol" => "FAKEPROTOCOL"}} }
       let(:url) { subject.hmaced_url_for("/path", {:param => "value"}, [:param]) }
 
       it_generates_url "/path"
@@ -133,6 +134,10 @@ describe Dea::DirectoryServerV2 do
 
       it "includes given params" do
         query_params(url)["param"].should == "value"
+      end
+
+      it "takes protocol from config" do
+        expect(url).to match(%r{^FAKEPROTOCOL://})
       end
     end
 

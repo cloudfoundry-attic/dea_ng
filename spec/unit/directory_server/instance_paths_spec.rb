@@ -21,7 +21,7 @@ describe Dea::DirectoryServerV2::InstancePaths do
     end
   end
 
-  let(:config) { {"directory_server" => {"file_api_port" => 1234}} }
+  let(:config) { {"directory_server" => {"file_api_port" => 1234, "protocol" => "http"}} }
   let(:directory_server) { Dea::DirectoryServerV2.new("example.org", 1234, config) }
 
   before { Dea::DirectoryServerV2::InstancePaths.configure(directory_server, instance_registry, 1) }
