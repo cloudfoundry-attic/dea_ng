@@ -30,29 +30,13 @@ module Dea
       raise NotImplemented
     end
 
-    def find_warden_connection(name)
-      @warden_connections[name]
-    end
-
-    def cache_warden_connection(name, connection)
-      @warden_connections[name] = connection
-    end
-
-    def close_warden_connections
-      @warden_connections.keys.each do |name|
-        close_warden_connection(name)
-      end
-    end
-
-    def close_warden_connection(name)
-      if connection = @warden_connections.delete(name)
-        connection.close_connection
-      end
+    def container
+      @container ||= Dea::Container.new(config["warden_socket"])
     end
 
     def promise_warden_connection(name)
       Promise.new do |p|
-        connection = find_warden_connection(name)
+        connection = container.find_connection(name)
 
         # Deliver cached connection if possible
         if connection && connection.connected?
@@ -69,7 +53,7 @@ module Dea
 
           if connection
             connection.on(:connected) do
-              cache_warden_connection(name, connection)
+              container.cache_connection(name, connection)
 
               p.deliver(connection)
             end
@@ -160,6 +144,7 @@ module Dea
         response = promise_warden_call(:app, create_request).resolve
 
         @attributes["warden_handle"] = response.handle
+        container.handle = @attributes["warden_handle"]
         logger.user_data[:warden_handle] = response.handle
 
         p.deliver

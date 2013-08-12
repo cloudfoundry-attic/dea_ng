@@ -2,12 +2,29 @@
 
 require "spec_helper"
 require "dea/task"
+require "dea/container"
 
 describe Dea::Task do
   include_context "tmpdir"
 
-  let(:config) { Hash.new }
+  let(:config) { { "warden_socket" => warden_socket } }
+  let(:warden_socket) { "warden.socksies" }
   subject(:task) { Dea::Task.new(config) }
+
+  describe "#container" do
+    it "creates a container" do
+      Dea::Container.should_receive(:new).with(warden_socket)
+      task.container
+    end
+
+    describe "if it has been created" do
+      it "should return the container" do
+        container = task.container
+        Dea::Container.should_not_receive(:new)
+        expect(task.container).to eq(container)
+      end
+    end
+  end
 
   describe "#promise_warden_connection" do
     let(:warden_socket) { File.join(tmpdir, "warden.sock") }
@@ -24,8 +41,6 @@ describe Dea::Task do
         end
       end
     end
-
-    let(:config) { {"warden_socket" => warden_socket} }
 
     it "succeeds when connecting succeeds" do
       em do
@@ -292,7 +307,7 @@ describe Dea::Task do
         failing_promise(RuntimeError.new("error"))
       end
 
-      expect{ task.promise_limit_disk.resolve }.to raise_error(RuntimeError, /error/i)
+      expect { task.promise_limit_disk.resolve }.to raise_error(RuntimeError, /error/i)
     end
   end
 
@@ -318,7 +333,7 @@ describe Dea::Task do
         failing_promise(RuntimeError.new("error"))
       end
 
-      expect{ task.promise_limit_memory.resolve }.to raise_error(RuntimeError, /error/i)
+      expect { task.promise_limit_memory.resolve }.to raise_error(RuntimeError, /error/i)
     end
   end
 

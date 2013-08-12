@@ -619,7 +619,7 @@ module Dea
           promise_copy_out.resolve
           promise_destroy.resolve
 
-          close_warden_connections
+          container.close_all_connections
         end
 
         p.deliver
@@ -799,10 +799,6 @@ module Dea
 
     def computed_pcpu
       stat_collector.computed_pcpu
-    end
-
-    def container
-      @container ||= Dea::Container.new(@attributes["warden_handle"], config["warden_socket"])
     end
 
     def stat_collector

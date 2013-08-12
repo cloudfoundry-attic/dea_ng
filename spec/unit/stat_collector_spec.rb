@@ -3,7 +3,7 @@ require "dea/container"
 require "dea/stat_collector"
 
 describe Dea::StatCollector do
-  let(:container) { Dea::Container.new("some-handle", "some-socket") }
+  let(:container) { Dea::Container.new("some-socket") }
 
   let(:info_response) do
     Warden::Protocol::InfoResponse.new(

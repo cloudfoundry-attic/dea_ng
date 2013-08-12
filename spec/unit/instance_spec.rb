@@ -1384,12 +1384,7 @@ describe Dea::Instance do
       end
 
       it "should close warden connections" do
-        w1 = double
-        w1.should_receive(:close_connection)
-        w2 = double
-        w2.should_receive(:close_connection)
-
-        instance.instance_variable_set(:@warden_connections, { "w1" => w1, "w2" => w2 })
+        instance.container.should_receive(:close_all_connections)
 
         expect_crash_handler.to_not raise_error
       end
