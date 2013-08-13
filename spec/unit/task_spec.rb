@@ -27,7 +27,7 @@ describe Dea::Task do
 
   describe "#promise_warden_call" do
     let(:connection) do
-      mock("Connection")
+      mock("Connection", :warden_connection => double("warden_connection", :call => true))
     end
 
     let(:request) do
@@ -40,7 +40,7 @@ describe Dea::Task do
 
     before do
       task.container.should_receive(:get_connection).and_return(connection)
-      connection.should_receive(:call).with(request).and_yield(result)
+      connection.warden_connection.should_receive(:call).with(request).and_yield(result)
     end
 
     def resolve(&blk)

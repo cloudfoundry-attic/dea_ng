@@ -10,7 +10,7 @@ module Dea
 
     def initialize(socket_path)
       @socket_path = socket_path
-      @warden_connections = {}
+      @connections = {}
     end
 
     def info
@@ -20,22 +20,22 @@ module Dea
     end
 
     def find_connection(name)
-      @warden_connections[name]
+      @connections[name]
     end
 
     def cache_connection(name, connection)
-      @warden_connections[name] = connection
+      @connections[name] = connection
     end
 
     def close_all_connections
-      @warden_connections.keys.each do |name|
+      @connections.keys.each do |name|
         close_connection(name)
       end
     end
 
     def close_connection(name)
-      if connection = @warden_connections.delete(name)
-        connection.close_connection
+      if connection = @connections.delete(name)
+        connection.close
       end
     end
 
@@ -46,7 +46,8 @@ module Dea
       if connection && connection.connected?
         return connection
       else
-        connection = Connection.new(name, socket_path).promise_create.resolve
+        connection = Connection.new(name, socket_path)
+        connection.promise_create.resolve
         cache_connection(name, connection) if connection
         return connection
       end

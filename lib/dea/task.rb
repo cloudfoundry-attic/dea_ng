@@ -24,7 +24,6 @@ module Dea
     def initialize(config, custom_logger=nil)
       @config = config
       @logger = custom_logger || self.class.logger.tag({})
-      @warden_connections = {}
     end
 
     def start(&blk)
@@ -39,7 +38,7 @@ module Dea
       Promise.new do |p|
         logger.debug2(request.inspect)
         connection = container.get_connection(connection_name)
-        connection.call(request) do |result|
+        connection.warden_connection.call(request) do |result|
           logger.debug2(result.inspect)
 
           error = nil

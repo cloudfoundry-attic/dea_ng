@@ -16,18 +16,17 @@ describe Dea::Container do
   describe "get_connection" do
     let(:connection_name) { "connection_name" }
     let(:connected) { false }
-    let(:warden_connection) { double("fake warden connection", :connected? => connected) }
-    let(:connection) { double("fake connection", :promise_create => delivering_promise(warden_connection)) }
+    let(:connection) { double("fake connection", :promise_create => delivering_promise, :connected? => connected) }
 
     context "when conneciton is cached" do
       before do
-        container.cache_connection(connection_name, warden_connection)
+        container.cache_connection(connection_name, connection)
       end
 
       context "when connection is connected" do
         let(:connected) { true }
         it "uses cached connection" do
-          expect(container.get_connection(connection_name)).to eq(warden_connection)
+          expect(container.get_connection(connection_name)).to eq(connection)
         end
       end
 
@@ -47,7 +46,7 @@ describe Dea::Container do
 
       it "creates a new connection and caches it" do
         container.get_connection(connection_name)
-        expect(container.find_connection(connection_name)).to eq(warden_connection)
+        expect(container.find_connection(connection_name)).to eq(connection)
       end
 
       context "if connection fails" do
@@ -132,7 +131,7 @@ describe Dea::Container do
       end
 
       it "closes the connection and removes it from the cache" do
-        connection.should_receive(:close_connection)
+        connection.should_receive(:close)
 
         container.close_connection(connection_name)
 
@@ -150,8 +149,8 @@ describe Dea::Container do
       end
 
       it "closes all connections" do
-        connection.should_receive(:close_connection)
-        connection_two.should_receive(:close_connection)
+        connection.should_receive(:close)
+        connection_two.should_receive(:close)
 
         container.close_all_connections
 

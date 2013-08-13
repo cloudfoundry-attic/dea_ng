@@ -970,8 +970,8 @@ describe Dea::Instance do
   end
 
   describe "stop transition" do
-    let(:warden_connection) do
-      mock("warden_connection")
+    let(:connection) do
+      mock("connection")
     end
 
     let(:env) { double("environment").as_null_object }
@@ -979,7 +979,7 @@ describe Dea::Instance do
     before do
       bootstrap.stub(:config).and_return({})
       instance.stub(:promise_state).and_return(delivering_promise)
-      instance.container.stub(:get_connection).and_return(warden_connection)
+      instance.container.stub(:get_connection).and_return(connection)
       instance.stub(:promise_stop).and_return(delivering_promise)
       Dea::Env.stub(:new).and_return(env)
     end
@@ -1072,12 +1072,12 @@ describe Dea::Instance do
   end
 
   describe "link" do
-    let(:warden_connection) do
-      mock("warden_connection")
+    let(:connection) do
+      mock("connection")
     end
 
     before do
-      instance.container.stub(:get_connection).and_return(warden_connection)
+      instance.container.stub(:get_connection).and_return(connection)
       instance.stub(:promise_link).and_return(delivering_promise(::Warden::Protocol::LinkResponse.new))
     end
 
@@ -1266,10 +1266,10 @@ describe Dea::Instance do
       Dea::Instance.new(bootstrap, valid_instance_attributes)
     end
 
-    let(:warden_connection) { mock("warden_connection") }
+    let(:connection) { mock("connection") }
 
     before do
-      instance.container.stub(:get_connection).and_return(warden_connection)
+      instance.container.stub(:get_connection).and_return(connection)
     end
 
     def expect_destroy

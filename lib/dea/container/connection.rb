@@ -9,14 +9,20 @@ module Dea
     class ConnectionError < StandardError; end
     class WardenError < StandardError; end
 
-    attr_reader :name, :socket
+    attr_reader :name, :socket, :warden_connection
 
     def initialize(name, socket)
       @name = name
       @socket = socket
+      @warden_connection = nil
+    end
+
+    def connected?
+      @warden_connection.connected?
     end
 
     def close
+      @warden_connection.close_connection
     end
 
     def promise_run(script)
@@ -32,17 +38,17 @@ module Dea
     def promise_create
       Promise.new do |p|
         begin
-          connection = ::EM.connect_unix_domain(socket, ::EM::Warden::Client::Connection)
+          @warden_connection = ::EM.connect_unix_domain(socket, ::EM::Warden::Client::Connection)
         rescue => error
           p.fail(WardenError.new("Cannot connect to warden on #{socket}: #{error.message}"))
         end
 
-        if connection
-          connection.on(:connected) do
-            p.deliver(connection)
+        if @warden_connection
+          @warden_connection.on(:connected) do
+            p.deliver
           end
 
-          connection.on(:disconnected) do
+          @warden_connection.on(:disconnected) do
             p.fail(WardenError.new("Cannot connect to warden on #{socket}"))
           end
         end

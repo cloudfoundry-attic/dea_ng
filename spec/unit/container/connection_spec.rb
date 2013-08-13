@@ -40,7 +40,6 @@ describe Dea::Connection do
         ::EM.next_tick do
           Dea::Promise.resolve(connection.promise_create) do |error, result|
             expect { raise error if error }.to_not raise_error
-            expect(result).to be_instance_of(::EM::Warden::Client::Connection)
             # Check that the connection was made
             dumb_connection.count.should == 1
             done
