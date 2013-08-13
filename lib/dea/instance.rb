@@ -20,6 +20,7 @@ module Dea
     include EventEmitter
 
     STAT_COLLECTION_INTERVAL_SECS = 10
+    NPROC_LIMIT = 512
 
     BIND_MOUNT_MODE_MAP = {
       "ro" =>  ::Warden::Protocol::CreateRequest::BindMount::Mode::RO,
@@ -456,9 +457,9 @@ module Dea
 
         request.rlimits = ::Warden::Protocol::ResourceLimits.new
         request.rlimits.nofile = self.file_descriptor_limit
-        request.rlimits.nproc = 512
+        request.rlimits.nproc = NPROC_LIMIT
 
-        response = promise_warden_call(:app, request).resolve
+        response = container.call(:app, request)
 
         attributes["warden_job_id"] = response.job_id
 
@@ -821,7 +822,7 @@ module Dea
     def get_new_warden_net_in
       request = ::Warden::Protocol::NetInRequest.new
       request.handle = @attributes["warden_handle"]
-      promise_warden_call(:app, request).resolve
+      container.call(:app, request)
     end
 
     def determine_exit_description(link_response)

@@ -23,7 +23,7 @@ describe Dea::StagingTask do
         "file_api_port" => 1234
       },
       "staging" => {
-        "environment" => {"BUILDPACK_CACHE" => "buildpack_cache_url"},
+        "environment" => { "BUILDPACK_CACHE" => "buildpack_cache_url" },
         "platform_config" => {},
         "memory_limit_mb" => memory_limit_mb,
         "disk_limit_mb" => disk_limit_mb,
@@ -44,8 +44,8 @@ describe Dea::StagingTask do
   let(:attributes) { valid_staging_attributes }
   let(:staging) { Dea::StagingTask.new(bootstrap, dir_server, attributes) }
 
-  let(:successful_promise) { Dea::Promise.new {|p| p.deliver } }
-  let(:failing_promise) { Dea::Promise.new {|p| raise "failing promise" } }
+  let(:successful_promise) { Dea::Promise.new { |p| p.deliver } }
+  let(:failing_promise) { Dea::Promise.new { |p| raise "failing promise" } }
 
   before do
     staging.stub(:workspace_dir) { workspace_dir }
@@ -168,7 +168,7 @@ describe Dea::StagingTask do
 detected_buildpack: Ruby/Rack
 YAML
         staging_info = File.join(workspace_dir, "staging_info.yml")
-        File.open(staging_info, 'w') {|f| f.write(contents) }
+        File.open(staging_info, 'w') { |f| f.write(contents) }
       end
 
       it "parses staging info file" do
@@ -190,7 +190,7 @@ YAML
 detected_buildpack: Ruby/Rack
 YAML
       staging_info = File.join(workspace_dir, "staging_info.yml")
-      File.open(staging_info, 'w') {|f| f.write(contents) }
+      File.open(staging_info, 'w') { |f| f.write(contents) }
     end
 
     it "returns the detected buildpack" do
@@ -486,7 +486,7 @@ YAML
     context "when buildpack_cache_download_uri is provided" do
       before do
         staging.stub(:attributes).and_return(
-          valid_staging_attributes.merge({ "buildpack_cache_download_uri" => "http://some_url"}))
+          valid_staging_attributes.merge({ "buildpack_cache_download_uri" => "http://some_url" }))
       end
 
       it "downloads buildpack cache" do
@@ -647,7 +647,7 @@ YAML
       before do
         config["staging"].delete("disk_limit_mb")
       end
-      
+
       it "uses 2GB as a default" do
         staging.disk_limit_in_bytes.should eq(2*1024*1024*1024)
       end
@@ -665,50 +665,37 @@ YAML
   end
 
   describe "#promise_container_info" do
-    def resolve_promise
+    let(:warden_info_response) { Warden::Protocol::InfoResponse.new(:container_path => "/container/path") }
+
+    before { staging.stub(:container_handle => "container-handle") }
+
+    it "makes warden info request" do
+      staging.container.should_receive(:call).and_return do |type, request|
+        expect(type).to eq(:info)
+        expect(request.handle).to eq("container-handle")
+        warden_info_response
+      end
+
       staging.promise_container_info.resolve
     end
 
-    context "when container handle is set" do
-      let(:warden_info_response) do
-        Warden::Protocol::InfoResponse.new(:container_path => "/container/path")
+    context "when container_path is provided" do
+      it "sets container_path" do
+        staging.container.should_receive(:call).and_return(warden_info_response)
+
+        expect {
+          staging.promise_container_info.resolve
+        }.to change { staging.container_path }.from(nil).to("/container/path")
       end
+    end
 
-      before { staging.stub(:container_handle => "container-handle") }
+    context "when container_path is not provided" do
+      it "raises error" do
+        staging.container.should_receive(:call).and_return(Warden::Protocol::InfoResponse.new)
 
-      it "makes warden info request" do
-        staging.should_receive(:promise_warden_call).and_return do |type, request|
-          type.should == :info
-          request.handle.should == "container-handle"
-          mock(:promise, :resolve => warden_info_response)
-        end
-
-        resolve_promise
-      end
-
-      context "when container_path is provided" do
-        it "sets container_path" do
-          staging.stub(:promise_warden_call).and_return do
-            mock(:promise, :resolve => warden_info_response)
-          end
-
-          expect {
-            resolve_promise
-          }.to change { staging.container_path }.from(nil).to("/container/path")
-        end
-      end
-
-      context "when container_path is not provided" do
-        it "raises error" do
-          staging.stub(:promise_warden_call).and_return do
-            response = Warden::Protocol::InfoResponse.new
-            mock(:promise, :resolve => response)
-          end
-
-          expect {
-            resolve_promise
-          }.to raise_error(RuntimeError, /container path is not available/)
-        end
+        expect {
+          staging.promise_container_info.resolve
+        }.to raise_error(RuntimeError, /container path is not available/)
       end
     end
 
@@ -717,7 +704,7 @@ YAML
 
       it "raises error" do
         expect {
-          resolve_promise
+          staging.promise_container_info.resolve
         }.to raise_error(ArgumentError, /container handle must not be nil/)
       end
     end

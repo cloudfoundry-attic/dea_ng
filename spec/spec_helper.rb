@@ -40,12 +40,12 @@ RSpec.configure do |config|
   config.after(:all, :type => :integration, :requires_warden => true) { dea_stop }
 end
 
-STAGING_TEMP = Dir.mktmpdir
+TEST_TEMP = Dir.mktmpdir
 FILE_SERVER_DIR = "/tmp/dea"
 
 at_exit do
-  if File.directory?(STAGING_TEMP)
-    FileUtils.rm_r(STAGING_TEMP)
+  if File.directory?(TEST_TEMP)
+    FileUtils.rm_r(TEST_TEMP)
   end
 end
 

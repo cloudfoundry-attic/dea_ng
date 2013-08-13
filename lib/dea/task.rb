@@ -31,30 +31,7 @@ module Dea
     end
 
     def container
-      @container ||= Dea::Container.new(config["warden_socket"])
-    end
-
-    def promise_warden_call(connection_name, request)
-      Promise.new do |p|
-        logger.debug2(request.inspect)
-        connection = container.get_connection(connection_name)
-        connection.warden_connection.call(request) do |result|
-          logger.debug2(result.inspect)
-
-          error = nil
-
-          begin
-            response = result.get
-          rescue => error
-            logger.warn "Request failed: #{request.inspect} file touched: #{file_touch_output} VMstat out: #{vmstat_snapshot_output}"
-            logger.log_exception(error)
-
-            p.fail(error)
-          else
-            p.deliver(response)
-          end
-        end
-      end
+      @container ||= Dea::Container.new(config["warden_socket"], config["base_dir"])
     end
 
     def promise_warden_call_with_retry(connection_name, request)
@@ -63,7 +40,7 @@ module Dea
         count = 0
 
         begin
-          response = promise_warden_call(connection_name, request).resolve
+          response = container.call(connection_name, request)
         rescue ::EM::Warden::Client::ConnectionError => error
           count += 1
           logger.warn("Request failed: #{request.inspect}, retrying ##{count}.")
@@ -109,7 +86,7 @@ module Dea
         create_request = ::Warden::Protocol::CreateRequest.new
         create_request.bind_mounts = bind_mounts
 
-        response = promise_warden_call(:app, create_request).resolve
+        response = container.call(:app, create_request)
 
         @attributes["warden_handle"] = response.handle
         container.handle = @attributes["warden_handle"]
@@ -124,7 +101,7 @@ module Dea
         request = ::Warden::Protocol::LimitDiskRequest.new
         request.handle = container_handle
         request.byte = disk_limit_in_bytes
-        promise_warden_call(:app, request).resolve
+        container.call(:app, request)
         p.deliver
       end
     end
@@ -134,7 +111,7 @@ module Dea
         request = ::Warden::Protocol::LimitMemoryRequest.new
         request.handle = container_handle
         request.limit_in_bytes = memory_limit_in_bytes
-        promise_warden_call(:app, request).resolve
+        container.call(:app, request)
         p.deliver
       end
     end
@@ -149,7 +126,7 @@ module Dea
         request.handle = attributes["warden_handle"]
         request.script = script
         request.privileged = privileged
-        response = promise_warden_call(connection_name, request).resolve
+        response = container.call(connection_name, request)
 
         if response.exit_status > 0
           data = {
@@ -167,29 +144,11 @@ module Dea
       end
     end
 
-    def promise_container_info
-      Promise.new do |p|
-        request = ::Warden::Protocol::InfoRequest.new
-        request.handle = container_handle
-
-        response =
-          begin
-            promise_warden_call(:info, request).resolve
-          rescue => error
-            log(
-              :error, "droplet.container-info-retrieval.failed",
-              :error => error, :backtrace => error.backtrace)
-          end
-
-        p.deliver(response)
-      end
-    end
-
     def promise_stop
       Promise.new do |p|
         request = ::Warden::Protocol::StopRequest.new
         request.handle = container_handle
-        promise_warden_call(:stop, request).resolve
+        container.call(:stop, request)
 
         p.deliver
       end
@@ -276,20 +235,6 @@ module Dea
 
     def consuming_disk?
       true
-    end
-
-    private
-
-    def file_touch_output
-      FileUtils.touch(File.join(config["base_dir"], "tmp", "test_promise_warden_call")) && "passed"
-    rescue
-      "failed"
-    end
-
-    def vmstat_snapshot_output
-      Vmstat.snapshot.inspect
-    rescue
-      "Unable to get Vmstat.snapshot"
     end
   end
 end

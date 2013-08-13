@@ -11,10 +11,11 @@ module Dea
 
     attr_reader :name, :socket, :warden_connection
 
-    def initialize(name, socket)
+    def initialize(name, socket, base_dir)
       @name = name
       @socket = socket
       @warden_connection = nil
+      @base_dir = base_dir
     end
 
     def connected?
@@ -30,6 +31,24 @@ module Dea
     end
 
     def promise_call(request)
+      Promise.new do |p|
+        logger.debug2(request.inspect)
+        @warden_connection.call(request) do |result|
+          logger.debug2(result.inspect)
+          error = nil
+
+          begin
+            response = result.get
+          rescue => error
+            logger.warn "Request failed: #{request.inspect} file touched: #{file_touch_output} VMstat out: #{vmstat_snapshot_output}"
+            logger.log_exception(error)
+
+            p.fail(error)
+          else
+            p.deliver(response)
+          end
+        end
+      end
     end
 
     def promise_call_with_retry(request)
@@ -53,6 +72,25 @@ module Dea
           end
         end
       end
+    end
+
+    def logger
+      tags = { "connection_name" => name }
+      @logger ||= self.class.logger.tag(tags)
+    end
+
+    private
+
+    def file_touch_output
+      FileUtils.touch(File.join(@base_dir, "tmp", "test_promise_warden_call")) && "passed"
+    rescue
+      "failed"
+    end
+
+    def vmstat_snapshot_output
+      Vmstat.snapshot.inspect
+    rescue
+      "Unable to get Vmstat.snapshot"
     end
   end
 end

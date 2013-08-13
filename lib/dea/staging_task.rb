@@ -346,12 +346,13 @@ module Dea
       end
     end
 
+    #TODO:: Move to container (not really specific to staging)
     def promise_container_info
       Promise.new do |p|
         raise ArgumentError, "container handle must not be nil" unless container_handle
 
         request = ::Warden::Protocol::InfoRequest.new(:handle => container_handle)
-        response = promise_warden_call(:info, request).resolve
+        response = container.call(:info, request)
 
         raise RuntimeError, "container path is not available" unless @container_path = response.container_path
 

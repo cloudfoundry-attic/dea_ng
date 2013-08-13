@@ -24,7 +24,7 @@ describe Dea::Instance do
 
       # Fixture to make sure Dea::Instance.create_from_message doesn't throw up
       defaults = {
-        "index"   => 0,
+        "index" => 0,
         "droplet" => 1,
       }
 
@@ -43,7 +43,7 @@ describe Dea::Instance do
         }
       end
 
-      its(:instance_id)    { should be }
+      its(:instance_id) { should be }
       its(:instance_index) { should == 37 }
     end
 
@@ -52,29 +52,29 @@ describe Dea::Instance do
         {
           "droplet" => 37,
           "version" => "some_version",
-          "name"    => "my_application",
-          "uris"    => ["foo.com", "bar.com"],
-          "users"   => ["john@doe.com"],
+          "name" => "my_application",
+          "uris" => ["foo.com", "bar.com"],
+          "users" => ["john@doe.com"],
         }
       end
 
-      its(:application_id)      { should == "37" }
+      its(:application_id) { should == "37" }
       its(:application_version) { should == "some_version" }
-      its(:application_name)    { should == "my_application" }
-      its(:application_uris)    { should == ["foo.com", "bar.com"] }
+      its(:application_name) { should == "my_application" }
+      its(:application_uris) { should == ["foo.com", "bar.com"] }
     end
 
     describe "instance data from message data" do
       let(:start_message_data) do
         {
-            "droplet" => 37,
-            "tags" => {
+          "droplet" => 37,
+          "tags" => {
                 "any_tag" => "any value"
             },
         }
       end
 
-      its(:application_id)      { should == "37" }
+      its(:application_id) { should == "37" }
 
       it "sets all tags from the message" do
         expect(subject.tags).to eql(
@@ -529,9 +529,7 @@ describe Dea::Instance do
       end
 
       it "succeeds when the call succeeds" do
-        instance.stub(:promise_warden_call) do
-          delivering_promise(response)
-        end
+        instance.container.should_receive(:call).and_return(response)
 
         expect_start.to_not raise_error
         instance.exit_description.should be_empty
@@ -543,9 +541,7 @@ describe Dea::Instance do
       it "fails when the call fails" do
         msg = "promise warden call error for container creation"
 
-        instance.stub(:promise_warden_call) do
-          failing_promise(RuntimeError.new(msg))
-        end
+        instance.container.should_receive(:call).and_raise(RuntimeError.new(msg))
 
         expect_start.to raise_error(RuntimeError, /error/i)
 
@@ -557,160 +553,121 @@ describe Dea::Instance do
       end
     end
 
-    describe "setting up network" do
+    describe "#promise_setup_network -" do
       before do
         instance.unstub(:promise_setup_network)
+        instance.attributes["warden_handle"] = "handle"
       end
 
       let(:response) do
         response = mock("net_in_response")
-        response.stub(:host_port      => 1234)
+        response.stub(:host_port => 1234)
         response.stub(:container_port => 1235)
         response
       end
 
       it "should make a net_in request on behalf of the container" do
-        instance.attributes["warden_handle"] = "handle"
+        instance.container.should_receive(:call) do |connection, request|
+          expect(connection).to eq(:app)
+          expect(request).to be_kind_of(::Warden::Protocol::NetInRequest)
+          expect(request.handle).to eq("handle")
 
-        instance.stub(:promise_warden_call) do |connection, request|
-          request.should be_kind_of(::Warden::Protocol::NetInRequest)
-          request.handle.should == "handle"
+          response
+        end.twice
 
-          delivering_promise(response)
-        end
-
-        expect_start.to_not raise_error
-        instance.exit_description.should be_empty
+        expect {
+          instance.promise_setup_network.resolve
+        }.to_not raise_error
       end
 
-      it "should map an instance port" do
-        instance.stub(:promise_warden_call) do
-          delivering_promise(response)
-        end
+      it "should map the console and instance ports" do
+        instance.container.should_receive(:call).twice.and_return(response)
+        instance.promise_setup_network.resolve
 
-        expect_start.to_not raise_error
-        instance.exit_description.should be_empty
+        expect(instance.attributes["instance_host_port"]).to eq(1234)
+        expect(instance.attributes["instance_container_port"]).to eq(1235)
 
-        # Ports should be set
-        instance.attributes["instance_host_port"].     should == 1234
-        instance.attributes["instance_container_port"].should == 1235
+        expect(instance.instance_console_host_port).to eq(1234)
+        expect(instance.instance_console_container_port).to eq(1235)
       end
 
-      it "should map a debug port port if needed" do
-        instance.attributes["debug"] = "debug"
-
-        instance.stub(:promise_warden_call) do
-          delivering_promise(response)
+      describe "when debug is set" do
+        before do
+          instance.attributes["debug"] = "debug"
         end
 
-        expect_start.to_not raise_error
-        instance.exit_description.should be_empty
+        it "should map a debug port" do
+          instance.container.should_receive(:call) do |connection, request|
+            expect(connection).to eq(:app)
+            expect(request).to be_kind_of(::Warden::Protocol::NetInRequest)
+            expect(request.handle).to eq("handle")
 
-        # Ports should be set
-        instance.instance_debug_host_port.     should == 1234
-        instance.instance_debug_container_port.should == 1235
-      end
+            response
+          end.exactly(3).times
 
-      it "maps a console port" do
-        instance.stub(:promise_warden_call) do
-          delivering_promise(response)
+          instance.promise_setup_network.resolve
+
+          expect(instance.instance_debug_host_port).to eq(1234)
+          expect(instance.instance_debug_container_port).to eq(1235)
         end
-
-        expect_start.to_not raise_error
-        instance.exit_description.should be_empty
-
-        # Ports should be set
-        instance.instance_console_host_port.     should == 1234
-        instance.instance_console_container_port.should == 1235
       end
 
-      it "can fail" do
+      it "raises when the network setup request fails" do
         msg = "promise warden call error for container network setup"
 
-        instance.stub(:promise_warden_call) do
-          failing_promise(RuntimeError.new(msg))
-        end
+        instance.container.should_receive(:call).and_raise(RuntimeError.new(msg))
 
-        expect_start.to raise_error(RuntimeError, msg)
+        expect {
+          instance.promise_setup_network.resolve
+        }.to raise_error(RuntimeError, msg)
 
-        # Ports should not be set
-        instance.instance_host_port.     should be_nil
-        instance.instance_container_port.should be_nil
-
-        # Instance exit description should be set to the failure message
-        instance.exit_description.should be_eql(msg)
+        expect(instance.instance_host_port).to be_nil
+        expect(instance.instance_container_port).to be_nil
       end
     end
 
-    describe "running a script in a container" do
+    describe "#promise_warden_run -" do
+      let(:response) { mock("run_response", :exit_status => 0) }
+
       before do
         instance.attributes["warden_handle"] = "handle"
       end
 
-      let(:response) do
-        mock("run_response")
+      it "should make a RunRequest" do
+        result = instance.container.should_receive(:call) do |connection, request|
+          expect(request).to be_kind_of(::Warden::Protocol::RunRequest)
+          expect(request.handle).to eq("handle")
+
+          response
+        end
+
+        instance.promise_warden_run(warden_connection, "script").resolve
       end
 
-      it "should make a run request" do
-        response.stub(:exit_status).and_return(0)
-
-        instance.stub(:promise_warden_call) do |connection, request|
-          request.should be_kind_of(::Warden::Protocol::RunRequest)
-          request.handle.should == "handle"
-
-          delivering_promise(response)
+      describe "when the script fails" do
+        before do
+          response.stub(:exit_status).and_return(1)
         end
+        it "fails the promise" do
+          response.stub(:stdout).and_return("stdout")
+          response.stub(:stderr).and_return("stderr")
 
-        em do
-          p = instance.promise_warden_run(warden_connection, "script")
+          instance.container.should_receive(:call).and_return(response)
 
-          Dea::Promise.resolve(p) do |error, result|
-            expect do
-              raise error if error
-            end.to_not raise_error
-
-            done
-          end
-        end
-      end
-
-      it "can fail by the script failing" do
-        response.stub(:exit_status).and_return(1)
-        response.stub(:stdout).and_return("stdout")
-        response.stub(:stderr).and_return("stderr")
-
-        instance.stub(:promise_warden_call) do |connection, request|
-          delivering_promise(response)
-        end
-
-        em do
-          p = instance.promise_warden_run(warden_connection, "script")
-
-          Dea::Promise.resolve(p) do |error, result|
-            expect do
-              raise error if error
-            end.to raise_error(Dea::Instance::WardenError, /script exited/i)
-
-            done
-          end
+          expect {
+            instance.promise_warden_run(warden_connection, "script").resolve
+          }.to raise_error(Dea::Instance::WardenError, /script exited/i)
         end
       end
 
-      it "can fail by the request failing" do
-        instance.stub(:promise_warden_call) do |connection, request|
-          failing_promise(RuntimeError.new("error"))
+      describe "when the request fails" do
+        before do
+          instance.container.stub(:call).and_raise(RuntimeError.new("error"))
         end
-
-        em do
-          p = instance.promise_warden_run(warden_connection, "script")
-
-          Dea::Promise.resolve(p) do |error, result|
-            expect do
-              raise error if error
-            end.to raise_error(RuntimeError, /error/i)
-
-            done
-          end
+        it "fails the promise" do
+          expect {
+            instance.promise_warden_run(warden_connection, "script").resolve
+          }.to raise_error(RuntimeError, /error/i)
         end
       end
     end
@@ -750,14 +707,14 @@ describe Dea::Instance do
       end
 
       it "should create the app dir" do
-       instance.stub(:promise_warden_run) do |_, script|
+        instance.stub(:promise_warden_run) do |_, script|
           script.should =~ %r{mkdir -p home/vcap/app}
 
           delivering_promise
         end
 
         expect_start.to_not raise_error
-       instance.exit_description.should be_empty
+        instance.exit_description.should be_empty
       end
 
       it "should chown the app dir" do
@@ -848,66 +805,63 @@ describe Dea::Instance do
     it_behaves_like 'start script hook', 'before_start'
     it_behaves_like 'start script hook', 'after_start'
 
-    describe "starting the application" do
+    describe "#promise_start -" do
       let(:response) { mock("spawn_response", job_id: 37) }
       let(:env) do
         double("environment 1",
-          exported_environment_variables: 'system="sytem_value";\nexport user="user_value";\n',
-          exported_user_environment_variables: 'user="user_value";\n',
-          exported_system_environment_variables: 'system="sytem_value";\n'
+               exported_environment_variables: 'system="sytem_value";\nexport user="user_value";\n',
+               exported_user_environment_variables: 'user="user_value";\n',
+               exported_system_environment_variables: 'system="sytem_value";\n'
         )
       end
 
       before do
         instance.unstub(:promise_start)
         instance.stub(:staged_info).and_return(nil)
+        instance.attributes["warden_handle"] = "handle"
         Dea::Env.stub(:new).and_return(env)
       end
 
       it "executes a SpawnRequest" do
-        instance.attributes["warden_handle"] = "handle"
         actual_request = nil
 
-        instance.stub(:promise_warden_call) do |_, request|
-          actual_request = request
-          delivering_promise(response)
+        instance.container.should_receive(:call) do |name, request|
+          expect(name).to eq(:app)
+          expect(request).to be_kind_of(::Warden::Protocol::SpawnRequest)
+          expect(request.handle).to eq("handle")
+
+          response
         end
 
-        expect_start.to_not raise_error
-        instance.exit_description.should be_empty
+        expect {
+          instance.promise_start.resolve
+        }.to_not raise_error
 
         # Job ID should be set
-        instance.attributes["warden_job_id"].should == 37
-
-        expect(actual_request).to be_kind_of(::Warden::Protocol::SpawnRequest)
-        expect(actual_request.handle).to eq("handle")
+        expect(instance.attributes["warden_job_id"]).to eq(37)
       end
 
-      it "can fail" do
+      it "raises errors when the request fails" do
         msg = "can't start the application"
 
-        instance.stub(:promise_warden_call) do
-          failing_promise(RuntimeError.new(msg))
-        end
-
-        expect_start.to raise_error(RuntimeError, msg)
-
-        # Instance exit description should be set to the failure message
-        instance.exit_description.should be_eql(msg)
+        instance.container.should_receive(:call).and_raise(RuntimeError.new(msg))
+        expect {
+          instance.promise_start.resolve
+        }.to raise_error(RuntimeError, msg)
 
         # Job ID should not be set
-        instance.attributes["warden_job_id"].should be_nil
+        expect(instance.attributes["warden_job_id"]).to be_nil
       end
 
       context "when there is a task info yaml in the droplet" do
+        let(:generator) { double("script generator", generate: "a script") }
+
         before do
           instance.stub(:staged_info).and_return(
             "detected_buildpack" => "FakeBuildpack",
             "start_command" => "fake_start_command.sh"
           )
         end
-
-        let(:generator) { double('script generator', generate: 'a script') }
 
         it "generates the correct script" do
           Dea::StartupScriptGenerator.should_receive(:new).with(
@@ -916,7 +870,13 @@ describe Dea::Instance do
             env.exported_system_environment_variables,
             "FakeBuildpack"
           ).and_return(generator)
-          expect_start
+
+          instance.container.should_receive(:call) do |name, request|
+            expect(request.script).to eq("a script")
+            response
+          end
+
+          instance.promise_start.resolve
         end
       end
 
@@ -924,16 +884,12 @@ describe Dea::Instance do
         # TODO delete after two phase migration
 
         it "runs the startup script instead of generating one" do
-          actual_script = ""
-
-          instance.stub(:promise_warden_call) do |_, request|
-            actual_script = request.script
-            delivering_promise(response)
+          instance.container.should_receive(:call) do |name, request|
+            expect(request.script).to include("./startup")
+            response
           end
 
-          expect_start
-
-          expect(actual_script).to match %r{export.+startup.+exit}m
+          instance.promise_start.resolve
         end
       end
     end
@@ -970,9 +926,7 @@ describe Dea::Instance do
   end
 
   describe "stop transition" do
-    let(:connection) do
-      mock("connection")
-    end
+    let(:connection) { mock("connection", :promise_call => delivering_promise) }
 
     let(:env) { double("environment").as_null_object }
 
@@ -1072,9 +1026,7 @@ describe Dea::Instance do
   end
 
   describe "link" do
-    let(:connection) do
-      mock("connection")
-    end
+    let(:connection) { mock("connection", :promise_call => delivering_promise) }
 
     before do
       instance.container.stub(:get_connection).and_return(connection)
@@ -1266,7 +1218,7 @@ describe Dea::Instance do
       Dea::Instance.new(bootstrap, valid_instance_attributes)
     end
 
-    let(:connection) { mock("connection") }
+    let(:connection) { mock("connection", :promise_call => delivering_promise) }
 
     before do
       instance.container.stub(:get_connection).and_return(connection)
@@ -1291,7 +1243,7 @@ describe Dea::Instance do
       it "executes a DestroyRequest" do
         instance.attributes["warden_handle"] = "handle"
 
-        instance.stub(:promise_warden_call) do |_, request|
+        instance.stub(:promise_warden_call_with_retry) do |_, request|
           request.should be_kind_of(::Warden::Protocol::DestroyRequest)
           request.handle.should == "handle"
 
@@ -1357,8 +1309,8 @@ describe Dea::Instance do
       end
     end
 
-    [ Dea::Instance::State::RESUMING,
-      Dea::Instance::State::RUNNING,
+    [Dea::Instance::State::RESUMING,
+     Dea::Instance::State::RUNNING,
     ].each do |state|
       it "is triggered link when transitioning from #{state.inspect}" do
         instance.state = state
@@ -1396,8 +1348,8 @@ describe Dea::Instance do
       end
 
       it "should copy the contents of a directory" do
-       instance.stub(:promise_warden_call) do |_, request|
-         request.src_path.should =~ %r!/$!
+        instance.stub(:promise_warden_call_with_retry) do |_, request|
+          request.src_path.should =~ %r!/$!
 
           delivering_promise
         end
