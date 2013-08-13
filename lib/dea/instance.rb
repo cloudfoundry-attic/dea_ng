@@ -6,7 +6,6 @@ require "steno/core_ext"
 require "vcap/common"
 require "yaml"
 
-require "dea/container"
 require "dea/env"
 require "dea/health_check/port_open"
 require "dea/health_check/state_file_ready"

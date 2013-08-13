@@ -1,5 +1,5 @@
 require "spec_helper"
-require "dea/container"
+require "dea/container/container"
 
 describe Dea::Container do
   let(:handle) { "fakehandle" }
@@ -12,6 +12,54 @@ describe Dea::Container do
   #    expect(container.handle).to eq("17deadbeef")
   #  end
   #end
+
+  describe "get_connection" do
+    let(:connection_name) { "connection_name" }
+    let(:connected) { false }
+    let(:warden_connection) { double("fake warden connection", :connected? => connected) }
+    let(:connection) { double("fake connection", :promise_create => delivering_promise(warden_connection)) }
+
+    context "when conneciton is cached" do
+      before do
+        container.cache_connection(connection_name, warden_connection)
+      end
+
+      context "when connection is connected" do
+        let(:connected) { true }
+        it "uses cached connection" do
+          expect(container.get_connection(connection_name)).to eq(warden_connection)
+        end
+      end
+
+      context "when connection is not connected" do
+        let(:connected) { false }
+        it "creates new connection" do
+          Dea::Connection.should_receive(:new).with(connection_name, socket_path).and_return(connection)
+          container.get_connection(connection_name)
+        end
+      end
+    end
+
+    context "when connection is not cached" do
+      before do
+        Dea::Connection.should_receive(:new).with(connection_name, socket_path).and_return(connection)
+      end
+
+      it "creates a new connection and caches it" do
+        container.get_connection(connection_name)
+        expect(container.find_connection(connection_name)).to eq(warden_connection)
+      end
+
+      context "if connection fails" do
+        let(:connection) { double("failing connection", :promise_create => failing_promise({})) }
+        it "raises an error" do
+          expect {
+            container.get_connection(connection_name)
+          }.to raise_error
+        end
+      end
+    end
+  end
 
   describe "#socket_path" do
     it "returns the socket of the container" do

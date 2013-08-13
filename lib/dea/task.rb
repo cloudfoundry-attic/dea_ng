@@ -5,6 +5,7 @@ require "steno"
 require "steno/core_ext"
 require "dea/promise"
 require "vmstat"
+require "dea/container/container"
 
 module Dea
   class Task
@@ -34,42 +35,10 @@ module Dea
       @container ||= Dea::Container.new(config["warden_socket"])
     end
 
-    def promise_warden_connection(name)
-      Promise.new do |p|
-        connection = container.find_connection(name)
-
-        # Deliver cached connection if possible
-        if connection && connection.connected?
-          p.deliver(connection)
-        else
-          socket = config["warden_socket"]
-          klass  = ::EM::Warden::Client::Connection
-
-          begin
-            connection = ::EM.connect_unix_domain(socket, klass)
-          rescue => error
-            p.fail(WardenError.new("Cannot connect to warden on #{socket}: #{error.message}"))
-          end
-
-          if connection
-            connection.on(:connected) do
-              container.cache_connection(name, connection)
-
-              p.deliver(connection)
-            end
-
-            connection.on(:disconnected) do
-              p.fail(WardenError.new("Cannot connect to warden on #{socket}"))
-            end
-          end
-        end
-      end
-    end
-
     def promise_warden_call(connection_name, request)
       Promise.new do |p|
         logger.debug2(request.inspect)
-        connection = promise_warden_connection(connection_name).resolve
+        connection = container.get_connection(connection_name)
         connection.call(request) do |result|
           logger.debug2(result.inspect)
 

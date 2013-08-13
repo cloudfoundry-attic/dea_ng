@@ -1,5 +1,5 @@
 require "spec_helper"
-require "dea/container"
+require "dea/container/container"
 require "dea/stat_collector"
 
 describe Dea::StatCollector do

@@ -1,4 +1,5 @@
 require "em/warden/client"
+require "dea/container/connection"
 
 module Dea
   class Container
@@ -35,6 +36,19 @@ module Dea
     def close_connection(name)
       if connection = @warden_connections.delete(name)
         connection.close_connection
+      end
+    end
+
+    def get_connection(name)
+      connection = find_connection(name)
+
+      # Deliver cached connection if possible
+      if connection && connection.connected?
+        return connection
+      else
+        connection = Connection.new(name, socket_path).promise_create.resolve
+        cache_connection(name, connection) if connection
+        return connection
       end
     end
 

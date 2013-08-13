@@ -423,7 +423,7 @@ describe Dea::Instance do
     before do
       bootstrap.stub(:config).and_return({ "bind_mounts" => [] })
       instance.stub(:promise_droplet_download).and_return(delivering_promise)
-      instance.stub(:promise_warden_connection).and_return(failing_promise("error"))
+      instance.container.stub(:get_connection).and_raise("bad connection bad")
       instance.stub(:promise_create_container).and_return(delivering_promise)
       instance.stub(:promise_setup_network).and_return(delivering_promise)
       instance.stub(:promise_limit_disk).and_return(delivering_promise)
@@ -979,7 +979,7 @@ describe Dea::Instance do
     before do
       bootstrap.stub(:config).and_return({})
       instance.stub(:promise_state).and_return(delivering_promise)
-      instance.stub(:promise_warden_connection).and_return(delivering_promise(warden_connection))
+      instance.container.stub(:get_connection).and_return(warden_connection)
       instance.stub(:promise_stop).and_return(delivering_promise)
       Dea::Env.stub(:new).and_return(env)
     end
@@ -1077,7 +1077,7 @@ describe Dea::Instance do
     end
 
     before do
-      instance.stub(:promise_warden_connection).and_return(delivering_promise(warden_connection))
+      instance.container.stub(:get_connection).and_return(warden_connection)
       instance.stub(:promise_link).and_return(delivering_promise(::Warden::Protocol::LinkResponse.new))
     end
 
@@ -1269,7 +1269,7 @@ describe Dea::Instance do
     let(:warden_connection) { mock("warden_connection") }
 
     before do
-      instance.stub(:promise_warden_connection).and_return(delivering_promise(warden_connection))
+      instance.container.stub(:get_connection).and_return(warden_connection)
     end
 
     def expect_destroy
