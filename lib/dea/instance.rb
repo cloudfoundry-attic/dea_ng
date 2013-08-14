@@ -400,16 +400,41 @@ module Dea
 
     def promise_setup_network
       Promise.new do |p|
-        response = get_new_warden_net_in
+        net_in = lambda do |container_port|
+          request = ::Warden::Protocol::NetInRequest.new
+          request.handle = @attributes["warden_handle"]
+          request.container_port = container_port
+          promise_warden_call(:app, request).resolve
+        end
+
+        parse_droplet_metadata
+
+        raw_ports = attributes['instance_meta']['raw_ports']
+        if raw_ports
+          prod_ports = {}
+          attributes['instance_meta']['prod_ports'] = {}
+          raw_ports.each_pair do |name, info|
+            response = net_in.call(info['port'])
+            prod_ports[name] = {
+              'host_port'=> response.host_port,
+              'container_port' => response.container_port,
+              'port_info' => info
+            }
+          end
+          attributes['instance_meta']['prod_ports'] = prod_ports
+
+        end
+
+        response = net_in.call(nil)
         attributes["instance_host_port"]      = response.host_port
         attributes["instance_container_port"] = response.container_port
 
-        response = get_new_warden_net_in
+        response = net_in.call(nil)
         attributes["instance_console_host_port"]      = response.host_port
         attributes["instance_console_container_port"] = response.container_port
 
         if attributes["debug"]
-          response = get_new_warden_net_in
+          response = net_in.call(nil)
           attributes["instance_debug_host_port"]      = response.host_port
           attributes["instance_debug_container_port"] = response.container_port
         end
@@ -435,6 +460,30 @@ module Dea
 
         p.deliver
       end
+    end
+
+    def metadata(opts={})
+      {
+        "app_uri" => opts[:uris],
+        "app_id" => attributes['application_db_id'].to_s,
+        "app_name" => attributes['application_name'],
+        "instance_ip" => bootstrap.local_ip,
+        "instance_id" => attributes['instance_id'],
+        "instance_index" => attributes['instance_index'].to_s,
+        "instance_meta"  => attributes['instance_meta'],
+        "instance_tags"  => attributes['tags']
+
+      }
+    end
+
+    def parse_droplet_metadata()
+      info = container.info
+
+      #TODO : JUST FOR TEST
+      manifest_path = info.container_path
+      
+      #manifest = promise_read_instance_manifest(info.container_path).resolve
+      @attributes['instance_meta'] = promise_read_instance_manifest(manifest_path).resolve || {}
     end
 
     def promise_start
@@ -510,6 +559,7 @@ module Dea
 
         [
           promise_extract_droplet,
+          promise_setup_network,
           promise_exec_hook_script('before_start'),
           promise_start
         ].each(&:resolve)
@@ -548,7 +598,7 @@ module Dea
     def promise_container
       Promise.new do |p|
         promise_create_container.resolve
-        promise_setup_network.resolve
+        #promise_setup_network.resolve
         promise_limit_disk.resolve
         promise_limit_memory.resolve
         promise_setup_environment.resolve
@@ -650,10 +700,12 @@ module Dea
 
     def setup_stat_collector
       on(Transition.new(:resuming, :running)) do
+        log(:warn, "begin to start stat collector from :resuming, :running")
         stat_collector.start
       end
 
       on(Transition.new(:starting, :running)) do
+        log(:warn, "begin to start stat collector")
         stat_collector.start
       end
 
@@ -720,16 +772,16 @@ module Dea
         end
 
         manifest_path = container_relative_path(container_path, "droplet.yaml")
-        if File.exist?(manifest_path)
+        if !File.exist?(manifest_path)
+          p.deliver({})
+        else
           manifest = YAML.load_file(manifest_path)
           p.deliver(manifest)
-        else
-          p.deliver({})
         end
       end
     end
 
-    def promise_port_open(port,timeout)
+    def promise_port_open(port, timeout)
       Promise.new do |p|
         host = bootstrap.local_ip
 
@@ -741,13 +793,14 @@ module Dea
           hc.errback  { p.deliver(false) }
 
           if attributes["debug"] != "suspend"
+            #hc.timeout(60)
             hc.timeout(timeout)
           end
         end
       end
     end
 
-    def promise_state_file_ready(path,timeout)
+    def promise_state_file_ready(path, timeout)
       Promise.new do |p|
         log(:debug, "droplet.healthcheck.file", :path => path)
 
@@ -757,6 +810,7 @@ module Dea
           hc.errback { p.deliver(false) }
 
           if attributes["debug"] != "suspend"
+            #hc.timeout(60 * 5)
             hc.timeout(timeout)
           end
         end
@@ -791,11 +845,12 @@ module Dea
           else
             start_timeout = 60
           end
-
           if manifest && manifest["state_file"]
             manifest_path = container_relative_path(info.container_path, manifest["state_file"])
+            #p.deliver(promise_state_file_ready(manifest_path).resolve)
             p.deliver(promise_state_file_ready(manifest_path,start_timeout).resolve)
           elsif !application_uris.empty?
+            #p.deliver(promise_port_open(instance_host_port).resolve)
             p.deliver(promise_port_open(instance_host_port,start_timeout).resolve)
           else
             p.deliver(true)
@@ -825,12 +880,6 @@ module Dea
     end
 
     private
-
-    def get_new_warden_net_in
-      request = ::Warden::Protocol::NetInRequest.new
-      request.handle = @attributes["warden_handle"]
-      promise_warden_call(:app, request).resolve
-    end
 
     def determine_exit_description(link_response)
       info = link_response.info

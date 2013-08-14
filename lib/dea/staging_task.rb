@@ -468,15 +468,17 @@ module Dea
 
     def staging_environment_variables
       env = attributes["properties"]["environment"] || []
-      env += %W[
-        PLATFORM_CONFIG=#{workspace.platform_config_path}
-        BUILDPACK_CACHE=#{staging_config["environment"]["BUILDPACK_CACHE"]}
-        STAGING_TIMEOUT=#{staging_timeout}
-      ]
+
       env.map! do |var|
         key, value = var.split("=", 2)
         "export #{key}=#{Shellwords.escape(value)};"
       end
+
+      env.concat({
+        "PLATFORM_CONFIG" => workspace.platform_config_path,
+        "BUILDPACK_CACHE" => staging_config["environment"]["BUILDPACK_CACHE"],
+        "STAGING_TIMEOUT" => staging_timeout
+      }.map { |k, v| "export #{k}=#{Shellwords.escape(v.to_s)};" })
 
       env.join(" ")
     end

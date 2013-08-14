@@ -55,7 +55,7 @@ module Dea
     end
 
     def local_ip
-      @local_ip ||= VCAP.local_ip
+      @local_ip ||= VCAP.local_ip(config["local_route"])
     end
 
     def validate_config
@@ -409,16 +409,18 @@ module Dea
 
         # Register with router
         router_client.register_instance(instance)
+        nats.publish("broker.register",instance.metadata)
       end
 
       instance.on(Instance::Transition.new(:running, :crashed)) do
         router_client.unregister_instance(instance)
+        nats.publish("broker.unregister",instance.metadata)
         send_exited_message(instance, EXIT_REASON_CRASHED)
       end
 
       instance.on(Instance::Transition.new(:running, :stopping)) do
         router_client.unregister_instance(instance)
-
+        nats.publish("broker.unregister",instance.metadata)
         # This is a little wonky but ensures that we don't send an exited
         # message twice. During evacuation, an exit message is sent for each
         # running app, the evacuation interval is allowed to pass, and the app
@@ -486,6 +488,7 @@ module Dea
       instance_registry.each do |instance|
         next if !instance.running? || instance.application_uris.empty?
         router_client.register_instance(instance)
+        nats.publish("broker.register",instance.metadata)
       end
 
       register_directory_server_v2
@@ -534,11 +537,13 @@ module Dea
         new_uris = uris - current_uris
         unless new_uris.empty?
           router_client.register_instance(instance, :uris => new_uris)
+          nats.publish("broker.register",instance.metadata(:uris => new_uris))
         end
 
         obsolete_uris = current_uris - uris
         unless obsolete_uris.empty?
           router_client.unregister_instance(instance, :uris => obsolete_uris)
+          nats.publish("broker.unregister",instance.metadata(:uris => obsolete_uris))
         end
 
         instance.application_uris = uris
