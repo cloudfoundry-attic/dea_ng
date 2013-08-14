@@ -4,8 +4,17 @@ require "dea/container/container"
 describe Dea::Container do
   let(:handle) { "fakehandle" }
   let(:socket_path) { "/tmp/warden.sock.notreally" }
-
   subject(:container) { described_class.new(socket_path, TEST_TEMP) }
+  let(:request) { double("request") }
+  let(:response) { double("response") }
+  let(:connection_name) { "connection_name" }
+  let(:connected) { true }
+  let(:connection) do
+    double("fake connection",
+           :name => connection_name,
+           :promise_create => delivering_promise,
+           :connected? => connected)
+  end
 
   #describe "#handle" do
   #  it "returns the handle of the container" do
@@ -13,11 +22,7 @@ describe Dea::Container do
   #  end
   #end
 
-  describe "get_connection" do
-    let(:connection_name) { "connection_name" }
-    let(:connected) { false }
-    let(:connection) { double("fake connection", :promise_create => delivering_promise, :connected? => connected) }
-
+  describe "#get_connection" do
     context "when conneciton is cached" do
       before do
         container.cache_connection(connection_name, connection)
@@ -160,4 +165,49 @@ describe Dea::Container do
     end
   end
 
+  describe "#call_with_retry" do
+    before do
+      container.cache_connection(connection_name, connection)
+    end
+
+    context "when there is a connection error" do
+      let(:error_msg) { "error" }
+      let(:connection_error) { ::EM::Warden::Client::ConnectionError.new(error_msg) }
+
+      it "should retry the call (which will get a new connection)" do
+        container.should_receive(:call).with(connection_name, request).ordered.and_raise(connection_error)
+        container.should_receive(:call).with(connection_name, request).ordered.and_raise(connection_error)
+        container.should_receive(:call).with(connection_name, request).ordered.and_return(response)
+        container.logger.should_receive(:log_exception).twice
+        container.logger.should_receive(:debug).with(/succeeded after 2/i)
+
+        result = container.call_with_retry(connection_name, request)
+        expect(result).to eq(response)
+      end
+    end
+
+    context "when the call succeeds" do
+      it "should succeed with one call and not log debug output or warnings" do
+        container.should_receive(:call).with(connection_name, request).ordered.and_return(response)
+        container.logger.should_not_receive(:debug)
+        container.logger.should_not_receive(:warn)
+
+        result = container.call_with_retry(connection_name, request)
+        expect(result).to eq(response)
+      end
+    end
+
+    context "when there is an error other than a connection error" do
+      let(:other_error) { ::EM::Warden::Client::Error.new(error_msg) }
+      let(:error_msg) { "error" }
+
+      it "raises the error" do
+        container.should_receive(:call).with(connection_name, request).ordered.and_raise(other_error)
+
+        expect {
+          container.call_with_retry(connection_name, request)
+        }.to raise_error(other_error)
+      end
+    end
+  end
 end

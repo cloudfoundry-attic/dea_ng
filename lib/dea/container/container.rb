@@ -3,7 +3,8 @@ require "dea/container/connection"
 
 module Dea
   class Container
-    class ConnectionError < StandardError; end
+    class ConnectionError < StandardError;
+    end
 
     attr_reader :socket_path
     attr_accessor :handle
@@ -57,6 +58,25 @@ module Dea
     def call(name, request)
       connection = get_connection(name)
       connection.promise_call(request).resolve
+    end
+
+    def call_with_retry(name, request)
+      count = 0
+      response = nil
+
+      begin
+        response = call(name, request)
+      rescue ::EM::Warden::Client::ConnectionError => error
+        count += 1
+        logger.warn("Request failed: #{request.inspect}, retrying ##{count}.")
+        logger.log_exception(error)
+        retry
+      end
+
+      if count > 0
+        logger.debug("Request succeeded after #{count} retries: #{request.inspect}")
+      end
+      response
     end
 
     private

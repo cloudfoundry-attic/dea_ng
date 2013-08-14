@@ -365,7 +365,7 @@ module Dea
 
     def to_s
       "Instance(id=%s, idx=%s, app_id=%s)" % [instance_id.slice(0, 4),
-                                             instance_index, application_id]
+                                              instance_index, application_id]
     end
 
     def promise_state(from, to = nil)
@@ -668,7 +668,7 @@ module Dea
         request = ::Warden::Protocol::LinkRequest.new
         request.handle = attributes["warden_handle"]
         request.job_id = attributes["warden_job_id"]
-        response = promise_warden_call_with_retry(:link, request).resolve
+        response = container.call_with_retry(:link, request)
 
         log(:info, "droplet.warden.link.completed", :exit_status => response.exit_status)
 

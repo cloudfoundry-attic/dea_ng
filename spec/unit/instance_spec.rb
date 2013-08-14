@@ -4,8 +4,12 @@ require "dea/instance"
 describe Dea::Instance do
   include_context "tmpdir"
 
+  let(:connection) { mock("connection", :promise_call => delivering_promise) }
   let(:bootstrap) do
-    mock("bootstrap", :config => {})
+    double("bootstrap", :config => {})
+  end
+  before do
+    bootstrap.config.stub(:crashes_path).and_return("crashes/path")
   end
 
   subject(:instance) do
@@ -1025,29 +1029,87 @@ describe Dea::Instance do
     it_behaves_like 'stop script hook', 'after_stop'
   end
 
-  describe "link" do
-    let(:connection) { mock("connection", :promise_call => delivering_promise) }
+  describe "#promise_link" do
+    let(:exit_status) { 42 }
+    let(:info_events) { nil }
 
-    before do
-      instance.container.stub(:get_connection).and_return(connection)
-      instance.stub(:promise_link).and_return(delivering_promise(::Warden::Protocol::LinkResponse.new))
+    let(:info_response) do
+      mock("Warden::Protocol::InfoResponse").tap do |info|
+        info.stub(:events).and_return(info_events)
+      end
+    end
+
+    let(:response) do
+      response = mock("Warden::Protocol::LinkResponse")
+      response.stub(:exit_status).and_return(exit_status)
+      response.stub(:info).and_return(info_response)
+      response
+    end
+
+    describe "when the LinkRequest fails" do
+      it "propagates the exception" do
+        instance.container.should_receive(:call_with_retry).and_raise(RuntimeError, /error/i)
+
+        expect {
+          instance.promise_link.resolve
+        }.to raise_error(RuntimeError, /error/i)
+      end
+
+      it "causes the promise to fail, for the resolver of the promise (sanity check)" do
+        instance.container.should_receive(:call_with_retry).and_raise(RuntimeError.new("error"))
+        instance.link
+        expect(instance.exit_status).to eq(-1)
+      end
+    end
+
+    describe "when the LinkRequest completes successfully" do
+      let(:exit_status) { 42 }
+
+      before do
+        instance.container.stub(:call_with_retry).and_return(response)
+      end
+
+      it "executes a LinkRequest with the warden handle and job ID and returns response" do
+        instance.attributes["warden_handle"] = "handle"
+        instance.attributes["warden_job_id"] = "1"
+        instance.container.should_receive(:call_with_retry) do |name, request|
+          expect(name).to eq(:link)
+          expect(request).to be_kind_of(::Warden::Protocol::LinkRequest)
+          expect(request.handle).to eq("handle")
+          expect(request.job_id).to eq("1")
+
+          response
+        end
+
+        result = instance.promise_link.resolve
+        expect(result).to eq(response)
+      end
+    end
+  end
+
+  describe "#link" do
+    let(:exit_status) { 42 }
+    let(:info_events) { nil }
+
+    let(:info_response) do
+      mock("Warden::Protocol::InfoResponse").tap do |info|
+        info.stub(:events).and_return(info_events)
+      end
+    end
+
+    let(:response) do
+      response = mock("Warden::Protocol::LinkResponse")
+      response.stub(:exit_status).and_return(exit_status)
+      response.stub(:info).and_return(info_response)
+      response
     end
 
     before do
       instance.state = Dea::Instance::State::RUNNING
-    end
-
-    def do_link
-      error = nil
-
-      em do
-        instance.link do |error_|
-          error = error_
-          done
-        end
-      end
-
-      raise error if error
+      instance.container.stub(:get_connection).and_return(connection)
+      instance.stub(:promise_link).and_return(delivering_promise(response))
+      expect(instance.exit_status).to eq(-1)
+      expect(instance.exit_description).to eq("")
     end
 
     [
@@ -1062,131 +1124,55 @@ describe Dea::Instance do
       end
     end
 
-    describe "#promise_link" do
-      before do
-        instance.unstub(:promise_link)
+    describe "when #promise_link succeeds" do
+      it "sets the exit status on the instance" do
+        instance.link
+        expect(instance.exit_status).to eq(exit_status)
       end
 
-      let(:exit_status) { 42 }
-      let(:info_events) { nil }
+      context "when the container_info has an 'oom' event" do
+        let(:info_events) { ["oom"] }
 
-      let(:info_response) do
-        mock("Warden::Protocol::InfoResponse").tap do |info|
-          info.stub(:events).and_return(info_events)
-        end
-      end
-
-      let(:response) do
-        response = mock("Warden::Protocol::LinkResponse")
-        response.stub(:exit_status).and_return(exit_status)
-        response.stub(:info).and_return(info_response)
-        response
-      end
-
-      context "when the link successfully responds" do
-        let(:exit_status) { 42 }
-
-        before do
-          instance.stub(:promise_warden_call_with_retry) do |_, request|
-            request.should be_kind_of(::Warden::Protocol::LinkRequest)
-            delivering_promise(response)
-          end
-        end
-
-        it "executes a LinkRequest with the warden handle and job ID" do
-          instance.attributes["warden_handle"] = "handle"
-          instance.attributes["warden_job_id"] = "1"
-
-          instance.should_receive(:promise_warden_call_with_retry) do |_, request|
-            request.should be_kind_of(::Warden::Protocol::LinkRequest)
-            request.handle.should == "handle"
-            request.job_id.should == "1"
-
-            delivering_promise(response)
-          end
-
-          expect { do_link }.to_not raise_error
-        end
-
-        it "sets the exit status on the instance" do
-          expect { do_link }.to change {
-            instance.exit_status
-          }.from(-1).to(42)
-        end
-
-        context "when the container info has an 'oom' event" do
-          let(:info_events) { ["oom"] }
-
-          it "sets the exit description to 'out of memory'" do
-            expect { do_link }.to change {
-              instance.exit_description
-            }.from("").to("out of memory")
-          end
-        end
-
-        context "when the info response is missing" do
-          let(:info_response) { nil }
-
-          it "sets the exit description to 'cannot be determined'" do
-            expect { do_link }.to change {
-              instance.exit_description
-            }.from("").to("cannot be determined")
-          end
-        end
-
-        context "when there is an info response no usable information" do
-          it "sets the exit description to 'out of memory'" do
-            expect { do_link }.to change {
-              instance.exit_description
-            }.from("").to("app instance exited")
-          end
+        it "sets the exit_description to 'out of memory'" do
+          instance.link
+          expect(instance.exit_description).to eq("out of memory")
         end
       end
 
-      context "when the link fails" do
-        it "propagates the exception" do
-          instance.should_receive(:promise_warden_call_with_retry) do |_, request|
-            failing_promise(RuntimeError.new("error"))
-          end
+      context "when the info_response is missing" do
+        let(:info_response) { nil }
 
-          expect { do_link }.to raise_error(RuntimeError, /error/i)
+        it "sets the exit_description to 'cannot be determined'" do
+          instance.link
+          expect(instance.exit_description).to eq("cannot be determined")
         end
+      end
 
-        it "sets exit status of the instance to -1" do
-          instance.should_receive(:promise_warden_call_with_retry) do |_, request|
-            failing_promise(RuntimeError.new("error"))
-          end
-
-          expect {
-            begin
-              do_link
-            rescue RuntimeError => e
-              # Ignore error
-            end
-          }.to_not change {
-            instance.exit_status
-          }
-        end
-
-        it "sets exit description of the instance to unknown" do
-          instance.should_receive(:promise_warden_call_with_retry) do |_, request|
-            failing_promise(RuntimeError.new("error"))
-          end
-
-          expect {
-            begin
-              do_link
-            rescue RuntimeError => e
-              # Ignore error
-            end
-          }.to change {
-            instance.exit_description
-          }.from("").to("unknown")
+      context "when there is an info_response no usable information" do
+        it "sets the exit_description to 'out of memory'" do
+          instance.link
+          expect(instance.exit_description).to eq("app instance exited")
         end
       end
     end
 
-    describe "state" do
+    context "when the #promise_link fails" do
+      before do
+        instance.should_receive(:promise_link).and_return(failing_promise(RuntimeError.new("error")))
+      end
+
+      it "sets exit status of the instance to -1" do
+        instance.link
+        expect(instance.exit_status).to eq(-1)
+      end
+
+      it "sets exit description of the instance to unknown" do
+        instance.link
+        expect(instance.exit_description).to eq("unknown")
+      end
+    end
+
+    describe "state transitions" do
       [
         Dea::Instance::State::STARTING,
         Dea::Instance::State::RUNNING,
@@ -1196,7 +1182,9 @@ describe Dea::Instance do
         it "changes to #{to.inspect} when it was #{from.inspect}" do
           instance.state = from
 
-          expect { do_link }.to change(instance, :state).to(to)
+          expect {
+            instance.link
+          }.to change(instance, :state).to(to)
         end
       end
 
@@ -1207,7 +1195,9 @@ describe Dea::Instance do
         it "doesn't change when it was #{from.inspect}" do
           instance.state = from
 
-          expect { do_link }.to_not change(instance, :state)
+          expect {
+            instance.link
+          }.to_not change(instance, :state)
         end
       end
     end
@@ -1243,11 +1233,9 @@ describe Dea::Instance do
       it "executes a DestroyRequest" do
         instance.attributes["warden_handle"] = "handle"
 
-        instance.stub(:promise_warden_call_with_retry) do |_, request|
+        instance.container.should_receive(:call_with_retry) do |_, request|
           request.should be_kind_of(::Warden::Protocol::DestroyRequest)
           request.handle.should == "handle"
-
-          delivering_promise
         end
 
         expect_destroy.to_not raise_error
@@ -1348,13 +1336,11 @@ describe Dea::Instance do
       end
 
       it "should copy the contents of a directory" do
-        instance.stub(:promise_warden_call_with_retry) do |_, request|
+        instance.container.should_receive(:call_with_retry) do |_, request|
           request.src_path.should =~ %r!/$!
-
-          delivering_promise
         end
 
-        expect_crash_handler.to_not raise_error
+        instance.promise_copy_out.resolve
       end
     end
   end

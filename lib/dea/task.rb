@@ -34,28 +34,6 @@ module Dea
       @container ||= Dea::Container.new(config["warden_socket"], config["base_dir"])
     end
 
-    def promise_warden_call_with_retry(connection_name, request)
-      Promise.new do |p|
-        response = nil
-        count = 0
-
-        begin
-          response = container.call(connection_name, request)
-        rescue ::EM::Warden::Client::ConnectionError => error
-          count += 1
-          logger.warn("Request failed: #{request.inspect}, retrying ##{count}.")
-          logger.log_exception(error)
-          retry
-        end
-
-        if count > 0
-          logger.debug("Request succeeded after #{count} retries: #{request.inspect}")
-        end
-
-        p.deliver(response)
-      end
-    end
-
     def paths_to_bind
       []
     end
@@ -155,12 +133,12 @@ module Dea
     end
 
     def promise_destroy
-      Promise.new do |p|
+      Promise.new do |promise|
         request = ::Warden::Protocol::DestroyRequest.new
         request.handle = container_handle
 
         begin
-          promise_warden_call_with_retry(:app, request).resolve
+          container.call_with_retry(:app, request)
         rescue ::EM::Warden::Client::Error => error
           logger.warn("Error destroying container: #{error.message}")
         end
@@ -168,20 +146,20 @@ module Dea
         # Remove container handle from attributes now that it can no longer be used
         attributes.delete("warden_handle")
 
-        p.deliver
+        promise.deliver
       end
     end
 
     def destroy(&callback)
-      p = Promise.new do
+      promise = Promise.new do
         logger.info("Destroying instance")
 
         promise_destroy.resolve
 
-        p.deliver
+        promise.deliver
       end
 
-      resolve(p, "destroy instance") do |error, _|
+      resolve(promise, "destroy instance") do |error, _|
         callback.call(error) unless callback.nil?
       end
     end
@@ -223,7 +201,7 @@ module Dea
       request.owner = Process.uid.to_s
 
       begin
-        promise_warden_call_with_retry(:app, request).resolve
+        container.call_with_retry(:app, request)
       rescue ::EM::Warden::Client::Error => error
         logger.warn("Error copying files out of container: #{error.message}")
       end

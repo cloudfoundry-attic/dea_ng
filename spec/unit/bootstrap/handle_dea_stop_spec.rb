@@ -28,6 +28,7 @@ describe "Dea::Bootstrap#handle_dea_stop" do
   let(:resource_manager) do
     manager = double(:resource_manager)
     manager.stub(:could_reserve?).and_return(true)
+    manager.stub(:number_reservable).and_return(123)
     manager
   end
 

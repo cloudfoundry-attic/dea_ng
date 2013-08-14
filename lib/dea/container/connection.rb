@@ -31,7 +31,7 @@ module Dea
     end
 
     def promise_call(request)
-      Promise.new do |p|
+      Promise.new do |promise|
         logger.debug2(request.inspect)
         @warden_connection.call(request) do |result|
           logger.debug2(result.inspect)
@@ -43,32 +43,29 @@ module Dea
             logger.warn "Request failed: #{request.inspect} file touched: #{file_touch_output} VMstat out: #{vmstat_snapshot_output}"
             logger.log_exception(error)
 
-            p.fail(error)
+            promise.fail(error)
           else
-            p.deliver(response)
+            promise.deliver(response)
           end
         end
       end
     end
 
-    def promise_call_with_retry(request)
-    end
-
     def promise_create
-      Promise.new do |p|
+      Promise.new do |promise|
         begin
           @warden_connection = ::EM.connect_unix_domain(socket, ::EM::Warden::Client::Connection)
         rescue => error
-          p.fail(WardenError.new("Cannot connect to warden on #{socket}: #{error.message}"))
+          promise.fail(WardenError.new("Cannot connect to warden on #{socket}: #{error.message}"))
         end
 
         if @warden_connection
           @warden_connection.on(:connected) do
-            p.deliver
+            promise.deliver
           end
 
           @warden_connection.on(:disconnected) do
-            p.fail(WardenError.new("Cannot connect to warden on #{socket}"))
+            promise.fail(WardenError.new("Cannot connect to warden on #{socket}"))
           end
         end
       end
