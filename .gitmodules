@@ -10,3 +10,6 @@
 [submodule "go/vendor"]
 	path = go/vendor
 	url = https://github.com/cloudfoundry/govendor
+[submodule "buildpacks/vendor/liberty"]
+	path = buildpacks/vendor/liberty
+	url = http://git.w3.bluemix.net/liberty-buildpack.git
