@@ -10,3 +10,6 @@
 [submodule "go/vendor"]
 	path = go/vendor
 	url = https://github.com/cloudfoundry/govendor
+[submodule "buildpacks/vendor/x-plat-buildpack-cb"]
+	path = buildpacks/vendor/x-plat-buildpack-cb
+	url = https://github.com/X-Plat/x-plat-buildpack-cb
