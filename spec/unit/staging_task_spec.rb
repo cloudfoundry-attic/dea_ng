@@ -252,7 +252,9 @@ YAML
   describe "#path_in_container" do
     context "when given path is not nil" do
       context "when container path is set" do
-        before { staging.stub(:container_path => "/container/path") }
+        before do
+          staging.container.stub(:path).and_return("/container/path")
+        end
 
         it "returns path inside warden container root file system" do
           staging.path_in_container("path/to/file").should == "/container/path/tmp/rootfs/path/to/file"
@@ -260,7 +262,7 @@ YAML
       end
 
       context "when container path is not set" do
-        before { staging.stub(:container_path => nil) }
+        before { staging.container.stub(:path => nil) }
 
         it "returns nil" do
           staging.path_in_container("path/to/file").should be_nil
@@ -270,7 +272,9 @@ YAML
 
     context "when given path is nil" do
       context "when container path is set" do
-        before { staging.stub(:container_path => "/container/path") }
+        before do
+          staging.container.stub(:path).and_return("/container/path")
+        end
 
         it "returns path inside warden container root file system" do
           staging.path_in_container(nil).should == "/container/path/tmp/rootfs/"
@@ -298,10 +302,10 @@ YAML
          limit_memory
          prepare_staging_log
          app_dir
-         container_info
       ).each do |step|
         staging.stub("promise_#{step}").and_return(successful_promise)
       end
+      staging.container.stub(:promise_update_path_and_ip).and_return(successful_promise)
     end
 
     def stub_staging
@@ -473,10 +477,11 @@ YAML
          promise_limit_memory
          promise_prepare_staging_log
          promise_app_dir
-         promise_container_info
+
       ).each do |step|
         staging.should_receive(step).ordered.and_return(successful_promise)
       end
+      staging.container.should_receive(:promise_update_path_and_ip).ordered.and_return(successful_promise)
 
       stub_staging
       stub_staging_upload
@@ -661,52 +666,6 @@ YAML
         mock(:prepare_staging_log_promise, :resolve => nil)
       end
       staging.promise_prepare_staging_log.resolve
-    end
-  end
-
-  describe "#promise_container_info" do
-    let(:warden_info_response) { Warden::Protocol::InfoResponse.new(:container_path => "/container/path") }
-
-    before { staging.stub(:container_handle => "container-handle") }
-
-    it "makes warden info request" do
-      staging.container.should_receive(:call).and_return do |type, request|
-        expect(type).to eq(:info)
-        expect(request.handle).to eq("container-handle")
-        warden_info_response
-      end
-
-      staging.promise_container_info.resolve
-    end
-
-    context "when container_path is provided" do
-      it "sets container_path" do
-        staging.container.should_receive(:call).and_return(warden_info_response)
-
-        expect {
-          staging.promise_container_info.resolve
-        }.to change { staging.container_path }.from(nil).to("/container/path")
-      end
-    end
-
-    context "when container_path is not provided" do
-      it "raises error" do
-        staging.container.should_receive(:call).and_return(Warden::Protocol::InfoResponse.new)
-
-        expect {
-          staging.promise_container_info.resolve
-        }.to raise_error(RuntimeError, /container path is not available/)
-      end
-    end
-
-    context "when container handle is not set" do
-      before { staging.stub(:container_handle => nil) }
-
-      it "raises error" do
-        expect {
-          staging.promise_container_info.resolve
-        }.to raise_error(ArgumentError, /container handle must not be nil/)
-      end
     end
   end
 

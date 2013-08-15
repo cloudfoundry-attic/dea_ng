@@ -439,15 +439,15 @@ module Dea
 
         start_script =
           if staged_info
-             Dea::StartupScriptGenerator.new(
-               staged_info.fetch("start_command"),
-               env.exported_user_environment_variables,
-               env.exported_system_environment_variables,
-               staged_info.fetch("detected_buildpack")
-             ).generate
-           else
-             env.exported_environment_variables + "./startup;\nexit"
-           end
+            Dea::StartupScriptGenerator.new(
+              staged_info.fetch("start_command"),
+              env.exported_user_environment_variables,
+              env.exported_system_environment_variables,
+              staged_info.fetch("detected_buildpack")
+            ).generate
+          else
+            env.exported_environment_variables + "./startup;\nexit"
+          end
 
         log(:info, "foo.bal", staged_info: staged_info, start_script: start_script)
 
@@ -764,7 +764,7 @@ module Dea
       Promise.new do |p|
         begin
           logger.debug "droplet.health-check.get-container-info"
-          info = container.info
+          container.promise_update_path_and_ip.resolve
           logger.debug "droplet.health-check.container-info-ok"
         rescue => e
           logger.error "droplet.health-check.container-info-failed",
@@ -772,13 +772,14 @@ module Dea
 
           p.deliver(false)
         else
-          attributes["warden_container_path"] = info.container_path
-          attributes["warden_host_ip"] = info.host_ip
+          #TODO: get rid of this, it's needed for the dropletty snapshotty stuff
+          attributes["warden_container_path"] = container.path
+          attributes["warden_host_ip"] = container.host_ip
 
-          manifest = promise_read_instance_manifest(info.container_path).resolve
+          manifest = promise_read_instance_manifest(container.path).resolve
 
           if manifest && manifest["state_file"]
-            manifest_path = container_relative_path(info.container_path, manifest["state_file"])
+            manifest_path = container_relative_path(container.path, manifest["state_file"])
             p.deliver(promise_state_file_ready(manifest_path).resolve)
           elsif !application_uris.empty?
             p.deliver(promise_port_open(instance_host_port).resolve)
@@ -852,7 +853,7 @@ module Dea
         "instance_index"      => instance_index,
         "application_id"      => application_id,
         "application_version" => application_version,
-        "application_name"    => application_name,
+        "application_name" => application_name,
       }
 
       @logger ||= self.class.logger.tag(tags)

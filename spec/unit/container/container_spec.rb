@@ -2,6 +2,7 @@ require "spec_helper"
 require "dea/container/container"
 
 describe Dea::Container do
+  let(:client) { double("client") }
   let(:handle) { "fakehandle" }
   let(:socket_path) { "/tmp/warden.sock.notreally" }
   subject(:container) { described_class.new(socket_path, TEST_TEMP) }
@@ -14,6 +15,10 @@ describe Dea::Container do
            :name => connection_name,
            :promise_create => delivering_promise,
            :connected? => connected)
+  end
+
+  before do
+    container.handle = handle
   end
 
   #describe "#handle" do
@@ -71,40 +76,71 @@ describe Dea::Container do
     end
   end
 
-  describe "interacting with the container" do
-    let(:client) { double("client") }
-
+  describe "#info" do
     # can't yield from root fiber, and this object is
     # assumed to be run from another fiber anyway
     around { |example| Fiber.new(&example).resume }
 
     before { container.stub(:client => client) }
 
-    describe "#info" do
-      let(:result) { double("result") }
-      before do
-        container.handle = handle
+    let(:result) { double("result") }
+
+    it "sends an info request to the container" do
+      called = false
+      client.should_receive(:call) do |request|
+        called = true
+        expect(request).to be_a(::Warden::Protocol::InfoRequest)
+        expect(request.handle).to eq(handle)
       end
 
-      it "sends an info request to the container" do
-        called = false
-        client.should_receive(:call) do |request|
-          called = true
-          expect(request).to be_a(::Warden::Protocol::InfoRequest)
-          expect(request.handle).to eq(handle)
-        end
+      container.info
 
-        container.info
+      expect(called).to be_true
+    end
 
-        expect(called).to be_true
+    context "when the request fails" do
+      it "raises an exception" do
+        client.should_receive(:call).and_raise("foo")
+
+        expect { container.info }.to raise_error("foo")
+      end
+    end
+  end
+
+  describe "#promise_update_path_and_ip" do
+    let(:container_path) { "/container/path" }
+    let(:container_host_ip) { "1.7.goodip" }
+    let(:info_response) { Warden::Protocol::InfoResponse.new(:container_path => container_path, :host_ip => container_host_ip) }
+
+    it "makes warden InfoRequest, then updates and returns the container's path" do
+      container.should_receive(:call).and_return do |name, request|
+        expect(name).to eq(:info)
+        expect(request.handle).to eq("fakehandle")
+        info_response
       end
 
-      context "when the request fails" do
-        it "raises an exception" do
-          client.should_receive(:call).and_raise("foo")
+      result = container.promise_update_path_and_ip.resolve
+      expect(result).to eq(info_response)
+      expect(container.path).to eq(container_path)
+      expect(container.host_ip).to eq(container_host_ip)
+    end
 
-          expect { container.info }.to raise_error("foo")
-        end
+    context "when InfoRequest does not return a container_path in the response" do
+      it "raises error" do
+        container.should_receive(:call).and_return(Warden::Protocol::InfoResponse.new)
+
+        expect {
+          container.promise_update_path_and_ip.resolve
+        }.to raise_error(RuntimeError, /container path is not available/)
+      end
+    end
+
+    context "when container handle is not set" do
+      let(:handle) { nil }
+      it "raises error" do
+        expect {
+          container.promise_update_path_and_ip.resolve
+        }.to raise_error(ArgumentError, /container handle must not be nil/)
       end
     end
   end

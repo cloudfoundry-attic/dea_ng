@@ -1,5 +1,7 @@
 require "spec_helper"
 require "dea/instance"
+require "dea/container/connection"
+require "support/fake_connection"
 
 describe Dea::Instance do
   include_context "tmpdir"
@@ -270,6 +272,38 @@ describe Dea::Instance do
     end
   end
 
+  describe "#promise_health_check unit test" do
+    let(:info_response) do
+      info_response = mock("InfoResponse")
+      info_response.stub(:container_path).and_return("fake/container/path")
+      info_response.stub(:host_ip).and_return("fancy ip")
+      info_response
+    end
+
+    let(:container_path) { "fake/container/path" }
+
+    let(:fake_connection) do
+      connection = FakeConnection.new
+      connection.set_fake_response(::Warden::Protocol::InfoRequest, info_response)
+      connection.set_fake_properties({host_ip: "old ip", path: "old path"})
+      connection
+    end
+
+    before do
+      instance.attributes["application_uris"] = []
+      instance.container.handle = "fake handle"
+      Dea::Connection.stub(:new).and_return(fake_connection)
+    end
+
+    it "updates the path and host ip" do
+      instance.should_receive(:promise_read_instance_manifest).with(container_path).and_return(delivering_promise(nil))
+
+      instance.promise_health_check.resolve
+      expect(instance.container.path).to eq(container_path)
+      expect(instance.container.host_ip).to eq("fancy ip")
+    end
+  end
+
   describe "#promise_health_check" do
     let(:info_response) do
       info_response = mock("InfoResponse")
@@ -284,7 +318,10 @@ describe Dea::Instance do
 
     before do
       bootstrap.stub(:local_ip).and_return("127.0.0.1")
-      instance.container.stub(:info => info_response)
+      #instance.container.stub(:info).and_return(info_response)
+      instance.container.stub(:promise_update_path_and_ip).and_return(delivering_promise(info_response))
+      instance.container.stub(:host_ip).and_return(info_response.host_ip)
+      instance.container.stub(:path).and_return(info_response.container_path)
       instance.stub(:promise_read_instance_manifest).and_return(delivering_promise({}))
       instance.stub(:instance_host_port).and_return(1234)
     end
@@ -395,7 +432,7 @@ describe Dea::Instance do
     context "when failing to check the health" do
       let(:error) { RuntimeError.new("Some Error in warden") }
 
-      before { instance.container.stub(:info).and_raise(error) }
+      before { instance.container.stub(:promise_update_path_and_ip).and_return(failing_promise(error)) }
 
       subject { Dea::Promise.resolve(instance.promise_health_check) }
 
@@ -768,10 +805,10 @@ describe Dea::Instance do
 
         before do
           bootstrap.stub(:config).and_return({
-            "hooks" => {
-              "#{hook}" => File.join(File.dirname(__FILE__), "hooks/#{hook}")
-            }
-          })
+                                               "hooks" => {
+                                                 "#{hook}" => File.join(File.dirname(__FILE__), "hooks/#{hook}")
+                                               }
+                                             })
           instance.stub(:runtime).and_return(runtime)
           instance.unstub(:promise_exec_hook_script)
         end

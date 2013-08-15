@@ -6,19 +6,35 @@ module Dea
     class ConnectionError < StandardError;
     end
 
-    attr_reader :socket_path
+    attr_reader :socket_path, :path, :host_ip
     attr_accessor :handle
 
     def initialize(socket_path, base_dir)
       @socket_path = socket_path
       @connections = {}
       @base_dir = base_dir
+      @path = nil
     end
 
     def info
       request = ::Warden::Protocol::InfoRequest.new
       request.handle = @handle
       client.call(request)
+    end
+
+    def promise_update_path_and_ip
+      Promise.new do |p|
+        raise ArgumentError, "container handle must not be nil" unless @handle
+
+        request = ::Warden::Protocol::InfoRequest.new(:handle => @handle)
+        response = call(:info, request)
+
+        raise RuntimeError, "container path is not available" unless response.container_path
+        @path = response.container_path
+        @host_ip = response.host_ip
+
+        p.deliver(response)
+      end
     end
 
     def find_connection(name)

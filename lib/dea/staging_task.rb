@@ -32,7 +32,7 @@ module Dea
       end
     end
 
-    attr_reader :bootstrap, :dir_server, :attributes, :container_path, :task_id, :droplet_sha1
+    attr_reader :bootstrap, :dir_server, :attributes, :task_id, :droplet_sha1
 
     def initialize(bootstrap, dir_server, attributes, custom_logger=nil)
       super(bootstrap.config, custom_logger)
@@ -346,20 +346,6 @@ module Dea
       end
     end
 
-    #TODO:: Move to container (not really specific to staging)
-    def promise_container_info
-      Promise.new do |p|
-        raise ArgumentError, "container handle must not be nil" unless container_handle
-
-        request = ::Warden::Protocol::InfoRequest.new(:handle => container_handle)
-        response = container.call(:info, request)
-
-        raise RuntimeError, "container path is not available" unless @container_path = response.container_path
-
-        p.deliver(response)
-      end
-    end
-
     def promise_save_buildpack_cache
       Promise.new do |p|
         resolve(promise_pack_buildpack_cache, "pack buildpack cache") do |error, result|
@@ -411,7 +397,7 @@ module Dea
     end
 
     def path_in_container(path)
-      File.join(container_path, "tmp", "rootfs", path.to_s) if container_path
+      File.join(container.path, "tmp", "rootfs", path.to_s) if container.path
     end
 
     def staging_config
@@ -436,7 +422,7 @@ module Dea
       Promise.run_in_parallel(
         promise_prepare_staging_log,
         promise_app_dir,
-        promise_container_info,
+        container.promise_update_path_and_ip,
       )
 
     rescue => e
