@@ -303,4 +303,25 @@ describe Dea::Container do
 
 
   end
+
+  describe "#promise_spawn" do
+    let(:nproc_limit) { 123 }
+    let(:file_descriptor_limit) { 456 }
+    let(:script) { "./dostuffscript" }
+
+    it "executes a SpawnRequest" do
+      container.should_receive(:call) do |name, request|
+        expect(name).to eq(:app)
+        expect(request).to be_kind_of(::Warden::Protocol::SpawnRequest)
+        expect(request.handle).to eq(container.handle)
+        expect(request.rlimits.nproc).to eq(nproc_limit)
+        expect(request.rlimits.nofile).to eq(file_descriptor_limit)
+        expect(request.script).to eq(script)
+
+        response
+      end
+      result = container.promise_spawn(script, nproc_limit, file_descriptor_limit).resolve
+      expect(result).to eq(response)
+    end
+  end
 end

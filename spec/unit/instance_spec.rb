@@ -817,25 +817,6 @@ describe Dea::Instance do
         Dea::Env.stub(:new).and_return(env)
       end
 
-      it "executes a SpawnRequest" do
-        actual_request = nil
-
-        instance.container.should_receive(:call) do |name, request|
-          expect(name).to eq(:app)
-          expect(request).to be_kind_of(::Warden::Protocol::SpawnRequest)
-          expect(request.handle).to eq("handle")
-
-          response
-        end
-
-        expect {
-          instance.promise_start.resolve
-        }.to_not raise_error
-
-        # Job ID should be set
-        expect(instance.attributes["warden_job_id"]).to eq(37)
-      end
-
       it "raises errors when the request fails" do
         msg = "can't start the application"
 
@@ -849,7 +830,8 @@ describe Dea::Instance do
       end
 
       context "when there is a task info yaml in the droplet" do
-        let(:generator) { double("script generator", generate: "a script") }
+        let(:script) {"./dostuffscript"}
+        let(:generator) { double("script generator", generate: script) }
 
         before do
           instance.stub(:staged_info).and_return(
@@ -858,7 +840,7 @@ describe Dea::Instance do
           )
         end
 
-        it "generates the correct script" do
+        it "generates the correct script and calls promise spawn" do
           Dea::StartupScriptGenerator.should_receive(:new).with(
             "fake_start_command.sh",
             env.exported_user_environment_variables,
@@ -866,10 +848,9 @@ describe Dea::Instance do
             "FakeBuildpack"
           ).and_return(generator)
 
-          instance.container.should_receive(:call) do |name, request|
-            expect(request.script).to eq("a script")
-            response
-          end
+          instance.container.should_receive(:promise_spawn)
+            .with(script, instance.file_descriptor_limit, Dea::Instance::NPROC_LIMIT)
+            .and_return(delivering_promise(response))
 
           instance.promise_start.resolve
         end

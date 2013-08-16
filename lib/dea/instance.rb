@@ -451,15 +451,7 @@ module Dea
 
         log(:info, "foo.bal", staged_info: staged_info, start_script: start_script)
 
-        request = ::Warden::Protocol::SpawnRequest.new
-        request.handle = attributes["warden_handle"]
-        request.script = start_script
-
-        request.rlimits = ::Warden::Protocol::ResourceLimits.new
-        request.rlimits.nofile = self.file_descriptor_limit
-        request.rlimits.nproc = NPROC_LIMIT
-
-        response = container.call(:app, request)
+        response = container.promise_spawn(start_script, self.file_descriptor_limit, NPROC_LIMIT).resolve
 
         attributes["warden_job_id"] = response.job_id
 

@@ -119,6 +119,19 @@ module Dea
       end
     end
 
+    def promise_spawn(script, nproc_limit, file_descriptor_limit)
+      Promise.new do |promise|
+        request = ::Warden::Protocol::SpawnRequest.new
+        request.rlimits = ::Warden::Protocol::ResourceLimits.new
+        request.handle = handle
+        request.rlimits.nproc = nproc_limit
+        request.rlimits.nofile = file_descriptor_limit
+        request.script = script
+        response = call(:app, request)
+        promise.deliver(response)
+      end
+    end
+
     private
 
     def client
