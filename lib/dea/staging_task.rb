@@ -172,7 +172,7 @@ module Dea
       Promise.new do |p|
         script = "mkdir -p #{workspace.warden_staged_dir}/logs && touch #{workspace.warden_staging_log}"
         logger.info("Preparing staging log: #{script}")
-        promise_warden_run(:app, script).resolve
+        container.promise_run_script(:app, script).resolve
         p.deliver
       end
     end
@@ -183,7 +183,7 @@ module Dea
         # See: https://github.com/heroku/heroku-buildpack-python/blob/master/bin/compile#L46
         # TODO possibly remove this if pull request is accepted
         script = "mkdir -p /app && touch /app/support_heroku_buildpacks && chown -R vcap:vcap /app"
-        promise_warden_run(:app, script, true).resolve
+        container.promise_run_script(:app, script, true).resolve
         p.deliver
       end
     end
@@ -203,7 +203,7 @@ module Dea
         logger.info("Staging: #{script}")
 
         Timeout.timeout(staging_timeout + staging_timeout_grace_period) do
-          promise_warden_run(:app, script).resolve
+          container.promise_run_script(:app, script).resolve
         end
 
         p.deliver
@@ -230,7 +230,7 @@ module Dea
       Promise.new do |p|
         logger.info("Unpacking app to #{workspace.warden_unstaged_dir}")
 
-        promise_warden_run(:app, <<-BASH).resolve
+        container.promise_run_script(:app, <<-BASH).resolve
           package_size=`du -h #{workspace.downloaded_droplet_path} | cut -f1`
           echo "-----> Downloaded app package ($package_size)" >> #{workspace.warden_staging_log}
           unzip -q #{workspace.downloaded_droplet_path} -d #{workspace.warden_unstaged_dir}
@@ -242,7 +242,7 @@ module Dea
 
     def promise_pack_app
       Promise.new do |p|
-        promise_warden_run(:app, <<-BASH).resolve
+        container.promise_run_script(:app, <<-BASH).resolve
           cd #{workspace.warden_staged_dir} &&
           COPYFILE_DISABLE=true tar -czf #{workspace.warden_staged_droplet} .
         BASH
@@ -270,7 +270,7 @@ module Dea
 
     def promise_log_upload_started
       Promise.new do |p|
-        promise_warden_run(:app, <<-BASH).resolve
+        container.promise_run_script(:app, <<-BASH).resolve
           droplet_size=`du -h #{workspace.warden_staged_droplet} | cut -f1`
           echo "-----> Uploading droplet ($droplet_size)" >> #{workspace.warden_staging_log}
         BASH
@@ -361,7 +361,7 @@ module Dea
     def promise_pack_buildpack_cache
       Promise.new do |p|
         # TODO: Ignore if warden cache is empty or does not exists
-        promise_warden_run(:app, <<-BASH).resolve
+        container.promise_run_script(:app, <<-BASH).resolve
           mkdir -p #{workspace.warden_cache} &&
           cd #{workspace.warden_cache} &&
           COPYFILE_DISABLE=true tar -czf #{workspace.warden_staged_buildpack_cache} .
@@ -375,7 +375,7 @@ module Dea
         if File.exists?(workspace.downloaded_buildpack_cache_path)
           logger.info("Unpacking buildpack cache to #{workspace.warden_cache}")
 
-          promise_warden_run(:app, <<-BASH).resolve
+          container.promise_run_script(:app, <<-BASH).resolve
           package_size=`du -h #{workspace.downloaded_buildpack_cache_path} | cut -f1`
           echo "-----> Downloaded app buildpack cache ($package_size)" >> #{workspace.warden_staging_log}
           mkdir -p #{workspace.warden_cache}

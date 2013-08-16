@@ -10,7 +10,6 @@ require "dea/container/container"
 module Dea
   class Task
     class BaseError < StandardError; end
-    class WardenError < BaseError; end
     class NotImplemented < StandardError; end
 
     BIND_MOUNT_MODE_MAP = {
@@ -96,30 +95,6 @@ module Dea
 
     def container_handle
       @attributes["warden_handle"]
-    end
-
-    def promise_warden_run(connection_name, script, privileged=false)
-      Promise.new do |p|
-        request = ::Warden::Protocol::RunRequest.new
-        request.handle = attributes["warden_handle"]
-        request.script = script
-        request.privileged = privileged
-        response = container.call(connection_name, request)
-
-        if response.exit_status > 0
-          data = {
-            :script      => script,
-            :exit_status => response.exit_status,
-            :stdout      => response.stdout,
-            :stderr      => response.stderr,
-          }
-
-          logger.warn("%s exited with status %d" % [script.inspect, response.exit_status], data)
-          p.fail(WardenError.new("Script exited with status %d" % response.exit_status))
-        else
-          p.deliver(response)
-        end
-      end
     end
 
     def promise_stop

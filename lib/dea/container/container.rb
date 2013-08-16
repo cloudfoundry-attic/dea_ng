@@ -3,8 +3,9 @@ require "dea/container/connection"
 
 module Dea
   class Container
-    class ConnectionError < StandardError;
-    end
+    class ConnectionError < StandardError; end
+    class BaseError < StandardError; end
+    class WardenError < BaseError; end
 
     attr_reader :socket_path, :path, :host_ip
     attr_accessor :handle
@@ -93,6 +94,29 @@ module Dea
         logger.debug("Request succeeded after #{count} retries: #{request.inspect}")
       end
       response
+    end
+
+    def promise_run_script(name, script, privileged=false)
+      Promise.new do |promise|
+        request = ::Warden::Protocol::RunRequest.new
+        request.handle = handle
+        request.script = script
+        request.privileged = privileged
+
+        response = call(name, request)
+        if response.exit_status > 0
+          data = {
+            :script      => script,
+            :exit_status => response.exit_status,
+            :stdout      => response.stdout,
+            :stderr      => response.stderr,
+          }
+          logger.warn("%s exited with status %d" % [script.inspect, response.exit_status], data)
+          promise.fail(WardenError.new("Script exited with status #{response.exit_status}"))
+        else
+          promise.deliver(response)
+        end
+      end
     end
 
     private

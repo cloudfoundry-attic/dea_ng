@@ -667,59 +667,13 @@ describe Dea::Instance do
       end
     end
 
-    describe "#promise_warden_run -" do
-      let(:response) { mock("run_response", :exit_status => 0) }
-
-      before do
-        instance.attributes["warden_handle"] = "handle"
-      end
-
-      it "should make a RunRequest" do
-        result = instance.container.should_receive(:call) do |connection, request|
-          expect(request).to be_kind_of(::Warden::Protocol::RunRequest)
-          expect(request.handle).to eq("handle")
-
-          response
-        end
-
-        instance.promise_warden_run(warden_connection, "script").resolve
-      end
-
-      describe "when the script fails" do
-        before do
-          response.stub(:exit_status).and_return(1)
-        end
-        it "fails the promise" do
-          response.stub(:stdout).and_return("stdout")
-          response.stub(:stderr).and_return("stderr")
-
-          instance.container.should_receive(:call).and_return(response)
-
-          expect {
-            instance.promise_warden_run(warden_connection, "script").resolve
-          }.to raise_error(Dea::Instance::WardenError, /script exited/i)
-        end
-      end
-
-      describe "when the request fails" do
-        before do
-          instance.container.stub(:call).and_raise(RuntimeError.new("error"))
-        end
-        it "fails the promise" do
-          expect {
-            instance.promise_warden_run(warden_connection, "script").resolve
-          }.to raise_error(RuntimeError, /error/i)
-        end
-      end
-    end
-
     describe "extracting the droplet" do
       before do
         instance.unstub(:promise_extract_droplet)
       end
 
       it "should run tar" do
-        instance.stub(:promise_warden_run) do |_, script|
+        instance.container.stub(:promise_run_script) do |_, script|
           script.should =~ /tar zxf/
 
           delivering_promise
@@ -731,7 +685,7 @@ describe Dea::Instance do
 
       it "can fail by run failing" do
         msg = "droplet extraction failure"
-        instance.stub(:promise_warden_run) do |*_|
+        instance.container.stub(:promise_run_script) do |*_|
           failing_promise(RuntimeError.new(msg))
         end
 
@@ -748,7 +702,7 @@ describe Dea::Instance do
       end
 
       it "should create the app dir" do
-        instance.stub(:promise_warden_run) do |_, script|
+        instance.container.stub(:promise_run_script) do |_, script|
           script.should =~ %r{mkdir -p home/vcap/app}
 
           delivering_promise
@@ -759,7 +713,7 @@ describe Dea::Instance do
       end
 
       it "should chown the app dir" do
-        instance.stub(:promise_warden_run) do |_, script|
+        instance.container.stub(:promise_run_script) do |_, script|
           script.should =~ %r{chown vcap:vcap home/vcap/app}
 
           delivering_promise
@@ -770,7 +724,7 @@ describe Dea::Instance do
       end
 
       it "should symlink the app dir" do
-        instance.stub(:promise_warden_run) do |_, script|
+        instance.container.stub(:promise_run_script) do |_, script|
           script.should =~ %r{ln -s home/vcap/app /app}
 
           delivering_promise
@@ -783,7 +737,7 @@ describe Dea::Instance do
       it "can fail by run failing" do
         msg = "environment setup failure"
 
-        instance.stub(:promise_warden_run) do |*_|
+        instance.container.stub(:promise_run_script) do |*_|
           failing_promise(RuntimeError.new(msg))
         end
 
@@ -815,7 +769,7 @@ describe Dea::Instance do
 
         it "should execute script file" do
           script_content = nil
-          instance.stub(:promise_warden_run) do |_, script|
+          instance.container.stub(:promise_run_script) do |_, script|
             script.should_not be_empty
             lines = script.split("\n")
             script_content = lines[-2]
@@ -831,7 +785,7 @@ describe Dea::Instance do
         it "should raise error when script execution fails" do
           msg = "script execution failed"
 
-          instance.stub(:promise_warden_run) do |_, script|
+          instance.container.stub(:promise_run_script) do |_, script|
             failing_promise(RuntimeError.new(msg))
           end
 
@@ -1041,7 +995,7 @@ describe Dea::Instance do
 
         it "executes the #{hook} script file" do
           script_content = nil
-          instance.stub(:promise_warden_run) do |_, script|
+          instance.container.stub(:promise_run_script) do |_, script|
             lines = script.split("\n")
             script_content = lines[-2]
             delivering_promise
@@ -1052,7 +1006,7 @@ describe Dea::Instance do
 
         it "exports the variables in the hook files" do
           actual_script_content = nil
-          instance.stub(:promise_warden_run) do |_, script|
+          instance.container.stub(:promise_run_script) do |_, script|
             actual_script_content = script
             delivering_promise
           end
