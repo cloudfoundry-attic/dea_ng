@@ -14,9 +14,10 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
   let(:properties) { {} }
   let(:task_id) { SecureRandom.uuid }
   let(:env) { ["FOO=bar baz","BLAH=WHATEVER"] }
+  let(:memory_limit) { 64 }
   let(:limits) do
     {
-      "mem" => 512,
+      "mem" => memory_limit,
       "disk" => 128,
       "fds" => 32
     }
@@ -102,7 +103,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
 
       and_by "setting the correct system environment variables" do
         expect(responses[1]["task_log"]).to include("VCAP_APPLICATION=")
-        expect(responses[1]["task_log"]).to include("MEMORY_LIMIT=512m")
+        expect(responses[1]["task_log"]).to include("MEMORY_LIMIT=#{memory_limit}m")
       end
     end
   end
