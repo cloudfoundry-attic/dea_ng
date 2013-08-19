@@ -16,7 +16,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
   let(:env) { ["FOO=bar baz","BLAH=WHATEVER"] }
   let(:limits) do
     {
-      "mem" => 2048,
+      "mem" => 512,
       "disk" => 128,
       "fds" => 32
     }
@@ -102,7 +102,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
 
       and_by "setting the correct system environment variables" do
         expect(responses[1]["task_log"]).to include("VCAP_APPLICATION=")
-        expect(responses[1]["task_log"]).to include("MEMORY_LIMIT=2048m")
+        expect(responses[1]["task_log"]).to include("MEMORY_LIMIT=512m")
       end
     end
   end
