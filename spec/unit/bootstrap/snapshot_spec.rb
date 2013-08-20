@@ -47,5 +47,21 @@ describe "snapshot" do
 
       actual_states.should == expected_states
     end
+
+    it "has a snapshot with expected attributes so loggregator can process the json correctly" do
+      bootstrap.save_snapshot
+
+      snapshot = ::Yajl::Parser.parse(File.read(bootstrap.snapshot_path))
+      snapshot["time"].should be_within(1.0).of(Time.now.to_f)
+
+      instance_keys = snapshot["instances"].first.keys
+      instance_keys.should =~ %w(
+        application_id
+        warden_container_path
+        warden_job_id
+        instance_index
+        state
+      )
+    end
   end
 end

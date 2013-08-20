@@ -761,6 +761,7 @@ module Dea
         else
           #TODO: get rid of this, it's needed for the dropletty snapshotty stuff
           attributes["warden_host_ip"] = container.host_ip
+          attributes["warden_container_path"] = container.path
 
           manifest = promise_read_instance_manifest(container.path).resolve
 
@@ -802,6 +803,16 @@ module Dea
 
         YAML.load_file(copied_file_name) if File.exists?(copied_file_name)
       end
+    end
+
+    def snapshot_attributes
+      {
+        'application_id'   => attributes['application_id'],
+        'state'            => attributes['state'],
+        'warden_job_id'    => attributes['warden_job_id'],
+        'instance_index'   => attributes['instance_index'],
+        'warden_container_path' => container.path
+      }
     end
 
     private
