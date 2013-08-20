@@ -121,7 +121,8 @@ module Buildpacks
       buildpack_uri.fragment = nil
       buildpack_url = buildpack_uri.to_s
       buildpack_path = "/tmp/buildpacks/#{File.basename(buildpack_url)}"
-      ok = system("git clone --recursive #{buildpack_url} #{buildpack_path}")
+      git_branch_tag = fragment ? "-b #{fragment}" : ""
+      ok = system("git clone --depth 1 #{git_branch_tag} --recursive #{buildpack_url} #{buildpack_path}")
       raise "Failed to git clone buildpack" unless ok
 
       if fragment
