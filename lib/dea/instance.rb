@@ -759,10 +759,6 @@ module Dea
 
           p.deliver(false)
         else
-          #TODO: get rid of this, it's needed for the dropletty snapshotty stuff
-          attributes["warden_host_ip"] = container.host_ip
-          attributes["warden_container_path"] = container.path
-
           manifest = promise_read_instance_manifest(container.path).resolve
 
           if manifest && manifest["state_file"]
@@ -812,7 +808,7 @@ module Dea
         'warden_job_id'         => attributes['warden_job_id'],
         'instance_index'        => attributes['instance_index'],
         'warden_container_path' => container.path,
-        'warden_host_ip'        => attributes['warden_host_ip'],
+        'warden_host_ip'        => container.host_ip,
         'instance_host_port'    => attributes['instance_host_port'],
         'instance_id'           => attributes['instance_id'],
       }
