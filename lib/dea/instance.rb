@@ -314,9 +314,9 @@ module Dea
       attributes["instance_path"] ||=
         begin
           raise "Instance path unavailable" unless instance_path_available?
-          raise "Warden container path not present" if attributes["warden_container_path"].nil?
+          raise "Warden container path not present" if container.path.nil?
 
-          File.expand_path(container_relative_path(attributes["warden_container_path"]))
+          File.expand_path(container_relative_path(container.path))
         end
     end
 
@@ -760,7 +760,6 @@ module Dea
           p.deliver(false)
         else
           #TODO: get rid of this, it's needed for the dropletty snapshotty stuff
-          attributes["warden_container_path"] = container.path
           attributes["warden_host_ip"] = container.host_ip
 
           manifest = promise_read_instance_manifest(container.path).resolve

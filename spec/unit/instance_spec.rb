@@ -1351,7 +1351,7 @@ describe Dea::Instance do
       before { instance.state = Dea::Instance::State::CRASHED }
 
       context "when warden_container_path is set" do
-        before { instance.attributes["warden_container_path"] = "/root/dir" }
+        before { instance.container.stub(:path => "/root/dir") }
 
         it "returns container path" do
           expect(instance.instance_path).to eq("/root/dir/tmp/rootfs/home/vcap")
@@ -1370,14 +1370,14 @@ describe Dea::Instance do
     context "when state is RUNNING" do
       before { instance.state = Dea::Instance::State::RUNNING }
       context "when warden_container_path is set" do
-        before { instance.attributes["warden_container_path"] = "/root/dir" }
+        before { instance.container.stub(:path => "/root/dir") }
 
         it "returns container path" do
           expect(instance.instance_path).to eq("/root/dir/tmp/rootfs/home/vcap")
         end
       end
 
-      context "when warden_container_path is not set" do
+      context "when warden container path is not set" do
         it "raises" do
           expect {
             instance.instance_path

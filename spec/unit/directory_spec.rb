@@ -12,6 +12,7 @@ describe Dea::Directory do
 
   let(:bootstrap) { mock(:bootstrap, :config => {}) }
   let(:instance) { Dea::Instance.new(bootstrap, {}) }
+  let(:container) { double(:fake_container, :path => @tmpdir) }
 
   let(:instance_registry) do
     instance_registry = nil
@@ -42,12 +43,11 @@ describe Dea::Directory do
     File.open(@sentinel_path, "w+") { |f| f.write(@sentinel_contents) }
 
     attributes = {
-      "warden_container_path" => @tmpdir,
       "instance_id"           => instance.instance_id,
     }
 
     instance.stub(:attributes).and_return(attributes)
-
+    instance.stub(:container).and_return(container)
     instance.stub(:instance_path_available?).and_return(true)
   end
 
