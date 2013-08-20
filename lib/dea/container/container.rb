@@ -7,6 +7,11 @@ module Dea
     class BaseError < StandardError; end
     class WardenError < BaseError; end
 
+    BIND_MOUNT_MODE_MAP = {
+      "ro" => ::Warden::Protocol::CreateRequest::BindMount::Mode::RO,
+      "rw" => ::Warden::Protocol::CreateRequest::BindMount::Mode::RW,
+    }
+
     attr_reader :socket_path, :path, :host_ip
     attr_accessor :handle
 
@@ -129,6 +134,41 @@ module Dea
         request.script = script
         response = call(:app, request)
         promise.deliver(response)
+      end
+    end
+
+    def promise_create_container(paths_to_bind, configured_bind_mounts)
+      Promise.new do |p|
+        bind_mounts = paths_to_bind.map do |path|
+          bind_mount = ::Warden::Protocol::CreateRequest::BindMount.new
+
+          bind_mount.src_path = path
+          bind_mount.dst_path = path
+          bind_mount.mode = ::Warden::Protocol::CreateRequest::BindMount::Mode::RO
+          bind_mount
+        end
+
+
+        # extra mounts (currently just used for the buildpack cache)
+        configured_bind_mounts.each do |bm|
+
+          bind_mount = ::Warden::Protocol::CreateRequest::BindMount.new
+
+          bind_mount.src_path = bm["src_path"]
+          bind_mount.dst_path = bm["dst_path"] || bm["src_path"]
+
+          mode = bm["mode"] || "ro"
+          bind_mount.mode = BIND_MOUNT_MODE_MAP[mode]
+
+          bind_mounts << bind_mount
+        end
+
+        create_request = ::Warden::Protocol::CreateRequest.new
+        create_request.bind_mounts = bind_mounts
+
+        response = call(:app, create_request)
+        self.handle = response.handle
+        p.deliver
       end
     end
 

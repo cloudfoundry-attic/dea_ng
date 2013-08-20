@@ -155,7 +155,8 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
     it "decreases the DEA's available memory" do
       initial_mem = dea_memory
       available_memory_while_staging = nil
-      nats.make_blocking_request("staging", staging_message, 2) do |index, _|
+      expected_response = 2
+      nats.make_blocking_request("staging", staging_message, expected_response, 20) do |index, _|
         if index == 0
           NATS.publish("dea.locate", Yajl::Encoder.encode({}))
           NATS.subscribe("dea.advertise") do |resp|

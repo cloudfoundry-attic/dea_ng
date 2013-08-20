@@ -22,11 +22,6 @@ module Dea
     STAT_COLLECTION_INTERVAL_SECS = 10
     NPROC_LIMIT = 512
 
-    BIND_MOUNT_MODE_MAP = {
-      "ro" =>  ::Warden::Protocol::CreateRequest::BindMount::Mode::RO,
-      "rw" =>  ::Warden::Protocol::CreateRequest::BindMount::Mode::RW,
-    }
-
     class State
       BORN     = "BORN"
       STARTING = "STARTING"
@@ -529,7 +524,7 @@ module Dea
 
     def promise_container
       Promise.new do |p|
-        promise_create_container.resolve
+        container.promise_create_container(paths_to_bind, config["bind_mounts"]).resolve
         promise_setup_network.resolve
         promise_limit_disk.resolve
         promise_limit_memory.resolve
@@ -607,7 +602,7 @@ module Dea
 
     def promise_crash_handler
       Promise.new do |p|
-        if attributes["warden_handle"]
+        if container.handle
           promise_copy_out.resolve
           promise_destroy.resolve
 
@@ -658,7 +653,7 @@ module Dea
     def promise_link
       Promise.new do |p|
         request = ::Warden::Protocol::LinkRequest.new
-        request.handle = attributes["warden_handle"]
+        request.handle = container.handle
         request.job_id = attributes["warden_job_id"]
         response = container.call_with_retry(:link, request)
 
@@ -814,7 +809,7 @@ module Dea
 
     def get_new_warden_net_in
       request = ::Warden::Protocol::NetInRequest.new
-      request.handle = @attributes["warden_handle"]
+      request.handle = container.handle
       container.call(:app, request)
     end
 

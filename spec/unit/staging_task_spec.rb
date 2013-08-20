@@ -297,7 +297,6 @@ YAML
       %w(
          app_download
          buildpack_cache_download
-         create_container
          limit_disk
          limit_memory
          prepare_staging_log
@@ -305,6 +304,7 @@ YAML
       ).each do |step|
         staging.stub("promise_#{step}").and_return(successful_promise)
       end
+      staging.container.stub(:promise_create_container).and_return(successful_promise)
       staging.container.stub(:promise_update_path_and_ip).and_return(successful_promise)
     end
 
@@ -472,12 +472,15 @@ YAML
     it "performs staging setup operations in correct order" do
       %w(prepare_workspace
          promise_app_download
-         promise_create_container
+      ).each do |step|
+        staging.should_receive(step).ordered.and_return(successful_promise)
+      end
+      staging.container.should_receive(:promise_create_container).ordered.and_return(successful_promise)
+      %w(
          promise_limit_disk
          promise_limit_memory
          promise_prepare_staging_log
          promise_app_dir
-
       ).each do |step|
         staging.should_receive(step).ordered.and_return(successful_promise)
       end

@@ -465,7 +465,7 @@ describe Dea::Instance do
       bootstrap.stub(:config).and_return({ "bind_mounts" => [] })
       instance.stub(:promise_droplet_download).and_return(delivering_promise)
       instance.container.stub(:get_connection).and_raise("bad connection bad")
-      instance.stub(:promise_create_container).and_return(delivering_promise)
+      instance.container.stub(:promise_create_container).and_return(delivering_promise)
       instance.stub(:promise_setup_network).and_return(delivering_promise)
       instance.stub(:promise_limit_disk).and_return(delivering_promise)
       instance.stub(:promise_limit_memory).and_return(delivering_promise)
@@ -559,35 +559,20 @@ describe Dea::Instance do
     end
 
     describe "creating warden container" do
-      before do
-        instance.unstub(:promise_create_container)
-      end
-
-      let(:response) do
-        response = mock("create_response")
-        response.stub(:handle).and_return("handle")
-        response
-      end
+      let(:promise) { double(:creating_container_promise, resolve: nil)}
 
       it "succeeds when the call succeeds" do
-        instance.container.should_receive(:call).and_return(response)
-
+        instance.container.should_receive(:promise_create_container).and_return(promise)
         expect_start.to_not raise_error
         instance.exit_description.should be_empty
-
-        # Warden handle should be set
-        instance.attributes["warden_handle"].should == "handle"
       end
 
       it "fails when the call fails" do
         msg = "promise warden call error for container creation"
 
-        instance.container.should_receive(:call).and_raise(RuntimeError.new(msg))
+        instance.container.should_receive(:promise_create_container).and_raise(RuntimeError.new(msg))
 
         expect_start.to raise_error(RuntimeError, /error/i)
-
-        # Warden handle should not be set
-        instance.attributes["warden_handle"].should be_nil
 
         # Instance exit description should be set to the failure message
         instance.exit_description.should eql(msg)
@@ -597,7 +582,7 @@ describe Dea::Instance do
     describe "#promise_setup_network -" do
       before do
         instance.unstub(:promise_setup_network)
-        instance.attributes["warden_handle"] = "handle"
+        instance.container.handle = "handle"
       end
 
       let(:response) do
@@ -1042,7 +1027,7 @@ describe Dea::Instance do
       end
 
       it "executes a LinkRequest with the warden handle and job ID and returns response" do
-        instance.attributes["warden_handle"] = "handle"
+        instance.container.handle = "handle"
         instance.attributes["warden_job_id"] = "1"
         instance.container.should_receive(:call_with_retry) do |name, request|
           expect(name).to eq(:link)
@@ -1203,7 +1188,7 @@ describe Dea::Instance do
 
     describe "#promise_destroy" do
       it "executes a DestroyRequest" do
-        instance.attributes["warden_handle"] = "handle"
+        instance.container.handle = "handle"
 
         instance.container.should_receive(:call_with_retry) do |_, request|
           request.should be_kind_of(::Warden::Protocol::DestroyRequest)
@@ -1282,7 +1267,7 @@ describe Dea::Instance do
 
     describe "when triggered" do
       before do
-        instance.attributes["warden_handle"] = "handle"
+        instance.container.handle = "handle"
       end
 
       it "should resolve #promise_copy_out" do

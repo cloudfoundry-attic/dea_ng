@@ -413,7 +413,7 @@ module Dea
     def resolve_staging_setup
       prepare_workspace
 
-      promises = [promise_app_download, promise_create_container]
+      promises = [promise_app_download, container.promise_create_container(paths_to_bind, config["bind_mounts"])]
       promises << promise_buildpack_cache_download if attributes["buildpack_cache_download_uri"]
 
       Promise.run_in_parallel(*promises)
