@@ -36,4 +36,10 @@ describe Dea::DropletRegistry do
     droplet_registry.should have(3).droplets
     droplet_registry.keys.sort.should == sha1s.sort
   end
+
+  it "raises when the sha is nil" do
+    expect {
+      droplet_registry[nil]
+    }.to raise_error(ArgumentError, /sha cannot be nil/)
+  end
 end
