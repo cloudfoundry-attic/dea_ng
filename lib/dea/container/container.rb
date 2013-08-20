@@ -137,20 +137,10 @@ module Dea
       end
     end
 
-    def promise_create_container(paths_to_bind, configured_bind_mounts)
+    def promise_create_container(bind_mounts)
       Promise.new do |p|
-        bind_mounts = paths_to_bind.map do |path|
-          bind_mount = ::Warden::Protocol::CreateRequest::BindMount.new
-
-          bind_mount.src_path = path
-          bind_mount.dst_path = path
-          bind_mount.mode = ::Warden::Protocol::CreateRequest::BindMount::Mode::RO
-          bind_mount
-        end
-
-
-        # extra mounts (currently just used for the buildpack cache)
-        configured_bind_mounts.each do |bm|
+        create_request = ::Warden::Protocol::CreateRequest.new
+        create_request.bind_mounts = bind_mounts.map do |bm|
 
           bind_mount = ::Warden::Protocol::CreateRequest::BindMount.new
 
@@ -159,12 +149,8 @@ module Dea
 
           mode = bm["mode"] || "ro"
           bind_mount.mode = BIND_MOUNT_MODE_MAP[mode]
-
-          bind_mounts << bind_mount
+          bind_mount
         end
-
-        create_request = ::Warden::Protocol::CreateRequest.new
-        create_request.bind_mounts = bind_mounts
 
         response = call(:app, create_request)
         self.handle = response.handle

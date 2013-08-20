@@ -524,7 +524,8 @@ module Dea
 
     def promise_container
       Promise.new do |p|
-        container.promise_create_container(paths_to_bind, config["bind_mounts"]).resolve
+        bind_mounts = [{'src_path' => droplet.droplet_dirname, 'dst_path' => droplet.droplet_dirname}]
+        container.promise_create_container( bind_mounts + config["bind_mounts"] ).resolve
         promise_setup_network.resolve
         promise_limit_disk.resolve
         promise_limit_memory.resolve

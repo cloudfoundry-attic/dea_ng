@@ -326,38 +326,39 @@ describe Dea::Container do
   end
 
   describe "#promise_create_container" do
-    let(:configured_bind_mounts) { [{ "src_path" => "/path/a" }, { "src_path" => "/path/src", "dst_path" => "/path/dst" }] }
-    let(:paths_to_bind) { ["/path/b", "/path/c"] }
+    let(:bind_mounts) do
+      [
+        { "src_path" => "/path/src", "dst_path" => "/path/dst" },
+        { "src_path" => "/path/a", "dst_path" => "/path/b" }
+      ]
+    end
+
     let(:response) { double("response", :handle => handle) }
     before do
       container.handle = nil
     end
 
-    describe "when there are no extra bindmounts" do
-      it "makes a CreateRequest with the provide paths_to_bind, and returns the response" do
-        container.should_receive(:call) do |name, request|
-          expect(name).to eq(:app)
-          expect(request).to be_an_instance_of(::Warden::Protocol::CreateRequest)
-          expect(request.bind_mounts.count).to eq(4)
-          request.bind_mounts.each do |bm|
-            expect(bm).to be_an_instance_of(::Warden::Protocol::CreateRequest::BindMount)
-            expect(bm.mode).to eq(::Warden::Protocol::CreateRequest::BindMount::Mode::RO)
-          end
-          expect(request.bind_mounts[0].dst_path).to eq("/path/b")
-          expect(request.bind_mounts[0].dst_path).to eq("/path/b")
-          expect(request.bind_mounts[1].dst_path).to eq("/path/c")
-          expect(request.bind_mounts[1].dst_path).to eq("/path/c")
-          expect(request.bind_mounts[2].src_path).to eq("/path/a")
-          expect(request.bind_mounts[2].dst_path).to eq("/path/a")
-          expect(request.bind_mounts[3].src_path).to eq("/path/src")
-          expect(request.bind_mounts[3].dst_path).to eq("/path/dst")
-          response
+    it "makes a CreateRequest with the provide paths_to_bind, and returns the response" do
+      container.should_receive(:call) do |name, request|
+        expect(name).to eq(:app)
+        expect(request).to be_an_instance_of(::Warden::Protocol::CreateRequest)
+
+        expect(request.bind_mounts.count).to eq(bind_mounts.size)
+        request.bind_mounts.each do |bm|
+          expect(bm).to be_an_instance_of(::Warden::Protocol::CreateRequest::BindMount)
+          expect(bm.mode).to eq(::Warden::Protocol::CreateRequest::BindMount::Mode::RO)
         end
 
-        expect(container.handle).to_not eq(handle)
-        container.promise_create_container(paths_to_bind, configured_bind_mounts).resolve
-        expect(container.handle).to eq(handle)
+        expect(request.bind_mounts[0].src_path).to eq("/path/src")
+        expect(request.bind_mounts[0].dst_path).to eq("/path/dst")
+        expect(request.bind_mounts[1].src_path).to eq("/path/a")
+        expect(request.bind_mounts[1].dst_path).to eq("/path/b")
+        response
       end
+
+      expect(container.handle).to_not eq(handle)
+      container.promise_create_container(bind_mounts).resolve
+      expect(container.handle).to eq(handle)
     end
   end
 end

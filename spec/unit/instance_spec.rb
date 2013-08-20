@@ -562,7 +562,14 @@ describe Dea::Instance do
       let(:promise) { double(:creating_container_promise, resolve: nil)}
 
       it "succeeds when the call succeeds" do
-        instance.container.should_receive(:promise_create_container).and_return(promise)
+        instance.config["bind_mounts"] = [{'src_path' => '/var/src/', 'dst_path' => '/var/dst'}]
+
+        expected_bind_mounts = [
+          {'src_path' => droplet.droplet_dirname, 'dst_path' => droplet.droplet_dirname },
+          {'src_path' => '/var/src/', 'dst_path' => '/var/dst'}
+        ]
+
+        instance.container.should_receive(:promise_create_container).with(expected_bind_mounts).and_return(promise)
         expect_start.to_not raise_error
         instance.exit_description.should be_empty
       end

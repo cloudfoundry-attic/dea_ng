@@ -408,12 +408,20 @@ module Dea
       (staging_config["max_staging_duration"] || "900").to_f
     end
 
+    def bind_mounts
+      [workspace.workspace_dir, buildpack_dir].collect do |path|
+        {'src_path' => path, 'dst_path' => path}
+      end + config["bind_mounts"]
+    end
+
+    def buildpack_dir
+      File.expand_path("../../../buildpacks", __FILE__)
+    end
     private
 
     def resolve_staging_setup
       prepare_workspace
-
-      promises = [promise_app_download, container.promise_create_container(paths_to_bind, config["bind_mounts"])]
+      promises = [promise_app_download, container.promise_create_container(bind_mounts)]
       promises << promise_buildpack_cache_download if attributes["buildpack_cache_download_uri"]
 
       Promise.run_in_parallel(*promises)
@@ -458,10 +466,6 @@ module Dea
 
     def run_plugin_path
       File.join(buildpack_dir, "bin/run")
-    end
-
-    def buildpack_dir
-      File.expand_path("../../../buildpacks", __FILE__)
     end
 
     def staging_timeout_grace_period

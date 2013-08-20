@@ -469,13 +469,36 @@ YAML
       end
     end
 
+    describe "#bind_mounts" do
+      it 'includes the workspace dir' do
+        staging.bind_mounts.should include('src_path' => staging.workspace.workspace_dir,
+                                              'dst_path' => staging.workspace.workspace_dir)
+      end
+
+      it 'includes the build pack url' do
+        staging.bind_mounts.should include('src_path' => staging.buildpack_dir,
+                                              'dst_path' => staging.buildpack_dir)
+      end
+
+      it 'includes the configured bind mounts' do
+        mount = {
+          'src_path' => 'a',
+          'dst_path' => 'b'
+        }
+        staging.config["bind_mounts"] = [mount]
+        staging.bind_mounts.should include(mount)
+      end
+    end
+
     it "performs staging setup operations in correct order" do
       %w(prepare_workspace
          promise_app_download
       ).each do |step|
         staging.should_receive(step).ordered.and_return(successful_promise)
       end
-      staging.container.should_receive(:promise_create_container).ordered.and_return(successful_promise)
+
+      staging.workspace.workspace_dir
+      staging.container.should_receive(:promise_create_container).with(staging.bind_mounts).ordered.and_return(successful_promise)
       %w(
          promise_limit_disk
          promise_limit_memory
