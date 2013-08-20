@@ -22,11 +22,6 @@ module Dea
     STAT_COLLECTION_INTERVAL_SECS = 10
     NPROC_LIMIT = 512
 
-    BIND_MOUNT_MODE_MAP = {
-      "ro" =>  ::Warden::Protocol::CreateRequest::BindMount::Mode::RO,
-      "rw" =>  ::Warden::Protocol::CreateRequest::BindMount::Mode::RW,
-    }
-
     class State
       BORN     = "BORN"
       STARTING = "STARTING"
@@ -416,7 +411,7 @@ module Dea
     def promise_setup_environment
       Promise.new do |p|
         script = "cd / && mkdir -p home/vcap/app && chown vcap:vcap home/vcap/app && ln -s home/vcap/app /app"
-        promise_warden_run(:app, script, true).resolve
+        container.promise_run_script(:app, script, true).resolve
 
         p.deliver
       end
@@ -426,7 +421,7 @@ module Dea
       Promise.new do |p|
         script = "cd /home/vcap/ && tar zxf #{droplet.droplet_path}"
 
-        promise_warden_run(:app, script).resolve
+        container.promise_run_script(:app, script).resolve
 
         p.deliver
       end
@@ -450,15 +445,7 @@ module Dea
 
         log(:info, "foo.bal", staged_info: staged_info, start_script: start_script)
 
-        request = ::Warden::Protocol::SpawnRequest.new
-        request.handle = attributes["warden_handle"]
-        request.script = start_script
-
-        request.rlimits = ::Warden::Protocol::ResourceLimits.new
-        request.rlimits.nofile = self.file_descriptor_limit
-        request.rlimits.nproc = NPROC_LIMIT
-
-        response = container.call(:app, request)
+        response = container.promise_spawn(start_script, self.file_descriptor_limit, NPROC_LIMIT).resolve
 
         attributes["warden_job_id"] = response.job_id
 
@@ -476,7 +463,7 @@ module Dea
             script << Env.new(@raw_attributes, self).exported_environment_variables
             script << File.read(script_path)
             script << "exit"
-            promise_warden_run(:app, script.join("\n")).resolve
+            container.promise_run_script(:app, script.join("\n")).resolve
           else
             log(:warn, "droplet.hook-script.missing", :hook => key, :script_path => script_path)
           end
@@ -536,7 +523,8 @@ module Dea
 
     def promise_container
       Promise.new do |p|
-        promise_create_container.resolve
+        bind_mounts = [{'src_path' => droplet.droplet_dirname, 'dst_path' => droplet.droplet_dirname}]
+        container.promise_create_container( bind_mounts + config["bind_mounts"] ).resolve
         promise_setup_network.resolve
         promise_limit_disk.resolve
         promise_limit_memory.resolve
@@ -614,7 +602,7 @@ module Dea
 
     def promise_crash_handler
       Promise.new do |p|
-        if attributes["warden_handle"]
+        if container.handle
           promise_copy_out.resolve
           promise_destroy.resolve
 
@@ -665,7 +653,7 @@ module Dea
     def promise_link
       Promise.new do |p|
         request = ::Warden::Protocol::LinkRequest.new
-        request.handle = attributes["warden_handle"]
+        request.handle = container.handle
         request.job_id = attributes["warden_job_id"]
         response = container.call_with_retry(:link, request)
 
@@ -821,7 +809,7 @@ module Dea
 
     def get_new_warden_net_in
       request = ::Warden::Protocol::NetInRequest.new
-      request.handle = @attributes["warden_handle"]
+      request.handle = container.handle
       container.call(:app, request)
     end
 

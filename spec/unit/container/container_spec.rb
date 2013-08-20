@@ -246,4 +246,119 @@ describe Dea::Container do
       end
     end
   end
+
+  describe "#call" do
+    before do
+      container.cache_connection(connection_name, connection)
+    end
+
+    it "calls #promise_call" do
+      connection.should_receive(:promise_call).with(request).and_return(delivering_promise)
+      container.call(connection_name, request)
+    end
+  end
+
+  describe "#promise_run_script" do
+    let(:script) { double("./citizien_kane") }
+    let(:response) { double("response", :exit_status => 0)}
+
+    it "calls call with the connection name and request" do
+      container.should_receive(:call) do |name, request|
+        expect(name).to eq(connection_name)
+
+        expect(request).to be_an_instance_of(::Warden::Protocol::RunRequest)
+        expect(request.handle).to eq(handle)
+        expect(request.script).to eq(script)
+        expect(request.privileged).to eq(false)
+
+        response
+      end
+
+      result = container.promise_run_script(connection_name, script).resolve
+      expect(result).to eq(response)
+    end
+
+    it "respects setting of priveleged to true" do
+      container.should_receive(:call) do |_, request|
+        expect(request.privileged).to eq(true)
+        response
+      end
+      container.promise_run_script(connection_name, script, true).resolve
+    end
+
+    context "when the exit status is > 0" do
+      let(:exit_status) { 1 }
+      let(:stdout) { "HI" }
+      let(:stderr) { "its broken" }
+      let(:data) { {:script => script, :exit_status => exit_status, :stdout => stdout, :stderr => stderr }}
+      let(:response) { double("response", :exit_status => exit_status, :stdout => stdout, :stderr => stderr)}
+      it "fails the promise" do #check that it's a warden error with the exit status
+        container.should_receive(:call).and_return(response)
+        container.logger.should_receive(:warn).with(/exited with status/i, data)
+        expect {
+          container.promise_run_script(connection_name, script).resolve
+        }.to raise_error(Dea::Container::WardenError, "Script exited with status 1")
+      end
+    end
+
+
+  end
+
+  describe "#promise_spawn" do
+    let(:nproc_limit) { 123 }
+    let(:file_descriptor_limit) { 456 }
+    let(:script) { "./dostuffscript" }
+
+    it "executes a SpawnRequest" do
+      container.should_receive(:call) do |name, request|
+        expect(name).to eq(:app)
+        expect(request).to be_kind_of(::Warden::Protocol::SpawnRequest)
+        expect(request.handle).to eq(container.handle)
+        expect(request.rlimits.nproc).to eq(nproc_limit)
+        expect(request.rlimits.nofile).to eq(file_descriptor_limit)
+        expect(request.script).to eq(script)
+
+        response
+      end
+      result = container.promise_spawn(script, nproc_limit, file_descriptor_limit).resolve
+      expect(result).to eq(response)
+    end
+  end
+
+  describe "#promise_create_container" do
+    let(:bind_mounts) do
+      [
+        { "src_path" => "/path/src", "dst_path" => "/path/dst" },
+        { "src_path" => "/path/a", "dst_path" => "/path/b" }
+      ]
+    end
+
+    let(:response) { double("response", :handle => handle) }
+    before do
+      container.handle = nil
+    end
+
+    it "makes a CreateRequest with the provide paths_to_bind, and returns the response" do
+      container.should_receive(:call) do |name, request|
+        expect(name).to eq(:app)
+        expect(request).to be_an_instance_of(::Warden::Protocol::CreateRequest)
+
+        expect(request.bind_mounts.count).to eq(bind_mounts.size)
+        request.bind_mounts.each do |bm|
+          expect(bm).to be_an_instance_of(::Warden::Protocol::CreateRequest::BindMount)
+          expect(bm.mode).to eq(::Warden::Protocol::CreateRequest::BindMount::Mode::RO)
+        end
+
+        expect(request.bind_mounts[0].src_path).to eq("/path/src")
+        expect(request.bind_mounts[0].dst_path).to eq("/path/dst")
+        expect(request.bind_mounts[1].src_path).to eq("/path/a")
+        expect(request.bind_mounts[1].dst_path).to eq("/path/b")
+        response
+      end
+
+      expect(container.handle).to_not eq(handle)
+      container.promise_create_container(bind_mounts).resolve
+      expect(container.handle).to eq(handle)
+    end
+  end
 end

@@ -10,7 +10,6 @@ require "dea/container/container"
 module Dea
   class Task
     class BaseError < StandardError; end
-    class WardenError < BaseError; end
     class NotImplemented < StandardError; end
 
     BIND_MOUNT_MODE_MAP = {
@@ -34,44 +33,12 @@ module Dea
       @container ||= Dea::Container.new(config["warden_socket"], config["base_dir"])
     end
 
-    def paths_to_bind
-      []
+    def container_handle
+      container.handle
     end
 
-    def promise_create_container
-      Promise.new do |p|
-        bind_mounts = paths_to_bind.map do |path|
-          bind_mount = ::Warden::Protocol::CreateRequest::BindMount.new
-          bind_mount.src_path = path
-          bind_mount.dst_path = path
-          bind_mount.mode = ::Warden::Protocol::CreateRequest::BindMount::Mode::RO
-          bind_mount
-        end
-
-        # extra mounts (currently just used for the buildpack cache)
-        config["bind_mounts"].each do |bm|
-          bind_mount = ::Warden::Protocol::CreateRequest::BindMount.new
-
-          bind_mount.src_path = bm["src_path"]
-          bind_mount.dst_path = bm["dst_path"] || bm["src_path"]
-
-          mode = bm["mode"] || "ro"
-          bind_mount.mode = BIND_MOUNT_MODE_MAP[mode]
-
-          bind_mounts << bind_mount
-        end
-
-        create_request = ::Warden::Protocol::CreateRequest.new
-        create_request.bind_mounts = bind_mounts
-
-        response = container.call(:app, create_request)
-
-        @attributes["warden_handle"] = response.handle
-        container.handle = @attributes["warden_handle"]
-        logger.user_data[:warden_handle] = response.handle
-
-        p.deliver
-      end
+    def paths_to_bind
+      []
     end
 
     def promise_limit_disk
@@ -94,34 +61,6 @@ module Dea
       end
     end
 
-    def container_handle
-      @attributes["warden_handle"]
-    end
-
-    def promise_warden_run(connection_name, script, privileged=false)
-      Promise.new do |p|
-        request = ::Warden::Protocol::RunRequest.new
-        request.handle = attributes["warden_handle"]
-        request.script = script
-        request.privileged = privileged
-        response = container.call(connection_name, request)
-
-        if response.exit_status > 0
-          data = {
-            :script      => script,
-            :exit_status => response.exit_status,
-            :stdout      => response.stdout,
-            :stderr      => response.stderr,
-          }
-
-          logger.warn("%s exited with status %d" % [script.inspect, response.exit_status], data)
-          p.fail(WardenError.new("Script exited with status %d" % response.exit_status))
-        else
-          p.deliver(response)
-        end
-      end
-    end
-
     def promise_stop
       Promise.new do |p|
         request = ::Warden::Protocol::StopRequest.new
@@ -135,7 +74,7 @@ module Dea
     def promise_destroy
       Promise.new do |promise|
         request = ::Warden::Protocol::DestroyRequest.new
-        request.handle = container_handle
+        request.handle = container.handle
 
         begin
           container.call_with_retry(:app, request)
@@ -143,9 +82,7 @@ module Dea
           logger.warn("Error destroying container: #{error.message}")
         end
 
-        # Remove container handle from attributes now that it can no longer be used
-        attributes.delete("warden_handle")
-
+        container.handle = nil
         promise.deliver
       end
     end
@@ -195,7 +132,7 @@ module Dea
       FileUtils.mkdir_p(destination_path)
 
       request = ::Warden::Protocol::CopyOutRequest.new
-      request.handle = attributes["warden_handle"]
+      request.handle = container.handle
       request.src_path = source_path
       request.dst_path = destination_path
       request.owner = Process.uid.to_s

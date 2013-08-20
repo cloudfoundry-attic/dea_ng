@@ -57,7 +57,7 @@ describe Dea::StagingTask do
 
   describe "#promise_stage" do
     it "assembles a shell command and initiates collection of task log" do
-      staging.should_receive(:promise_warden_run) do |_, cmd|
+      staging.container.should_receive(:promise_run_script) do |_, cmd|
         expect(cmd).to include %Q{export FOO="BAR";}
         expect(cmd).to match %r{export PLATFORM_CONFIG=".+/platform_config";}
         expect(cmd).to include %Q{export BUILDPACK_CACHE="buildpack_cache_url";}
@@ -76,7 +76,7 @@ describe Dea::StagingTask do
       before { attributes["start_message"]["env"] = ["PATH=x y z", "FOO=z'y\"d", "BAR=", "BAZ=foo=baz"] }
 
       it "copes with spaces" do
-        staging.should_receive(:promise_warden_run) do |_, cmd|
+        staging.container.should_receive(:promise_run_script) do |_, cmd|
           expect(cmd).to include(%Q{export PATH="x y z";})
           mock("promise", :resolve => nil)
         end
@@ -84,7 +84,7 @@ describe Dea::StagingTask do
       end
 
       it "copes with quotes" do
-        staging.should_receive(:promise_warden_run) do |_, cmd|
+        staging.container.should_receive(:promise_run_script) do |_, cmd|
           expect(cmd).to include(%Q{export FOO="z'y\\"d";})
           mock("promise", :resolve => nil)
         end
@@ -92,7 +92,7 @@ describe Dea::StagingTask do
       end
 
       it "copes with blank" do
-        staging.should_receive(:promise_warden_run) do |_, cmd|
+        staging.container.should_receive(:promise_run_script) do |_, cmd|
           expect(cmd).to include(%Q{export BAR="";})
           mock("promise", :resolve => nil)
         end
@@ -100,7 +100,7 @@ describe Dea::StagingTask do
       end
 
       it "copes with equal sign" do
-        staging.should_receive(:promise_warden_run) do |_, cmd|
+        staging.container.should_receive(:promise_run_script) do |_, cmd|
           expect(cmd).to include(%Q{export BAZ="foo=baz";})
           mock("promise", :resolve => nil)
         end
@@ -115,7 +115,7 @@ describe Dea::StagingTask do
         it "fails with a TimeoutError" do
           staging.stub(:staging_timeout_grace_period) { 0.5 }
 
-          staging.should_receive(:promise_warden_run) do
+          staging.container.should_receive(:promise_run_script) do
             promise = mock("promise")
             promise.should_receive(:resolve) { sleep 2 }
             promise
@@ -129,7 +129,7 @@ describe Dea::StagingTask do
         it "does not time out" do
           staging.stub(:staging_timeout_grace_period) { 0.5 }
 
-          staging.should_receive(:promise_warden_run) do
+          staging.container.should_receive(:promise_run_script) do
             promise = mock("promise")
             promise.should_receive(:resolve) { sleep 0.75 }
             promise
@@ -297,7 +297,6 @@ YAML
       %w(
          app_download
          buildpack_cache_download
-         create_container
          limit_disk
          limit_memory
          prepare_staging_log
@@ -305,6 +304,7 @@ YAML
       ).each do |step|
         staging.stub("promise_#{step}").and_return(successful_promise)
       end
+      staging.container.stub(:promise_create_container).and_return(successful_promise)
       staging.container.stub(:promise_update_path_and_ip).and_return(successful_promise)
     end
 
@@ -469,15 +469,41 @@ YAML
       end
     end
 
+    describe "#bind_mounts" do
+      it 'includes the workspace dir' do
+        staging.bind_mounts.should include('src_path' => staging.workspace.workspace_dir,
+                                              'dst_path' => staging.workspace.workspace_dir)
+      end
+
+      it 'includes the build pack url' do
+        staging.bind_mounts.should include('src_path' => staging.buildpack_dir,
+                                              'dst_path' => staging.buildpack_dir)
+      end
+
+      it 'includes the configured bind mounts' do
+        mount = {
+          'src_path' => 'a',
+          'dst_path' => 'b'
+        }
+        staging.config["bind_mounts"] = [mount]
+        staging.bind_mounts.should include(mount)
+      end
+    end
+
     it "performs staging setup operations in correct order" do
       %w(prepare_workspace
          promise_app_download
-         promise_create_container
+      ).each do |step|
+        staging.should_receive(step).ordered.and_return(successful_promise)
+      end
+
+      staging.workspace.workspace_dir
+      staging.container.should_receive(:promise_create_container).with(staging.bind_mounts).ordered.and_return(successful_promise)
+      %w(
          promise_limit_disk
          promise_limit_memory
          promise_prepare_staging_log
          promise_app_dir
-
       ).each do |step|
         staging.should_receive(step).ordered.and_return(successful_promise)
       end
@@ -661,7 +687,7 @@ YAML
 
   describe "#promise_prepare_staging_log" do
     it "assembles a shell command that creates staging_task.log file for tailing it" do
-      staging.should_receive(:promise_warden_run) do |connection_name, cmd|
+      staging.container.should_receive(:promise_run_script) do |connection_name, cmd|
         cmd.should match "mkdir -p /tmp/staged/logs && touch /tmp/staged/logs/staging_task.log"
         mock(:prepare_staging_log_promise, :resolve => nil)
       end
@@ -727,7 +753,7 @@ YAML
 
   describe "#promise_unpack_app" do
     it "assembles a shell command" do
-      staging.should_receive(:promise_warden_run) do |connection_name, cmd|
+      staging.container.should_receive(:promise_run_script) do |connection_name, cmd|
         cmd.should include("unzip -q #{workspace_dir}/app.zip -d /tmp/unstaged")
         mock("promise", :resolve => nil)
       end
@@ -739,7 +765,7 @@ YAML
   describe "#promise_unpack_buildpack_cache" do
     context "when buildpack cache does not exist" do
       it "does not run a warden command" do
-        staging.should_not_receive(:promise_warden_run)
+        staging.container.should_not_receive(:promise_run_script)
         staging.promise_unpack_buildpack_cache.resolve
       end
     end
@@ -750,7 +776,7 @@ YAML
       end
 
       it "assembles a shell command" do
-        staging.should_receive(:promise_warden_run) do |_, cmd|
+        staging.container.should_receive(:promise_run_script) do |_, cmd|
           cmd.should include("tar xfz #{workspace_dir}/buildpack_cache.tgz -C /tmp/cache")
           mock("promise", :resolve => nil)
         end
@@ -762,7 +788,7 @@ YAML
 
   describe "#promise_pack_app" do
     it "assembles a shell command" do
-      staging.should_receive(:promise_warden_run) do |connection_name, cmd|
+      staging.container.should_receive(:promise_run_script) do |connection_name, cmd|
         normalize_whitespace(cmd).should include("cd /tmp/staged && COPYFILE_DISABLE=true tar -czf /tmp/droplet.tgz .")
         mock("promise", :resolve => nil)
       end
@@ -773,7 +799,7 @@ YAML
 
   describe "#promise_pack_buildpack_cache" do
     it "assembles a shell command" do
-      staging.should_receive(:promise_warden_run) do |_, cmd|
+      staging.container.should_receive(:promise_run_script) do |_, cmd|
         normalize_whitespace(cmd).should include("cd /tmp/cache && COPYFILE_DISABLE=true tar -czf /tmp/buildpack_cache.tgz .")
         mock("promise", :resolve => nil)
       end
