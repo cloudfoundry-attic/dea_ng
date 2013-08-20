@@ -273,9 +273,9 @@ fi
       it "clones the buildpack URL with a branch" do
         buildpack_url = "git://github.com/heroku/heroku-buildpack-java.git#branch"
         config["environment"]["buildpack"] = buildpack_url
-        git_url = buildpack_url.split('#')[0]
+        git_url, branch = buildpack_url.split('#')
         build_pack.should_receive(:system).with(anything) do |cmd|
-          expect(cmd).to match /git clone --depth 1 -b branch --recursive #{git_url} \/tmp\/buildpacks/
+          expect(cmd).to match /git clone --depth 1 -b #{branch} --recursive #{git_url} \/tmp\/buildpacks/
           true
         end
 
