@@ -33,10 +33,6 @@ module Dea
       @container ||= Dea::Container.new(config["warden_socket"], config["base_dir"])
     end
 
-    def container_handle
-      container.handle
-    end
-
     def paths_to_bind
       []
     end
@@ -44,7 +40,7 @@ module Dea
     def promise_limit_disk
       Promise.new do |p|
         request = ::Warden::Protocol::LimitDiskRequest.new
-        request.handle = container_handle
+        request.handle = container.handle
         request.byte = disk_limit_in_bytes
         container.call(:app, request)
         p.deliver
@@ -54,7 +50,7 @@ module Dea
     def promise_limit_memory
       Promise.new do |p|
         request = ::Warden::Protocol::LimitMemoryRequest.new
-        request.handle = container_handle
+        request.handle = container.handle
         request.limit_in_bytes = memory_limit_in_bytes
         container.call(:app, request)
         p.deliver
@@ -64,7 +60,7 @@ module Dea
     def promise_stop
       Promise.new do |p|
         request = ::Warden::Protocol::StopRequest.new
-        request.handle = container_handle
+        request.handle = container.handle
         container.call(:stop, request)
 
         p.deliver

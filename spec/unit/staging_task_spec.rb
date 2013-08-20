@@ -615,7 +615,7 @@ YAML
 
   describe "#stop" do
     context "if container exists" do
-      before { staging.stub(:container_handle) { "maria" } }
+      before { staging.container.stub(:handle) { "maria" } }
       it "sends stop request to warden container" do
         staging.should_receive(:promise_stop).and_return(successful_promise)
         staging.stop
@@ -623,7 +623,7 @@ YAML
     end
 
     context "if container does not exist" do
-      before { staging.stub(:container_handle) { nil } }
+      before { staging.container.stub(:handle) { nil } }
       it "does NOT send stop request to warden container" do
         staging.should_not_receive(:promise_stop)
         staging.stop

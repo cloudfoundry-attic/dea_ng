@@ -31,7 +31,7 @@ describe Dea::Task do
     end
 
     before do
-      task.stub(:container_handle) { "handle" }
+      task.container.stub(:handle) { "handle" }
     end
 
     it "executes a StopRequest" do
@@ -61,7 +61,7 @@ describe Dea::Task do
     let(:response) { "okay response" }
     before do
       task.stub(:disk_limit_in_bytes).and_return(1234)
-      task.stub(:container_handle).and_return("handle")
+      task.container.stub(:handle).and_return("handle")
     end
 
     it "should make a LimitDisk request" do
@@ -91,7 +91,7 @@ describe Dea::Task do
 
     before do
       task.stub(:memory_limit_in_bytes).and_return(1234)
-      task.stub(:container_handle).and_return("handle")
+      task.container.stub(:handle).and_return("handle")
     end
 
     it "should make a LimitMemory request on behalf of the container" do

@@ -107,7 +107,7 @@ module Dea
         logger.info("Stopping staging task")
 
         @after_complete_callback = nil # Unregister after complete callback
-        promise_stop.resolve if container_handle
+        promise_stop.resolve if container.handle
         p.deliver
       end
 
