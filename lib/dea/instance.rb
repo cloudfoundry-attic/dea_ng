@@ -318,9 +318,8 @@ module Dea
     def instance_path
       attributes["instance_path"] ||=
         begin
-          if !instance_path_available? || attributes["warden_container_path"].nil?
-            raise "Instance path unavailable"
-          end
+          raise "Instance path unavailable" unless instance_path_available?
+          raise "Warden container path not present" if attributes["warden_container_path"].nil?
 
           File.expand_path(container_relative_path(attributes["warden_container_path"]))
         end

@@ -1418,4 +1418,55 @@ describe Dea::Instance do
       end
     end
   end
+
+  describe "#instance_path" do
+    context "when state is CRASHED" do
+      before { instance.state = Dea::Instance::State::CRASHED }
+
+      context "when warden_container_path is set" do
+        before { instance.attributes["warden_container_path"] = "/root/dir" }
+
+        it "returns container path" do
+          expect(instance.instance_path).to eq("/root/dir/tmp/rootfs/home/vcap")
+        end
+      end
+
+      context "when warden_container_path is not set" do
+        it "raises" do
+          expect {
+            instance.instance_path
+          }.to raise_error("Warden container path not present")
+        end
+      end
+    end
+
+    context "when state is RUNNING" do
+      before { instance.state = Dea::Instance::State::RUNNING }
+      context "when warden_container_path is set" do
+        before { instance.attributes["warden_container_path"] = "/root/dir" }
+
+        it "returns container path" do
+          expect(instance.instance_path).to eq("/root/dir/tmp/rootfs/home/vcap")
+        end
+      end
+
+      context "when warden_container_path is not set" do
+        it "raises" do
+          expect {
+            instance.instance_path
+          }.to raise_error("Warden container path not present")
+        end
+      end
+    end
+
+    context "when state is STARTING" do
+      before { instance.state = Dea::Instance::State::STARTING }
+
+      it "raises" do
+        expect {
+          instance.instance_path
+        }.to raise_error("Instance path unavailable")
+      end
+    end
+  end
 end
