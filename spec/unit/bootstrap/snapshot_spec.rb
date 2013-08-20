@@ -61,6 +61,9 @@ describe "snapshot" do
         warden_job_id
         instance_index
         state
+        warden_host_ip
+        instance_host_port
+        instance_id
       )
     end
   end

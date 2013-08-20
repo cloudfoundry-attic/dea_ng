@@ -807,11 +807,14 @@ module Dea
 
     def snapshot_attributes
       {
-        'application_id'   => attributes['application_id'],
-        'state'            => attributes['state'],
-        'warden_job_id'    => attributes['warden_job_id'],
-        'instance_index'   => attributes['instance_index'],
-        'warden_container_path' => container.path
+        'application_id'        => attributes['application_id'],
+        'state'                 => attributes['state'],
+        'warden_job_id'         => attributes['warden_job_id'],
+        'instance_index'        => attributes['instance_index'],
+        'warden_container_path' => container.path,
+        'warden_host_ip'        => attributes['warden_host_ip'],
+        'instance_host_port'    => attributes['instance_host_port'],
+        'instance_id'           => attributes['instance_id'],
       }
     end
 
