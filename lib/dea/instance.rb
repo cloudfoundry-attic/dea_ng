@@ -115,7 +115,6 @@ module Dea
       transfer_attr_with_existance_check(attributes, "application_uris", "uris")
 
       attributes["application_id"] ||= attributes.delete("droplet").to_s if attributes["droplet"]
-      attributes["tags"] ||= attributes.delete("tags") { |_| {} } if attributes["tags"]
       attributes["droplet_sha1"] ||= attributes.delete("sha1")
       attributes["droplet_uri"] ||= attributes.delete("executableUri")
 
@@ -183,7 +182,6 @@ module Dea
           "droplet_sha1"        => enum(nil, String),
           "droplet_uri"         => enum(nil, String),
 
-          optional("tags")                 => dict(String, any),
           optional("runtime_name")         => String,
           optional("runtime_info")         => dict(String, any),
           optional("framework_name")       => String,
