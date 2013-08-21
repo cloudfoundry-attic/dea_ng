@@ -261,9 +261,9 @@ fi
 
       subject { build_pack.build_pack }
 
-      it "clones the buildpack URL (without the history)" do
+      it "clones the buildpack URL" do
         build_pack.should_receive(:system).with(anything) do |cmd|
-          expect(cmd).to match /git clone --depth 1 --recursive #{buildpack_url} \/tmp\/buildpacks/
+          expect(cmd).to match /git clone --recursive #{buildpack_url} \/tmp\/buildpacks/
           true
         end
 
