@@ -82,6 +82,12 @@ module Dea
       connection.promise_call(request).resolve
     end
 
+    def get_new_warden_net_in
+      request = ::Warden::Protocol::NetInRequest.new
+      request.handle = handle
+      call(:app, request)
+    end
+
     def call_with_retry(name, request)
       count = 0
       response = nil
