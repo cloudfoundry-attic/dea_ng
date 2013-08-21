@@ -117,7 +117,7 @@ module Buildpacks
 
     def clone_buildpack(buildpack_url)
       buildpack_path = "/tmp/buildpacks/#{File.basename(buildpack_url)}"
-      ok = system("git clone --recursive #{buildpack_url} #{buildpack_path}")
+      ok = system("git clone --depth 1 --recursive #{buildpack_url} #{buildpack_path}")
       raise "Failed to git clone buildpack" unless ok
       Buildpacks::Installer.new(Pathname.new(buildpack_path), app_dir, cache_dir)
     end
