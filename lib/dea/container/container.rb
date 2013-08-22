@@ -1,5 +1,6 @@
 require "em/warden/client"
 require "dea/container/connection"
+require "dea"
 
 module Dea
   class Container
@@ -107,8 +108,30 @@ module Dea
       end
     end
 
+    def destroy!
+      Dea.with_em do
+        request = ::Warden::Protocol::DestroyRequest.new
+        request.handle = handle
+
+        begin
+          call_with_retry(:app, request)
+        rescue ::EM::Warden::Client::Error => error
+          logger.warn("Error destroying container: #{error.message}")
+        end
+        self.handle = nil
+      end
+    end
+
+
     def promise_create_container(bind_mounts)
       Promise.new do |p|
+        sync_create_container(bind_mounts)
+        p.deliver
+      end
+    end
+
+    def sync_create_container(bind_mounts)
+      Dea.with_em do
         create_request = ::Warden::Protocol::CreateRequest.new
         create_request.bind_mounts = bind_mounts.map do |bm|
 
@@ -124,7 +147,6 @@ module Dea
 
         response = call(:app, create_request)
         self.handle = response.handle
-        p.deliver
       end
     end
 

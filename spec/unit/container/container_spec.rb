@@ -219,6 +219,35 @@ describe Dea::Container do
     end
   end
 
+  describe "#destroy!" do
+    let(:promise) { double("promise", resolve: nil)}
+
+    it "sends a destroy request to warden server" do
+      connection.should_receive(:promise_call) do |request|
+        expect(request).to be_kind_of(::Warden::Protocol::DestroyRequest)
+        expect(request.handle).to eq(container.handle)
+
+        promise
+      end
+      container.destroy!
+    end
+
+    it "sets the container's handle to nil" do
+      connection.stub(:promise_call).and_return(promise)
+
+      expect { container.destroy! }.to change { container.handle }.to(nil)
+    end
+
+    it "catches and logs the EM::Warden::Client::Error" do
+      connection.stub(:promise_call).and_raise(::EM::Warden::Client::Error)
+      container.logger.should_receive(:warn)
+      expect {
+        container.destroy!
+      }.not_to raise_error
+
+    end
+  end
+
   describe "#promise_create_container" do
     let(:bind_mounts) do
       [
