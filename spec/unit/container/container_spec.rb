@@ -197,7 +197,7 @@ describe Dea::Container do
 
   end
 
-  describe "#promise_spawn" do
+  describe "#spawn" do
     let(:nproc_limit) { 123 }
     let(:file_descriptor_limit) { 456 }
     let(:script) { "./dostuffscript" }
@@ -213,7 +213,7 @@ describe Dea::Container do
 
         response
       end
-      result = container.promise_spawn(script, nproc_limit, file_descriptor_limit).resolve
+      result = container.spawn(script, nproc_limit, file_descriptor_limit)
       expect(result).to eq(response)
     end
   end

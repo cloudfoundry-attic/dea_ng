@@ -445,7 +445,7 @@ module Dea
 
         log(:info, "foo.bal", staged_info: staged_info, start_script: start_script)
 
-        response = container.promise_spawn(start_script, self.file_descriptor_limit, NPROC_LIMIT).resolve
+        response = container.spawn(start_script, self.file_descriptor_limit, NPROC_LIMIT)
 
         attributes["warden_job_id"] = response.job_id
 

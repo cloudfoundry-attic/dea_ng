@@ -831,9 +831,9 @@ describe Dea::Instance do
             "FakeBuildpack"
           ).and_return(generator)
 
-          instance.container.should_receive(:promise_spawn)
+          instance.container.should_receive(:spawn)
             .with(script, instance.file_descriptor_limit, Dea::Instance::NPROC_LIMIT)
-            .and_return(delivering_promise(response))
+            .and_return(response)
 
           instance.promise_start.resolve
         end
