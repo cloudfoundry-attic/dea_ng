@@ -6,6 +6,7 @@ require "steno/core_ext"
 require "dea/promise"
 require "vmstat"
 require "dea/container/container"
+require "dea/container/connection_provider"
 
 module Dea
   class Task
@@ -30,7 +31,10 @@ module Dea
     end
 
     def container
-      @container ||= Dea::Container.new(config["warden_socket"])
+      @container ||= begin
+        connection_provider = ConnectionProvider.new(config["warden_socket"])
+        Dea::Container.new(connection_provider)
+      end
     end
 
     def paths_to_bind

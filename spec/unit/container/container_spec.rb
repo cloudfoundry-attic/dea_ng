@@ -2,10 +2,12 @@ require "spec_helper"
 require "dea/container/container"
 
 describe Dea::Container do
-  let(:client) { double("client") }
   let(:handle) { "fakehandle" }
   let(:socket_path) { "/tmp/warden.sock.notreally" }
-  subject(:container) { described_class.new(socket_path) }
+
+  let(:connection_provider) { double('connection provider', get: connection)}
+  subject(:container) { described_class.new(connection_provider) }
+
   let(:request) { double("request") }
   let(:response) { double("response") }
   let(:connection_name) { "connection_name" }
@@ -21,66 +23,27 @@ describe Dea::Container do
     container.handle = handle
   end
 
-
-  describe "#get_connection" do
-    context "when conneciton is cached" do
-      before do
-        container.cache_connection(connection_name, connection)
-      end
-
-      context "when connection is connected" do
-        let(:connected) { true }
-        it "uses cached connection" do
-          expect(container.get_connection(connection_name)).to eq(connection)
-        end
-      end
-
-      context "when connection is not connected" do
-        let(:connected) { false }
-        it "creates new connection" do
-          Dea::Connection.should_receive(:new).with(connection_name, socket_path).and_return(connection)
-          container.get_connection(connection_name)
-        end
-      end
-    end
-
-    context "when connection is not cached" do
-      before do
-        Dea::Connection.should_receive(:new).with(connection_name, socket_path).and_return(connection)
-      end
-
-      it "creates a new connection and caches it" do
-        container.get_connection(connection_name)
-        expect(container.find_connection(connection_name)).to eq(connection)
-      end
-
-      context "if connection fails" do
-        let(:connection) { double("failing connection", :promise_create => failing_promise({})) }
-        it "raises an error" do
-          expect {
-            container.get_connection(connection_name)
-          }.to raise_error
-        end
-      end
-    end
-  end
-
-  describe "#socket_path" do
-    it "returns the socket of the container" do
-      expect(container.socket_path).to eq("/tmp/warden.sock.notreally")
+  describe "#close_all_connections" do
+    it "deletegates to connection provider" do
+      connection_provider.should_receive(:close_all)
+      container.close_all_connections
     end
   end
 
   describe "#info" do
+    let(:client) { double("client", connect: nil) }
     # can't yield from root fiber, and this object is
     # assumed to be run from another fiber anyway
     around { |example| Fiber.new(&example).resume }
 
-    before { container.stub(:client => client) }
-
     let(:result) { double("result") }
+    before do
+      connection_provider.stub(:socket_path).and_return(socket_path)
+      EventMachine::Warden::FiberAwareClient.stub(:new).and_return(client)
+    end
 
     it "sends an info request to the container" do
+
       called = false
       client.should_receive(:call) do |request|
         called = true
@@ -140,67 +103,7 @@ describe Dea::Container do
     end
   end
 
-  describe "keeping track of connections" do
-    let(:connection_name) { "connection_name" }
-    let(:connection) { double("fake connection") }
-
-    describe "#find_connection" do
-      before do
-        container.cache_connection(connection_name, connection)
-      end
-
-      it "returns the connection associated with the name" do
-        expect(container.find_connection(connection_name)).to eq(connection)
-      end
-    end
-
-    describe "#cache_connection" do
-      it "stores the connection" do
-        container.cache_connection(connection_name, connection)
-        expect(container.find_connection(connection_name)).to eq(connection)
-      end
-    end
-
-    describe "#close_connection" do
-      before do
-        container.cache_connection(connection_name, connection)
-      end
-
-      it "closes the connection and removes it from the cache" do
-        connection.should_receive(:close)
-
-        container.close_connection(connection_name)
-
-        expect(container.find_connection(connection_name)).to be_nil
-      end
-    end
-
-    describe "#close_all_connections" do
-      let(:connection_name_two) { "connection_name_two" }
-      let(:connection_two) { double("fake connection two") }
-
-      before do
-        container.cache_connection(connection_name, connection)
-        container.cache_connection(connection_name_two, connection_two)
-      end
-
-      it "closes all connections" do
-        connection.should_receive(:close)
-        connection_two.should_receive(:close)
-
-        container.close_all_connections
-
-        expect(container.find_connection(connection_name)).to be_nil
-        expect(container.find_connection(connection_name_two)).to be_nil
-      end
-    end
-  end
-
   describe "#call_with_retry" do
-    before do
-      container.cache_connection(connection_name, connection)
-    end
-
     context "when there is a connection error" do
       let(:error_msg) { "error" }
       let(:connection_error) { ::EM::Warden::Client::ConnectionError.new(error_msg) }
@@ -243,10 +146,6 @@ describe Dea::Container do
   end
 
   describe "#call" do
-    before do
-      container.cache_connection(connection_name, connection)
-    end
-
     it "calls #promise_call" do
       connection.should_receive(:promise_call).with(request).and_return(delivering_promise)
       container.call(connection_name, request)

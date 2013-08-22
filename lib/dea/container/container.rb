@@ -15,9 +15,8 @@ module Dea
     attr_reader :socket_path, :path, :host_ip
     attr_accessor :handle
 
-    def initialize(socket_path)
-      @socket_path = socket_path
-      @connections = {}
+    def initialize(connection_provider)
+      @connection_provider = connection_provider
       @path = nil
     end
 
@@ -42,42 +41,8 @@ module Dea
       end
     end
 
-    def find_connection(name)
-      @connections[name]
-    end
-
-    def cache_connection(name, connection)
-      @connections[name] = connection
-    end
-
-    def close_all_connections
-      @connections.keys.each do |name|
-        close_connection(name)
-      end
-    end
-
-    def close_connection(name)
-      if connection = @connections.delete(name)
-        connection.close
-      end
-    end
-
-    def get_connection(name)
-      connection = find_connection(name)
-
-      # Deliver cached connection if possible
-      if connection && connection.connected?
-        return connection
-      else
-        connection = Connection.new(name, socket_path)
-        connection.promise_create.resolve
-        cache_connection(name, connection) if connection
-        return connection
-      end
-    end
-
     def call(name, request)
-      connection = get_connection(name)
+      connection = @connection_provider.get(name)
       connection.promise_call(request).resolve
     end
 
@@ -163,11 +128,15 @@ module Dea
       end
     end
 
+    def close_all_connections
+      @connection_provider.close_all
+    end
+
     private
 
     def client
       @client ||=
-        EventMachine::Warden::FiberAwareClient.new(@socket_path).tap(&:connect)
+        EventMachine::Warden::FiberAwareClient.new(@connection_provider.socket_path).tap(&:connect)
     end
   end
 end
