@@ -319,7 +319,7 @@ describe Dea::Instance do
     before do
       bootstrap.stub(:local_ip).and_return("127.0.0.1")
       #instance.container.stub(:info).and_return(info_response)
-      instance.container.stub(:promise_update_path_and_ip).and_return(delivering_promise(info_response))
+      instance.container.stub(:update_path_and_ip)
       instance.container.stub(:host_ip).and_return(info_response.host_ip)
       instance.container.stub(:path).and_return(info_response.container_path)
       instance.stub(:promise_read_instance_manifest).and_return(delivering_promise({}))
@@ -432,7 +432,7 @@ describe Dea::Instance do
     context "when failing to check the health" do
       let(:error) { RuntimeError.new("Some Error in warden") }
 
-      before { instance.container.stub(:promise_update_path_and_ip).and_return(failing_promise(error)) }
+      before { instance.container.stub(:update_path_and_ip).and_raise(error) }
 
       subject { Dea::Promise.resolve(instance.promise_health_check) }
 

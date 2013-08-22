@@ -428,10 +428,14 @@ module Dea
       Promise.run_in_parallel(*promises)
       promise_limit_disk.resolve
       promise_limit_memory.resolve
+      promise_update = Promise.new do |p|
+        container.update_path_and_ip
+        p.deliver
+      end
       Promise.run_in_parallel(
         promise_prepare_staging_log,
         promise_app_dir,
-        container.promise_update_path_and_ip,
+        promise_update
       )
 
     rescue => e

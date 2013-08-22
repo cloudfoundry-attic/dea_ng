@@ -751,7 +751,7 @@ module Dea
       Promise.new do |p|
         begin
           logger.debug "droplet.health-check.get-container-info"
-          container.promise_update_path_and_ip.resolve
+          container.update_path_and_ip
           logger.debug "droplet.health-check.container-info-ok"
         rescue => e
           logger.error "droplet.health-check.container-info-failed",

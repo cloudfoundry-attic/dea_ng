@@ -305,7 +305,7 @@ YAML
         staging.stub("promise_#{step}").and_return(successful_promise)
       end
       staging.container.stub(:create_container)
-      staging.container.stub(:promise_update_path_and_ip).and_return(successful_promise)
+      staging.container.stub(:update_path_and_ip)
     end
 
     def stub_staging
@@ -503,7 +503,7 @@ YAML
       ).each do |step|
         staging.should_receive(step).ordered.and_return(successful_promise)
       end
-      staging.container.should_receive(:promise_update_path_and_ip).ordered.and_return(successful_promise)
+      staging.container.should_receive(:update_path_and_ip).ordered
 
       stub_staging
       stub_staging_upload

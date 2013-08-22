@@ -27,19 +27,17 @@ module Dea
       client.call(request)
     end
 
-    def promise_update_path_and_ip
-      Promise.new do |p|
-        raise ArgumentError, "container handle must not be nil" unless @handle
+    def update_path_and_ip
+      raise ArgumentError, "container handle must not be nil" unless @handle
 
-        request = ::Warden::Protocol::InfoRequest.new(:handle => @handle)
-        response = call(:info, request)
+      request = ::Warden::Protocol::InfoRequest.new(:handle => @handle)
+      response = call(:info, request)
 
-        raise RuntimeError, "container path is not available" unless response.container_path
-        @path = response.container_path
-        @host_ip = response.host_ip
+      raise RuntimeError, "container path is not available" unless response.container_path
+      @path = response.container_path
+      @host_ip = response.host_ip
 
-        p.deliver(response)
-      end
+      response
     end
 
     def call(name, request)

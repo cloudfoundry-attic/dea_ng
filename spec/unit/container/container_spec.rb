@@ -65,7 +65,7 @@ describe Dea::Container do
     end
   end
 
-  describe "#promise_update_path_and_ip" do
+  describe "#update_path_and_ip" do
     let(:container_path) { "/container/path" }
     let(:container_host_ip) { "1.7.goodip" }
     let(:info_response) { Warden::Protocol::InfoResponse.new(:container_path => container_path, :host_ip => container_host_ip) }
@@ -77,8 +77,7 @@ describe Dea::Container do
         info_response
       end
 
-      result = container.promise_update_path_and_ip.resolve
-      expect(result).to eq(info_response)
+      container.update_path_and_ip
       expect(container.path).to eq(container_path)
       expect(container.host_ip).to eq(container_host_ip)
     end
@@ -88,7 +87,7 @@ describe Dea::Container do
         container.should_receive(:call).and_return(Warden::Protocol::InfoResponse.new)
 
         expect {
-          container.promise_update_path_and_ip.resolve
+          container.update_path_and_ip
         }.to raise_error(RuntimeError, /container path is not available/)
       end
     end
@@ -97,7 +96,7 @@ describe Dea::Container do
       let(:handle) { nil }
       it "raises error" do
         expect {
-          container.promise_update_path_and_ip.resolve
+          container.update_path_and_ip
         }.to raise_error(ArgumentError, /container handle must not be nil/)
       end
     end
