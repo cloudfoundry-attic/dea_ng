@@ -122,15 +122,7 @@ module Dea
       end
     end
 
-
-    def promise_create_container(bind_mounts)
-      Promise.new do |p|
-        sync_create_container(bind_mounts)
-        p.deliver
-      end
-    end
-
-    def sync_create_container(bind_mounts)
+    def create_container(bind_mounts)
       Dea.with_em do
         create_request = ::Warden::Protocol::CreateRequest.new
         create_request.bind_mounts = bind_mounts.map do |bm|

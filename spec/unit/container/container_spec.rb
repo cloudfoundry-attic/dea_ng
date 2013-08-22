@@ -248,7 +248,7 @@ describe Dea::Container do
     end
   end
 
-  describe "#promise_create_container" do
+  describe "#create_container" do
     let(:bind_mounts) do
       [
         { "src_path" => "/path/src", "dst_path" => "/path/dst" },
@@ -280,7 +280,7 @@ describe Dea::Container do
       end
 
       expect(container.handle).to_not eq(handle)
-      container.promise_create_container(bind_mounts).resolve
+      container.create_container(bind_mounts)
       expect(container.handle).to eq(handle)
     end
   end

@@ -304,7 +304,7 @@ YAML
       ).each do |step|
         staging.stub("promise_#{step}").and_return(successful_promise)
       end
-      staging.container.stub(:promise_create_container).and_return(successful_promise)
+      staging.container.stub(:create_container)
       staging.container.stub(:promise_update_path_and_ip).and_return(successful_promise)
     end
 
@@ -491,15 +491,11 @@ YAML
     end
 
     it "performs staging setup operations in correct order" do
-      %w(prepare_workspace
-         promise_app_download
-      ).each do |step|
-        staging.should_receive(step).ordered.and_return(successful_promise)
-      end
-
+      staging.should_receive(:prepare_workspace).ordered.and_return(successful_promise)
       staging.workspace.workspace_dir
-      staging.container.should_receive(:promise_create_container).with(staging.bind_mounts).ordered.and_return(successful_promise)
+      staging.container.should_receive(:create_container).with(staging.bind_mounts).ordered
       %w(
+        promise_app_download
          promise_limit_disk
          promise_limit_memory
          promise_prepare_staging_log
