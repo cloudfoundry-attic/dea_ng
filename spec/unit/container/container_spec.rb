@@ -151,7 +151,7 @@ describe Dea::Container do
     end
   end
 
-  describe "#promise_run_script" do
+  describe "#run_script" do
     let(:script) { double("./citizien_kane") }
     let(:response) { double("response", :exit_status => 0)}
 
@@ -167,16 +167,16 @@ describe Dea::Container do
         response
       end
 
-      result = container.promise_run_script(connection_name, script).resolve
+      result = container.run_script(connection_name, script)
       expect(result).to eq(response)
     end
 
-    it "respects setting of priveleged to true" do
+    it "respects setting of privileged to true" do
       container.should_receive(:call) do |_, request|
         expect(request.privileged).to eq(true)
         response
       end
-      container.promise_run_script(connection_name, script, true).resolve
+      container.run_script(connection_name, script, true)
     end
 
     context "when the exit status is > 0" do
@@ -189,7 +189,7 @@ describe Dea::Container do
         container.should_receive(:call).and_return(response)
         container.logger.should_receive(:warn).with(/exited with status/i, data)
         expect {
-          container.promise_run_script(connection_name, script).resolve
+          container.run_script(connection_name, script)
         }.to raise_error(Dea::Container::WardenError, "Script exited with status 1")
       end
     end

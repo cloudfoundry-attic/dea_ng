@@ -57,7 +57,7 @@ describe Dea::StagingTask do
 
   describe "#promise_stage" do
     it "assembles a shell command and initiates collection of task log" do
-      staging.container.should_receive(:promise_run_script) do |_, cmd|
+      staging.container.should_receive(:run_script) do |_, cmd|
         expect(cmd).to include %Q{export FOO="BAR";}
         expect(cmd).to match %r{export PLATFORM_CONFIG=".+/platform_config";}
         expect(cmd).to include %Q{export BUILDPACK_CACHE="buildpack_cache_url";}
@@ -66,8 +66,6 @@ describe Dea::StagingTask do
         expect(cmd).to include %Q{export VCAP_SERVICES="}
 
         expect(cmd).to match %r{.*/bin/run .*/plugin_config >> /tmp/staged/logs/staging_task.log 2>&1$}
-
-        mock("promise", :resolve => nil)
       end
       staging.promise_stage.resolve
     end
@@ -76,33 +74,29 @@ describe Dea::StagingTask do
       before { attributes["start_message"]["env"] = ["PATH=x y z", "FOO=z'y\"d", "BAR=", "BAZ=foo=baz"] }
 
       it "copes with spaces" do
-        staging.container.should_receive(:promise_run_script) do |_, cmd|
+        staging.container.should_receive(:run_script) do |_, cmd|
           expect(cmd).to include(%Q{export PATH="x y z";})
-          mock("promise", :resolve => nil)
         end
         staging.promise_stage.resolve
       end
 
       it "copes with quotes" do
-        staging.container.should_receive(:promise_run_script) do |_, cmd|
+        staging.container.should_receive(:run_script) do |_, cmd|
           expect(cmd).to include(%Q{export FOO="z'y\\"d";})
-          mock("promise", :resolve => nil)
         end
         staging.promise_stage.resolve
       end
 
       it "copes with blank" do
-        staging.container.should_receive(:promise_run_script) do |_, cmd|
+        staging.container.should_receive(:run_script) do |_, cmd|
           expect(cmd).to include(%Q{export BAR="";})
-          mock("promise", :resolve => nil)
         end
         staging.promise_stage.resolve
       end
 
       it "copes with equal sign" do
-        staging.container.should_receive(:promise_run_script) do |_, cmd|
+        staging.container.should_receive(:run_script) do |_, cmd|
           expect(cmd).to include(%Q{export BAZ="foo=baz";})
-          mock("promise", :resolve => nil)
         end
         staging.promise_stage.resolve
       end
@@ -115,10 +109,8 @@ describe Dea::StagingTask do
         it "fails with a TimeoutError" do
           staging.stub(:staging_timeout_grace_period) { 0.5 }
 
-          staging.container.should_receive(:promise_run_script) do
-            promise = mock("promise")
-            promise.should_receive(:resolve) { sleep 2 }
-            promise
+          staging.container.should_receive(:run_script) do
+            sleep 2
           end
 
           expect { staging.promise_stage.resolve }.to raise_error(TimeoutError)
@@ -129,10 +121,8 @@ describe Dea::StagingTask do
         it "does not time out" do
           staging.stub(:staging_timeout_grace_period) { 0.5 }
 
-          staging.container.should_receive(:promise_run_script) do
-            promise = mock("promise")
-            promise.should_receive(:resolve) { sleep 0.75 }
-            promise
+          staging.container.should_receive(:run_script) do
+            sleep 0.75
           end
 
           expect { staging.promise_stage.resolve }.to_not raise_error
@@ -683,9 +673,8 @@ YAML
 
   describe "#promise_prepare_staging_log" do
     it "assembles a shell command that creates staging_task.log file for tailing it" do
-      staging.container.should_receive(:promise_run_script) do |connection_name, cmd|
+      staging.container.should_receive(:run_script) do |connection_name, cmd|
         cmd.should match "mkdir -p /tmp/staged/logs && touch /tmp/staged/logs/staging_task.log"
-        mock(:prepare_staging_log_promise, :resolve => nil)
       end
       staging.promise_prepare_staging_log.resolve
     end
@@ -749,9 +738,8 @@ YAML
 
   describe "#promise_unpack_app" do
     it "assembles a shell command" do
-      staging.container.should_receive(:promise_run_script) do |connection_name, cmd|
+      staging.container.should_receive(:run_script) do |connection_name, cmd|
         cmd.should include("unzip -q #{workspace_dir}/app.zip -d /tmp/unstaged")
-        mock("promise", :resolve => nil)
       end
 
       staging.promise_unpack_app.resolve
@@ -761,7 +749,7 @@ YAML
   describe "#promise_unpack_buildpack_cache" do
     context "when buildpack cache does not exist" do
       it "does not run a warden command" do
-        staging.container.should_not_receive(:promise_run_script)
+        staging.container.should_not_receive(:run_script)
         staging.promise_unpack_buildpack_cache.resolve
       end
     end
@@ -772,9 +760,8 @@ YAML
       end
 
       it "assembles a shell command" do
-        staging.container.should_receive(:promise_run_script) do |_, cmd|
+        staging.container.should_receive(:run_script) do |_, cmd|
           cmd.should include("tar xfz #{workspace_dir}/buildpack_cache.tgz -C /tmp/cache")
-          mock("promise", :resolve => nil)
         end
 
         staging.promise_unpack_buildpack_cache.resolve
@@ -784,9 +771,8 @@ YAML
 
   describe "#promise_pack_app" do
     it "assembles a shell command" do
-      staging.container.should_receive(:promise_run_script) do |connection_name, cmd|
+      staging.container.should_receive(:run_script) do |connection_name, cmd|
         normalize_whitespace(cmd).should include("cd /tmp/staged && COPYFILE_DISABLE=true tar -czf /tmp/droplet.tgz .")
-        mock("promise", :resolve => nil)
       end
 
       staging.promise_pack_app.resolve
@@ -795,9 +781,8 @@ YAML
 
   describe "#promise_pack_buildpack_cache" do
     it "assembles a shell command" do
-      staging.container.should_receive(:promise_run_script) do |_, cmd|
+      staging.container.should_receive(:run_script) do |_, cmd|
         normalize_whitespace(cmd).should include("cd /tmp/cache && COPYFILE_DISABLE=true tar -czf /tmp/buildpack_cache.tgz .")
-        mock("promise", :resolve => nil)
       end
 
       staging.promise_pack_buildpack_cache.resolve

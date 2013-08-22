@@ -70,26 +70,24 @@ module Dea
       response
     end
 
-    def promise_run_script(name, script, privileged=false)
-      Promise.new do |promise|
-        request = ::Warden::Protocol::RunRequest.new
-        request.handle = handle
-        request.script = script
-        request.privileged = privileged
+    def run_script(name, script, privileged=false)
+      request = ::Warden::Protocol::RunRequest.new
+      request.handle = handle
+      request.script = script
+      request.privileged = privileged
 
-        response = call(name, request)
-        if response.exit_status > 0
-          data = {
-            :script      => script,
-            :exit_status => response.exit_status,
-            :stdout      => response.stdout,
-            :stderr      => response.stderr,
-          }
-          logger.warn("%s exited with status %d" % [script.inspect, response.exit_status], data)
-          promise.fail(WardenError.new("Script exited with status #{response.exit_status}"))
-        else
-          promise.deliver(response)
-        end
+      response = call(name, request)
+      if response.exit_status > 0
+        data = {
+          :script      => script,
+          :exit_status => response.exit_status,
+          :stdout      => response.stdout,
+          :stderr      => response.stderr,
+        }
+        logger.warn("%s exited with status %d" % [script.inspect, response.exit_status], data)
+        raise WardenError.new("Script exited with status #{response.exit_status}")
+      else
+        response
       end
     end
 

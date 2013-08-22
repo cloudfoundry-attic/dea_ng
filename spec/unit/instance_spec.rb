@@ -665,10 +665,8 @@ describe Dea::Instance do
       end
 
       it "should run tar" do
-        instance.container.stub(:promise_run_script) do |_, script|
+        instance.container.stub(:run_script) do |_, script|
           script.should =~ /tar zxf/
-
-          delivering_promise
         end
 
         expect_start.to_not raise_error
@@ -677,8 +675,8 @@ describe Dea::Instance do
 
       it "can fail by run failing" do
         msg = "droplet extraction failure"
-        instance.container.stub(:promise_run_script) do |*_|
-          failing_promise(RuntimeError.new(msg))
+        instance.container.stub(:run_script) do |*_|
+          raise RuntimeError.new(msg)
         end
 
         expect_start.to raise_error(msg)
@@ -694,10 +692,8 @@ describe Dea::Instance do
       end
 
       it "should create the app dir" do
-        instance.container.stub(:promise_run_script) do |_, script|
+        instance.container.stub(:run_script) do |_, script|
           script.should =~ %r{mkdir -p home/vcap/app}
-
-          delivering_promise
         end
 
         expect_start.to_not raise_error
@@ -705,10 +701,8 @@ describe Dea::Instance do
       end
 
       it "should chown the app dir" do
-        instance.container.stub(:promise_run_script) do |_, script|
+        instance.container.stub(:run_script) do |_, script|
           script.should =~ %r{chown vcap:vcap home/vcap/app}
-
-          delivering_promise
         end
 
         expect_start.to_not raise_error
@@ -716,10 +710,8 @@ describe Dea::Instance do
       end
 
       it "should symlink the app dir" do
-        instance.container.stub(:promise_run_script) do |_, script|
+        instance.container.stub(:run_script) do |_, script|
           script.should =~ %r{ln -s home/vcap/app /app}
-
-          delivering_promise
         end
 
         expect_start.to_not raise_error
@@ -729,8 +721,8 @@ describe Dea::Instance do
       it "can fail by run failing" do
         msg = "environment setup failure"
 
-        instance.container.stub(:promise_run_script) do |*_|
-          failing_promise(RuntimeError.new(msg))
+        instance.container.stub(:run_script) do |*_|
+          raise RuntimeError.new(msg)
         end
 
         expect_start.to raise_error(msg)
@@ -761,11 +753,10 @@ describe Dea::Instance do
 
         it "should execute script file" do
           script_content = nil
-          instance.container.stub(:promise_run_script) do |_, script|
+          instance.container.stub(:run_script) do |_, script|
             script.should_not be_empty
             lines = script.split("\n")
             script_content = lines[-2]
-            delivering_promise
           end
 
           expect_start.to_not raise_error
@@ -777,8 +768,8 @@ describe Dea::Instance do
         it "should raise error when script execution fails" do
           msg = "script execution failed"
 
-          instance.container.stub(:promise_run_script) do |_, script|
-            failing_promise(RuntimeError.new(msg))
+          instance.container.stub(:run_script) do |_, script|
+            raise RuntimeError.new(msg)
           end
 
           expect_start.to raise_error(msg)
@@ -968,10 +959,9 @@ describe Dea::Instance do
 
         it "executes the #{hook} script file" do
           script_content = nil
-          instance.container.stub(:promise_run_script) do |_, script|
+          instance.container.stub(:run_script) do |_, script|
             lines = script.split("\n")
             script_content = lines[-2]
-            delivering_promise
           end
           expect_stop.to_not raise_error
           script_content.should == "echo \"#{hook}\""
@@ -979,9 +969,8 @@ describe Dea::Instance do
 
         it "exports the variables in the hook files" do
           actual_script_content = nil
-          instance.container.stub(:promise_run_script) do |_, script|
+          instance.container.stub(:run_script) do |_, script|
             actual_script_content = script
-            delivering_promise
           end
           expect_stop.to_not raise_error
           actual_script_content.should match /export A=B/

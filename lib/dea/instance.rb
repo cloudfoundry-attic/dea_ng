@@ -411,7 +411,7 @@ module Dea
     def promise_setup_environment
       Promise.new do |p|
         script = "cd / && mkdir -p home/vcap/app && chown vcap:vcap home/vcap/app && ln -s home/vcap/app /app"
-        container.promise_run_script(:app, script, true).resolve
+        container.run_script(:app, script, true)
 
         p.deliver
       end
@@ -421,7 +421,7 @@ module Dea
       Promise.new do |p|
         script = "cd /home/vcap/ && tar zxf #{droplet.droplet_path}"
 
-        container.promise_run_script(:app, script).resolve
+        container.run_script(:app, script)
 
         p.deliver
       end
@@ -463,7 +463,7 @@ module Dea
             script << Env.new(@raw_attributes, self).exported_environment_variables
             script << File.read(script_path)
             script << "exit"
-            container.promise_run_script(:app, script.join("\n")).resolve
+            container.run_script(:app, script.join("\n"))
           else
             log(:warn, "droplet.hook-script.missing", :hook => key, :script_path => script_path)
           end
