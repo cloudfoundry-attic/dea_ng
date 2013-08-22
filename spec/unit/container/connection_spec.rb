@@ -9,7 +9,7 @@ describe Dea::Connection do
 
   let(:connection_name) { "fake_connection" }
   subject(:connection) {
-    described_class.new(connection_name, warden_socket, TEST_TEMP)
+    described_class.new(connection_name, warden_socket)
   }
 
   describe "#initialize" do
@@ -91,55 +91,10 @@ describe Dea::Connection do
 
       it "fails when request fails" do
         response = nil
-        FileUtils.should_receive(:touch)
         expect {
           response = connection.promise_call(request).resolve
         }.to raise_error(result_error)
         expect(response).to eq(nil)
-      end
-
-      context "when create file fails" do
-        before do
-          FileUtils.stub(:touch).and_raise(RuntimeError)
-        end
-
-        it "contains 'file touch: failed'" do
-          connection.logger.should_receive(:warn).with(/file touched: failed/)
-          expect {
-            connection.promise_call(request).resolve
-          }.to raise_error(result_error)
-        end
-      end
-
-      context "when create file succeeds" do
-        before { FileUtils.mkdir(File.join(TEST_TEMP, "tmp")) }
-
-        it "contains 'file touch: passed'" do
-          connection.logger.should_receive(:warn).with(/file touched: passed/)
-          expect {
-            connection.promise_call(request).resolve
-          }.to raise_error(result_error)
-        end
-      end
-
-      context "when Vmstat.snapshot fails" do
-        before { Vmstat.stub(:snapshot).and_raise(RuntimeError) }
-
-        it "contains 'file touch: failed'" do
-          connection.logger.should_receive(:warn).with(/VMstat out: Unable to get Vmstat\.snapshot/)
-          expect {
-            connection.promise_call(request).resolve
-          }.to raise_error(result_error)
-        end
-      end
-
-      context "when Vmstat.snapshot succeeds" do
-        it "contains 'file touch: passed'" do
-          connection.logger.should_receive(:warn).with(/VMstat out: #<Vmstat::Snapshot:.+memory/)
-          expect {
-            connection.promise_call(request).resolve
-          }.to raise_error(result_error)
-        end
       end
     end
   end

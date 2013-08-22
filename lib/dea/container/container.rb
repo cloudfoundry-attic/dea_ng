@@ -15,10 +15,9 @@ module Dea
     attr_reader :socket_path, :path, :host_ip
     attr_accessor :handle
 
-    def initialize(socket_path, base_dir)
+    def initialize(socket_path)
       @socket_path = socket_path
       @connections = {}
-      @base_dir = base_dir
       @path = nil
     end
 
@@ -70,7 +69,7 @@ module Dea
       if connection && connection.connected?
         return connection
       else
-        connection = Connection.new(name, socket_path, @base_dir)
+        connection = Connection.new(name, socket_path)
         connection.promise_create.resolve
         cache_connection(name, connection) if connection
         return connection

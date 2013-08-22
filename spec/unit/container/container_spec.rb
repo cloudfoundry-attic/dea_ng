@@ -5,7 +5,7 @@ describe Dea::Container do
   let(:client) { double("client") }
   let(:handle) { "fakehandle" }
   let(:socket_path) { "/tmp/warden.sock.notreally" }
-  subject(:container) { described_class.new(socket_path, TEST_TEMP) }
+  subject(:container) { described_class.new(socket_path) }
   let(:request) { double("request") }
   let(:response) { double("response") }
   let(:connection_name) { "connection_name" }
@@ -21,11 +21,6 @@ describe Dea::Container do
     container.handle = handle
   end
 
-  #describe "#handle" do
-  #  it "returns the handle of the container" do
-  #    expect(container.handle).to eq("17deadbeef")
-  #  end
-  #end
 
   describe "#get_connection" do
     context "when conneciton is cached" do
@@ -43,7 +38,7 @@ describe Dea::Container do
       context "when connection is not connected" do
         let(:connected) { false }
         it "creates new connection" do
-          Dea::Connection.should_receive(:new).with(connection_name, socket_path, TEST_TEMP).and_return(connection)
+          Dea::Connection.should_receive(:new).with(connection_name, socket_path).and_return(connection)
           container.get_connection(connection_name)
         end
       end
@@ -51,7 +46,7 @@ describe Dea::Container do
 
     context "when connection is not cached" do
       before do
-        Dea::Connection.should_receive(:new).with(connection_name, socket_path, TEST_TEMP).and_return(connection)
+        Dea::Connection.should_receive(:new).with(connection_name, socket_path).and_return(connection)
       end
 
       it "creates a new connection and caches it" do

@@ -6,13 +6,13 @@ require "dea/task"
 describe Dea::Task do
   include_context "tmpdir"
 
-  let(:config) { { "warden_socket" => warden_socket, "base_dir" => TEST_TEMP } }
+  let(:config) { { "warden_socket" => warden_socket } }
   let(:warden_socket) { "warden.socksies" }
   subject(:task) { Dea::Task.new(config) }
 
   describe "#container -" do
     it "creates a container" do
-      Dea::Container.should_receive(:new).with(warden_socket, TEST_TEMP)
+      Dea::Container.should_receive(:new).with(warden_socket)
       task.container
     end
 

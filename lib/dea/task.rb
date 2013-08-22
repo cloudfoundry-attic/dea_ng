@@ -30,7 +30,7 @@ module Dea
     end
 
     def container
-      @container ||= Dea::Container.new(config["warden_socket"], config["base_dir"])
+      @container ||= Dea::Container.new(config["warden_socket"])
     end
 
     def paths_to_bind
