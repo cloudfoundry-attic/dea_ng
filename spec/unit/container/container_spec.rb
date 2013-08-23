@@ -213,7 +213,7 @@ describe Dea::Container do
 
         response
       end
-      result = container.spawn(script, nproc_limit, file_descriptor_limit)
+      result = container.spawn(script, file_descriptor_limit, nproc_limit)
       expect(result).to eq(response)
     end
   end
