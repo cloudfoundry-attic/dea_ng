@@ -12,18 +12,7 @@ describe Dea::Responders::StagingLocator do
   let(:nats) { Dea::Nats.new(bootstrap, config) }
   let(:bootstrap) { mock(:bootstrap, :config => config) }
   let(:dea_id) { "unique-dea-id" }
-  let(:instance_registry) do
-    instance_registry = nil
-    if !EM.reactor_running?
-      em do
-        instance_registry = Dea::InstanceRegistry.new
-        done
-      end
-    else
-      instance_registry = Dea::InstanceRegistry.new
-    end
-    instance_registry
-  end
+  let(:instance_registry) { Dea::InstanceRegistry.new }
   let(:staging_task_registry) { Dea::StagingTaskRegistry.new }
   let(:resource_manager) { Dea::ResourceManager.new(instance_registry, staging_task_registry) }
   let(:config) { Dea::Config.new({}) }
@@ -41,41 +30,29 @@ describe Dea::Responders::StagingLocator do
       end
 
       it "subscribes to locate message but manually tracks the subscription" do
-        nats
-          .should_receive(:subscribe)
-          .with("staging.locate", hash_including(:do_not_track_subscription => true))
+        nats.should_receive(:subscribe).
+          with("staging.locate", hash_including(:do_not_track_subscription => true))
         subject.start
       end
     end
 
     describe "periodic 'staging.advertise'" do
-      def self.it_sends_periodic_staging_advertise(expected_interval)
-        it "starts sending 'staging.advertise' every X secs" do
-          # Wait twice as long as expected interval
-          # to be able to expect that we receive two messages
-          max_run_length = expected_interval * 2
-          messages_published = []
-
-          em(:timeout => max_run_length+0.2) do
-            EM.add_timer(max_run_length+0.1) { EM.stop }
-            nats_mock.subscribe("staging.advertise") do |msg|
-              messages_published << msg
-            end
-            subject.start
-          end
-
-          messages_published.size.should == 2
-        end
-      end
-
       context "when intervals.advertise config is set" do
         before { config["intervals"] = {"advertise" => 2} }
-        it_sends_periodic_staging_advertise(2)
+        it "starts sending 'staging.advertise' every 2 secs" do
+          EM.should_receive(:add_periodic_timer).with(2).and_yield
+          nats.should_receive(:publish).with("staging.advertise", kind_of(Hash))
+          subject.start
+        end
       end
 
       context "when intervals.advertise config is not set" do
         before { config["intervals"] = {} }
-        it_sends_periodic_staging_advertise(5)
+        it "starts sending 'staging.advertise' every 5 secs" do
+          EM.should_receive(:add_periodic_timer).with(5).and_yield
+          nats.should_receive(:publish).with("staging.advertise", kind_of(Hash))
+          subject.start
+        end
       end
     end
   end
@@ -95,20 +72,12 @@ describe Dea::Responders::StagingLocator do
       end
 
       it "stops sending 'staging.advertise' periodically" do
-        config["intervals"] = {"advertise" => 2}
-        max_run_length = 2 * 2
-        messages_published = []
-
-        em(:timeout => max_run_length+0.2) do
-          EM.add_timer(max_run_length+0.1) { EM.stop }
-          nats_mock.subscribe("staging.advertise") do |msg|
-            messages_published << msg
-            subject.stop
-          end
-          subject.start
-        end
-
-        messages_published.size.should == 1
+        a_timer = 'advertise timer'
+        EM.stub(:add_periodic_timer).and_return(a_timer)
+        subject.start
+        EM.should_receive(:cancel_timer).with(a_timer)
+        nats.should_not_receive(:publish).with('staging.advertise', anything)
+        subject.stop
       end
     end
 

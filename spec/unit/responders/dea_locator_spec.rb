@@ -12,18 +12,7 @@ describe Dea::Responders::DeaLocator do
   let(:nats) { Dea::Nats.new(bootstrap, config) }
   let(:bootstrap) { mock(:bootstrap, :config => config) }
   let(:dea_id) { "unique-dea-id" }
-  let(:instance_registry) do
-    instance_registry = nil
-    if !EM.reactor_running?
-      em do
-        instance_registry = Dea::InstanceRegistry.new
-        done
-      end
-    else
-      instance_registry = Dea::InstanceRegistry.new
-    end
-    instance_registry
-  end
+  let(:instance_registry) { instance_registry = Dea::InstanceRegistry.new }
   let(:staging_task_registry) { Dea::StagingTaskRegistry.new }
   let(:resource_manager) { Dea::ResourceManager.new(instance_registry, staging_task_registry) }
   let(:config) { Dea::Config.new({}) }
@@ -42,8 +31,8 @@ describe Dea::Responders::DeaLocator do
 
       it "subscribes to locate message but manually tracks the subscription" do
         nats
-          .should_receive(:subscribe)
-          .with("dea.locate", hash_including(:do_not_track_subscription => true))
+        .should_receive(:subscribe)
+        .with("dea.locate", hash_including(:do_not_track_subscription => true))
         subject.start
       end
     end
@@ -51,20 +40,9 @@ describe Dea::Responders::DeaLocator do
     describe "periodic 'dea.advertise'" do
       def self.it_sends_periodic_dea_advertise(expected_interval)
         it "starts sending 'dea.advertise' every X secs" do
-          # Wait twice as long as expected interval
-          # to be able to expect that we receive two messages
-          max_run_length = expected_interval * 2
-          messages_published = []
-
-          em(:timeout => max_run_length+0.2) do
-            EM.add_timer(max_run_length+0.1) { EM.stop }
-            nats_mock.subscribe("dea.advertise") do |msg|
-              messages_published << msg
-            end
-            subject.start
-          end
-
-          messages_published.size.should == 2
+          EM.should_receive(:add_periodic_timer).with(expected_interval).and_yield
+          nats.should_receive(:publish).with("dea.advertise", kind_of(Hash))
+          subject.start
         end
       end
 
@@ -95,20 +73,11 @@ describe Dea::Responders::DeaLocator do
       end
 
       it "stops sending 'dea.advertise' periodically" do
-        config["intervals"] = {"advertise" => 2}
-        max_run_length = 2 * 2
-        messages_published = []
-
-        em(:timeout => max_run_length+0.2) do
-          EM.add_timer(max_run_length+0.1) { EM.stop }
-          nats_mock.subscribe("dea.advertise") do |msg|
-            messages_published << msg
-            subject.stop
-          end
-          subject.start
-        end
-
-        messages_published.size.should == 1
+        a_timer = 'dea advertise timer'
+        EM.stub(:add_periodic_timer).and_return a_timer
+        subject.start
+        EM.should_receive(:cancel_timer).with(a_timer)
+        subject.stop
       end
     end
 
@@ -128,8 +97,8 @@ describe Dea::Responders::DeaLocator do
     let(:available_memory) { 45678 }
     before do
       resource_manager.stub(:app_id_to_count => {
-        "app_id_1" => 1,
-        "app_id_2" => 3
+          "app_id_1" => 1,
+          "app_id_2" => 3
       })
       resource_manager.stub(:remaining_memory => available_memory)
     end
@@ -139,13 +108,13 @@ describe Dea::Responders::DeaLocator do
 
       it "publishes 'dea.advertise' message with stacks" do
         nats_mock.should_receive(:publish).with("dea.advertise", JSON.dump(
-          "id" => dea_id,
-          "stacks" => ["stack-1", "stack-2"],
-          "available_memory" => available_memory,
-          "app_id_to_count" => {
-            "app_id_1" => 1,
-            "app_id_2" => 3
-          }
+            "id" => dea_id,
+            "stacks" => ["stack-1", "stack-2"],
+            "available_memory" => available_memory,
+            "app_id_to_count" => {
+                "app_id_1" => 1,
+                "app_id_2" => 3
+            }
         ))
         subject.advertise
       end
