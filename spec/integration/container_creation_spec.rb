@@ -3,7 +3,7 @@ require "spec_helper"
 require "dea/container/connection_provider"
 require "dea/container/container"
 
-describe "Creating a new container from shell command", type: :integration, require_warden: true do
+describe "Creating a new container from shell command", type: :integration, requires_warden: true do
   let(:project_dir) { File.expand_path(File.join(__FILE__, "..", "..", "..")) }
 
   it "creates a warden container" do
