@@ -91,7 +91,7 @@ module Dea
       end
     end
 
-    def spawn(script, nproc_limit, file_descriptor_limit)
+    def spawn(script, file_descriptor_limit, nproc_limit)
       request = ::Warden::Protocol::SpawnRequest.new
       request.rlimits = ::Warden::Protocol::ResourceLimits.new
       request.handle = handle
