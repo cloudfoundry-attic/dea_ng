@@ -73,20 +73,11 @@ describe Dea::Instance do
     describe "instance data from message data" do
       let(:start_message_data) do
         {
-          "droplet" => 37,
-          "tags" => {
-                "any_tag" => "any value"
-            },
+          "droplet" => 37
         }
       end
 
       its(:application_id) { should == "37" }
-
-      it "sets all tags from the message" do
-        expect(subject.tags).to eql(
-          "any_tag" => "any value"
-        )
-      end
     end
 
     describe "droplet attributes" do
