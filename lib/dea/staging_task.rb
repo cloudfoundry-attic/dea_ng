@@ -12,14 +12,6 @@ require "dea/env"
 
 module Dea
   class StagingTask < Task
-    DROPLET_FILE = "droplet.tgz"
-    STAGING_LOG = "staging_task.log"
-
-    WARDEN_UNSTAGED_DIR = "/tmp/unstaged"
-    WARDEN_STAGED_DIR = "/tmp/staged"
-    WARDEN_STAGED_DROPLET = "/tmp/#{DROPLET_FILE}"
-    WARDEN_STAGING_LOG = "#{WARDEN_STAGED_DIR}/logs/#{STAGING_LOG}"
-
     class StagingError < StandardError
       def initialize(msg)
         super("Error staging: #{msg}")
