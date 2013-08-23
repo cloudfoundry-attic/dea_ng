@@ -47,12 +47,15 @@ describe "Dea::Bootstrap#create_instance" do
         instance.state = Dea::Instance::State::CRASHED
       end
 
-      it "publishes to droplet.exited" do
+      it "publishes to droplet.exited and broker.unregister" do
         bootstrap.nats.should_receive(:publish) do |subject, data|
           expect(subject).to eq("droplet.exited")
           expect(data).to eq Dea::Protocol::V1::ExitMessage.generate(instance, Dea::Bootstrap::EXIT_REASON_CRASHED)
         end
-
+        bootstrap.nats.should_receive(:publish) do |subject, data|
+          expect(subject).to eq("broker.unregister")
+          expect(data).to eq instance.metadata
+        end
         instance.stub(:exit_status).and_return(128)
         instance.stub(:exit_description).and_return("The instance crashed!")
         instance.state = Dea::Instance::State::CRASHED
@@ -65,12 +68,16 @@ describe "Dea::Bootstrap#create_instance" do
         instance.state = Dea::Instance::State::STOPPING
       end
 
-      it "publishes to droplet.exited" do
+      it "publishes to droplet.exited and broker.unregister" do
         bootstrap.nats.should_receive(:publish) do |subject, data|
           expect(subject).to eq("droplet.exited")
           expect(data).to eq Dea::Protocol::V1::ExitMessage.generate(instance, Dea::Bootstrap::EXIT_REASON_STOPPED)
         end
 
+        bootstrap.nats.should_receive(:publish) do |subject, data|
+          expect(subject).to eq("broker.unregister")
+          expect(data).to eq instance.metadata
+        end
         instance.stub(:exit_status).and_return(0)
         instance.stub(:exit_description).and_return("The instance is stopping!")
         instance.state = Dea::Instance::State::STOPPING

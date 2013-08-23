@@ -1,5 +1,4 @@
 # coding: UTF-8
-
 require "membrane"
 require "steno"
 require "steno/core_ext"
@@ -477,13 +476,14 @@ module Dea
     end
 
     def parse_droplet_metadata()
-      info = container.info
-
-      #TODO : JUST FOR TEST
-      manifest_path = info.container_path
-      
-      #manifest = promise_read_instance_manifest(info.container_path).resolve
-      @attributes['instance_meta'] = promise_read_instance_manifest(manifest_path).resolve || {}
+      begin
+        info = container.info
+        manifest_path = info.container_path
+        @attributes['instance_meta'] = promise_read_instance_manifest(manifest_path).resolve || {}
+      rescue => e
+        log(:warn, "parse droplet metadata failed with exception #{e}")
+        @attributes['instance_meta'] = {}
+      end
     end
 
     def promise_start

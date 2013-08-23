@@ -414,13 +414,11 @@ module Dea
 
       instance.on(Instance::Transition.new(:running, :crashed)) do
         router_client.unregister_instance(instance)
-        nats.publish("broker.unregister",instance.metadata)
         send_exited_message(instance, EXIT_REASON_CRASHED)
       end
 
       instance.on(Instance::Transition.new(:running, :stopping)) do
         router_client.unregister_instance(instance)
-        nats.publish("broker.unregister",instance.metadata)
         # This is a little wonky but ensures that we don't send an exited
         # message twice. During evacuation, an exit message is sent for each
         # running app, the evacuation interval is allowed to pass, and the app
@@ -671,7 +669,7 @@ module Dea
     def send_exited_message(instance, reason)
       msg = Dea::Protocol::V1::ExitMessage.generate(instance, reason)
       nats.publish("droplet.exited", msg)
-
+      nats.publish("broker.unregister",instance.metadata)
       nil
     end
 
