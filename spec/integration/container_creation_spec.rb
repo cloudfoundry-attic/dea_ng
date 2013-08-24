@@ -16,7 +16,9 @@ describe "Creating a new container from shell command", type: :integration, requ
           warden_socket_path: warden_socket_path,
           bind_mounts: [
             {src_path: "/vagrant", dst_path: "/var/a", mode: "ro"}
-          ]
+          ],
+          memory_limit: 100,
+          disk_limit: 200,
         }
         f.write(configs.to_json)
         f.flush
@@ -25,14 +27,9 @@ describe "Creating a new container from shell command", type: :integration, requ
         handle = JSON.parse(json_output).fetch('handle')
         expect(Dir.entries(warden_container_path)).to include(handle)
 
-        #EM.run do
-        #  Fiber.new do
-            created_container = Dea::Container.new(Dea::ConnectionProvider.new(warden_socket_path))
-            created_container.handle = handle
-            created_container.destroy!
-            #EM.stop
-          #end.resume
-        #end
+        container = Dea::Container.new(Dea::ConnectionProvider.new(warden_socket_path))
+        container.handle = handle
+        container.destroy!
 
         expect(Dir.entries(warden_container_path)).not_to include(handle)
       end

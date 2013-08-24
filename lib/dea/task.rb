@@ -41,26 +41,6 @@ module Dea
       []
     end
 
-    def promise_limit_disk
-      Promise.new do |p|
-        request = ::Warden::Protocol::LimitDiskRequest.new
-        request.handle = container.handle
-        request.byte = disk_limit_in_bytes
-        container.call(:app, request)
-        p.deliver
-      end
-    end
-
-    def promise_limit_memory
-      Promise.new do |p|
-        request = ::Warden::Protocol::LimitMemoryRequest.new
-        request.handle = container.handle
-        request.limit_in_bytes = memory_limit_in_bytes
-        container.call(:app, request)
-        p.deliver
-      end
-    end
-
     def promise_stop
       Promise.new do |p|
         request = ::Warden::Protocol::StopRequest.new

@@ -62,64 +62,6 @@ describe Dea::Task do
     end
   end
 
-  describe "#promise_limit_disk -" do
-    let(:response) { "okay response" }
-    before do
-      task.stub(:disk_limit_in_bytes).and_return(1234)
-      task.container.stub(:handle).and_return("handle")
-    end
-
-    it "should make a LimitDisk request" do
-      task.container.should_receive(:call) do |connection, request|
-        expect(connection).to eq(:app)
-        expect(request).to be_kind_of(::Warden::Protocol::LimitDiskRequest)
-        expect(request.handle).to eq("handle")
-        expect(request.byte).to eq(1234)
-
-        response
-      end
-
-      task.promise_limit_disk.resolve
-    end
-
-    it "raises an error when the request fails" do
-      task.container.should_receive(:call).and_raise(RuntimeError.new("error"))
-
-      expect {
-        task.promise_limit_disk.resolve
-      }.to raise_error(RuntimeError, /error/i)
-    end
-  end
-
-  describe "#promise_limit_memory -" do
-    let(:response) { "okay response" }
-
-    before do
-      task.stub(:memory_limit_in_bytes).and_return(1234)
-      task.container.stub(:handle).and_return("handle")
-    end
-
-    it "should make a LimitMemory request on behalf of the container" do
-      task.container.should_receive(:call) do |connection, request|
-        expect(connection).to eq(:app)
-        expect(request).to be_kind_of(::Warden::Protocol::LimitMemoryRequest)
-        expect(request.handle).to eq("handle")
-        expect(request.limit_in_bytes).to eq(1234)
-        response
-      end
-
-      task.promise_limit_memory.resolve
-    end
-
-    it "raises an error when the request call fails" do
-      task.container.should_receive(:call).and_raise(RuntimeError.new("error"))
-
-      expect {
-        task.promise_limit_memory.resolve
-      }.to raise_error(RuntimeError, /error/i)
-    end
-  end
-
   describe "#consuming_memory?" do
     it "returns true" do
       expect(task.consuming_memory?).to be_true

@@ -413,13 +413,11 @@ module Dea
 
     def resolve_staging_setup
       prepare_workspace
-      container.create_container(bind_mounts)
+      container.create_container(bind_mounts, disk_limit_in_bytes, memory_limit_in_bytes)
       promises = [promise_app_download]
       promises << promise_buildpack_cache_download if attributes["buildpack_cache_download_uri"]
 
       Promise.run_in_parallel(*promises)
-      promise_limit_disk.resolve
-      promise_limit_memory.resolve
       promise_update = Promise.new do |p|
         container.update_path_and_ip
         p.deliver

@@ -21,12 +21,7 @@ module Dea
       @path = nil
     end
 
-    def info
-      request = ::Warden::Protocol::InfoRequest.new
-      request.handle = @handle
-      client.call(request)
-    end
-
+    #API: GETSTATE (returns the warden's state file)
     def update_path_and_ip
       raise ArgumentError, "container handle must not be nil" unless @handle
 
@@ -40,17 +35,15 @@ module Dea
       response
     end
 
-    def call(name, request)
-      connection = @connection_provider.get(name)
-      connection.promise_call(request).resolve
-    end
-
+    #API: within CREATE
     def get_new_warden_net_in
       request = ::Warden::Protocol::NetInRequest.new
       request.handle = handle
       call(:app, request)
     end
 
+    #API: within DESTROY
+    # what do we do with link requests
     def call_with_retry(name, request)
       count = 0
       response = nil
@@ -70,6 +63,7 @@ module Dea
       response
     end
 
+    #API: RUNSCRIPT
     def run_script(name, script, privileged=false)
       request = ::Warden::Protocol::RunRequest.new
       request.handle = handle
@@ -79,10 +73,10 @@ module Dea
       response = call(name, request)
       if response.exit_status > 0
         data = {
-          :script      => script,
-          :exit_status => response.exit_status,
-          :stdout      => response.stdout,
-          :stderr      => response.stderr,
+        :script      => script,
+        :exit_status => response.exit_status,
+        :stdout      => response.stdout,
+        :stderr      => response.stderr,
         }
         logger.warn("%s exited with status %d" % [script.inspect, response.exit_status], data)
         raise WardenError.new("Script exited with status #{response.exit_status}")
@@ -91,6 +85,7 @@ module Dea
       end
     end
 
+    #API: SPAWN
     def spawn(script, file_descriptor_limit, nproc_limit)
       request = ::Warden::Protocol::SpawnRequest.new
       request.rlimits = ::Warden::Protocol::ResourceLimits.new
@@ -102,6 +97,7 @@ module Dea
       response
     end
 
+    #API: DESTROY
     def destroy!
       Dea.with_em do
         request = ::Warden::Protocol::DestroyRequest.new
@@ -116,13 +112,20 @@ module Dea
       end
     end
 
-    def create_container(bind_mounts)
+    def create_container(bind_mounts, disk_limit_in_bytes, memory_limit_in_bytes)
+      Dea.with_em do
+        new_container_with_bind_mounts(bind_mounts)
+        limit_disk(disk_limit_in_bytes)
+        limit_memory(memory_limit_in_bytes)
+      end
+    end
+
+    def new_container_with_bind_mounts(bind_mounts)
       Dea.with_em do
         create_request = ::Warden::Protocol::CreateRequest.new
         create_request.bind_mounts = bind_mounts.map do |bm|
 
           bind_mount = ::Warden::Protocol::CreateRequest::BindMount.new
-
           bind_mount.src_path = bm["src_path"]
           bind_mount.dst_path = bm["dst_path"] || bm["src_path"]
 
@@ -136,12 +139,35 @@ module Dea
       end
     end
 
+    # HELPER for DESTROY
     def close_all_connections
       @connection_provider.close_all
     end
 
-    private
+    # HELPER
+    def info
+      request = ::Warden::Protocol::InfoRequest.new
+      request.handle = @handle
+      client.call(request)
+    end
 
+    # HELPER
+    def call(name, request)
+      connection = @connection_provider.get(name)
+      connection.promise_call(request).resolve
+    end
+
+    def limit_disk(bytes)
+      request = ::Warden::Protocol::LimitDiskRequest.new(handle: self.handle, byte: bytes)
+      call(:app, request)
+    end
+
+    def limit_memory(bytes)
+      request = ::Warden::Protocol::LimitMemoryRequest.new(handle: self.handle, limit_in_bytes: bytes)
+      call(:app, request)
+    end
+
+    private
     def client
       @client ||=
         EventMachine::Warden::FiberAwareClient.new(@connection_provider.socket_path).tap(&:connect)

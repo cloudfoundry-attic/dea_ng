@@ -560,7 +560,8 @@ describe Dea::Instance do
           {'src_path' => '/var/src/', 'dst_path' => '/var/dst'}
         ]
 
-        instance.container.should_receive(:create_container).with(expected_bind_mounts)
+        instance.container.should_receive(:create_container).
+          with(expected_bind_mounts, instance.disk_limit_in_bytes, instance.memory_limit_in_bytes)
         expect_start.to_not raise_error
         instance.exit_description.should be_empty
       end

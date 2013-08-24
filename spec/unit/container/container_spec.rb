@@ -249,20 +249,39 @@ describe Dea::Container do
 
   describe "#create_container" do
     let(:bind_mounts) do
+      "bind_mounts"
+    end
+
+    it "creates a new container with disk and memory limit" do
+      container.should_receive(:new_container_with_bind_mounts).with(bind_mounts)
+      container.should_receive(:limit_disk).with(100)
+      container.should_receive(:limit_memory).with(200)
+      container.create_container(bind_mounts, 100, 200)
+    end
+  end
+
+  describe "#new_container_with_bind_mounts" do
+    let(:bind_mounts) do
       [
         { "src_path" => "/path/src", "dst_path" => "/path/dst" },
         { "src_path" => "/path/a", "dst_path" => "/path/b" }
       ]
     end
 
-    let(:response) { double("response", :handle => handle) }
+    let(:response) { double("response").as_null_object }
+
+    before do
+      connection.stub(:promise_call).and_return(response)
+    end
+
     before do
       container.handle = nil
     end
 
-    it "makes a CreateRequest with the provide paths_to_bind, and returns the response" do
-      container.should_receive(:call) do |name, request|
-        expect(name).to eq(:app)
+    it "makes a CreateRequest with the provide paths_to_bind" do
+      create_response = double("create response", resolve: double("promise", handle: handle))
+      connection.should_receive(:promise_call) do |request|
+        #expect(request.name).to eq(:app)
         expect(request).to be_an_instance_of(::Warden::Protocol::CreateRequest)
 
         expect(request.bind_mounts.count).to eq(bind_mounts.size)
@@ -275,12 +294,38 @@ describe Dea::Container do
         expect(request.bind_mounts[0].dst_path).to eq("/path/dst")
         expect(request.bind_mounts[1].src_path).to eq("/path/a")
         expect(request.bind_mounts[1].dst_path).to eq("/path/b")
-        response
+        create_response
       end
 
       expect(container.handle).to_not eq(handle)
-      container.create_container(bind_mounts)
-      expect(container.handle).to eq(handle)
+      container.new_container_with_bind_mounts(bind_mounts)
+    end
+  end
+
+  describe "memory limiting" do
+    it "sets the memory limit" do
+      limit_in_bytes = 100
+      response = double("response", resolve: nil)
+      connection.should_receive(:promise_call) do |request|
+        expect(request).to be_an_instance_of(::Warden::Protocol::LimitMemoryRequest)
+        expect(request.limit_in_bytes).to eql(limit_in_bytes)
+        response
+      end
+      container.limit_memory(limit_in_bytes)
+    end
+  end
+
+  describe "disk limiting" do
+    it "sets the disk limit" do
+      disk_limit_in_bytes = 100
+      disk_limit_response = double("disk response", resolve: nil)
+      connection.should_receive(:promise_call) do |request|
+        expect(request).to be_an_instance_of(::Warden::Protocol::LimitDiskRequest)
+        expect(request.byte).to eql(disk_limit_in_bytes)
+
+        disk_limit_response
+      end
+      container.limit_disk(disk_limit_in_bytes)
     end
   end
 end

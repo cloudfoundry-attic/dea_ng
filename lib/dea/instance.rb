@@ -522,12 +522,9 @@ module Dea
     def promise_container
       Promise.new do |p|
         bind_mounts = [{'src_path' => droplet.droplet_dirname, 'dst_path' => droplet.droplet_dirname}]
-        container.create_container( bind_mounts + config["bind_mounts"] )
+        container.create_container( bind_mounts + config["bind_mounts"], disk_limit_in_bytes, memory_limit_in_bytes)
         promise_setup_network.resolve
-        promise_limit_disk.resolve
-        promise_limit_memory.resolve
         promise_setup_environment.resolve
-
         p.deliver
       end
     end

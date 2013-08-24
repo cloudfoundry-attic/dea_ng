@@ -483,11 +483,10 @@ YAML
     it "performs staging setup operations in correct order" do
       staging.should_receive(:prepare_workspace).ordered.and_return(successful_promise)
       staging.workspace.workspace_dir
-      staging.container.should_receive(:create_container).with(staging.bind_mounts).ordered
+      staging.container.should_receive(:create_container).
+        with(staging.bind_mounts, staging.disk_limit_in_bytes, staging.memory_limit_in_bytes).ordered
       %w(
         promise_app_download
-         promise_limit_disk
-         promise_limit_memory
          promise_prepare_staging_log
          promise_app_dir
       ).each do |step|
