@@ -481,10 +481,11 @@ YAML
     end
 
     it "performs staging setup operations in correct order" do
+      with_network = false
       staging.should_receive(:prepare_workspace).ordered.and_return(successful_promise)
       staging.workspace.workspace_dir
       staging.container.should_receive(:create_container).
-        with(staging.bind_mounts, staging.disk_limit_in_bytes, staging.memory_limit_in_bytes).ordered
+        with(staging.bind_mounts, staging.disk_limit_in_bytes, staging.memory_limit_in_bytes, with_network).ordered
       %w(
         promise_app_download
          promise_prepare_staging_log

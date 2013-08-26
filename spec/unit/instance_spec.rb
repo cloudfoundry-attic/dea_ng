@@ -559,9 +559,9 @@ describe Dea::Instance do
           {'src_path' => droplet.droplet_dirname, 'dst_path' => droplet.droplet_dirname },
           {'src_path' => '/var/src/', 'dst_path' => '/var/dst'}
         ]
-
+        with_network = true
         instance.container.should_receive(:create_container).
-          with(expected_bind_mounts, instance.disk_limit_in_bytes, instance.memory_limit_in_bytes)
+          with(expected_bind_mounts, instance.disk_limit_in_bytes, instance.memory_limit_in_bytes, with_network)
         expect_start.to_not raise_error
         instance.exit_description.should be_empty
       end
@@ -575,79 +575,6 @@ describe Dea::Instance do
 
         # Instance exit description should be set to the failure message
         instance.exit_description.should eql(msg)
-      end
-    end
-
-    describe "#promise_setup_network -" do
-      before do
-        instance.unstub(:promise_setup_network)
-        instance.container.handle = "handle"
-      end
-
-      let(:response) do
-        response = mock("net_in_response")
-        response.stub(:host_port => 1234)
-        response.stub(:container_port => 1235)
-        response
-      end
-
-      it "should make a net_in request on behalf of the container" do
-        instance.container.should_receive(:call) do |connection, request|
-          expect(connection).to eq(:app)
-          expect(request).to be_kind_of(::Warden::Protocol::NetInRequest)
-          expect(request.handle).to eq("handle")
-
-          response
-        end.twice
-
-        expect {
-          instance.promise_setup_network.resolve
-        }.to_not raise_error
-      end
-
-      it "should map the console and instance ports" do
-        instance.container.should_receive(:call).twice.and_return(response)
-        instance.promise_setup_network.resolve
-
-        expect(instance.attributes["instance_host_port"]).to eq(1234)
-        expect(instance.attributes["instance_container_port"]).to eq(1235)
-
-        expect(instance.instance_console_host_port).to eq(1234)
-        expect(instance.instance_console_container_port).to eq(1235)
-      end
-
-      describe "when debug is set" do
-        before do
-          instance.attributes["debug"] = "debug"
-        end
-
-        it "should map a debug port" do
-          instance.container.should_receive(:call) do |connection, request|
-            expect(connection).to eq(:app)
-            expect(request).to be_kind_of(::Warden::Protocol::NetInRequest)
-            expect(request.handle).to eq("handle")
-
-            response
-          end.exactly(3).times
-
-          instance.promise_setup_network.resolve
-
-          expect(instance.instance_debug_host_port).to eq(1234)
-          expect(instance.instance_debug_container_port).to eq(1235)
-        end
-      end
-
-      it "raises when the network setup request fails" do
-        msg = "promise warden call error for container network setup"
-
-        instance.container.should_receive(:call).and_raise(RuntimeError.new(msg))
-
-        expect {
-          instance.promise_setup_network.resolve
-        }.to raise_error(RuntimeError, msg)
-
-        expect(instance.instance_host_port).to be_nil
-        expect(instance.instance_container_port).to be_nil
       end
     end
 

@@ -5,7 +5,7 @@ describe Dea::Container do
   let(:handle) { "fakehandle" }
   let(:socket_path) { "/tmp/warden.sock.notreally" }
 
-  let(:connection_provider) { double('connection provider', get: connection)}
+  let(:connection_provider) { double('connection provider', get: connection) }
   subject(:container) { described_class.new(connection_provider) }
 
   let(:request) { double("request") }
@@ -14,9 +14,9 @@ describe Dea::Container do
   let(:connected) { true }
   let(:connection) do
     double("fake connection",
-           :name => connection_name,
-           :promise_create => delivering_promise,
-           :connected? => connected)
+      :name => connection_name,
+      :promise_create => delivering_promise,
+      :connected? => connected)
   end
 
   before do
@@ -153,7 +153,7 @@ describe Dea::Container do
 
   describe "#run_script" do
     let(:script) { double("./citizien_kane") }
-    let(:response) { double("response", :exit_status => 0)}
+    let(:response) { double("response", :exit_status => 0) }
 
     it "calls call with the connection name and request" do
       container.should_receive(:call) do |name, request|
@@ -183,8 +183,8 @@ describe Dea::Container do
       let(:exit_status) { 1 }
       let(:stdout) { "HI" }
       let(:stderr) { "its broken" }
-      let(:data) { {:script => script, :exit_status => exit_status, :stdout => stdout, :stderr => stderr }}
-      let(:response) { double("response", :exit_status => exit_status, :stdout => stdout, :stderr => stderr)}
+      let(:data) { {:script => script, :exit_status => exit_status, :stdout => stdout, :stderr => stderr} }
+      let(:response) { double("response", :exit_status => exit_status, :stdout => stdout, :stderr => stderr) }
       it "fails the promise" do #check that it's a warden error with the exit status
         container.should_receive(:call).and_return(response)
         container.logger.should_receive(:warn).with(/exited with status/i, data)
@@ -219,7 +219,7 @@ describe Dea::Container do
   end
 
   describe "#destroy!" do
-    let(:promise) { double("promise", resolve: nil)}
+    let(:promise) { double("promise", resolve: nil) }
 
     it "sends a destroy request to warden server" do
       connection.should_receive(:promise_call) do |request|
@@ -247,24 +247,58 @@ describe Dea::Container do
     end
   end
 
-  describe "#create_container" do
-    let(:bind_mounts) do
-      "bind_mounts"
+  describe "#setup_network" do
+    let(:response_a) { double("network_response", host_port: 8765, container_port: 000)}
+    let(:response_b) { double("network_response", host_port: 1111, container_port: 2222)}
+    it "makes a create network request and returns the ports" do
+      connection_provider.should_receive(:get).with(:app).twice.and_return(connection)
+      connection.should_receive(:promise_call) do |request|
+        expect(request).to be_an_instance_of(::Warden::Protocol::NetInRequest)
+        expect(request.handle).to eq(container.handle)
+
+        delivering_promise(response_a)
+      end.ordered
+      connection.should_receive(:promise_call) do |request|
+        expect(request).to be_an_instance_of(::Warden::Protocol::NetInRequest)
+        delivering_promise(response_b)
+      end.ordered
+
+      container.setup_network
+
+      expect(container.network_ports["host_port"]).to eql(8765)
+      expect(container.network_ports["container_port"]).to eql(000)
+
+      expect(container.network_ports["console_host_port"]).to eql(1111)
+      expect(container.network_ports["console_container_port"]).to eql(2222)
     end
+  end
+
+  describe "#create_container" do
+    let(:bind_mounts) { double("mounts") }
 
     it "creates a new container with disk and memory limit" do
       container.should_receive(:new_container_with_bind_mounts).with(bind_mounts)
       container.should_receive(:limit_disk).with(100)
       container.should_receive(:limit_memory).with(200)
-      container.create_container(bind_mounts, 100, 200)
+      container.should_receive(:setup_network)
+      container.create_container(bind_mounts, 100, 200, true)
+    end
+
+    it "does not create the network if not required" do
+      container.stub(:new_container_with_bind_mounts)
+      container.stub(:limit_disk)
+      container.stub(:limit_memory)
+
+      container.should_not_receive(:setup_network)
+      container.create_container(bind_mounts, 100, 200, false)
     end
   end
 
   describe "#new_container_with_bind_mounts" do
     let(:bind_mounts) do
       [
-        { "src_path" => "/path/src", "dst_path" => "/path/dst" },
-        { "src_path" => "/path/a", "dst_path" => "/path/b" }
+        {"src_path" => "/path/src", "dst_path" => "/path/dst"},
+        {"src_path" => "/path/a", "dst_path" => "/path/b"}
       ]
     end
 

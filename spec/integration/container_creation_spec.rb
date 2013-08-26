@@ -19,14 +19,18 @@ describe "Creating a new container from shell command", type: :integration, requ
           ],
           memory_limit: 100,
           disk_limit: 200,
+          network: true,
         }
         f.write(configs.to_json)
         f.flush
-        json_output = `bundle exec ./bin/create_warden_container.rb < #{f.path}`
+        json_output = JSON.parse(`bundle exec ./bin/create_warden_container.rb < #{f.path}`)
         expect($?).to be_success
-        handle = JSON.parse(json_output).fetch('handle')
+        handle = json_output.fetch('handle')
         expect(Dir.entries(warden_container_path)).to include(handle)
-
+        expect(json_output.fetch("network").fetch("host_port")).to be_an_instance_of(Fixnum)
+        expect(json_output.fetch("network").fetch("container_port")).to be_an_instance_of(Fixnum)
+        expect(json_output.fetch("network").fetch("console_container_port")).to be_an_instance_of(Fixnum)
+        expect(json_output.fetch("network").fetch("console_host_port")).to be_an_instance_of(Fixnum)
         container = Dea::Container.new(Dea::ConnectionProvider.new(warden_socket_path))
         container.handle = handle
         container.destroy!

@@ -23,5 +23,15 @@ require "dea/container/connection_provider"
 config = JSON.parse(STDIN.read)
 warden_socket_path = config.fetch("warden_socket_path")
 container = Dea::Container.new(Dea::ConnectionProvider.new(warden_socket_path))
-container.create_container(config.fetch("bind_mounts"), config.fetch("disk_limit"), config.fetch("memory_limit"))
-puts({handle: container.handle}.to_json)
+create_network = config.fetch('network')
+
+container.create_container(
+  config.fetch("bind_mounts"),
+  config.fetch("disk_limit"),
+  config.fetch("memory_limit"),
+  create_network)
+
+puts({
+  handle: container.handle,
+  network: container.network_ports
+}.to_json)

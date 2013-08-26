@@ -13,12 +13,13 @@ module Dea
       "rw" => ::Warden::Protocol::CreateRequest::BindMount::Mode::RW,
     }
 
-    attr_reader :socket_path, :path, :host_ip
+    attr_reader :socket_path, :path, :host_ip, :network_ports
     attr_accessor :handle
 
     def initialize(connection_provider)
       @connection_provider = connection_provider
       @path = nil
+      @network_ports = {}
     end
 
     #API: GETSTATE (returns the warden's state file)
@@ -112,11 +113,12 @@ module Dea
       end
     end
 
-    def create_container(bind_mounts, disk_limit_in_bytes, memory_limit_in_bytes)
+    def create_container(bind_mounts, disk_limit_in_bytes, memory_limit_in_bytes, network)
       Dea.with_em do
         new_container_with_bind_mounts(bind_mounts)
         limit_disk(disk_limit_in_bytes)
         limit_memory(memory_limit_in_bytes)
+        setup_network if network
       end
     end
 
@@ -142,6 +144,18 @@ module Dea
     # HELPER for DESTROY
     def close_all_connections
       @connection_provider.close_all
+    end
+
+    def setup_network
+      request = ::Warden::Protocol::NetInRequest.new(handle: handle)
+      response = call(:app, request)
+      network_ports["host_port"] = response.host_port
+      network_ports["container_port"] = response.container_port
+
+      request = ::Warden::Protocol::NetInRequest.new(handle: handle)
+      response = call(:app, request)
+      network_ports["console_host_port"]      = response.host_port
+      network_ports["console_container_port"] = response.container_port
     end
 
     # HELPER

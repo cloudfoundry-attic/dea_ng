@@ -386,26 +386,6 @@ module Dea
       end
     end
 
-    def promise_setup_network
-      Promise.new do |p|
-        response = container.get_new_warden_net_in
-        attributes["instance_host_port"]      = response.host_port
-        attributes["instance_container_port"] = response.container_port
-
-        response = container.get_new_warden_net_in
-        attributes["instance_console_host_port"]      = response.host_port
-        attributes["instance_console_container_port"] = response.container_port
-
-        if attributes["debug"]
-          response = container.get_new_warden_net_in
-          attributes["instance_debug_host_port"]      = response.host_port
-          attributes["instance_debug_container_port"] = response.container_port
-        end
-
-        p.deliver
-      end
-    end
-
     def promise_setup_environment
       Promise.new do |p|
         script = "cd / && mkdir -p home/vcap/app && chown vcap:vcap home/vcap/app && ln -s home/vcap/app /app"
@@ -522,11 +502,20 @@ module Dea
     def promise_container
       Promise.new do |p|
         bind_mounts = [{'src_path' => droplet.droplet_dirname, 'dst_path' => droplet.droplet_dirname}]
-        container.create_container( bind_mounts + config["bind_mounts"], disk_limit_in_bytes, memory_limit_in_bytes)
-        promise_setup_network.resolve
+        with_network = true
+        container.create_container(
+          bind_mounts + config["bind_mounts"],
+          disk_limit_in_bytes,
+          memory_limit_in_bytes,
+          with_network)
+
         promise_setup_environment.resolve
         p.deliver
       end
+    end
+
+    def instance_container_port
+      container.network_ports["container_port"]
     end
 
     def promise_droplet
@@ -760,7 +749,7 @@ module Dea
             manifest_path = container_relative_path(container.path, manifest["state_file"])
             p.deliver(promise_state_file_ready(manifest_path).resolve)
           elsif !application_uris.empty?
-            p.deliver(promise_port_open(instance_host_port).resolve)
+            p.deliver(promise_port_open(instance_container_port).resolve)
           else
             p.deliver(true)
           end
@@ -804,7 +793,8 @@ module Dea
         'instance_index'        => attributes['instance_index'],
         'warden_container_path' => container.path,
         'warden_host_ip'        => container.host_ip,
-        'instance_host_port'    => attributes['instance_host_port'],
+        'instance_host_port'    => container.network_ports["host_port"],
+        'instance_container_port'    => instance_container_port,
         'instance_id'           => attributes['instance_id'],
       }
     end

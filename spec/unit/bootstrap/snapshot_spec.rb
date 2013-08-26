@@ -53,7 +53,7 @@ describe "snapshot" do
         bootstrap.save_snapshot
         snapshot = ::Yajl::Parser.parse(File.read(bootstrap.snapshot_path))
         snapshot["time"].should be_within(1.0).of(Time.now.to_f)
-        @instance_keys =  snapshot["instances"].first.keys
+        @instance = snapshot["instances"].first
       end
 
       it "has a snapshot with expected attributes so loggregator can process the json correctly" do
@@ -65,7 +65,7 @@ describe "snapshot" do
         state
         )
 
-        @instance_keys.should include *expected_keys
+        @instance.keys.should include *expected_keys
       end
 
       it 'has extra keys for debugging purpose' do
@@ -74,7 +74,8 @@ describe "snapshot" do
           instance_host_port
           instance_id
         )
-        @instance_keys.should include *expected_keys
+
+        @instance.keys.should include *expected_keys
       end
     end
   end
