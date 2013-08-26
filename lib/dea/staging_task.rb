@@ -340,7 +340,7 @@ module Dea
 
     def promise_save_buildpack_cache
       Promise.new do |p|
-        resolve(promise_pack_buildpack_cache, "pack buildpack cache") do |error, result|
+        resolve_and_log(promise_pack_buildpack_cache, "pack buildpack cache") do |error, result|
           unless error
             promise_copy_out_buildpack_cache.resolve
             promise_buildpack_cache_upload.resolve

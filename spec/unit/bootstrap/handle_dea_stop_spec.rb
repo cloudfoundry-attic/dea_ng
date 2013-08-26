@@ -19,11 +19,7 @@ describe "Dea::Bootstrap#handle_dea_stop" do
     end
   end
 
-  let(:instance_mock) do
-    instance = bootstrap.create_instance(valid_instance_attributes)
-    instance.state = Dea::Instance::State::RUNNING
-    instance
-  end
+  let(:instance_mock) { bootstrap.create_instance(valid_instance_attributes) }
 
   let(:resource_manager) do
     manager = double(:resource_manager)
@@ -44,7 +40,6 @@ describe "Dea::Bootstrap#handle_dea_stop" do
     bootstrap.stub(:resource_manager).and_return(resource_manager)
     bootstrap.stub(:instances_filtered_by_message).and_yield(instance_mock)
 
-    instance_mock.stub(:running?).and_return(true)
     instance_mock.stub(:promise_stop).and_return(delivering_promise)
     instance_mock.stub(:destroy)
   end
@@ -59,42 +54,62 @@ describe "Dea::Bootstrap#handle_dea_stop" do
     end
 
     it "skips instances that are not running" do
-      instance_mock.stub(:running?).and_return(false)
+      instance_mock.state = Dea::Instance::State::STOPPED
       instance_mock.should_not_receive(:stop)
 
       publish
     end
 
-    it "stops instances that are running" do
-      instance_mock.stub(:running?).and_return(true)
-      instance_mock.should_receive(:stop)
+    def self.it_stops_the_instance
+      it "stops the instance" do
+        instance_mock.should_receive(:stop)
 
-      publish
-    end
-  end
-
-  it "unregisters with the router" do
-    sent_router_unregister = false
-    nats_mock.subscribe("router.unregister") do
-      sent_router_unregister = true
-      EM.stop
+        publish
+      end
     end
 
-    publish
+    def self.it_sends_exited_notification
+      it "sends exited notification" do
+        sent_exited_notification = false
+        nats_mock.subscribe("droplet.exited") do
+          sent_exited_notification = true
+          EM.stop
+        end
 
-    sent_router_unregister.should be_true
-  end
+        publish
 
-  it "send exited notifications" do
-    sent_exited_notification = false
-    nats_mock.subscribe("droplet.exited") do
-      sent_exited_notification = true
-      EM.stop
+        sent_exited_notification.should be_true
+      end
     end
 
-    publish
+    def self.it_unregisters_with_the_router
+      it "unregisters with the router" do
+        sent_router_unregister = false
+        nats_mock.subscribe("router.unregister") do
+          sent_router_unregister = true
+          EM.stop
+        end
 
-    sent_exited_notification.should be_true
+        publish
+
+        sent_router_unregister.should be_true
+      end
+    end
+
+    context "when the app is starting" do
+      before { instance_mock.state = Dea::Instance::State::STARTING }
+
+      it_stops_the_instance
+      it_sends_exited_notification
+    end
+
+    context "when the app is running" do
+      before { instance_mock.state = Dea::Instance::State::RUNNING }
+
+      it_stops_the_instance
+      it_sends_exited_notification
+      it_unregisters_with_the_router
+    end
   end
 
   describe "when stop completes" do

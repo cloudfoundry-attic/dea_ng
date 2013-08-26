@@ -416,23 +416,11 @@ module Dea
 
       instance.on(Instance::Transition.new(:running, :stopping)) do
         router_client.unregister_instance(instance)
+        send_instance_stop_message(instance)
+      end
 
-        # This is a little wonky but ensures that we don't send an exited
-        # message twice. During evacuation, an exit message is sent for each
-        # running app, the evacuation interval is allowed to pass, and the app
-        # is finally stopped.  This allows the app to be started on another DEA
-        # and begin serving traffic before we stop it here.
-        if !evacuating?
-          reason = nil
-
-          if shutting_down?
-            reason = EXIT_REASON_SHUTDOWN
-          else
-            reason = EXIT_REASON_STOPPED
-          end
-
-          send_exited_message(instance, reason)
-        end
+      instance.on(Instance::Transition.new(:starting, :stopping)) do
+        send_instance_stop_message(instance)
       end
 
       instance.on(Instance::Transition.new(:starting, :running)) do
@@ -506,7 +494,7 @@ module Dea
 
     def handle_dea_stop(message)
       instances_filtered_by_message(message) do |instance|
-        next if !instance.running?
+        next unless instance.running? || instance.starting?
 
         instance.stop do |error|
           logger.warn("Failed stopping #{instance}: #{error}") if error
@@ -646,6 +634,20 @@ module Dea
       nats.publish("dea.shutdown", msg)
 
       nil
+    end
+
+    def send_instance_stop_message(instance)
+      # This is a little wonky but ensures that we don't send an exited
+      # message twice. During evacuation, an exit message is sent for each
+      # running app, the evacuation interval is allowed to pass, and the app
+      # is finally stopped.  This allows the app to be started on another DEA
+      # and begin serving traffic before we stop it here.
+      return if evacuating?
+
+      send_exited_message(
+        instance,
+        shutting_down? ? EXIT_REASON_SHUTDOWN : EXIT_REASON_STOPPED
+      )
     end
 
     def send_exited_message(instance, reason)

@@ -68,7 +68,7 @@ module DeaHelpers
   end
 
   def dea_stop
-    graceful_kill(dea_pid)
+    graceful_kill(dea_pid) if dea_pid
   end
 
   def sha1_url(url)

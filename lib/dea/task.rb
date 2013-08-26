@@ -96,35 +96,23 @@ module Dea
         promise.deliver
       end
 
-      resolve(promise, "destroy instance") do |error, _|
+      resolve_and_log(promise, "destroy instance") do |error, _|
         callback.call(error) unless callback.nil?
       end
     end
 
-    # Resolve a promise making sure that only one runs at a time.
-    def resolve(p, name)
-      if @busy
-        logger.warn("Ignored: #{name}")
-        return
-      else
-        @busy = true
+    def resolve_and_log(p, name)
+      Promise.resolve(p) do |error, result|
+        took = "took %.3f" % p.elapsed_time
 
-        Promise.resolve(p) do |error, result|
-          begin
-            took = "took %.3f" % p.elapsed_time
-
-            if error
-              logger.warn("Failed: #{name} (#{took})")
-              logger.log_exception(error)
-            else
-              logger.info("Delivered: #{name} (#{took})")
-            end
-
-            yield(error, result)
-          ensure
-            @busy = false
-          end
+        if error
+          logger.warn("Failed: #{name} (#{took})")
+          logger.log_exception(error)
+        else
+          logger.info("Delivered: #{name} (#{took})")
         end
+
+        yield(error, result)
       end
     end
 

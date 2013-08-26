@@ -508,7 +508,7 @@ module Dea
         p.deliver
       end
 
-      resolve(p, "start instance") do |error, _|
+      resolve_and_log(p, "start instance") do |error, _|
         if error
           # An error occured while starting, mark as crashed
           self.exit_description = error.message
@@ -553,7 +553,7 @@ module Dea
 
         promise_exec_hook_script('before_stop').resolve
 
-        promise_state(State::RUNNING, State::STOPPING).resolve
+        promise_state([State::RUNNING, State::STARTING], State::STOPPING).resolve
 
         promise_exec_hook_script('after_stop').resolve
 
@@ -564,7 +564,7 @@ module Dea
         p.deliver
       end
 
-      resolve(p, "stop instance") do |error, _|
+      resolve_and_log(p, "stop instance") do |error, _|
         callback.call(error) unless callback.nil?
       end
     end
