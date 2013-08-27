@@ -113,9 +113,9 @@ fi
       end
     end
 
-    it "tee's stderr and stdout to logfiles and their normal pipes" do
+    it "put stderr and stdout to logfiles " do
       stage :environment => staging_env do |staged_dir|
-        start_script_body(staged_dir).should include(" > >(tee $DROPLET_BASE_DIR/logs/stdout.log) 2> >(tee $DROPLET_BASE_DIR/logs/stderr.log >&2) &")
+        start_script_body(staged_dir).should include("> $DROPLET_BASE_DIR/logs/stdout.log 2> $DROPLET_BASE_DIR/logs/stderr.log &")
       end
     end
   end

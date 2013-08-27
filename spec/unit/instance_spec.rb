@@ -1308,7 +1308,7 @@ describe Dea::Instance do
       end
 
       it "should resolve #promise_copy_out" do
-        instance.should_receive(:promise_copy_out).and_return(delivering_promise)
+        instance.should_not_receive(:promise_copy_out).and_return(delivering_promise)
         expect_crash_handler.to_not raise_error
       end
 
