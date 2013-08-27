@@ -216,3 +216,4 @@ DEPENDENCIES
   warden-client!
   warden-protocol!
   yajl-ruby
+  nokogiri (>= 1.4.4)
