@@ -79,6 +79,7 @@ GEM
       yajl-ruby (~> 1.1)
     ci_reporter (1.7.0)
       builder (>= 2.1.2)
+    coco (0.7.1)
     cookiejar (0.3.0)
     daemons (1.1.9)
     descendants_tracker (0.0.1)
@@ -135,7 +136,6 @@ GEM
     net-ssh-multi (1.1)
       net-ssh (>= 2.1.4)
       net-ssh-gateway (>= 0.99.0)
-    nokogiri (1.5.6)
     ohai (6.16.0)
       ipaddress
       mixlib-cli
@@ -193,6 +193,7 @@ PLATFORMS
 
 DEPENDENCIES
   ci_reporter
+  coco
   em-http-request
   em-warden-client!
   eventmachine
@@ -200,7 +201,6 @@ DEPENDENCIES
   grape!
   librarian
   nats
-  nokogiri (>= 1.4.4)
   patron
   rack
   rack-test
