@@ -337,23 +337,7 @@ describe Dea::Instance do
     end
 
     shared_examples "sets timeout" do
-      it "does not set timeout if debug mode is suspend" do
-        instance.attributes["debug"] = "suspend"
-        deferrable.should_not_receive(:timeout)
-        execute_health_check do
-          deferrable.succeed
-        end
-      end
-
-      it "sets timeout if debug mode is not set" do
-        deferrable.should_receive(:timeout)
-        execute_health_check do
-          deferrable.succeed
-        end
-      end
-
-      it "sets timeout if debug mode set to run" do
-        instance.attributes["debug"] = "run"
+      it "sets timeout" do
         deferrable.should_receive(:timeout)
         execute_health_check do
           deferrable.succeed
@@ -367,7 +351,12 @@ describe Dea::Instance do
         Dea::HealthCheck::StateFileReady.stub(:new).and_yield(deferrable)
       end
 
-      it_behaves_like "sets timeout"
+      it "sets a timeout of 5 minutes" do
+        deferrable.should_receive(:timeout).with(60 * 5)
+        execute_health_check do
+          deferrable.succeed
+        end
+      end
 
       it "can succeed" do
         result = execute_health_check do
@@ -392,7 +381,12 @@ describe Dea::Instance do
         Dea::HealthCheck::PortOpen.stub(:new).and_yield(deferrable)
       end
 
-      it_behaves_like "sets timeout"
+      it "sets a timeout of 60 seconds" do
+        deferrable.should_receive(:timeout).with(60)
+        execute_health_check do
+          deferrable.succeed
+        end
+      end
 
       it "succeeds when the port is open" do
         result = execute_health_check do

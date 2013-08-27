@@ -701,9 +701,7 @@ module Dea
 
           hc.errback  { p.deliver(false) }
 
-          if attributes["debug"] != "suspend"
-            hc.timeout(60)
-          end
+          hc.timeout(60)
         end
       end
     end
@@ -717,9 +715,7 @@ module Dea
 
           hc.errback { p.deliver(false) }
 
-          if attributes["debug"] != "suspend"
-            hc.timeout(60 * 5)
-          end
+          hc.timeout(60 * 5)
         end
       end
     end
