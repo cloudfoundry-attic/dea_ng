@@ -8,7 +8,6 @@ Bundler.require
 require 'tempfile'
 require 'timecop'
 require 'timeout'
-require 'coco'
 
 require_relative '../buildpacks/lib/buildpack'
 
