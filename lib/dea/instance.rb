@@ -676,8 +676,7 @@ module Dea
     def promise_crash_handler
       Promise.new do |p|
         if attributes["warden_handle"]
-          # tmp solution to avoid instance not destroy.
-          # promise_copy_out.resolve
+          promise_copy_out.resolve
           promise_destroy.resolve
 
           close_warden_connections
