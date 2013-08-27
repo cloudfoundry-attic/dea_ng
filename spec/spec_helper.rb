@@ -8,6 +8,8 @@ Bundler.require
 require 'tempfile'
 require 'timecop'
 require 'timeout'
+require 'coco'
+
 require_relative '../buildpacks/lib/buildpack'
 
 Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].map { |f| require f }
