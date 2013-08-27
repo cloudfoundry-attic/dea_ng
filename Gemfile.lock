@@ -135,7 +135,6 @@ GEM
     net-ssh-multi (1.1)
       net-ssh (>= 2.1.4)
       net-ssh-gateway (>= 0.99.0)
-    nokogiri (1.5.6)
     ohai (6.16.0)
       ipaddress
       mixlib-cli
@@ -200,7 +199,6 @@ DEPENDENCIES
   grape!
   librarian
   nats
-  nokogiri (>= 1.4.4)
   patron
   rack
   rack-test
@@ -218,4 +216,3 @@ DEPENDENCIES
   warden-client!
   warden-protocol!
   yajl-ruby
-  coco

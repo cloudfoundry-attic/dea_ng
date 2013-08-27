@@ -313,9 +313,7 @@ module Dea
       request.owner = Process.uid.to_s
 
       begin
-        # TODO: need fix
-        logger.info("Here should copy from  #{request.handle}:#{source_path} to #{destination_path} but may case hangup")
-        # promise_warden_call_with_retry(:app, request).resolve
+        promise_warden_call_with_retry(:app, request).resolve
       rescue ::EM::Warden::Client::Error => error
         logger.warn("Error copying files out of container: #{error.message}")
       end

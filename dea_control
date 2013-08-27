@@ -1,0 +1,26 @@
+#!/bin/bash
+
+function start()
+{
+  cd /home/work/dea_ng/bin 
+  nohup ruby dea ../config/dea.yml &
+}
+
+function stop()
+{
+  ps -ef | grep 'ruby de[a]' | awk '{print $2}' | xargs kill
+}
+
+function restart()
+{
+  stop
+  while ps -ef | grep 'ruby de[a]' ;do sleep 1;done
+  start
+}
+
+case ${1:-"other"} in
+  start) start ;;
+  stop) stop ;;
+  restart) restart ;;
+  *) echo "Usage: $0 start|stop|restart" ;;
+esac
