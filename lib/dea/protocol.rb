@@ -48,13 +48,6 @@ module Dea::Protocol::V1
         response["file_uri_v2"] = bootstrap.directory_server_v2.instance_file_url_for(instance.instance_id, request["path"])
       end
 
-      if instance.debug
-        response.update({
-          "debug_ip"   => bootstrap.local_ip,
-          "debug_port" => instance.instance_debug_host_port,
-        })
-      end
-
       if request["include_stats"] && instance.running?
         response["stats"] = {
           "name"       => instance.application_name,

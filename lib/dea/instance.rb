@@ -192,7 +192,6 @@ module Dea
           "services"            => [service_schema],
           optional("flapping")  => bool,
 
-          optional("debug")     => enum(nil, String),
           optional("console")   => enum(nil, bool),
 
           # private_instance_id is internal id that represents the instance,
@@ -211,7 +210,7 @@ module Dea
     end
 
     # Accessors for different types of host/container ports
-    [nil, "debug", "console"].each do |type|
+    [nil, "console"].each do |type|
       ["host", "container"].each do |side|
         key = ["instance", type, side, "port"].compact.join("_")
         define_method(key) do

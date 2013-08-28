@@ -245,20 +245,6 @@ describe Dea::Env do
 
         it_exports "DATABASE_URL", ""
       end
-
-      context "when debug is set" do
-        let(:debug) { 'mode' }
-
-        it_exports "VCAP_DEBUG_MODE", "mode"
-        it_exports "VCAP_DEBUG_IP", "0.0.0.0"
-        it_exports "VCAP_DEBUG_PORT", "2345"
-      end
-
-      context "when debug mode is NOT set" do
-        before { instance.stub(:debug).and_return(nil) }
-
-        it_exports "VCAP_DEBUG_MODE", ""
-      end
     end
 
     describe "#exported_user_environment_variables" do

@@ -22,13 +22,6 @@ module Dea
         ["VCAP_CONSOLE_PORT", instance.instance_console_container_port]
       ]
 
-      if message_json["debug"]
-        env << ["VCAP_DEBUG_IP", HOST]
-        env << ["VCAP_DEBUG_PORT", instance.instance_debug_container_port]
-        # Set debug environment for buildpacks to process
-        env << ["VCAP_DEBUG_MODE", message_json["debug"]]
-      end
-
       env << ["PORT", "$VCAP_APP_PORT"]
 
       env

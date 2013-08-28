@@ -99,7 +99,6 @@ describe Dea::Instance do
           "env"      => ["FOO=BAR", "BAR=", "QUX"],
           "services" => { "name" => "redis", "type" => "redis" },
           "flapping" => false,
-          "debug"    => "debug",
           "console"  => "console",
         }
       end
@@ -108,7 +107,6 @@ describe Dea::Instance do
       its(:environment) { should == { "FOO" => "BAR", "BAR" => "", "QUX" => "" } }
       its(:services)    { should == { "name" => "redis", "type" => "redis" } }
       its(:flapping)    { should == false }
-      its(:debug)       { should == "debug" }
       its(:console)     { should == "console" }
     end
   end
