@@ -7,7 +7,7 @@ describe Dea::StartupScriptGenerator do
   let(:used_buildpack) { '' }
   let(:start_command) { 'go_nuts' }
 
-  let(:generator) { Dea::StartupScriptGenerator.new(start_command, user_envs, system_envs, used_buildpack) }
+  let(:generator) { Dea::StartupScriptGenerator.new(start_command, user_envs, system_envs) }
 
   describe "#generate" do
     subject(:script) { generator.generate }
@@ -47,22 +47,6 @@ describe Dea::StartupScriptGenerator do
       it "print env to a log file after user envs" do
         script.should include "env > logs/env.log"
         script.should match /usrval1.*env\.log/m
-      end
-    end
-
-    describe "rails console script" do
-      context "when a Rails builpack was used" do
-        let(:used_buildpack) { 'Ruby/Rails' }
-        it "includes the rails console section" do
-          script.should include described_class::RAILS_CONSOLE_SCRIPT
-        end
-      end
-
-      context "for a non Rails build pack" do
-        let(:used_buildpack) { 'JS/Node' }
-        it "does not include the rails console section" do
-          script.should_not include described_class::RAILS_CONSOLE_SCRIPT
-        end
       end
     end
 

@@ -40,8 +40,6 @@ module Dea::Protocol::V1
         "file_uri"        => bootstrap.directory_server.uri,
         "credentials"     => bootstrap.directory_server.credentials,
         "staged"          => "/#{instance.instance_id}",
-        "console_ip"      => bootstrap.local_ip,
-        "console_port"    => instance.instance_console_host_port
       }
 
       if request.has_key?("path")

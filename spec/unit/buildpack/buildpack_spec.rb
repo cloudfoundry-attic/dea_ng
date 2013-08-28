@@ -71,22 +71,8 @@ fi
       build_pack.should_receive(:create_app_directories).ordered
       build_pack.should_receive(:copy_source_files).ordered
       build_pack.should_receive(:compile_with_timeout).ordered
-      build_pack.should_not_receive(:stage_rails_console)
       build_pack.should_receive(:save_buildpack_info).ordered
       build_pack.stage_application
-    end
-
-    context "when rails buildpack" do
-      let(:buildpack_name) { "Ruby/Rails" }
-      it "stages the console" do
-        Dir.should_receive(:chdir).with(File.expand_path "fakedestdir").and_yield
-        build_pack.should_receive(:create_app_directories)
-        build_pack.should_receive(:copy_source_files)
-        build_pack.should_receive(:compile_with_timeout)
-        build_pack.should_receive(:stage_rails_console)
-        build_pack.should_receive(:save_buildpack_info)
-        build_pack.stage_application
-      end
     end
   end
 
@@ -130,36 +116,6 @@ fi
         expect {
           build_pack.compile_with_timeout(0.1)
         }.to_not raise_error
-      end
-    end
-  end
-
-  describe "#stage_rails_console" do
-    before do
-      FileUtils.stub(:mkdir_p)
-      FileUtils.stub(:cp_r)
-      File.stub(:open)
-    end
-
-    context "when a rails application is detected by the ruby buildpack" do
-      let(:buildpacks_path) { buildpacks_path_with_rails }
-
-      it "puts in the cf-rails-console app files" do
-        FileUtils.should_receive(:mkdir_p).with(File.expand_path("fakedestdir/app/cf-rails-console"))
-        FileUtils.should_receive(:cp_r).with(%r{.+buildpacks/lib/resources/cf-rails-console}, File.expand_path("fakedestdir/app"))
-
-        build_pack.stage_rails_console
-      end
-
-      it "puts in the console access file" do
-        fake_file = StringIO.new
-        File.should_receive(:open).with(File.expand_path("fakedestdir/app/cf-rails-console/.consoleaccess"), "w").and_yield(fake_file)
-
-        build_pack.stage_rails_console
-
-        fake_file = fake_file.string
-        expect(fake_file).to include("username: !binary ")
-        expect(fake_file).to include("password: !binary ")
       end
     end
   end

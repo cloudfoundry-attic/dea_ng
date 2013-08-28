@@ -248,28 +248,22 @@ describe Dea::Container do
   end
 
   describe "#setup_network" do
-    let(:response_a) { double("network_response", host_port: 8765, container_port: 000)}
-    let(:response_b) { double("network_response", host_port: 1111, container_port: 2222)}
+    let(:response) { double("network_response", host_port: 8765, container_port: 000)}
+
     it "makes a create network request and returns the ports" do
-      connection_provider.should_receive(:get).with(:app).twice.and_return(connection)
+      connection_provider.should_receive(:get).with(:app).and_return(connection)
+
       connection.should_receive(:promise_call) do |request|
         expect(request).to be_an_instance_of(::Warden::Protocol::NetInRequest)
         expect(request.handle).to eq(container.handle)
 
-        delivering_promise(response_a)
-      end.ordered
-      connection.should_receive(:promise_call) do |request|
-        expect(request).to be_an_instance_of(::Warden::Protocol::NetInRequest)
-        delivering_promise(response_b)
-      end.ordered
+        delivering_promise(response)
+      end
 
       container.setup_network
 
       expect(container.network_ports["host_port"]).to eql(8765)
       expect(container.network_ports["container_port"]).to eql(000)
-
-      expect(container.network_ports["console_host_port"]).to eql(1111)
-      expect(container.network_ports["console_container_port"]).to eql(2222)
     end
   end
 

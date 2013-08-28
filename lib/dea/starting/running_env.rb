@@ -18,8 +18,6 @@ module Dea
         ["TMPDIR", "$PWD/tmp"],
         ["VCAP_APP_HOST", HOST],
         ["VCAP_APP_PORT", instance.instance_container_port],
-        ["VCAP_CONSOLE_IP", HOST],
-        ["VCAP_CONSOLE_PORT", instance.instance_console_container_port]
       ]
 
       env << ["PORT", "$VCAP_APP_PORT"]

@@ -149,13 +149,9 @@ module Dea
     def setup_network
       request = ::Warden::Protocol::NetInRequest.new(handle: handle)
       response = call(:app, request)
-      network_ports["host_port"] = response.host_port
-      network_ports["container_port"] = response.container_port
 
-      request = ::Warden::Protocol::NetInRequest.new(handle: handle)
-      response = call(:app, request)
-      network_ports["console_host_port"]      = response.host_port
-      network_ports["console_container_port"] = response.container_port
+      @network_ports["host_port"] = response.host_port
+      @network_ports["container_port] = response.container_port
     end
 
     # HELPER

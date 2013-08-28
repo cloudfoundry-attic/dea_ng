@@ -99,7 +99,6 @@ describe Dea::Instance do
           "env"      => ["FOO=BAR", "BAR=", "QUX"],
           "services" => { "name" => "redis", "type" => "redis" },
           "flapping" => false,
-          "console"  => "console",
         }
       end
 
@@ -107,7 +106,6 @@ describe Dea::Instance do
       its(:environment) { should == { "FOO" => "BAR", "BAR" => "", "QUX" => "" } }
       its(:services)    { should == { "name" => "redis", "type" => "redis" } }
       its(:flapping)    { should == false }
-      its(:console)     { should == "console" }
     end
   end
 
@@ -729,7 +727,6 @@ describe Dea::Instance do
 
         before do
           instance.stub(:staged_info).and_return(
-            "detected_buildpack" => "FakeBuildpack",
             "start_command" => "fake_start_command.sh"
           )
         end
@@ -738,8 +735,7 @@ describe Dea::Instance do
           Dea::StartupScriptGenerator.should_receive(:new).with(
             "fake_start_command.sh",
             env.exported_user_environment_variables,
-            env.exported_system_environment_variables,
-            "FakeBuildpack"
+            env.exported_system_environment_variables
           ).and_return(generator)
 
           instance.container.should_receive(:spawn)

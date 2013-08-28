@@ -30,8 +30,6 @@ describe Dea::Env do
          instance_index: 37,
          state_starting_timestamp: Time.now.to_f,
          instance_container_port: 4567,
-         instance_console_container_port: 1234,
-         instance_debug_container_port: 2345
     )
   end
 
@@ -55,7 +53,6 @@ describe Dea::Env do
         "fds" => 16384},
       "cc_partition" => "default",
       "env" => environment,
-      "console" => true,
       "debug" => debug,
       "index" => 0
     }
@@ -229,8 +226,6 @@ describe Dea::Env do
       it_exports "VCAP_APP_PORT", "4567"
       it_exports "VCAP_DEBUG_IP", ""
       it_exports "VCAP_DEBUG_PORT", ""
-      it_exports "VCAP_CONSOLE_IP", "0.0.0.0"
-      it_exports "VCAP_CONSOLE_PORT", "1234"
       it_exports "PORT", "4567"
       it_exports "MEMORY_LIMIT", "512m"
       it_exports "HOME", "#{Dir.pwd}/app"
@@ -274,7 +269,6 @@ describe Dea::Env do
           },
           "environment" => environment,
           "meta" => {
-            "console" => true,
             "command" => "some_command"
           }
         },

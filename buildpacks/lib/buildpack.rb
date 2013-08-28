@@ -1,13 +1,10 @@
 require "timeout"
 require "pathname"
 require "installer"
-require "rails_support"
 require "procfile"
 
 module Buildpacks
   class Buildpack
-    include RailsSupport
-
     attr_accessor :source_directory, :destination_directory, :staging_info_path, :environment_json
     attr_reader :procfile, :environment, :app_dir, :log_dir, :tmp_dir, :cache_dir, :buildpacks_path, :staging_timeout, :staging_info_name
 
@@ -57,7 +54,6 @@ module Buildpacks
 
         compile_with_timeout(staging_timeout)
 
-        stage_rails_console if rails_buildpack?(build_pack)
         save_buildpack_info
       end
     end
