@@ -151,7 +151,7 @@ module Dea
       response = call(:app, request)
 
       @network_ports["host_port"] = response.host_port
-      @network_ports["container_port] = response.container_port
+      @network_ports["container_port"] = response.container_port
     end
 
     # HELPER
