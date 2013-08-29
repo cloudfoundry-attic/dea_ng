@@ -114,9 +114,14 @@ module Buildpacks
     end
 
     def clone_buildpack(buildpack_url)
+      (buildpack_url, revision) = buildpack_url.split('#')
       buildpack_path = "/tmp/buildpacks/#{File.basename(buildpack_url)}"
       ok = system("git clone --recursive #{buildpack_url} #{buildpack_path}")
       raise "Failed to git clone buildpack" unless ok
+      unless revision.nil?
+        ok = system("cd #{buildpack_path} && git checkout --quiet #{revision}")
+        raise "Failed to git checkout revision '#{revision}'" unless ok
+      end
       Buildpacks::Installer.new(Pathname.new(buildpack_path), app_dir, cache_dir)
     end
 
