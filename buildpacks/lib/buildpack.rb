@@ -1,3 +1,5 @@
+require "yaml"
+require "fileutils"
 require "timeout"
 require "pathname"
 require "installer"
