@@ -1,4 +1,5 @@
 require "dea/staging_task"
+require "dea/loggregator"
 
 module Dea::Responders
   class Staging
@@ -32,7 +33,9 @@ module Dea::Responders
     end
 
     def handle(message)
-      logger = logger_for_app(message.data["app_id"])
+      app_id = message.data["app_id"]
+      logger = logger_for_app(app_id)
+      DEA::Loggregator.emit(app_id, "Got staging request for app with id #{app_id}")
       logger.info("Got staging request with #{message.data.inspect}")
 
       task = Dea::StagingTask.new(bootstrap, dir_server, message.data, logger)

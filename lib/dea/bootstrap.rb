@@ -6,6 +6,8 @@ require "steno"
 require "steno/config"
 require "steno/core_ext"
 
+require "loggregator_emitter"
+
 require "thin"
 
 require "vcap/common"
@@ -24,6 +26,7 @@ require "dea/protocol"
 require "dea/resource_manager"
 require "dea/router_client"
 require "dea/staging_task"
+require "dea/loggregator"
 Dir[File.join(File.dirname(__FILE__), "responders/*.rb")].each { |f| require(f) }
 
 module Dea
@@ -66,6 +69,7 @@ module Dea
       validate_config
 
       setup_logging
+      setup_loggregator
       setup_droplet_registry
       setup_instance_registry
       setup_staging_task_registry
@@ -150,6 +154,12 @@ module Dea
 
     def setup_router_client
       @router_client = Dea::RouterClient.new(self)
+    end
+
+    def setup_loggregator
+      if @config["loggregator"] && @config["loggregator"]["router"]
+        DEA::Loggregator.emitter = LoggregatorEmitter::Emitter.new(@config["loggregator"]["router"], LogMessage::SourceType::DEA)
+      end
     end
 
     def setup_signal_handlers
