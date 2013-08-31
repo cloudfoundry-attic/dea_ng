@@ -295,7 +295,7 @@ fi
           true
         end
         build_pack.should_receive(:system) do |cmd|
-          expect(cmd).to eq("git checkout #{branch}")
+          expect(cmd).to eq("git --git-dir=/tmp/buildpacks/heroku-buildpack-java.git/.git --work-tree=/tmp/buildpacks/heroku-buildpack-java.git checkout 49f320c5f8178279dd58af6de5ad525b72cc79d2")
           true
         end
         

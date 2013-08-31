@@ -126,7 +126,7 @@ module Buildpacks
       if !ok
         ok = system("git clone --recursive #{buildpack_url} #{buildpack_path}")
         raise "Failed to git clone buildpack" unless ok
-        ok = system("git checkout #{git_branch_tag}")
+        ok = system("git --git-dir=#{buildpack_path}/.git --work-tree=#{buildpack_path} checkout #{git_branch_tag}")
         raise "Failed to git checkout buildpack" unless ok
       end
       Buildpacks::Installer.new(Pathname.new(buildpack_path), app_dir, cache_dir)
