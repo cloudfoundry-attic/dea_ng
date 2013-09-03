@@ -21,6 +21,9 @@ gem "uuidtools", "~> 2.1.2"
 gem "nokogiri", ">= 1.4.4"
 gem "vmstat"
 
+gem "loggregator_emitter", "~> 0.0.9.pre"
+gem "loggregator_messages", "~> 0.0.3.pre"
+
 gem "sys-filesystem"
 
 group :test do
