@@ -1,4 +1,4 @@
-module DEA
+module Dea
   class Loggregator
 
     @@emitter = nil

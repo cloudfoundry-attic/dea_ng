@@ -35,7 +35,7 @@ describe Dea::InstanceRegistry do
 
     it "should log to the loggregator" do
       emitter = FakeEmitter.new
-      DEA::Loggregator.emitter = emitter
+      Dea::Loggregator.emitter = emitter
 
       instance_registry.register(instance)
 
@@ -60,7 +60,7 @@ describe Dea::InstanceRegistry do
 
     it "should log to the loggregator" do
       emitter = FakeEmitter.new
-      DEA::Loggregator.emitter = emitter
+      Dea::Loggregator.emitter = emitter
 
       instance_registry.unregister(instance)
 
@@ -317,7 +317,7 @@ describe Dea::InstanceRegistry do
 
     it "logs to the loggregator" do
       emitter = FakeEmitter.new
-      DEA::Loggregator.emitter = emitter
+      Dea::Loggregator.emitter = emitter
 
       instance_registry.register(instance)
 

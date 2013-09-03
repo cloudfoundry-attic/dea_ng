@@ -158,7 +158,7 @@ module Dea
 
     def setup_loggregator
       if @config["loggregator"] && @config["loggregator"]["router"]
-        DEA::Loggregator.emitter = LoggregatorEmitter::Emitter.new(@config["loggregator"]["router"], LogMessage::SourceType::DEA)
+        Dea::Loggregator.emitter = LoggregatorEmitter::Emitter.new(@config["loggregator"]["router"], LogMessage::SourceType::DEA)
       end
     end
 

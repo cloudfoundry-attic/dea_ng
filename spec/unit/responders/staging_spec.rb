@@ -216,7 +216,7 @@ describe Dea::Responders::Staging do
 
           it "logs to the loggregator" do
             emitter = FakeEmitter.new
-            DEA::Loggregator.emitter = emitter
+            Dea::Loggregator.emitter = emitter
 
             bootstrap.should_receive(:start_app)
             subject.handle(message)

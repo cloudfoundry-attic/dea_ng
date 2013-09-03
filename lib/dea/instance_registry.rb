@@ -35,7 +35,7 @@ module Dea
 
     def register(instance)
       app_id = instance.application_id
-      DEA::Loggregator.emit(app_id, "Registering instance")
+      Dea::Loggregator.emit(app_id, "Registering instance")
       logger.debug2("Registering instance #{instance.instance_id}")
 
       @instances[instance.instance_id] = instance
@@ -49,7 +49,7 @@ module Dea
     def unregister(instance)
       app_id = instance.application_id
 
-      DEA::Loggregator.emit(app_id, "Removing instance")
+      Dea::Loggregator.emit(app_id, "Removing instance")
       logger.debug2("Removing instance #{instance.instance_id}")
 
       @instances.delete(instance.instance_id)
@@ -184,7 +184,7 @@ module Dea
       message = "Removing crash #{instance_id}"
 
       logger.debug(message, data)
-      DEA::Loggregator.emit(data[:application_id], "Removing crash for app with id #{data[:application_id]}")
+      Dea::Loggregator.emit(data[:application_id], "Removing crash for app with id #{data[:application_id]}")
       t = Time.now
       destroy_crash_artifacts(instance_id) do
         logger.debug(message + ": took %.3fs" % (Time.now - t), data)
