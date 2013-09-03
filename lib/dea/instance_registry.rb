@@ -4,6 +4,7 @@ require "steno"
 require "steno/core_ext"
 require "sys/filesystem"
 require "thread"
+require "dea/loggregator"
 require_relative "registry_enumeration"
 
 module Dea
@@ -33,11 +34,12 @@ module Dea
     end
 
     def register(instance)
+      app_id = instance.application_id
+      Dea::Loggregator.emit(app_id, "Registering instance")
       logger.debug2("Registering instance #{instance.instance_id}")
 
       @instances[instance.instance_id] = instance
 
-      app_id = instance.application_id
       @instances_by_app_id[app_id] ||= {}
       @instances_by_app_id[app_id][instance.instance_id] = instance
 
@@ -45,11 +47,13 @@ module Dea
     end
 
     def unregister(instance)
+      app_id = instance.application_id
+
+      Dea::Loggregator.emit(app_id, "Removing instance")
       logger.debug2("Removing instance #{instance.instance_id}")
 
       @instances.delete(instance.instance_id)
 
-      app_id = instance.application_id
       if @instances_by_app_id.has_key?(app_id)
         @instances_by_app_id[app_id].delete(instance.instance_id)
 
@@ -178,8 +182,9 @@ module Dea
       end
 
       message = "Removing crash #{instance_id}"
-      logger.debug(message, data)
 
+      logger.debug(message, data)
+      Dea::Loggregator.emit(data[:application_id], "Removing crash for app with id #{data[:application_id]}")
       t = Time.now
       destroy_crash_artifacts(instance_id) do
         logger.debug(message + ": took %.3fs" % (Time.now - t), data)

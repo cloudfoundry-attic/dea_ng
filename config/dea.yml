@@ -6,6 +6,9 @@ base_dir: /tmp/dea_ng
 logging:
   level: debug
 
+loggregator:
+  router: 127.0.0.1:3456
+
 resources:
   memory_mb: 2048
   memory_overcommit_factor: 2

@@ -22,32 +22,49 @@ describe Dea::InstanceRegistry do
   it_behaves_like :handles_registry_enumerations
 
   describe "#register" do
-    before :each do
-      instance_registry.register(instance)
-    end
-
     it "should allow one to lookup the instance by id" do
+      instance_registry.register(instance)
       instance_registry.lookup_instance(instance.instance_id).should == instance
     end
 
     it "should allow one to lookup the instance by application id" do
+      instance_registry.register(instance)
       instances = instance_registry.instances_for_application(instance.application_id)
       instances.should == { instance.instance_id => instance }
+    end
+
+    it "should log to the loggregator" do
+      emitter = FakeEmitter.new
+      Dea::Loggregator.emitter = emitter
+
+      instance_registry.register(instance)
+
+      expect(emitter.messages[1][0]).to eql("Registering instance")
     end
   end
 
   describe "#unregister" do
     before :each do
       instance_registry.register(instance)
-      instance_registry.unregister(instance)
     end
 
     it "should ensure the instance cannot be looked up by id" do
+      instance_registry.unregister(instance)
       instance_registry.lookup_instance(instance.instance_id).should be_nil
     end
 
     it "should ensure the instance cannot be looked up by application id" do
+      instance_registry.unregister(instance)
       instance_registry.instances_for_application(instance.application_id).should == {}
+    end
+
+    it "should log to the loggregator" do
+      emitter = FakeEmitter.new
+      Dea::Loggregator.emitter = emitter
+
+      instance_registry.unregister(instance)
+
+      expect(emitter.messages[1][0]).to eql("Removing instance")
     end
   end
 
@@ -287,6 +304,30 @@ describe Dea::InstanceRegistry do
           instances[0].should be_reaped
           instances[1].should be_reaped
 
+          done
+        end
+      end
+    end
+  end
+
+  describe "#reap_crash" do
+    include_context "tmpdir"
+
+    let(:instance_registry) { Dea::InstanceRegistry.new(Dea::Config.new({"base_dir" => tmpdir})) }
+
+    it "logs to the loggregator" do
+      emitter = FakeEmitter.new
+      Dea::Loggregator.emitter = emitter
+
+      instance_registry.register(instance)
+
+      em do
+        instance_registry.reap_crash(instance.instance_id, "no reason") do
+          instance_registry.reap_crashes_under_disk_pressure
+        end
+
+        after_defers_finish do
+          expect(emitter.messages[1]).to include("Removing crash for app with id 1")
           done
         end
       end

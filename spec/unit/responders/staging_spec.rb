@@ -204,13 +204,23 @@ describe Dea::Responders::Staging do
 
       describe "after staging completion" do
         context "when successfully" do
-          let(:start_message) { {"app_id" => "blah"} }
-          let(:message) { Dea::Nats::Message.new(nats, nil, {"start_message" => start_message}, "respond-to") }
+          let(:app_id) { "my_app_id" }
+          let(:start_message) { {"droplet" => "dff77854-3767-41d9-ab16-c8a824beb77a"} }
+          let(:message) { Dea::Nats::Message.new(nats, nil, {"app_id" => app_id, "start_message" => start_message}, "respond-to") }
           before { staging_task.stub(:after_complete_callback).and_yield(nil) }
 
           it "handles instance start with updated droplet sha" do
             bootstrap.should_receive(:start_app).with(start_message.merge({"sha1" => "some-droplet-sha"}))
             subject.handle(message)
+          end
+
+          it "logs to the loggregator" do
+            emitter = FakeEmitter.new
+            Dea::Loggregator.emitter = emitter
+
+            bootstrap.should_receive(:start_app)
+            subject.handle(message)
+            expect(emitter.messages[app_id][0]).to eql("Got staging request for app with id #{app_id}")
           end
         end
 
