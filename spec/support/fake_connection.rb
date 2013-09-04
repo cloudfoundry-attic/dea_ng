@@ -22,11 +22,4 @@ class FakeConnection
       promise.deliver(@responses[request.class])
     end
   end
-
-  def promise_create
-    Dea::Promise.new do |promise|
-      promise.deliver
-    end
-  end
-
 end

@@ -10,21 +10,21 @@ describe Dea::Task do
   let(:warden_socket) { "warden.socksies" }
   let(:connection_provider) { double("connection provider")}
   before do
-    Dea::ConnectionProvider.stub(:new).with(warden_socket).and_return(connection_provider)
+    WardenClientProvider.stub(:new).with(warden_socket).and_return(connection_provider)
   end
 
   subject(:task) { Dea::Task.new(config) }
 
   describe "#container -" do
     it "creates a container with connection provider" do
-      Dea::Container.should_receive(:new).with(connection_provider)
+      Container.should_receive(:new).with(connection_provider)
       task.container
     end
 
     describe "if it has been created" do
       it "should return the container" do
         container = task.container
-        Dea::Container.should_not_receive(:new)
+        Container.should_not_receive(:new)
         expect(task.container).to eq(container)
       end
     end

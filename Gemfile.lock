@@ -1,4 +1,11 @@
 GIT
+  remote: https://github.com/cloudfoundry/container_tools.git
+  revision: a941f0e1246aeb6ee8483afe277cae0705a79e14
+  specs:
+    container_tools (0.1)
+      em-warden-client
+
+GIT
   remote: https://github.com/cloudfoundry/steno.git
   revision: d88c70767c43a5eff32ccb47e3bb561b981e62e8
   specs:
@@ -26,7 +33,7 @@ GIT
 
 GIT
   remote: https://github.com/cloudfoundry/warden.git
-  revision: 609bbdfa0ea796ff0c140e937d475fa8081388fb
+  revision: 7fef8c8f822859e10e031228ef88e3f08d15f68d
   specs:
     em-warden-client (0.1.1)
       eventmachine
@@ -204,6 +211,7 @@ PLATFORMS
 
 DEPENDENCIES
   ci_reporter
+  container_tools!
   debugger
   em-http-request
   em-warden-client!

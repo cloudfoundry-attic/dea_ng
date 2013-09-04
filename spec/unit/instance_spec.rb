@@ -1,7 +1,5 @@
 require "spec_helper"
 require "dea/instance"
-require "dea/container/connection"
-require "support/fake_connection"
 
 describe Dea::Instance do
   include_context "tmpdir"
@@ -260,29 +258,25 @@ describe Dea::Instance do
   end
 
   describe "#promise_health_check unit test" do
-    let(:info_response) do
-      info_response = mock("InfoResponse")
-      info_response.stub(:container_path).and_return("fake/container/path")
-      info_response.stub(:host_ip).and_return("fancy ip")
-      info_response
-    end
+    #let(:info_response) do
+    #  info_response = mock("InfoResponse")
+    #  info_response.stub(:container_path).and_return("fake/container/path")
+    #  info_response.stub(:host_ip).and_return("fancy ip")
+    #  info_response
+    #end
 
     let(:container_path) { "fake/container/path" }
-
-    let(:fake_connection) do
-      connection = FakeConnection.new
-      connection.set_fake_response(::Warden::Protocol::InfoRequest, info_response)
-      connection.set_fake_properties({host_ip: "old ip", path: "old path"})
-      connection
-    end
 
     before do
       instance.attributes["application_uris"] = []
       instance.container.handle = "fake handle"
-      Dea::Connection.stub(:new).and_return(fake_connection)
     end
 
     it "updates the path and host ip" do
+      instance.container.should_receive(:update_path_and_ip) do
+        instance.container.stub(path: container_path)
+        instance.container.stub(host_ip: "fancy ip")
+      end
       instance.should_receive(:promise_read_instance_manifest).with(container_path).and_return(delivering_promise(nil))
 
       instance.promise_health_check.resolve

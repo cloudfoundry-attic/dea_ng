@@ -1,9 +1,8 @@
 require "spec_helper"
-require "dea/container/container"
 require "dea/stat_collector"
 
 describe Dea::StatCollector do
-  let(:container) { Dea::Container.new("some-socket") }
+  let(:container) { Container.new("some-socket") }
 
   let(:info_response) do
     Warden::Protocol::InfoResponse.new(

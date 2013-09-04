@@ -6,6 +6,8 @@ gem "em-http-request"
 gem "em-warden-client", :git => "https://github.com/cloudfoundry/warden.git"
 gem "warden-client", :git => "https://github.com/cloudfoundry/warden.git"
 gem "warden-protocol", :git => "https://github.com/cloudfoundry/warden.git"
+gem "container_tools", :git => "https://github.com/cloudfoundry/container_tools.git"
+
 
 gem "nats", :require => "nats/client"
 gem "rack", :require => %w[rack/utils rack/mime]

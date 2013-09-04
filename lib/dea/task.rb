@@ -5,8 +5,8 @@ require "steno"
 require "steno/core_ext"
 require "dea/promise"
 require "vmstat"
-require "dea/container/container"
-require "dea/container/connection_provider"
+require "container/container"
+require "container/warden_client_provider"
 
 module Dea
   class Task
@@ -32,8 +32,8 @@ module Dea
 
     def container
       @container ||= begin
-        connection_provider = ConnectionProvider.new(config["warden_socket"])
-        Dea::Container.new(connection_provider)
+        connection_provider = WardenClientProvider.new(config["warden_socket"])
+        Container.new(connection_provider)
       end
     end
 
