@@ -77,6 +77,12 @@ describe "snapshot" do
 
         @instance.keys.should include *expected_keys
       end
+
+      context 'tag fields' do
+        it 'has drain attributes for loggregator' do
+          @instance['tags'].should include ({'drains' => ["mysql://some_user:some_password@some-db-provider.com:3306/db_name"]})
+        end
+      end
     end
   end
 end
