@@ -188,6 +188,16 @@ module Dea
       end
     end
 
+    def promise_limit_cpu
+      Promise.new do |p|
+        request = ::Warden::Protocol::LimitCpuRequest.new
+        request.handle = container_handle
+        request.cpu_limit = cpu_limit
+        promise_warden_call(:app, request).resolve
+        p.deliver
+      end
+    end
+
     def container_handle
       @attributes["warden_handle"]
     end
@@ -320,6 +330,10 @@ module Dea
     end
 
     def consuming_memory?
+      true
+    end
+
+    def consuming_cpu?
       true
     end
 

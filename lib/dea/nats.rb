@@ -31,6 +31,7 @@ module Dea
       end
 
       subscribe("dea.#{bootstrap.uuid}.start") do |message|
+	message.data['limits']["cpu"]&&=(message.data['limits']["cpu"].to_f*100).to_i
         bootstrap.handle_dea_directed_start(message)
       end
 

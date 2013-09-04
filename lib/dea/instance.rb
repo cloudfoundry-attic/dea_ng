@@ -142,6 +142,7 @@ module Dea
           "mem"  => Fixnum,
           "disk" => Fixnum,
           "fds"  => Fixnum,
+	  "cpu"  => Fixnum,
         }
       end
     end
@@ -287,6 +288,10 @@ module Dea
       limits["disk"].to_i * 1024 * 1024
     end
 
+    def cpu_limit
+      limits["cpu"].to_i
+    end
+
     def file_descriptor_limit
       limits["fds"].to_i
     end
@@ -312,6 +317,15 @@ module Dea
       case state
       when State::BORN, State::STARTING, State::RUNNING, State::STOPPING,
            State::CRASHED
+        true
+      else
+        false
+      end
+    end
+
+    def consuming_cpu?
+      case state
+      when State::BORN, State::STARTING, State::RUNNING, State::STOPPING
         true
       else
         false
@@ -601,6 +615,7 @@ module Dea
         #promise_setup_network.resolve
         promise_limit_disk.resolve
         promise_limit_memory.resolve
+	promise_limit_cpu.resolve
         promise_setup_environment.resolve
 
         p.deliver

@@ -135,5 +135,9 @@ module Dea
     def minimum_staging_disk_mb
       @config.fetch("staging", {}).fetch("disk_limit_mb", 2*1024)
     end
+
+    def minimum_staging_cpu
+      @config.fetch("staging", {}).fetch("cpu_limit", 50)
+    end
   end
 end

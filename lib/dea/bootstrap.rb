@@ -389,7 +389,7 @@ module Dea
     def create_instance(attributes)
       attributes = Instance.translate_attributes(attributes)
 
-      unless resource_manager.could_reserve?(attributes["limits"]["mem"], attributes["limits"]["disk"])
+      unless resource_manager.could_reserve?(attributes["limits"]["mem"], attributes["limits"]["disk"],attributes["limits"]["cpu"])
         message = "Unable to start instance: #{attributes["instance_index"]}"
         message << " for app: #{attributes["application_id"]}, not enough resources available."
         logger.error(message)
@@ -733,9 +733,11 @@ module Dea
     def periodic_varz_update
       mem_required = config.minimum_staging_memory_mb
       disk_required = config.minimum_staging_disk_mb
-      reservable_stagers = resource_manager.number_reservable(mem_required, disk_required)
+      cpu_required = config.minimum_staging_cpu
+      reservable_stagers = resource_manager.number_reservable(mem_required, disk_required, cpu_required)
       available_memory_ratio = resource_manager.available_memory_ratio
       available_disk_ratio = resource_manager.available_disk_ratio
+      available_cpu_ratio = resource_manager.available_cpu_ratio
 
       VCAP::Component.varz.synchronize do
         VCAP::Component.varz[:can_stage] = (reservable_stagers > 0) ? 1 : 0
@@ -743,6 +745,7 @@ module Dea
         VCAP::Component.varz[:available_memory_ratio] = available_memory_ratio
         VCAP::Component.varz[:available_disk_ratio] = available_disk_ratio
         VCAP::Component.varz[:instance_registry] = instance_registry.to_hash
+        VCAP::Component.varz[:available_cpu_ratio] = available_cpu_ratio
       end
     end
 
