@@ -3,26 +3,31 @@
 # Base directory for dea, application directories, dea temp files, etc. are all relative to this.
 base_dir: /tmp/dea_ng
 
-logging:
-  level: debug
+local_route: 10.50.33.25
+
+domain: vcap.me
+
+logic_capacity_per_core: 100
 
 resources:
-  memory_mb: 2048
-  memory_overcommit_factor: 2
-  disk_mb: 2048
-  disk_overcommit_factor: 2
+  memory_mb: 16384
+  memory_overcommit_factor: 1
+  disk_mb: 2048000
+  disk_overcommit_factor: 1
+  cpu: 1800
+  cpu_overcommit_factor: 1
 
 # The this flag determines whether or not this DEA should only host
 # production apps. (default: false)
 only_production_apps: false
 
-nats_uri: nats://localhost:4222/
+nats_uri: nats://testjpaas:testjpaas@10.50.33.25:4242 
 
 pid_filename: /tmp/dea_ng.pid
 
 warden_socket: /tmp/warden.sock
 
-evacuation_delay_secs: 10
+evacuation_delay_secs: 5
 
 index: 0
 
@@ -31,13 +36,14 @@ staging:
   platform_config:
     cache: /var/vcap/data/stager/package_cache/ruby
   environment:
-    PATH: /usr/local/ruby/bin
+    PATH: /home/work/ruby193/bin
     BUILDPACK_CACHE: /var/vcap/packages/buildpack_cache
-  memory_limit_mb: 1024
-  disk_limit_mb: 2048
+  memory_limit_mb: 10240
+  disk_limit_mb: 20480
+  cpu_limit: 50
   max_staging_duration: 900 # 15 minutes
 
-dea_ruby: /usr/bin/ruby
+dea_ruby: /usr/local/bin/ruby
 
 # For Go-based directory server
 directory_server:
@@ -47,7 +53,10 @@ directory_server:
   streaming_timeout: 10
   logging:
     level: info
-
+    file: /home/work/dea_ng/log/dir_server.log
+logging:
+    level: info
+    file: /home/work/dea_ng/log/dea.log
 stacks:
   - lucid64
 
@@ -57,3 +66,7 @@ stacks:
 #   after_start: path/to/script
 #   before_stop: path/to/script
 #   after_stop: path/to/script
+status:
+  port: 8091
+  user: test
+  password: test

@@ -744,8 +744,14 @@ module Dea
         VCAP::Component.varz[:reservable_stagers] = reservable_stagers
         VCAP::Component.varz[:available_memory_ratio] = available_memory_ratio
         VCAP::Component.varz[:available_disk_ratio] = available_disk_ratio
-        VCAP::Component.varz[:instance_registry] = instance_registry.to_hash
         VCAP::Component.varz[:available_cpu_ratio] = available_cpu_ratio
+        VCAP::Component.varz[:capacity_cpu] = resource_manager.cpu_capacity
+        VCAP::Component.varz[:capacity_memory] = resource_manager.memory_capacity
+        VCAP::Component.varz[:capacity_disk] = resource_manager.disk_capacity
+        VCAP::Component.varz[:reserved_cpu] = resource_manager.reserved_cpu
+        VCAP::Component.varz[:reserved_memory] = resource_manager.reserved_memory
+        VCAP::Component.varz[:reserved_disk] = resource_manager.reserved_disk
+        VCAP::Component.varz[:instance_registry] = instance_registry.to_hash
       end
     end
 
