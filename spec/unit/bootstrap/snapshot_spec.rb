@@ -80,7 +80,7 @@ describe "snapshot" do
 
       context 'tag fields' do
         it 'has drain attributes for loggregator' do
-          @instance['tags'].should include ({'drains' => ["mysql://some_user:some_password@some-db-provider.com:3306/db_name"]})
+          @instance['tags'].should include ({'syslog_drains' => ["mysql://some_user:some_password@some-db-provider.com:3306/db_name"]})
         end
       end
     end

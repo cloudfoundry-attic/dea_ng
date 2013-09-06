@@ -793,9 +793,9 @@ module Dea
     end
 
     def snapshot_attributes_tags_for_drains
-      {'drains' =>
+      {'syslog_drains' =>
          attributes['services'].select { |s|
-           s['tags'].include?('drain')
+           s['tags'].include?('syslog_drain')
          }.map { |s|
            s['credentials']['uri']
          }

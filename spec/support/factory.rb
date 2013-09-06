@@ -8,7 +8,7 @@ module Helpers
       "label"       => "label",
       "vendor"      => "vendor",
       "version"     => "version",
-      "tags"        => ["tag1", "tag2", "drain"],
+      "tags"        => ["tag1", "tag2", "syslog_drain"],
       "plan"        => "plan",
       "plan_option" => "plan_option",
       "credentials" => {
