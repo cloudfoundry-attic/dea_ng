@@ -783,6 +783,22 @@ describe Dea::Instance do
         instance.exit_description.should be_eql("App instance failed health check")
       end
     end
+
+    context "when link fails" do
+      before do
+        instance.unstub(:link)
+        instance.container.stub(:call_with_retry).with(:link, anything) do
+          double("response", :exit_status => 255, :info => double("info", :events => ["out of memory"]))
+        end
+
+        instance.stub(:promise_state).and_return(delivering_promise)
+      end
+
+      it "sets exit description based on link response" do
+        instance.start
+        instance.exit_description.should eq ("out of memory")
+      end
+    end
   end
 
   describe "stop transition" do
@@ -885,7 +901,7 @@ describe Dea::Instance do
 
   describe "#promise_link" do
     let(:exit_status) { 42 }
-    let(:info_events) { nil }
+    let(:info_events) { [] }
 
     let(:info_response) do
       mock("Warden::Protocol::InfoResponse").tap do |info|
@@ -984,12 +1000,12 @@ describe Dea::Instance do
         expect(instance.exit_status).to eq(exit_status)
       end
 
-      context "when the container_info has an 'oom' event" do
-        let(:info_events) { ["oom"] }
+      context "when the container_info has an event" do
+        let(:info_events) { ["some weird thing happened"] }
 
-        it "sets the exit_description to 'out of memory'" do
+        it "sets the exit_description to the text of the event" do
           instance.link
-          expect(instance.exit_description).to eq("out of memory")
+          expect(instance.exit_description).to eq("some weird thing happened")
         end
       end
 

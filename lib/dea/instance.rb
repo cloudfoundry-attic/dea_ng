@@ -407,8 +407,6 @@ module Dea
             env.exported_environment_variables + "./startup;\nexit"
           end
 
-        log(:info, "foo.bal", staged_info: staged_info, start_script: start_script)
-
         response = container.spawn(start_script, self.file_descriptor_limit, NPROC_LIMIT)
 
         attributes["warden_job_id"] = response.job_id
@@ -791,9 +789,7 @@ module Dea
       info = link_response.info
       return "cannot be determined" unless info
 
-      if info.events && info.events.include?("oom")
-        return "out of memory"
-      end
+      return info.events.first if info.events && info.events.first
 
       "app instance exited"
     end
