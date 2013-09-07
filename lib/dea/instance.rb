@@ -780,10 +780,25 @@ module Dea
         'instance_host_port'    => container.network_ports["host_port"],
         'instance_container_port'    => instance_container_port,
         'instance_id'           => attributes['instance_id'],
+        'tags'                  => snapshot_tags
       }
     end
 
     private
+
+    def snapshot_tags
+      snapshot_attributes_tags_for_drains
+    end
+
+    def snapshot_attributes_tags_for_drains
+      {'syslog_drains' =>
+         attributes['services'].select { |s|
+           s['tags'].include?('syslog_drain')
+         }.map { |s|
+           s['credentials']['uri']
+         }
+      }
+    end
 
     def determine_exit_description(link_response)
       info = link_response.info
