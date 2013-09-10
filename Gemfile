@@ -28,8 +28,11 @@ gem "loggregator_messages", "~> 0.0.3.pre"
 
 gem "sys-filesystem"
 
-group :test do
+group :development do
   gem "debugger"
+end
+
+group :test do
   gem "timecop"
   gem "patron"
   gem "foreman"

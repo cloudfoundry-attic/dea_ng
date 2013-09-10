@@ -1,6 +1,6 @@
 set -e -x -u
 ./start_warden.sh
-bundle install
+bundle install --without development
 foreman start &
 
 exit_code=0
