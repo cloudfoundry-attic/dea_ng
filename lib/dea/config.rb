@@ -14,6 +14,7 @@ module Dea
       "only_production_apps" => false,
       "crash_block_usage_ratio_threshold" => 0.8,
       "crash_inode_usage_ratio_threshold" => 0.8,
+      "clean_droplet" => true,
     }
 
     def self.schema

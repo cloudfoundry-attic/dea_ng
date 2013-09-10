@@ -199,6 +199,7 @@ DEPENDENCIES
   grape!
   librarian
   nats
+  nokogiri (>= 1.4.4)
   patron
   rack
   rack-test
@@ -216,4 +217,3 @@ DEPENDENCIES
   warden-client!
   warden-protocol!
   yajl-ruby
-  nokogiri (>= 1.4.4)

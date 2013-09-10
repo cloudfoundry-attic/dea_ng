@@ -3,7 +3,7 @@
 function start()
 {
   cd /home/work/dea_ng/bin 
-  nohup ruby dea ../config/dea.yml &
+  nohup ruby dea ../config/dea_ng.yml &
 }
 
 function stop()
