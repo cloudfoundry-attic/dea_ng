@@ -733,7 +733,7 @@ describe Dea::Instance do
           ).and_return(generator)
 
           instance.container.should_receive(:spawn)
-            .with(script, instance.file_descriptor_limit, Dea::Instance::NPROC_LIMIT)
+            .with(script, instance.file_descriptor_limit, Dea::Instance::NPROC_LIMIT, true)
             .and_return(response)
 
           instance.promise_start.resolve

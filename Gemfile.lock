@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/cloudfoundry/container_tools.git
-  revision: 52bf4afe783d6b1dce36a62cd7307f3d1d2c2a82
+  revision: 4cf1b80a98754ea3888cc6436e741ff022c0964f
   specs:
     container_tools (0.1)
       em-warden-client
@@ -33,7 +33,7 @@ GIT
 
 GIT
   remote: https://github.com/cloudfoundry/warden.git
-  revision: 7fef8c8f822859e10e031228ef88e3f08d15f68d
+  revision: 30d3df1d9709ea254f5cc005e7c8b7b9825d293b
   specs:
     em-warden-client (0.1.1)
       eventmachine
