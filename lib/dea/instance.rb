@@ -780,6 +780,7 @@ module Dea
         'instance_host_port'    => container.network_ports["host_port"],
         'instance_container_port'    => instance_container_port,
         'instance_id'           => attributes['instance_id'],
+        'syslog_drain_urls'     => attributes['services'].map{|svc_hash| svc_hash["syslog_drain_url"]}.compact
       }
     end
 

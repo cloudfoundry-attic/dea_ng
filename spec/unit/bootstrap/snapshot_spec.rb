@@ -21,7 +21,7 @@ describe "snapshot" do
       Dea::Instance::State.constants.each do |name|
         state = Dea::Instance::State.const_get(name)
 
-        instance = Dea::Instance.new(bootstrap, valid_instance_attributes)
+        instance = Dea::Instance.new(bootstrap, valid_instance_attributes(true))
         instance.stub(:validate)
         instance.state = state
         instances << instance
@@ -63,6 +63,7 @@ describe "snapshot" do
         warden_job_id
         instance_index
         state
+        syslog_drain_urls
         )
 
         @instance.keys.should include *expected_keys
@@ -76,6 +77,10 @@ describe "snapshot" do
         )
 
         @instance.keys.should include *expected_keys
+      end
+
+      it 'has correct drain urls' do
+        @instance["syslog_drain_urls"].should =~ %w(syslog://log.example.com syslog://log2.example.com)
       end
     end
   end

@@ -1,7 +1,7 @@
 # coding: UTF-8
 
 module Helpers
-  def valid_service_attributes
+  def valid_service_attributes(syslog_drain_url = nil)
     {
       "name"        => "name",
       "type"        => "type",
@@ -11,6 +11,7 @@ module Helpers
       "tags"        => ["tag1", "tag2"],
       "plan"        => "plan",
       "plan_option" => "plan_option",
+      "syslog_drain_url" => syslog_drain_url,
       "credentials" => {
         "jdbcUrl" => "jdbc:mysql://some_user:some_password@some-db-provider.com:3306/db_name",
         "uri" => "mysql://some_user:some_password@some-db-provider.com:3306/db_name",
@@ -23,7 +24,7 @@ module Helpers
     }
   end
 
-  def valid_instance_attributes
+  def valid_instance_attributes(lots_of_services = false)
     {
       "cc_partition"        => "partition",
 
@@ -40,7 +41,9 @@ module Helpers
 
       "limits"              => { "mem" => 512, "disk" => 128, "fds" => 5000 },
       "env"                 => ["FOO=BAR"],
-      "services"            => [valid_service_attributes],
+      "services"            => lots_of_services ?
+          [valid_service_attributes("syslog://log.example.com"), valid_service_attributes, valid_service_attributes("syslog://log2.example.com")] :
+          [valid_service_attributes],
       "flapping"            => false,
     }
   end
