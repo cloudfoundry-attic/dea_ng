@@ -419,14 +419,20 @@ module Dea
               'container_port' => response.container_port,
               'port_info' => info
             }
+            if "true" == info['http'].to_s
+              attributes["instance_host_port"] = response.host_port
+              attributes["instance_container_port"] = response.container_port
+            end
           end
           attributes['instance_meta']['prod_ports'] = prod_ports
 
         end
 
-        response = net_in.call(nil)
-        attributes["instance_host_port"]      = response.host_port
-        attributes["instance_container_port"] = response.container_port
+        unless attributes["instance_host_port"]
+          response = net_in.call(nil)
+          attributes["instance_host_port"]      = response.host_port
+          attributes["instance_container_port"] = response.container_port
+        end
 
         response = net_in.call(nil)
         attributes["instance_console_host_port"]      = response.host_port
