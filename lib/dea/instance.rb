@@ -156,7 +156,6 @@ module Dea
           optional("vendor")      => String,
           optional("version")     => String,
           optional("type")        => String,
-          optional("tags")        => [String],
           optional("plan_option") => enum(String, nil),
         }
       end
