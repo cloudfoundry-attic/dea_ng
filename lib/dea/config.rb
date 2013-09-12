@@ -63,8 +63,6 @@ module Dea
 
             optional("disk_mb") => Integer,
             optional("disk_overcommit_factor") => enum(Float, Integer),
-
-            optional("num_instances") => Integer,
           },
 
           optional("bind_mounts") => [{
