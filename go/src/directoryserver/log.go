@@ -4,7 +4,7 @@ import (
 	steno "github.com/cloudfoundry/gosteno"
 )
 
-var log steno.Logger
+var log *steno.Logger
 
 func init() {
 	initializeLogger()
