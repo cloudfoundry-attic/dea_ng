@@ -44,7 +44,6 @@ module Helpers
       "services"            => lots_of_services ?
           [valid_service_attributes("syslog://log.example.com"), valid_service_attributes, valid_service_attributes("syslog://log2.example.com")] :
           [valid_service_attributes],
-      "flapping"            => false,
     }
   end
 

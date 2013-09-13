@@ -94,7 +94,7 @@ module Buildpacks
         if custom_buildpack_url
           clone_buildpack(custom_buildpack_url)
         else
-          build_pack = installers.detect(&:detect)
+          build_pack = installers.find(&:detect)
           raise "Unable to detect a supported application type" unless build_pack
           build_pack
         end

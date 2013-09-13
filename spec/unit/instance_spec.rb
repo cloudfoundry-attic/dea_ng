@@ -96,14 +96,12 @@ describe Dea::Instance do
           "limits"   => { "mem" => 1, "disk" => 2, "fds" => 3 },
           "env"      => ["FOO=BAR", "BAR=", "QUX"],
           "services" => { "name" => "redis", "type" => "redis" },
-          "flapping" => false,
         }
       end
 
       its(:limits)      { should == { "mem" => 1, "disk" => 2, "fds" => 3 } }
       its(:environment) { should == { "FOO" => "BAR", "BAR" => "", "QUX" => "" } }
       its(:services)    { should == { "name" => "redis", "type" => "redis" } }
-      its(:flapping)    { should == false }
     end
   end
 
@@ -686,7 +684,7 @@ describe Dea::Instance do
     it_behaves_like 'start script hook', 'before_start'
     it_behaves_like 'start script hook', 'after_start'
 
-    describe "#promise_start -" do
+    describe "#promise_start" do
       let(:response) { mock("spawn_response", job_id: 37) }
       let(:env) do
         double("environment 1",
@@ -716,7 +714,7 @@ describe Dea::Instance do
       end
 
       context "when there is a task info yaml in the droplet" do
-        let(:script) {"./dostuffscript"}
+        let(:script) { "./dostuffscript" }
         let(:generator) { double("script generator", generate: script) }
 
         before do
