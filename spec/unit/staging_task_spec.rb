@@ -688,7 +688,11 @@ YAML
     end
 
     context "when there is an error" do
-      before { Download.any_instance.stub(:download!).and_yield("This is an error", nil) }
+      before do
+        Download.any_instance.stub(:download!).and_yield(
+          RuntimeError.new("This is an error"), nil)
+      end
+
       it { expect { subject }.to raise_error(RuntimeError, "This is an error") }
     end
 
