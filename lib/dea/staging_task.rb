@@ -244,16 +244,28 @@ module Dea
 
     def promise_app_download
       Promise.new do |p|
-        logger.info("Downloading application from #{attributes["download_uri"]}")
+        logger.info("staging.app-download.start", :uri => attributes["download_uri"])
+
+        start = Time.now
 
         Download.new(attributes["download_uri"], workspace.workspace_dir, nil, logger).download! do |error, path|
+          done = Time.now
+
           if error
+            logger.debug("staging.app-download.failed",
+              :duration => done - start,
+              :error => error,
+              :backtrace => error.backtrace)
+
             p.fail(error)
           else
             File.rename(path, workspace.downloaded_droplet_path)
             File.chmod(0744, workspace.downloaded_droplet_path)
 
-            logger.debug("Moved droplet to #{workspace.downloaded_droplet_path}")
+            logger.debug("staging.app-download.completed",
+              :duration => done - start,
+              :destination => workspace.downloaded_droplet_path)
+
             p.deliver
           end
         end
