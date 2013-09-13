@@ -181,6 +181,7 @@ module Dea
           "droplet_sha1"        => enum(nil, String),
           "droplet_uri"         => enum(nil, String),
 
+          optional("start_command") => enum(nil, String),
 
           # TODO: use proper schema
           "limits"              => limits_schema,
@@ -386,16 +387,23 @@ module Dea
       Promise.new do |p|
         env = Env.new(@raw_attributes, self)
 
-        start_script =
-          if staged_info
+        if staged_info
+          command = start_command || staged_info["start_command"]
+
+          unless command
+            p.fail("missing start command")
+            next
+          end
+
+          start_script =
             Dea::StartupScriptGenerator.new(
-              staged_info.fetch("start_command"),
+              command,
               env.exported_user_environment_variables,
               env.exported_system_environment_variables
             ).generate
-          else
-            env.exported_environment_variables + "./startup;\nexit"
-          end
+        else
+          start_script = env.exported_environment_variables + "./startup;\nexit"
+        end
 
         response = container.spawn(start_script, self.file_descriptor_limit, NPROC_LIMIT, true)
 

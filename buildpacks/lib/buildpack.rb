@@ -80,7 +80,7 @@ module Buildpacks
     def save_buildpack_info
       buildpack_info = {
         "detected_buildpack"  => build_pack.name,
-        "start_command" => start_command # TODO: change to just release info; calculate start command at runtime not compile time
+        "start_command" => start_command
       }
 
       File.open(File.join(destination_directory, staging_info_name), 'w') do |f|
@@ -121,10 +121,12 @@ module Buildpacks
     end
 
     def start_command
-      return environment["meta"]["command"] if environment["meta"] && environment["meta"]["command"]
-      procfile.web ||
-        release_info.fetch("default_process_types", {})["web"] ||
-        raise("Please specify a web start command in your manifest.yml or Procfile")
+      # remain compatible with components sending a command as part of staging
+      if environment["meta"] && environment["meta"]["command"]
+        return environment["meta"]["command"]
+      end
+
+      procfile.web || release_info.fetch("default_process_types", {})["web"]
     end
   end
 end

@@ -90,6 +90,35 @@ describe Dea::Instance do
       its(:droplet_uri)  { should == "http://foo.com/file.ext" }
     end
 
+    describe "start_command from message data" do
+      let(:start_message_data) do
+        {
+          "start_command" => "start command"
+        }
+      end
+
+      its(:start_command) { should == "start command" }
+
+      context "when the value is nil" do
+        let(:start_message_data) do
+          {
+            "start_command" => nil
+          }
+        end
+
+        its(:start_command) { should be_nil }
+      end
+
+      context "when the key is not present" do
+        let(:start_message_data) do
+          {
+          }
+        end
+
+        its(:start_command) { should be_nil }
+      end
+    end
+
     describe "other attributes" do
       let(:start_message_data) do
         {
@@ -735,6 +764,63 @@ describe Dea::Instance do
             .and_return(response)
 
           instance.promise_start.resolve
+        end
+      end
+
+      context "when there is a custom start command set on the instance" do
+        subject(:instance) do
+          Dea::Instance.new(
+            bootstrap,
+            valid_instance_attributes.merge(
+              "start_command" => "my_custom_start_command.sh")
+          )
+        end
+
+        let(:script) { "./dostuffscript" }
+        let(:generator) { double("script generator", generate: script) }
+
+        def self.it_uses_the_custom_start_command
+          it "uses the custom start command" do
+            Dea::StartupScriptGenerator.should_receive(:new).with(
+              "my_custom_start_command.sh",
+              env.exported_user_environment_variables,
+              env.exported_system_environment_variables
+            ).and_return(generator)
+
+            instance.container.should_receive(:spawn)
+              .with(script, instance.file_descriptor_limit, Dea::Instance::NPROC_LIMIT, true)
+              .and_return(response)
+
+            instance.promise_start.resolve
+          end
+        end
+
+        context "and the buildpack does not provide a command" do
+          before do
+            instance.stub(:staged_info).and_return("start_command" => nil)
+          end
+
+          it_uses_the_custom_start_command
+        end
+
+        context "and the buildpack provides one" do
+          before do
+            instance.stub(:staged_info).and_return("start_command" => "foo")
+          end
+
+          it_uses_the_custom_start_command
+        end
+      end
+
+      context "when there is a staged_info but it lacks a start_command and instance lacks a start command" do
+        before do
+          instance.stub(:staged_info).and_return("start_command" => nil)
+        end
+
+        it "fails to start" do
+          expect {
+            instance.promise_start.resolve
+          }.to raise_error("no start command provided")
         end
       end
 

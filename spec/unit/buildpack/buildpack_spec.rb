@@ -13,7 +13,9 @@ describe Buildpacks::Buildpack, :type => :buildpack do
   let(:build_pack) { Buildpacks::Buildpack.new(config) }
 
   before do
-    Buildpacks::Buildpack.any_instance.stub(:buildpacks_path) { Pathname.new(buildpacks_path) }
+    Buildpacks::Buildpack.any_instance.stub(:buildpacks_path) do
+      Pathname.new(buildpacks_path)
+    end
   end
 
   shared_examples_for "successful buildpack compilation" do
@@ -124,56 +126,42 @@ fi
     let(:config) do
       {
         "environment" => {
-          "meta" => meta,
           "services" => []
         },
         "source_dir" => "",
-        "dest_dir" => app_source,
+        "dest_dir" => @destination_dir,
         "staging_info_name" => "fake_staging_info.yml"
       }
     end
-    let(:meta) { {} }
-    let(:buildpack_name) { "fake ruby" }
-    let(:buildpack) do
-      build_pack = Buildpacks::Buildpack.new(config)
-      build_pack.stub(:build_pack) do
-        mock(:build_pack,
-          name: buildpack_name,
-          release_info: {"default_process_types" => {"web" => "fake start command from buildpack"}}
-        )
-      end
-      build_pack
-    end
 
-    let(:buildpack_info_path) { File.join(buildpack.destination_directory, "fake_staging_info.yml") }
-    let(:buildpack_info) do
-      buildpack.save_buildpack_info
-      YAML.load_file(buildpack_info_path)
-    end
+    let(:buildpack) { Buildpacks::Buildpack.new(config) }
 
-    before { app_fixture :node_without_procfile }
+    def buildpack_info
+      @buildpack_info ||= begin
+        Dir.mktmpdir do |tmp|
+          @destination_dir = tmp
 
-    after { FileUtils.rm(buildpack_info_path) if File.exists?(buildpack_info_path) }
+          FileUtils.cp_r(app_source, File.join(tmp, "app"))
 
-    it "has the detected buildpack" do
-      expect(buildpack_info["detected_buildpack"]).to eq("fake ruby")
-    end
-
-    context "when a start command is passed" do
-      let(:meta) { {"command" => "fake user defined start command"} }
-
-      it "has the start command" do
-        expect(buildpack_info["start_command"]).to eq("fake user defined start command")
+          buildpack.save_buildpack_info
+          YAML.load_file(File.join(tmp, "fake_staging_info.yml"))
+        end
       end
     end
 
-    context "when the application has a procfile" do
-      before do
-        Buildpacks::Procfile.stub(:new) { mock(:proc_file, web: "Mocked start command") }
+    context "when the buildpack is detected" do
+      before { app_fixture :node_with_procfile }
+
+      let(:buildpacks_path) { "#{fake_buildpacks_dir}/without_start_cmd" }
+
+      it "has the detected buildpack" do
+        expect(buildpack_info["detected_buildpack"]).to eq("Node.js")
       end
 
-      it "uses the start command specified by the 'web' key in the procfile" do
-        expect(buildpack_info["start_command"]).to eq("Mocked start command")
+      context "when the application has a procfile" do
+        it "uses the start command specified by the 'web' key in the procfile" do
+          expect(buildpack_info["start_command"]).to eq("node app.js --from-procfile=true")
+        end
       end
     end
 
@@ -181,18 +169,18 @@ fi
       before { app_fixture :node_without_procfile }
 
       context "when the buildpack provides a default start command" do
+        let(:buildpacks_path) { "#{fake_buildpacks_dir}/with_start_cmd" }
+
         it "uses the default start command" do
-          expect(buildpack_info["start_command"]).to eq("fake start command from buildpack")
+          expect(buildpack_info["start_command"]).to eq("while true; do (echo hi | nc -l $PORT); done")
         end
       end
 
       context "when the buildpack does not provide a default start command" do
         let(:buildpacks_path) { "#{fake_buildpacks_dir}/without_start_cmd" }
 
-        it "raises an error " do
-          expect {
-            stage :environment => config["environment"]
-          }.to raise_error("Please specify a web start command in your manifest.yml or Procfile")
+        it "sets the start command to an empty string" do
+          expect(buildpack_info["start_command"]).to be_nil
         end
       end
 
