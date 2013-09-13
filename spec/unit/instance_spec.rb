@@ -820,7 +820,7 @@ describe Dea::Instance do
         it "fails to start" do
           expect {
             instance.promise_start.resolve
-          }.to raise_error("no start command provided")
+          }.to raise_error("missing start command")
         end
       end
 
