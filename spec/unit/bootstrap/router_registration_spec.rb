@@ -57,7 +57,7 @@ describe Dea do
       "host" => bootstrap.local_ip,
       "port" => bootstrap.config["directory_server"]["v2_port"],
       "uris" => ["#{bootstrap.directory_server_v2.uuid}.#{bootstrap.config["domain"]}"],
-      "tags" => {},
+      "tags" => { "component" => "directory-server-#{bootstrap.uuid}" },
     }
 
     # The directory server is registered at startup, thus we expect two

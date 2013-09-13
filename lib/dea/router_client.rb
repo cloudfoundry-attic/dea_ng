@@ -51,7 +51,7 @@ module Dea
       { "host" => host,
         "port" => port,
         "uris" => [uri],
-        "tags" => {},
+        "tags" => { "component" => "directory-server-#{bootstrap.config["index"]}" },
       }
     end
   end
