@@ -57,9 +57,7 @@ module DeaHelpers
   end
 
   def start_file_server
-    @file_server_pid = run_cmd <<-FS
-      bundle exec ruby spec/bin/file_server.rb 2>&1 >>tmp/logs/file_server.log
-    FS
+    @file_server_pid = run_cmd("bundle exec ruby spec/bin/file_server.rb")
 
     wait_until { is_port_open?("127.0.0.1", 9999) }
   end

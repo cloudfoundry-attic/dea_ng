@@ -40,11 +40,11 @@ RSpec.configure do |config|
     Steno.init(Steno::Config.new(steno_config))
   end
 
-  config.before(:all, :type => :integration, :requires_warden => true) do
+  config.before(:all, :type => :integration) do
     start_file_server
   end
 
-  config.after(:all, :type => :integration, :requires_warden => true) do
+  config.after(:all, :type => :integration) do
     stop_file_server
   end
 end
