@@ -1,10 +1,10 @@
 require "spec_helper"
 
 describe "Running an app", :type => :integration, :requires_warden => true do
-  let(:unstaged_url) { "http://localhost:9999/unstaged/sinatra" }
-  let(:staged_url) { "http://localhost:9999/staged/sinatra" }
-  let(:buildpack_cache_download_uri) { "http://localhost:9999/buildpack_cache" }
-  let(:buildpack_cache_upload_uri) { "http://localhost:9999/buildpack_cache" }
+  let(:unstaged_url) { "http://#{FILE_SERVER_ADDRESS}/unstaged/sinatra" }
+  let(:staged_url) { "http://#{FILE_SERVER_ADDRESS}/staged/sinatra" }
+  let(:buildpack_cache_download_uri) { "http://#{FILE_SERVER_ADDRESS}/buildpack_cache" }
+  let(:buildpack_cache_upload_uri) { "http://#{FILE_SERVER_ADDRESS}/buildpack_cache" }
   let(:buildpack_url) do
     setup_fake_buildpack("start_command")
     fake_buildpack_url("start_command")
@@ -69,9 +69,8 @@ describe "Running an app", :type => :integration, :requires_warden => true do
     and_by "starts the app" do
       response = wait_until_instance_started(app_id)
       instance_info = instance_snapshot(response["instance"])
-      ip = instance_info["warden_host_ip"]
       port = instance_info["instance_host_port"]
-      expect(is_port_open?(ip, port)).to eq(true)
+      expect(is_port_open?(dea_host, port)).to eq(true)
     end
 
     and_by "uploads the droplet" do

@@ -2,10 +2,10 @@ require "spec_helper"
 require "securerandom"
 
 describe "Running an app", :type => :integration, :requires_warden => true do
-  let(:unstaged_url) { "http://localhost:9999/unstaged/sinatra" }
-  let(:staged_url) { "http://localhost:9999/staged/sinatra" }
-  let(:buildpack_cache_download_uri) { "http://localhost:9999/buildpack_cache" }
-  let(:buildpack_cache_upload_uri) { "http://localhost:9999/buildpack_cache" }
+  let(:unstaged_url) { "http://#{FILE_SERVER_ADDRESS}/unstaged/sinatra" }
+  let(:staged_url) { "http://#{FILE_SERVER_ADDRESS}/staged/sinatra" }
+  let(:buildpack_cache_download_uri) { "http://#{FILE_SERVER_ADDRESS}/buildpack_cache" }
+  let(:buildpack_cache_upload_uri) { "http://#{FILE_SERVER_ADDRESS}/buildpack_cache" }
   let(:app_id) { SecureRandom.hex(8) }
   let(:original_memory) do
     dea_config["resources"]["memory_mb"] * dea_config["resources"]["memory_overcommit_factor"]
@@ -127,17 +127,17 @@ describe "Running an app", :type => :integration, :requires_warden => true do
             NATS.request("dea.find.droplet", droplet_message, :timeout => 5) do |response|
               droplet_info = Yajl::Parser.parse(response)
               instance_info = instance_snapshot(droplet_info["instance"])
-              # This is a lie. should be hitting VCAP.local_ip (which is eth0). See story #53675073
-              ip = instance_info["warden_host_ip"]
+
               port = instance_info["instance_host_port"]
-              expect(is_port_open?(ip, port)).to eq(true)
+              expect(is_port_open?(dea_host, port)).to eq(true)
 
               NATS.publish("dea.stop", Yajl::Encoder.encode({"droplet" => app_id})) do
                 port_open = true
                 wait_until(10) do
-                  port_open = is_port_open?(ip, port)
-                  ! port_open
+                  port_open = is_port_open?(dea_host, port)
+                  !port_open
                 end
+
                 expect(port_open).to eq(false)
                 checked_port = true
                 NATS.stop

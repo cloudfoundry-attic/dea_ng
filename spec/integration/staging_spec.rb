@@ -5,10 +5,10 @@ require "vcap/common"
 require "securerandom"
 
 describe "Staging an app", :type => :integration, :requires_warden => true do
-  let(:unstaged_url) { "http://localhost:9999/unstaged/sinatra" }
-  let(:staged_url) { "http://localhost:9999/staged/sinatra" }
-  let(:buildpack_cache_download_uri) { "http://localhost:9999/buildpack_cache" }
-  let(:buildpack_cache_upload_uri) { "http://localhost:9999/buildpack_cache" }
+  let(:unstaged_url) { "http://#{FILE_SERVER_ADDRESS}/unstaged/sinatra" }
+  let(:staged_url) { "http://#{FILE_SERVER_ADDRESS}/staged/sinatra" }
+  let(:buildpack_cache_download_uri) { "http://#{FILE_SERVER_ADDRESS}/buildpack_cache" }
+  let(:buildpack_cache_upload_uri) { "http://#{FILE_SERVER_ADDRESS}/buildpack_cache" }
   let(:app_id) { "some-app-id" }
   let(:properties) { {} }
   let(:task_id) { SecureRandom.uuid }
@@ -88,7 +88,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
         Dir.mktmpdir do |tmp|
           Dir.chdir(tmp) do
             buildpack_cache_file = File.join(FILE_SERVER_DIR, "buildpack_cache.tgz")
-            `tar -zxvf #{buildpack_cache_file}`
+            `tar -zxf #{buildpack_cache_file}`
             expect(File.exist?("new_cached_file")).to be_true
             expect(File.exist?("cached_file")).to_not be_true
           end
@@ -119,7 +119,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
       nats.make_blocking_request("staging", staging_message, 2) do |index, response|
         if index == 0
           uri = URI.parse(response["task_streaming_log_url"])
-          uri.host = VCAP.local_ip
+          uri.host = dea_host
           uri.port = 34567
 
           first_line_streamed = Net::HTTP.get(uri)
@@ -175,7 +175,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
           called = false
           responses = nats.make_blocking_request("staging", staging_message, 2) do
             unless called
-              Process.kill("USR2", dea_pid)
+              evacuate_dea
               called = true
             end
           end

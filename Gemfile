@@ -42,4 +42,5 @@ group :test do
   gem "rack-test"
   gem "rcov"
   gem "ci_reporter"
+  gem "net-ssh"
 end

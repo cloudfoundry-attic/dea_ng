@@ -222,6 +222,7 @@ DEPENDENCIES
   loggregator_emitter (~> 0.0.11.pre)
   loggregator_messages (~> 0.0.5.pre)
   nats
+  net-ssh
   nokogiri (>= 1.4.4)
   patron
   rack
