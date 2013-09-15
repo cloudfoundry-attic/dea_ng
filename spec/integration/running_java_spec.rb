@@ -1,8 +1,6 @@
 require "spec_helper"
 
 describe "Running a Java App", :type => :integration, :requires_warden => true do
-  let(:nats) { NatsHelper.new }
-
   let(:app_id) { SecureRandom.hex(8) }
   let(:unstaged_url) { "http://localhost:9999/unstaged/java_with_oome" }
   let(:staged_url) { "http://localhost:9999/staged/java_with_oome" }

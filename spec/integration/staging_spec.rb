@@ -5,7 +5,6 @@ require "vcap/common"
 require "securerandom"
 
 describe "Staging an app", :type => :integration, :requires_warden => true do
-  let(:nats) { NatsHelper.new }
   let(:unstaged_url) { "http://localhost:9999/unstaged/sinatra" }
   let(:staged_url) { "http://localhost:9999/staged/sinatra" }
   let(:buildpack_cache_download_uri) { "http://localhost:9999/buildpack_cache" }
@@ -121,7 +120,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
         if index == 0
           uri = URI.parse(response["task_streaming_log_url"])
           uri.host = VCAP.local_ip
-          uri.port = 5678
+          uri.port = 34567
 
           first_line_streamed = Net::HTTP.get(uri)
         end

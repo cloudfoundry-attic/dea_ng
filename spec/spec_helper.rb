@@ -35,9 +35,13 @@ RSpec.configure do |config|
     Steno.init(Steno::Config.new(steno_config))
   end
 
-  config.before(:all, :type => :integration, :requires_warden => true) { dea_start }
+  config.before(:all, :type => :integration, :requires_warden => true) do
+    start_file_server
+  end
 
-  config.after(:all, :type => :integration, :requires_warden => true) { dea_stop }
+  config.after(:all, :type => :integration, :requires_warden => true) do
+    stop_file_server
+  end
 end
 
 TEST_TEMP = Dir.mktmpdir

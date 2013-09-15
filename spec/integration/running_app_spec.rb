@@ -2,7 +2,6 @@ require "spec_helper"
 require "securerandom"
 
 describe "Running an app", :type => :integration, :requires_warden => true do
-  let(:nats) { NatsHelper.new }
   let(:unstaged_url) { "http://localhost:9999/unstaged/sinatra" }
   let(:staged_url) { "http://localhost:9999/staged/sinatra" }
   let(:buildpack_cache_download_uri) { "http://localhost:9999/buildpack_cache" }
@@ -122,7 +121,8 @@ describe "Running an app", :type => :integration, :requires_warden => true do
         id = dea_id
         checked_port = false
         droplet_message = Yajl::Encoder.encode("droplet" => app_id, "states" => ["RUNNING"])
-        NATS.start do
+
+        nats.with_nats do
           NATS.subscribe("router.register") do |_|
             NATS.request("dea.find.droplet", droplet_message, :timeout => 5) do |response|
               droplet_info = Yajl::Parser.parse(response)

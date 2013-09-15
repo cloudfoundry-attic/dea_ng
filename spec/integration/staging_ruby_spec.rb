@@ -2,7 +2,6 @@ require "spec_helper"
 require "net/http"
 
 describe "Staging a ruby app", :type => :integration, :requires_warden => true do
-  let(:nats) { NatsHelper.new }
   let(:unstaged_url) { "http://localhost:9999/unstaged/sinatra" }
   let(:staged_url) { "http://localhost:9999/staged/sinatra" }
   let(:properties) { {} }

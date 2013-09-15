@@ -44,7 +44,7 @@ module DeaHelpers
   end
 
   def dea_config
-    @config ||= YAML.load(File.read("config/dea.yml"))
+    @config ||= YAML.load(File.read("/var/vcap/jobs/dea_next/config/dea.yml"))
   end
 
   def dea_pid
@@ -53,12 +53,25 @@ module DeaHelpers
     # File was removed
   end
 
+  def start_file_server
+    @file_server_pid = run_cmd <<-FS
+      bundle exec ruby spec/bin/file_server.rb 2>&1 >>tmp/logs/file_server.log
+    FS
+
+    wait_until { is_port_open?("127.0.0.1", 9999) }
+  end
+
+  def stop_file_server
+    graceful_kill(@file_server_pid) if @file_server_pid
+  end
+
   def dea_start
-    run_cmd("bundle exec bin/dea config/dea.yml 2>&1 >>tmp/logs/dea.log")
+    run_cmd("monit start dea_next")
+
     Timeout::timeout(10) do
       while true
         begin
-          response = NatsHelper.new.request("dea.status", { }, :timeout => 1)
+          response = nats.request("dea.status", { }, :timeout => 1)
           break if response
         rescue NATS::ConnectError, Timeout::Error
           # Ignore because either NATS is not running, or DEA is not running.
@@ -68,14 +81,14 @@ module DeaHelpers
   end
 
   def dea_stop
-    graceful_kill(dea_pid) if dea_pid
+    run_cmd("monit stop dea_next")
   end
 
   def sha1_url(url)
     `curl --silent #{url} | sha1sum`.split(/\s/).first
   end
 
-  def wait_until_instance_started(app_id, timeout = 5)
+  def wait_until_instance_started(app_id, timeout = 60)
     response = nil
     wait_until(timeout) do
       response = nats.request("dea.find.droplet", {
@@ -86,11 +99,14 @@ module DeaHelpers
     response
   end
 
-  def wait_until_instance_gone(app_id, timeout = 5)
+  def wait_until_instance_gone(app_id, timeout = 60)
     wait_until(timeout) do
       res = nats.request("dea.find.droplet", {
         "droplet" => app_id,
       }, :timeout => 1)
+
+      sleep 1
+
       !res || res["state"] == "CRASHED"
     end
   end
@@ -101,9 +117,7 @@ module DeaHelpers
     end
   end
 
-  private
-
   def nats
-    NatsHelper.new
+    NatsHelper.new(dea_config)
   end
 end

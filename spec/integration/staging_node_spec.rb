@@ -2,7 +2,6 @@ require "spec_helper"
 require "net/http"
 
 describe "Staging a node app", :type => :integration, :requires_warden => true do
-  let(:nats) { NatsHelper.new }
   let(:unstaged_url) { "http://localhost:9999/unstaged/node_with_procfile" }
   let(:staged_url) { "http://localhost:9999/staged/node_with_procfile" }
   let(:properties) { {} }
