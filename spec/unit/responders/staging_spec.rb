@@ -175,7 +175,6 @@ describe Dea::Responders::Staging do
           it "responds with successful message" do
             nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
               "task_id" => "task-id",
-              "task_log" => nil,
               "task_streaming_log_url" => "streaming-log-url",
               "detected_buildpack" => nil,
               "error" => nil,
@@ -191,7 +190,6 @@ describe Dea::Responders::Staging do
           it "responds with error message" do
             nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
               "task_id" => "task-id",
-              "task_log" => nil,
               "task_streaming_log_url" => "streaming-log-url",
               "detected_buildpack" => nil,
               "error" => "error-description",
@@ -241,7 +239,6 @@ describe Dea::Responders::Staging do
           it "responds successful message" do
             nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
               "task_id" => "task-id",
-              "task_log" => "task-log",
               "task_streaming_log_url" => nil,
               "detected_buildpack" => nil,
               "error" => nil,
@@ -264,7 +261,6 @@ describe Dea::Responders::Staging do
           it "responds with error message" do
             nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
               "task_id" => "task-id",
-              "task_log" => "task-log",
               "task_streaming_log_url" => nil,
               "detected_buildpack" => nil,
               "error" => "error-description",
@@ -282,7 +278,6 @@ describe Dea::Responders::Staging do
           it "responds with error message" do
             nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
               "task_id" => "task-id",
-              "task_log" => nil,
               "task_streaming_log_url" => nil,
               "detected_buildpack" => nil,
               "error" => "Error staging: task stopped",

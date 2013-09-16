@@ -113,7 +113,6 @@ module Dea::Responders
       task.after_upload_callback do |error|
         respond_to_message(message, {
           :task_id => task.task_id,
-          :task_log => task.task_log,
           :error => (error.to_s if error),
           :detected_buildpack => task.detected_buildpack,
           :droplet_sha1 => task.droplet_sha1
@@ -136,7 +135,6 @@ module Dea::Responders
     def respond_to_message(message, params)
       message.respond(
         "task_id" => params[:task_id],
-        "task_log" => params[:task_log],
         "task_streaming_log_url" => params[:streaming_log_url],
         "detected_buildpack" => params[:detected_buildpack],
         "error" => params[:error],
