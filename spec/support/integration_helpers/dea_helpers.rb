@@ -1,6 +1,8 @@
 require "yaml"
 require "net/ssh"
 
+require "dea/config"
+
 module DeaHelpers
   INTEGRATION_CONFIG_FILE =
     File.expand_path("../../../integration/config.yml", __FILE__)
@@ -17,7 +19,7 @@ module DeaHelpers
         end
       end
     rescue Timeout::Error
-      p "Timed out attempting to connect to #{ip}:#{port}"
+      raise "Timed out attempting to connect to #{ip}:#{port}"
     end
 
     return false
@@ -54,10 +56,15 @@ module DeaHelpers
 
   def evacuate_dea
     remote_exec("kill -USR2 #{dea_pid}")
+    sleep evacuation_delay
+  end
+
+  def evacuation_delay
+    dea_config["evacuation_delay_secs"]
   end
 
   def start_file_server
-    @file_server_pid = run_cmd("bundle exec ruby spec/bin/file_server.rb")
+    @file_server_pid = run_cmd("bundle exec ruby spec/bin/file_server.rb", :debug => true)
 
     wait_until { is_port_open?("127.0.0.1", 9999) }
   end
@@ -69,7 +76,7 @@ module DeaHelpers
   def dea_start
     remote_exec("monit start dea_next")
 
-    Timeout::timeout(10) do
+    Timeout.timeout(10) do
       while true
         begin
           response = nats.request("dea.status", { }, :timeout => 1)
@@ -127,7 +134,10 @@ module DeaHelpers
   end
 
   def dea_config
-    @dea_config ||= YAML.load(remote_file("/var/vcap/jobs/dea_next/config/dea.yml"))
+    @dea_config ||= begin
+      config_yaml = YAML.load(remote_file("/var/vcap/jobs/dea_next/config/dea.yml"))
+      Dea::Config.new(config_yaml).tap(&:validate)
+    end
   end
 
   def remote_file(path)

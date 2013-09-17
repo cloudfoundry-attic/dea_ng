@@ -98,6 +98,7 @@ describe "Running an app", :type => :integration, :requires_warden => true do
 
     after do
       nats.publish("dea.stop", {"droplet" => app_id})
+      wait_until_instance_gone(app_id)
     end
 
     describe "starting the app" do
@@ -114,6 +115,7 @@ describe "Running an app", :type => :integration, :requires_warden => true do
 
         nats.publish("dea.stop", {"droplet" => app_id})
         wait_until_instance_gone(app_id)
+
         expect(dea_memory).to eql(original_memory)
       end
 

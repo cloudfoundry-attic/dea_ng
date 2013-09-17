@@ -23,6 +23,7 @@ RSpec.configure do |config|
   config.include BuildpackHelpers, :type => :integration
   config.include ProcessHelpers, :type => :integration
   config.include DeaHelpers, :type => :integration
+  config.include StagingHelpers, :type => :integration
 
   config.before do
     RSpecRandFix.call_kernel_srand # TODO: remove this once we have a fix

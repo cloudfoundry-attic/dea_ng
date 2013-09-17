@@ -1,6 +1,6 @@
 require "spec_helper"
 
-describe "Running an app", :type => :integration, :requires_warden => true do
+describe "Running an app immediately after staging", :type => :integration, :requires_warden => true do
   let(:unstaged_url) { "http://#{FILE_SERVER_ADDRESS}/unstaged/sinatra" }
   let(:staged_url) { "http://#{FILE_SERVER_ADDRESS}/staged/sinatra" }
   let(:buildpack_cache_download_uri) { "http://#{FILE_SERVER_ADDRESS}/buildpack_cache" }
@@ -52,28 +52,24 @@ describe "Running an app", :type => :integration, :requires_warden => true do
   end
 
   it "works" do
-    responses = nats.make_blocking_request("staging", staging_running_message, 2)
+    by "staging the app" do
+      response, log = perform_stage_request(staging_running_message)
 
-    by "starts the staging" do
-      expect(responses[0]["task_id"]).to eq("some-task-id")
-      expect(responses[0]["task_streaming_log_url"]).to match /^http/
+      expect(response["task_id"]).to eq("some-task-id")
+      expect(response["error"]).to be_nil
+
+      expect(log).to include("-----> Downloaded app package")
+      expect(log).to include("-----> Uploading droplet")
     end
 
-    and_by "sends the correct staging finished message back to CC" do
-      expect(responses[1]["task_id"]).to eq("some-task-id")
-      expect(responses[1]["error"]).to be_nil
-      expect(responses[1]["task_log"]).to include("-----> Downloaded app package")
-      expect(responses[1]["task_log"]).to include("-----> Uploading droplet")
-    end
-
-    and_by "starts the app" do
+    and_by "starting the app" do
       response = wait_until_instance_started(app_id)
       instance_info = instance_snapshot(response["instance"])
       port = instance_info["instance_host_port"]
       expect(is_port_open?(dea_host, port)).to eq(true)
     end
 
-    and_by "uploads the droplet" do
+    and_by "uploading the droplet" do
       expect(File.exist?(uploaded_droplet)).to be_true
     end
   end

@@ -30,6 +30,7 @@ describe "Staging a node app", :type => :integration, :requires_warden => true d
     {
       "app_id" => "some-node-app-id",
       "properties" => properties,
+      "task_id" => "task-id",
       "download_uri" => unstaged_url,
       "upload_uri" => staged_url,
       "buildpack_cache_upload_uri" => "http://#{FILE_SERVER_ADDRESS}/buildpack_cache",
@@ -38,12 +39,12 @@ describe "Staging a node app", :type => :integration, :requires_warden => true d
     }
   end
 
-  subject(:staged_responses) { nats.make_blocking_request("staging", staging_message, 2) }
-
   it "packages up the node dependencies and stages the app properly" do
-    expect(staged_responses[1]["task_log"]).to include("Resolving engine versions")
-    expect(staged_responses[1]["detected_buildpack"]).to eq("Node.js")
-    expect(staged_responses[1]["error"]).to be_nil
+    response, log = perform_stage_request(staging_message)
+
+    expect(log).to include("Resolving engine versions")
+    expect(response["detected_buildpack"]).to eq("Node.js")
+    expect(response["error"]).to be_nil
 
     download_tgz(staged_url) do |dir|
       entries = Dir.entries(dir).join(" ")
@@ -59,10 +60,13 @@ describe "Staging a node app", :type => :integration, :requires_warden => true d
     let(:staged_url) { "http://#{FILE_SERVER_ADDRESS}/staged/node_with_incompatibility" }
 
     it "fails to stage" do
-      expect(staged_responses[1]["error"]).to include "Script exited with status 1"
+      response, log = perform_stage_request(staging_message)
+
+      expect(response["error"]).to include "Script exited with status 1"
+
       # Bcrypt 0.4.1 is incompatible with node 0.10, using node-waf and node-gyp respectively
-      expect(staged_responses[1]["task_log"]).to include("make: node-waf: Command not found")
-      expect(staged_responses[1]["task_log"]).to_not include("Building runtime environment")
+      expect(log).to include("make: node-waf: Command not found")
+      expect(log).to_not include("Building runtime environment")
     end
   end
 
@@ -76,7 +80,10 @@ describe "Staging a node app", :type => :integration, :requires_warden => true d
     end
 
     it "runs the tests" do
-      expect(staged_responses[1]["task_log"]).to include "OK"
+      _, log = perform_stage_request(staging_message)
+
+      expect(log).to include "Running bin/test"
+      expect(log).to include "OK"
     end
   end
 end

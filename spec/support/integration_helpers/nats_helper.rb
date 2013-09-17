@@ -27,6 +27,7 @@ class NatsHelper
 
     with_nats do
       yield if block_given?
+
       NATS.subscribe(key) do |resp|
         response = resp
         NATS.stop

@@ -25,6 +25,7 @@ describe "Staging a ruby app", :type => :integration, :requires_warden => true d
       "services" => []
     }
   end
+
   let(:staging_message) do
     {
       "app_id" => "some-ruby-app-id",
@@ -37,12 +38,13 @@ describe "Staging a ruby app", :type => :integration, :requires_warden => true d
     }
   end
 
-  subject(:staged_responses) { nats.make_blocking_request("staging", staging_message, 2) }
-
   it "packages a ruby binary and the app's gems" do
-    expect(staged_responses[1]["detected_buildpack"]).to eq("Ruby/Rack")
-    expect(staged_responses[1]["task_log"]).to include("Your bundle is complete!")
-    expect(staged_responses[1]["error"]).to be_nil
+    response, log = perform_stage_request(staging_message)
+
+    expect(response["detected_buildpack"]).to eq("Ruby/Rack")
+    expect(response["error"]).to be_nil
+
+    expect(log).to include("Your bundle is complete!")
 
     download_tgz(staged_url) do |dir|
       expect(Dir.entries("#{dir}/app/vendor")).to include("ruby-1.9.3")
