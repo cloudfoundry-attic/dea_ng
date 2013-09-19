@@ -75,7 +75,9 @@ module Dea
         begin
           yield handle_incoming_message(subject, raw_data, respond_to)
         rescue Yajl::ParseError => e
-          logger.error "Parse error \"#{e.message}\" raised while processing #{subject.inspect}: #{raw_data}"
+          logger.error "nats.subscribe.json_error", error: e, backtrace: e.backtrace
+        rescue => e
+          logger.error "nats.subscribe.error", error: e, backtrace: e.backtrace
         end
       end
 

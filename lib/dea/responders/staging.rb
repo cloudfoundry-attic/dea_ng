@@ -47,6 +47,8 @@ module Dea::Responders
       notify_stop(message, task)
 
       task.start
+    rescue => e
+      logger.error "staging.handle.failed", :error => e, :backtrace => e.backtrace
     end
 
     def handle_stop(message)
@@ -55,6 +57,8 @@ module Dea::Responders
           task.stop
         end
       end
+    rescue => e
+      logger.error "staging.handle_stop.failed", :error => e, :backtrace => e.backtrace
     end
 
     private

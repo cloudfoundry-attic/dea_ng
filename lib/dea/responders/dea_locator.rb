@@ -36,6 +36,8 @@ module Dea::Responders
           :app_id_to_count => resource_manager.app_id_to_count,
         }),
       )
+    rescue => e
+      logger.error "dea_locator.advertise", error: e, backtrace: e.backtrace
     end
 
     private

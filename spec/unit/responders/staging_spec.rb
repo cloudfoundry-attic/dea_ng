@@ -290,6 +290,15 @@ describe Dea::Responders::Staging do
         end
       end
     end
+
+    describe "when an error occurs" do
+      let(:message) { Dea::Nats::Message.new(nats, nil, {}, "respond-to") }
+
+      it "catches the error since this is the top level" do
+        Dea::StagingTask.stub(:new).and_raise(RuntimeError, "Some Horrible thing happened")
+        expect { subject.handle(message) }.to_not raise_error
+      end
+    end
   end
 
   describe "#handle_stop" do
@@ -302,6 +311,13 @@ describe Dea::Responders::Staging do
     it "stops all staging tasks with the given id" do
       staging_task.should_receive(:stop)
       subject.handle_stop(message)
+    end
+
+    describe "when an error occurs" do
+      it "catches the error since this is the top level" do
+        staging_task.stub(:stop).and_raise(RuntimeError, "Some Terrible Error")
+        expect { subject.handle_stop(message) }.to_not raise_error
+      end
     end
   end
 end

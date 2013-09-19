@@ -105,5 +105,15 @@ describe Dea::Responders::StagingLocator do
       ))
       subject.advertise
     end
+
+    context "when a failure happens" do
+      it "catches the error since this is the top level" do
+        config["stacks"] = ["lucid64"]
+        resource_manager.stub(:remaining_memory => 45678)
+
+        nats_mock.stub(:publish).and_raise(RuntimeError, "somethingTerrible")
+        expect{subject.advertise}.not_to raise_error
+      end
+    end
   end
 end

@@ -35,6 +35,8 @@ module Dea::Responders
         "stacks" => config["stacks"],
         "available_memory" => resource_manager.remaining_memory
       })
+    rescue => e
+      logger.error "staging_locator.advertise", error: e, backtrace: e.backtrace
     end
 
     private

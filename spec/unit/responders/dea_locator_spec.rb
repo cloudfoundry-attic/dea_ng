@@ -119,5 +119,12 @@ describe Dea::Responders::DeaLocator do
         subject.advertise
       end
     end
+
+    context "when a failure happens" do
+      it "should catch the error since this is the top level" do
+        nats_mock.stub(:publish).and_raise(RuntimeError, "Something terrible happened")
+        expect { subject.advertise }.to_not raise_error
+      end
+    end
   end
 end
