@@ -10,3 +10,9 @@
 [submodule "buildpacks/vendor/java"]
 	path = buildpacks/vendor/java
 	url = https://github.com/cloudfoundry/java-buildpack
+[submodule "go/src/github.com/cloudfoundry/gosteno"]
+	path = go/src/github.com/cloudfoundry/gosteno
+	url = https://github.com/cloudfoundry/gosteno.git
+[submodule "go/src/github.com/howeyc/fsnotify"]
+	path = go/src/github.com/howeyc/fsnotify
+	url = https://github.com/howeyc/fsnotify.git

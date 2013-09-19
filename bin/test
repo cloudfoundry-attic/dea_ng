@@ -20,8 +20,6 @@ set -e
 # Test Go
 (
   cd go
-  bin/go get -v directoryserver/...
-  bin/go get -v runner/...
   bin/go test -i directoryserver
   bin/go test -v directoryserver
 )
