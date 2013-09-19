@@ -1,6 +1,11 @@
 module BuildpackHelpers
+  def file_server_address
+    local_ip = Socket.ip_address_list.detect(&:ipv4_private?).ip_address
+    "#{local_ip}:9999"
+  end
+
   def fake_buildpack_url(buildpack_name)
-    "http://#{FILE_SERVER_ADDRESS}/buildpacks/#{buildpack_name}/.git"
+    "http://#{file_server_address}/buildpacks/#{buildpack_name}/.git"
   end
 
   def setup_fake_buildpack(buildpack_name)

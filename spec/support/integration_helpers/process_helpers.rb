@@ -1,3 +1,5 @@
+require 'socket'
+
 module ProcessHelpers
   def run_cmd(cmd, opts={})
     project_path = File.join(File.dirname(__FILE__), "../../..")

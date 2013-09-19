@@ -2,8 +2,8 @@ require "spec_helper"
 require "net/http"
 
 describe "Staging a node app", :type => :integration, :requires_warden => true do
-  let(:unstaged_url) { "http://#{FILE_SERVER_ADDRESS}/unstaged/node_with_procfile" }
-  let(:staged_url) { "http://#{FILE_SERVER_ADDRESS}/staged/node_with_procfile" }
+  let(:unstaged_url) { "http://#{file_server_address}/unstaged/node_with_procfile" }
+  let(:staged_url) { "http://#{file_server_address}/staged/node_with_procfile" }
   let(:properties) { {} }
 
   let(:start_message) do
@@ -33,8 +33,8 @@ describe "Staging a node app", :type => :integration, :requires_warden => true d
       "task_id" => "task-id",
       "download_uri" => unstaged_url,
       "upload_uri" => staged_url,
-      "buildpack_cache_upload_uri" => "http://#{FILE_SERVER_ADDRESS}/buildpack_cache",
-      "buildpack_cache_download_uri" => "http://#{FILE_SERVER_ADDRESS}/buildpack_cache",
+      "buildpack_cache_upload_uri" => "http://#{file_server_address}/buildpack_cache",
+      "buildpack_cache_download_uri" => "http://#{file_server_address}/buildpack_cache",
       "start_message" => start_message
     }
   end
@@ -56,8 +56,8 @@ describe "Staging a node app", :type => :integration, :requires_warden => true d
   end
 
   context "when dependencies have incompatible versions" do
-    let(:unstaged_url) { "http://#{FILE_SERVER_ADDRESS}/unstaged/node_with_incompatibility" }
-    let(:staged_url) { "http://#{FILE_SERVER_ADDRESS}/staged/node_with_incompatibility" }
+    let(:unstaged_url) { "http://#{file_server_address}/unstaged/node_with_incompatibility" }
+    let(:staged_url) { "http://#{file_server_address}/staged/node_with_incompatibility" }
 
     it "fails to stage" do
       response, log = perform_stage_request(staging_message)
@@ -71,7 +71,7 @@ describe "Staging a node app", :type => :integration, :requires_warden => true d
   end
 
   describe "Running node.js buildpack tests" do
-    let(:unstaged_url) { "http://#{FILE_SERVER_ADDRESS}/unstaged/node_buildpack_tests" }
+    let(:unstaged_url) { "http://#{file_server_address}/unstaged/node_buildpack_tests" }
     let(:properties) do
       {
           "buildpack" => "git://github.com/ddollar/buildpack-test.git",

@@ -2,8 +2,8 @@ require "spec_helper"
 require "net/http"
 
 describe "Staging a ruby app", :type => :integration, :requires_warden => true do
-  let(:unstaged_url) { "http://#{FILE_SERVER_ADDRESS}/unstaged/rails3_with_db" }
-  let(:staged_url) { "http://#{FILE_SERVER_ADDRESS}/staged/rails3_with_db" }
+  let(:unstaged_url) { "http://#{file_server_address}/unstaged/rails3_with_db" }
+  let(:staged_url) { "http://#{file_server_address}/staged/rails3_with_db" }
   let(:properties) { {} }
   let(:app_id) { "some-rails-app-id" }
   let(:cleardb_service) do
@@ -36,8 +36,8 @@ describe "Staging a ruby app", :type => :integration, :requires_warden => true d
       "properties" => { "services" => [cleardb_service] },
       "download_uri" => unstaged_url,
       "upload_uri" => staged_url,
-      "buildpack_cache_upload_uri" => "http://#{FILE_SERVER_ADDRESS}/buildpack_cache",
-      "buildpack_cache_download_uri" => "http://#{FILE_SERVER_ADDRESS}/buildpack_cache",
+      "buildpack_cache_upload_uri" => "http://#{file_server_address}/buildpack_cache",
+      "buildpack_cache_download_uri" => "http://#{file_server_address}/buildpack_cache",
       "start_message" => start_message
     }
   end

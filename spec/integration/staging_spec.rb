@@ -5,10 +5,10 @@ require "vcap/common"
 require "securerandom"
 
 describe "Staging an app", :type => :integration, :requires_warden => true do
-  let(:unstaged_url) { "http://#{FILE_SERVER_ADDRESS}/unstaged/sinatra" }
-  let(:staged_url) { "http://#{FILE_SERVER_ADDRESS}/staged/sinatra" }
-  let(:buildpack_cache_download_uri) { "http://#{FILE_SERVER_ADDRESS}/buildpack_cache" }
-  let(:buildpack_cache_upload_uri) { "http://#{FILE_SERVER_ADDRESS}/buildpack_cache" }
+  let(:unstaged_url) { "http://#{file_server_address}/unstaged/sinatra" }
+  let(:staged_url) { "http://#{file_server_address}/staged/sinatra" }
+  let(:buildpack_cache_download_uri) { "http://#{file_server_address}/buildpack_cache" }
+  let(:buildpack_cache_upload_uri) { "http://#{file_server_address}/buildpack_cache" }
   let(:app_id) { "some-app-id" }
   let(:properties) { {} }
   let(:task_id) { SecureRandom.uuid }

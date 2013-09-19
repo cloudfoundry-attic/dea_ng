@@ -1,10 +1,10 @@
 require "spec_helper"
 
 describe "Running an app immediately after staging", :type => :integration, :requires_warden => true do
-  let(:unstaged_url) { "http://#{FILE_SERVER_ADDRESS}/unstaged/sinatra" }
-  let(:staged_url) { "http://#{FILE_SERVER_ADDRESS}/staged/sinatra" }
-  let(:buildpack_cache_download_uri) { "http://#{FILE_SERVER_ADDRESS}/buildpack_cache" }
-  let(:buildpack_cache_upload_uri) { "http://#{FILE_SERVER_ADDRESS}/buildpack_cache" }
+  let(:unstaged_url) { "http://#{file_server_address}/unstaged/sinatra" }
+  let(:staged_url) { "http://#{file_server_address}/staged/sinatra" }
+  let(:buildpack_cache_download_uri) { "http://#{file_server_address}/buildpack_cache" }
+  let(:buildpack_cache_upload_uri) { "http://#{file_server_address}/buildpack_cache" }
   let(:buildpack_url) do
     setup_fake_buildpack("start_command")
     fake_buildpack_url("start_command")

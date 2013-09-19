@@ -13,10 +13,6 @@ require_relative '../buildpacks/lib/buildpack'
 
 Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].map { |f| require f }
 
-local_ip = Socket.ip_address_list.detect(&:ipv4_private?).ip_address
-
-FILE_SERVER_ADDRESS = "#{local_ip}:9999"
-
 RSpec.configure do |config|
   config.include Helpers
   config.include StagingSpecHelpers, :type => :buildpack
