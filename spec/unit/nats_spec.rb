@@ -58,34 +58,12 @@ describe Dea::Nats do
       logfile = Tempfile.open("dea_nats")
       Steno.init(Steno::Config.new({:sinks => [Steno::Sink::IO.new(logfile)]}))
 
-      nats.subscribe("some.subject") do |message|
-        raise "This should not be called"
-      end
+      nats.subscribe("some.subject") {}
 
       nats_mock.receive_message("some.subject", "{\"foo\": oops an error in the json", "echo.reply")
 
       logfile.rewind
-      Yajl::Parser.parse(logfile.readlines[1])["message"].should =~ /^Parse error/
-    end
-
-    it "ignores rspec errors" do
-      logfile = Tempfile.open("dea_nats")
-      Steno.init(Steno::Config.new({:sinks => [Steno::Sink::IO.new(logfile)]}))
-
-      nats.subscribe("some.subject") do |message|
-        "this should fail".should be_nil
-      end
-
-      exception =
-        begin
-          expect {
-            nats_mock.receive_message("some.subject", {"foo" => "bar"}, "echo.reply")
-          }.to_not change(logfile.readlines, :size)
-        rescue => e
-          e
-        end
-
-      exception.should be_kind_of(RSpec::Expectations::ExpectationNotMetError)
+      expect(logfile.readlines[1]).to include "nats.subscribe.json_error"
     end
   end
 
