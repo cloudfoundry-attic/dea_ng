@@ -20,8 +20,9 @@ set -e
 # Test Go
 (
   cd go
-  bin/go test -i directoryserver
-  bin/go test -v directoryserver
+  export GOPATH=$PWD
+  go test -i directoryserver
+  go test -v directoryserver
 )
 
 # Test Ruby
