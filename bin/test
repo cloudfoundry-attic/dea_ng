@@ -1,31 +1,11 @@
 #!/bin/bash
 
-set -x
-set -e
-
-## Bootstrap Go
-#(
-#  cd go
-#  bin/go test -i directoryserver
-#) &
-
-## Bootstrap Ruby
-#(
-#  rvm use 1.9.3
-#  bundle install
-#) &
-
-#wait
+set -e -x
 
 # Test Go
-(
-  cd go
-  export GOPATH=$PWD
-  go test -i directoryserver
-  go test -v directoryserver
-)
+export GOPATH=$PWD/go
+go test -i directoryserver
+go test -v directoryserver
 
 # Test Ruby
-(
-  bundle exec rspec -t ~requires_warden
-)
+bundle exec rspec -t ~requires_warden

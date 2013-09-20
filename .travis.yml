@@ -5,9 +5,9 @@ rvm:
   - 1.9.3
 
 before_install:
-  - git submodule update --init
+  - git submodule update --init --recursive
 
 before_script:
-  - foreman start &
+  - gvm use go1.1
 
 script: "bin/test"
