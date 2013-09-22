@@ -15,7 +15,7 @@ module BuildpackHelpers
     local_ip = ips.first
     raise "Cannot determine an IP reachable from the VM." unless local_ip
 
-    "#{local_ip}:9999"
+    "#{local_ip.ip_address}:9999"
   end
 
   def fake_buildpack_url(buildpack_name)
