@@ -24,7 +24,6 @@ describe Dea::StagingTask do
       },
       "staging" => {
         "environment" => { "BUILDPACK_CACHE" => "buildpack_cache_url" },
-        "platform_config" => {},
         "memory_limit_mb" => memory_limit_mb,
         "disk_limit_mb" => disk_limit_mb,
         "max_staging_duration" => max_staging_duration
@@ -59,7 +58,6 @@ describe Dea::StagingTask do
     it "assembles a shell command and initiates collection of task log" do
       staging.container.should_receive(:run_script) do |_, cmd|
         expect(cmd).to include %Q{export FOO="BAR";}
-        expect(cmd).to match %r{export PLATFORM_CONFIG=".+/platform_config";}
         expect(cmd).to include %Q{export BUILDPACK_CACHE="buildpack_cache_url";}
         expect(cmd).to include %Q{export STAGING_TIMEOUT="900.0";}
         expect(cmd).to include %Q{export MEMORY_LIMIT="512m";} # the user assiged 512 should overwrite the system 256
@@ -224,17 +222,6 @@ YAML
 
       it "includes the staging info path" do
         expect(subject["staging_info_name"]).to eq("staging_info.yml")
-      end
-    end
-
-    describe "the platform config file" do
-      subject do
-        staging.prepare_workspace
-        YAML.load_file("#{workspace_dir}/platform_config")
-      end
-
-      it "includes the cache directory path" do
-        expect(subject["cache"]).to eq("/tmp/cache")
       end
     end
   end

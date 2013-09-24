@@ -10,10 +10,6 @@ module Buildpacks
     attr_accessor :source_directory, :destination_directory, :staging_info_path, :environment_json
     attr_reader :procfile, :environment, :app_dir, :log_dir, :tmp_dir, :cache_dir, :buildpacks_path, :staging_timeout, :staging_info_name
 
-    def self.platform_config
-      YAML.load_file(ENV['PLATFORM_CONFIG'])
-    end
-
     def self.validate_arguments!(*args)
       source, dest, env = args
       argfail!(args) unless source && dest && env

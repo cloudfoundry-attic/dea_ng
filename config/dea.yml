@@ -27,8 +27,6 @@ index: 0
 
 staging:
   enabled: true
-  platform_config:
-    cache: /var/vcap/data/stager/package_cache/ruby
   environment:
     PATH: /usr/local/ruby/bin
     BUILDPACK_CACHE: /var/vcap/packages/buildpack_cache

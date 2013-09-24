@@ -74,10 +74,6 @@ module Dea
       File.join(workspace_dir, "plugin_config")
     end
 
-    def platform_config_path
-      File.join(workspace_dir, "platform_config")
-    end
-
     def staging_info_path
       File.join(workspace_dir, STAGING_INFO)
     end

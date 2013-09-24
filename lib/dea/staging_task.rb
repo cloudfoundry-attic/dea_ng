@@ -151,13 +151,9 @@ module Dea
         "dest_dir" => workspace.warden_staged_dir,
         "cache_dir" => workspace.warden_cache,
         "environment" => attributes["properties"],
-        "staging_info_name" => Dea::StagingTaskWorkspace::STAGING_INFO
+        "staging_info_name" => Dea::StagingTaskWorkspace::STAGING_INFO,
       }
-
-      platform_config = staging_config["platform_config"].merge("cache" => workspace.warden_cache)
-
       File.open(workspace.plugin_config_path, 'w') { |f| YAML.dump(plugin_config, f) }
-      File.open(workspace.platform_config_path, "w") { |f| YAML.dump(platform_config, f) }
     end
 
     def promise_prepare_staging_log

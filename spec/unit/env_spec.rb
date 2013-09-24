@@ -282,7 +282,6 @@ describe Dea::Env do
     let(:staging_task) do
       staging_task = mock(:staging_task)
       staging_task.stub(:is_a?).with(Dea::StagingTask) { true }
-      staging_task.stub_chain(:workspace, platform_config_path: "a_platform_config_path")
       staging_task.stub(:staging_config) { {"environment" => {"BUILDPACK_CACHE" => ""}} }
       staging_task.stub(:staging_timeout) { 900 }
       staging_task
