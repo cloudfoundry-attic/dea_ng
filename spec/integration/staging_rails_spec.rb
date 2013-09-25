@@ -1,7 +1,7 @@
 require "spec_helper"
 require "net/http"
 
-describe "Staging a ruby app", :type => :integration, :requires_warden => true do
+describe "Staging a rails app", :type => :integration, :requires_warden => true do
   let(:unstaged_url) { "http://#{file_server_address}/unstaged/rails3_with_db" }
   let(:staged_url) { "http://#{file_server_address}/staged/rails3_with_db" }
   let(:properties) { {} }
