@@ -37,10 +37,6 @@ module Dea
       end
     end
 
-    def paths_to_bind
-      []
-    end
-
     def promise_stop
       Promise.new do |p|
         request = ::Warden::Protocol::StopRequest.new

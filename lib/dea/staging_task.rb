@@ -460,10 +460,6 @@ module Dea
       promise_save_buildpack_cache.resolve
     end
 
-    def paths_to_bind
-      [workspace.workspace_dir, buildpack_dir]
-    end
-
     def run_plugin_path
       File.join(buildpack_dir, "bin/run")
     end

@@ -296,10 +296,6 @@ module Dea
         end
     end
 
-    def paths_to_bind
-      [droplet.droplet_dirname]
-    end
-
     def validate
       self.class.schema.validate(attributes)
     end
