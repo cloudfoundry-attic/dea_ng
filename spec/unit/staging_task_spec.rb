@@ -203,26 +203,9 @@ YAML
   end
 
   describe "#prepare_workspace" do
-    describe "the plugin config file" do
-      subject do
-        staging.prepare_workspace
-        YAML.load_file("#{workspace_dir}/plugin_config")
-      end
-
-      it "has the right source, destination and cache directories" do
-        expect(subject["source_dir"]).to eq("/tmp/unstaged")
-        expect(subject["dest_dir"]).to eq("/tmp/staged")
-        expect(subject["cache_dir"]).to eq("/tmp/cache")
-      end
-
-      it "includes the specified environment config" do
-        environment_config = attributes["properties"]
-        expect(subject["environment"]).to eq(environment_config)
-      end
-
-      it "includes the staging info path" do
-        expect(subject["staging_info_name"]).to eq("staging_info.yml")
-      end
+    it "should delegate to workspace" do
+      staging.workspace.should_receive(:write_config_file).with(staging.attributes["properties"])
+      staging.prepare_workspace
     end
   end
 

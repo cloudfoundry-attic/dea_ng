@@ -146,7 +146,7 @@ module Dea
     private :trigger_after_stop
 
     def prepare_workspace
-      workspace.write_config_file(attributes)
+      workspace.write_config_file(attributes["properties"])
     end
 
     def promise_prepare_staging_log

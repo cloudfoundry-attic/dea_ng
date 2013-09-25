@@ -22,12 +22,12 @@ module Dea
       end
     end
 
-    def write_config_file(task_attributes)
+    def write_config_file(environment_properties)
       plugin_config = {
         "source_dir" => warden_unstaged_dir,
         "dest_dir" => warden_staged_dir,
         "cache_dir" => warden_cache,
-        "environment" => task_attributes["properties"],
+        "environment" => environment_properties,
         "staging_info_name" => STAGING_INFO,
       }
       File.open(plugin_config_path, 'w') { |f| YAML.dump(plugin_config, f) }
