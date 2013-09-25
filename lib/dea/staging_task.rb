@@ -9,6 +9,7 @@ require "dea/promise"
 require "dea/task"
 require "dea/staging_task_workspace"
 require "dea/env"
+require "dea/admin_buildpack_downloader"
 
 module Dea
   class StagingTask < Task
@@ -146,7 +147,7 @@ module Dea
     private :trigger_after_stop
 
     def prepare_workspace
-      workspace.write_config_file(attributes["properties"])
+      workspace.prepare
     end
 
     def promise_prepare_staging_log
@@ -402,19 +403,17 @@ module Dea
     end
 
     def bind_mounts
-      [workspace.workspace_dir, buildpack_dir].collect do |path|
+      [workspace.workspace_dir, workspace.buildpack_dir, workspace.admin_buildpacks_dir].collect do |path|
         {'src_path' => path, 'dst_path' => path}
       end + config["bind_mounts"]
     end
 
-    def buildpack_dir
-      File.expand_path("../../../buildpacks", __FILE__)
-    end
     private
 
     def resolve_staging_setup
-      prepare_workspace
+      workspace.prepare
       with_network = false
+      logger.info("Done with preparing workspace")
       container.create_container(bind_mounts,
         disk_limit_in_bytes,
         memory_limit_in_bytes,
@@ -461,7 +460,7 @@ module Dea
     end
 
     def run_plugin_path
-      File.join(buildpack_dir, "bin/run")
+      File.join(workspace.buildpack_dir, "bin/run")
     end
 
     def staging_timeout_grace_period

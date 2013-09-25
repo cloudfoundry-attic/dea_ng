@@ -436,8 +436,8 @@ YAML
       end
 
       it 'includes the build pack url' do
-        staging.bind_mounts.should include('src_path' => staging.buildpack_dir,
-                                              'dst_path' => staging.buildpack_dir)
+        staging.bind_mounts.should include('src_path' => staging.workspace.buildpack_dir,
+                                           'dst_path' => staging.workspace.buildpack_dir)
       end
 
       it 'includes the configured bind mounts' do
@@ -452,14 +452,15 @@ YAML
 
     it "performs staging setup operations in correct order" do
       with_network = false
+      staging.should_receive(:download_admin_buildpacks).ordered
       staging.should_receive(:prepare_workspace).ordered.and_return(successful_promise)
       staging.workspace.workspace_dir
       staging.container.should_receive(:create_container).
         with(staging.bind_mounts, staging.disk_limit_in_bytes, staging.memory_limit_in_bytes, with_network).ordered
       %w(
         promise_app_download
-         promise_prepare_staging_log
-         promise_app_dir
+        promise_prepare_staging_log
+        promise_app_dir
       ).each do |step|
         staging.should_receive(step).ordered.and_return(successful_promise)
       end
@@ -485,6 +486,34 @@ YAML
         staging.start
       end
     end
+
+    context "when admin buildpacks are provided" do
+      before do
+        @buildpacks = [{
+                         "url" => "http://example.com/buildpacks/uri/abcdef",
+                         "key" => "abcdef"
+                       },
+                       {
+                         "url" => "http://example.com/buildpacks/uri/ghijk",
+                         "key" => "ghijk"
+                       }]
+        staging.stub(:attributes).and_return(
+          valid_staging_attributes.merge("admin_buildpacks" => @buildpacks))
+      end
+
+      it "downloads the admin buildpacks" do
+        AdminBuildpackDownloader.should_receive(:new).
+          with(@buildpacks, staging.workspace.admin_buildpacks_dir, staging.workspace.tmpdir).
+          and_return(downloader)
+        downloader.should_receive(:download)
+
+        stub_staging
+        stub_staging_setup
+
+        staging.start
+      end
+    end
+
 
     it "performs staging operations in correct order" do
       %w(unpack_app

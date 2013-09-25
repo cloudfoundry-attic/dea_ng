@@ -10,8 +10,10 @@ require 'timecop'
 require 'timeout'
 require 'socket'
 require_relative '../buildpacks/lib/buildpack'
+require "webmock/rspec"
 
 Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].map { |f| require f }
+WebMock.allow_net_connect!
 
 RSpec.configure do |config|
   config.include Helpers

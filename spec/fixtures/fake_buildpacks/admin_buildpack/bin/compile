@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+echo "-----> Some admin compilation output"
+exit 0

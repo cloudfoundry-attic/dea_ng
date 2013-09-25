@@ -1,6 +1,7 @@
 # coding: UTF-8
 
 module Helpers
+  #let(:admin_buildpacks)
   def valid_service_attributes(syslog_drain_url = nil)
     {
       "name"        => "name",
@@ -62,6 +63,7 @@ module Helpers
       "task_id" => VCAP.secure_uuid,
       "download_uri" => "http://127.0.0.1:12346/download",
       "upload_uri" => "http://127.0.0.1:12346/upload",
+      #"admin_buildpacks" => admin_buildpacks,
       "staged_path" => "",
       "start_message" => valid_instance_attributes
     }

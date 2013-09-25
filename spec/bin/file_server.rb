@@ -4,6 +4,7 @@ require "fileutils"
 require "thin"
 require "sinatra/base"
 require "pp"
+require "zip/zip"
 
 APPS_DIR = File.expand_path("../../fixtures/apps", __FILE__)
 BUILDPACK_CACHE_DIR = File.expand_path("../../fixtures/buildpack_cache", __FILE__)
@@ -51,10 +52,25 @@ class FileServer < Sinatra::Base
     200
   end
 
+  get "/admin_buildpacks/:name" do |name|
+    p File.join(BUILDPACKS_DIR, name)
+    zip_filename = "/tmp/admin_buildpack_#{name}.zip"
+    FileUtils.rm_f(zip_filename)
+    zip(zip_filename, File.join(BUILDPACKS_DIR, name))
+    p zip_filename
+    send_file(zip_filename)
+  end
+
   private
 
   def file_path(name)
     "#{STAGED_APPS_DIR}/#{name}"
+  end
+
+  def zip(zip_filename, dir)
+    Dir.chdir(dir) do
+      system("zip -r #{zip_filename} .")
+    end
   end
 end
 

@@ -21,6 +21,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
       "fds" => 32
     }
   end
+  let(:admin_buildpacks) { [] }
 
   let(:start_message) do
     {
@@ -48,8 +49,26 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
       "upload_uri" => staged_url,
       "buildpack_cache_upload_uri" => buildpack_cache_upload_uri,
       "buildpack_cache_download_uri" => buildpack_cache_download_uri,
-      "start_message" => start_message
+      "start_message" => start_message,
+      "admin_buildpacks" => admin_buildpacks
     }
+  end
+
+  context "when admin buildpacks are specified" do
+    let(:admin_buildpacks) do
+      [
+        {
+          "url" => "http://#{file_server_address}/admin_buildpacks/admin_buildpack",
+          "key" => "abcdef"
+        }
+      ]
+    end
+
+    it "uses admin buildpack to stage an app" do
+      response, staging_log = perform_stage_request(staging_message)
+      expect(staging_log).to include("-----> Some admin compilation output")
+      expect(response["error"]).to be_nil
+    end
   end
 
   context "when a buildpack url is specified" do
