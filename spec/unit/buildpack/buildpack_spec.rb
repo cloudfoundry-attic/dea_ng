@@ -1,67 +1,19 @@
 require 'spec_helper'
 
 describe Buildpacks::Buildpack, :type => :buildpack do
-  let(:fake_buildpacks_dir) { File.expand_path("../../../fixtures/fake_buildpack_dirs", __FILE__) }
+  let(:fake_buildpacks_dir) { File.expand_path("../../../fixtures/fake_buildpacks", __FILE__) }
+  let(:buildpack_dirs) { Pathname(fake_buildpacks_dir).children.map(&:to_s) }
   let(:config) do
     {
       "environment" => {"services" => []},
       "source_dir" => "fakesrcdir",
       "dest_dir" => "fakedestdir",
       "staging_info_name" => "fake_staging_info.yml",
+      "buildpack_dirs" => buildpack_dirs
     }
   end
+
   let(:build_pack) { Buildpacks::Buildpack.new(config) }
-
-  before do
-    Buildpacks::Buildpack.any_instance.stub(:buildpacks_path) do
-      Pathname.new(buildpacks_path)
-    end
-  end
-
-  shared_examples_for "successful buildpack compilation" do
-    it "copies the app directory to the correct destination" do
-      stage :environment => staging_env do |staged_dir|
-        File.should be_file("#{staged_dir}/app/app.js")
-      end
-    end
-
-    it "puts the environment variables provided by 'release' into the startup script" do
-      stage :environment => staging_env do |staged_dir|
-        start_script = File.join(staged_dir, 'startup')
-        script_body = File.read(start_script)
-        script_body.should include('export FROM_BUILD_PACK="${FROM_BUILD_PACK:-yes}"')
-      end
-    end
-
-    it "ensures all files have executable permissions" do
-      stage :environment => staging_env do |staged_dir|
-        Dir.glob("#{staged_dir}/app/*").each do |file|
-          expect(File.stat(file).mode.to_s(8)[3..5]).to eq("744") unless File.directory? file
-        end
-        start_script = File.join(staged_dir, 'startup')
-        script_body = File.read(start_script)
-        expect(script_body).to include('export FROM_BUILD_PACK="${FROM_BUILD_PACK:-yes}"')
-      end
-    end
-
-    it "stores everything in profile" do
-      stage :environment => staging_env do |staged_dir|
-        start_script = File.join(staged_dir, 'start_cmd')
-        start_script.should be_executable_file
-        script_body = File.read(start_script)
-        script_body.should include(<<-EXPECTED)
-if [ -d app/.profile.d ]; then
-  for i in app/.profile.d/*.sh; do
-    if [ -r $i ]; then
-      . $i
-    fi
-  done
-  unset i
-fi
-        EXPECTED
-      end
-    end
-  end
 
   describe "#stage_application" do
     let(:buildpack_name) { "Not Rubby" }
@@ -130,7 +82,8 @@ fi
         },
         "source_dir" => "",
         "dest_dir" => @destination_dir,
-        "staging_info_name" => "fake_staging_info.yml"
+        "staging_info_name" => "fake_staging_info.yml",
+        "buildpack_dirs" => buildpack_dirs
       }
     end
 
@@ -149,10 +102,25 @@ fi
       end
     end
 
+    context "when passing in multiple buildpacks" do
+      before { app_fixture :node_with_procfile }
+
+      let(:buildpack_dirs) do
+        [
+          "#{fake_buildpacks_dir}/fail_to_detect",
+          "#{fake_buildpacks_dir}/start_command",
+        ]
+      end
+
+      it "tries next buildpack in a set if first fails to detect" do
+        expect(buildpack_info["detected_buildpack"]).to eq("Node.js")
+      end
+    end
+
     context "when the buildpack is detected" do
       before { app_fixture :node_with_procfile }
 
-      let(:buildpacks_path) { "#{fake_buildpacks_dir}/without_start_cmd" }
+      let(:buildpack_dirs) { ["#{fake_buildpacks_dir}/no_start_command"] }
 
       it "has the detected buildpack" do
         expect(buildpack_info["detected_buildpack"]).to eq("Node.js")
@@ -169,7 +137,7 @@ fi
       before { app_fixture :node_without_procfile }
 
       context "when the buildpack provides a default start command" do
-        let(:buildpacks_path) { "#{fake_buildpacks_dir}/with_start_cmd" }
+        let(:buildpack_dirs) { ["#{fake_buildpacks_dir}/start_command"] }
 
         it "uses the default start command" do
           expect(buildpack_info["start_command"]).to eq("while true; do (echo hi | nc -l $PORT); done")
@@ -177,7 +145,7 @@ fi
       end
 
       context "when the buildpack does not provide a default start command" do
-        let(:buildpacks_path) { "#{fake_buildpacks_dir}/without_start_cmd" }
+        let(:buildpack_dirs) { ["#{fake_buildpacks_dir}/no_start_command"] }
 
         it "sets the start command to an empty string" do
           expect(buildpack_info["start_command"]).to be_nil
@@ -185,11 +153,11 @@ fi
       end
 
       context "when staging an app which does not match any build packs" do
-        let(:buildpacks_path) { "#{fake_buildpacks_dir}/with_no_match" }
+        let(:buildpack_dirs) { ["#{fake_buildpacks_dir}/fail_to_detect"] }
 
         it "raises an error" do
           expect {
-            stage :environment => config["environment"]
+            buildpack_info
           }.to raise_error("Unable to detect a supported application type")
         end
       end
@@ -197,7 +165,7 @@ fi
   end
 
   describe "#build_pack" do
-    let(:buildpacks_path) { "#{fake_buildpacks_dir}/with_start_cmd" }
+    let(:buildpack_dirs) { ["#{fake_buildpacks_dir}/start_command"] }
 
     context "when a buildpack URL is passed" do
       let(:buildpack_url) { "git://github.com/heroku/heroku-buildpack-java.git" }

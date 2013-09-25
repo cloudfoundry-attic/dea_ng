@@ -8,7 +8,6 @@ module StagingSpecHelpers
   def stage(config = {})
     raise "Call 'app_fixture :name_of_app' before staging" unless @app_fixture
     working_dir = Dir.mktmpdir("#{@app_fixture}-staged")
-
     stringified_config = {}
     config.each_pair { |k, v| stringified_config[k.to_s] = v }
 

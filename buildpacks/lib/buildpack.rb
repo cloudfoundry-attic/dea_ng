@@ -8,7 +8,7 @@ require "procfile"
 module Buildpacks
   class Buildpack
     attr_accessor :source_directory, :destination_directory, :staging_info_path, :environment_json
-    attr_reader :procfile, :environment, :app_dir, :log_dir, :tmp_dir, :cache_dir, :buildpacks_path, :staging_timeout, :staging_info_name
+    attr_reader :procfile, :environment, :app_dir, :log_dir, :tmp_dir, :cache_dir, :buildpack_dirs, :staging_timeout, :staging_info_name
 
     def self.validate_arguments!(*args)
       source, dest, env = args
@@ -40,7 +40,7 @@ module Buildpacks
       @log_dir = File.join(destination_directory, "logs")
       @tmp_dir = File.join(destination_directory, "tmp")
       @cache_dir ||= "/tmp/cache"
-      @buildpacks_path = Pathname.new(__FILE__) + '../../vendor/'
+      @buildpack_dirs = config.fetch("buildpack_dirs")
 
       @procfile = Procfile.new("#{app_dir}/Procfile")
     end
@@ -104,7 +104,7 @@ module Buildpacks
     end
 
     def installers
-      buildpacks_path.children.map do |buildpack|
+      buildpack_dirs.map do |buildpack|
         Buildpacks::Installer.new(buildpack, app_dir, cache_dir)
       end
     end

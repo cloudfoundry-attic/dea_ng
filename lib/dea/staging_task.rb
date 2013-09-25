@@ -146,14 +146,7 @@ module Dea
     private :trigger_after_stop
 
     def prepare_workspace
-      plugin_config = {
-        "source_dir" => workspace.warden_unstaged_dir,
-        "dest_dir" => workspace.warden_staged_dir,
-        "cache_dir" => workspace.warden_cache,
-        "environment" => attributes["properties"],
-        "staging_info_name" => Dea::StagingTaskWorkspace::STAGING_INFO,
-      }
-      File.open(workspace.plugin_config_path, 'w') { |f| YAML.dump(plugin_config, f) }
+      workspace.write_config_file(attributes)
     end
 
     def promise_prepare_staging_log
