@@ -10,10 +10,9 @@ require 'timecop'
 require 'timeout'
 require 'socket'
 require_relative '../buildpacks/lib/buildpack'
-require "webmock/rspec"
+require "webmock"
 
 Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].map { |f| require f }
-WebMock.allow_net_connect!
 
 RSpec.configure do |config|
   config.include Helpers
@@ -24,6 +23,8 @@ RSpec.configure do |config|
   config.include StagingHelpers, :type => :integration
 
   config.before do
+    WebMock.allow_net_connect!
+
     RSpecRandFix.call_kernel_srand # TODO: remove this once we have a fix
 
     steno_config = {
@@ -39,7 +40,11 @@ RSpec.configure do |config|
     Steno.init(Steno::Config.new(steno_config))
   end
 
+  config.before(:all, :type => :integration, :requires_warden => true) { dea_start if ENV.has_key?("LOCAL_DEA") }
+  config.after(:all, :type => :integration, :requires_warden => true) { dea_stop if ENV.has_key?("LOCAL_DEA") }
+
   config.before(:all, :type => :integration) do
+    WebMock.disable!
     start_file_server
   end
 

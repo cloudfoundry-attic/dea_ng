@@ -24,6 +24,7 @@ warden_socket: /tmp/warden.sock
 evacuation_delay_secs: 10
 
 index: 0
+domain: "localhost.xip.io"
 
 staging:
   enabled: true
@@ -40,7 +41,7 @@ dea_ruby: /usr/bin/ruby
 directory_server:
   protocol: 'http'
   v1_port: 4385
-  v2_port: 5678
+  v2_port: 80
   file_api_port: 1234
   streaming_timeout: 10
   logging:

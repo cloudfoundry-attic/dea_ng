@@ -1,12 +1,11 @@
 require "yaml"
 require "net/ssh"
+require_relative "process_helpers"
+require_relative "local_ip_finder"
 
 require "dea/config"
 
 module DeaHelpers
-  INTEGRATION_CONFIG_FILE =
-    File.expand_path("../../../integration/config.yml", __FILE__)
-
   def is_port_open?(ip, port)
     begin
       Timeout::timeout(5) do
@@ -32,12 +31,12 @@ module DeaHelpers
   end
 
   def dea_host
-    integration_config["host"]
+    dea_server.host
   end
 
   def dea_id
     nats.request("dea.status", {
-      "limits" => { "mem" => 1, "disk" => 1 }
+        "limits" => {"mem" => 1, "disk" => 1}
     })["id"]
   end
 
@@ -51,11 +50,11 @@ module DeaHelpers
   end
 
   def dea_pid
-    remote_exec("cat #{dea_config["pid_filename"]}").to_i
+    dea_server.pid
   end
 
   def evacuate_dea
-    remote_exec("kill -USR2 #{dea_pid}")
+    dea_server.evacuate_dea
     sleep evacuation_delay
   end
 
@@ -74,12 +73,12 @@ module DeaHelpers
   end
 
   def dea_start
-    remote_exec("monit start dea_next")
+    dea_server.start
 
     Timeout.timeout(10) do
       while true
         begin
-          response = nats.request("dea.status", { }, :timeout => 1)
+          response = nats.request("dea.status", {}, :timeout => 1)
           break if response
         rescue NATS::ConnectError, Timeout::Error
           # Ignore because either NATS is not running, or DEA is not running.
@@ -89,7 +88,7 @@ module DeaHelpers
   end
 
   def dea_stop
-    remote_exec("monit stop dea_next")
+    dea_server.stop
   end
 
   def sha1_url(url)
@@ -100,8 +99,8 @@ module DeaHelpers
     response = nil
     wait_until(timeout) do
       response = nats.request("dea.find.droplet", {
-        "droplet" => app_id,
-        "states" => ["RUNNING"]
+          "droplet" => app_id,
+          "states" => ["RUNNING"]
       }, :timeout => 1)
     end
     response
@@ -110,7 +109,7 @@ module DeaHelpers
   def wait_until_instance_gone(app_id, timeout = 60)
     wait_until(timeout) do
       res = nats.request("dea.find.droplet", {
-        "droplet" => app_id,
+          "droplet" => app_id,
       }, :timeout => 1)
 
       sleep 1
@@ -130,51 +129,127 @@ module DeaHelpers
   end
 
   def instances_json
-    JSON.parse(remote_file(File.join(dea_config["base_dir"], "db", "instances.json")))
+    JSON.parse(dea_server.instance_file)
+  end
+
+  def dea_server
+    @dea_server ||= ENV["LOCAL_DEA"] ? LocalDea.new : RemoteDea.new
   end
 
   def dea_config
-    @dea_config ||= begin
-      config_yaml = YAML.load(remote_file("/var/vcap/jobs/dea_next/config/dea.yml"))
-      Dea::Config.new(config_yaml).tap(&:validate)
+    @dea_config ||= dea_server.config
+  end
+
+  class LocalDea
+    include ProcessHelpers
+
+    def host
+      config["domain"]
+    end
+
+    def start
+      f = File.new("/tmp/dea.yml", "w")
+      f.write(YAML.dump(config))
+      f.close
+      run_cmd "bundle exec bin/dea #{f.path} 2>&1 >>tmp/logs/dea.log"
+    end
+
+    def stop
+      graceful_kill(pid) if pid
+    end
+
+    def pid
+      File.read(config["pid_filename"]).to_i
+    end
+
+    def config
+      @config ||= begin
+        config = YAML.load(File.read("config/dea.yml"))
+        config["domain"] = LocalIPFinder.new.find.ip_address+".xip.io"
+        config
+      end
+    end
+
+    def instance_file
+      File.read File.join(config["base_dir"], "db", "instances.json")
+    end
+
+    def evacuate_dea
+      stop
     end
   end
 
-  def remote_file(path)
-    remote_exec("cat #{path}")
-  end
+  class RemoteDea
+    INTEGRATION_CONFIG_FILE =
+        File.expand_path("../../../integration/config.yml", __FILE__)
 
-  def remote_exec(cmd)
-    host = integration_config["host"]
-    username = integration_config["username"]
-    password = integration_config["password"]
+    def host
+      config["host"]
+    end
 
-    Net::SSH.start(host, username, :password => password) do |ssh|
-      result = ""
+    def start
+      remote_exec("monit start dea_next")
+    end
 
-      ssh.open_channel do |ch|
-        ch.request_pty do |ch, success|
-          raise "could not open pty" unless success
+    def stop
+      remote_exec("monit stop dea_next")
+    end
 
-          ch.exec("sudo bash -ic '#{cmd}'")
+    def pid
+      remote_exec("cat #{config["pid_filename"]}").to_i
+    end
 
-          ch.on_data do |_, data|
-            if data =~ /^\[sudo\] password for #{username}:/
-              ch.send_data("#{password}\n")
-            else
-              result << data
+    def evacuate_dea
+      remote_exec("kill -USR2 #{pid}")
+    end
+
+    def instance_file
+      remote_file(File.join(config["base_dir"], "db", "instances.json"))
+    end
+
+    def config
+      @config ||= begin
+        config_yaml = YAML.load(remote_file("/var/vcap/jobs/dea_next/config/dea.yml"))
+        Dea::Config.new(config_yaml).tap(&:validate)
+      end
+    end
+
+    def remote_file(path)
+      remote_exec("cat #{path}")
+    end
+
+    def integration_config
+      @integration_config ||= YAML.load_file(INTEGRATION_CONFIG_FILE)
+    end
+
+    def remote_exec(cmd)
+      host = integration_config["host"]
+      username = integration_config["username"]
+      password = integration_config["password"]
+
+      Net::SSH.start(host, username, :password => password) do |ssh|
+        result = ""
+
+        ssh.open_channel do |ch|
+          ch.request_pty do |ch, success|
+            raise "could not open pty" unless success
+
+            ch.exec("sudo bash -ic '#{cmd}'")
+
+            ch.on_data do |_, data|
+              if data =~ /^\[sudo\] password for #{username}:/
+                ch.send_data("#{password}\n")
+              else
+                result << data
+              end
             end
           end
         end
+
+        ssh.loop
+
+        return result
       end
-
-      ssh.loop
-
-      return result
     end
-  end
-
-  def integration_config
-    @integration_config ||= YAML.load_file(INTEGRATION_CONFIG_FILE)
   end
 end

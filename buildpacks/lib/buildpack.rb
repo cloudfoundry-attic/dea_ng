@@ -90,12 +90,9 @@ module Buildpacks
         if custom_buildpack_url
           clone_buildpack(custom_buildpack_url)
         else
-          p "Installers: #{installers.first}"
-          build_pack = installers.find(&:detect)
-          p "Installers buildpack: #{build_pack}"
-
-          raise "Unable to detect a supported application type" unless build_pack
-          build_pack
+          detected_buildpack = installers.find(&:detect)
+          raise "Unable to detect a supported application type" unless detected_buildpack
+          detected_buildpack
         end
       end
     end

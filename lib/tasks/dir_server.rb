@@ -8,7 +8,11 @@ namespace :dir_server do
 
   desc "Install directory server"
   task :install do
-    result = system "PATH=$PATH:/usr/local/go/bin go/bin/go install runner"
+    result = nil
+    Dir.chdir("go") do
+      result = system "GOPATH=$PWD PATH=$PATH:/usr/local/go/bin go install runner"
+    end
+
     raise "Installation failed" unless result
   end
 end

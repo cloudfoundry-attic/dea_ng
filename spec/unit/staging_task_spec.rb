@@ -204,7 +204,7 @@ YAML
 
   describe "#prepare_workspace" do
     it "should delegate to workspace" do
-      staging.workspace.should_receive(:write_config_file).with(staging.attributes["properties"])
+      staging.workspace.should_receive(:prepare)
       staging.prepare_workspace
     end
   end
@@ -389,7 +389,7 @@ YAML
     }
 
     it "should clean up after itself" do
-      staging.stub(:prepare_workspace).and_raise("Error")
+      staging.workspace.stub(:prepare).and_raise("Error")
       stub_staging_upload
 
       expect { staging.start }.to raise_error(/Error/)
@@ -452,8 +452,7 @@ YAML
 
     it "performs staging setup operations in correct order" do
       with_network = false
-      staging.should_receive(:download_admin_buildpacks).ordered
-      staging.should_receive(:prepare_workspace).ordered.and_return(successful_promise)
+      staging.workspace.should_receive(:prepare).ordered
       staging.workspace.workspace_dir
       staging.container.should_receive(:create_container).
         with(staging.bind_mounts, staging.disk_limit_in_bytes, staging.memory_limit_in_bytes, with_network).ordered
@@ -486,34 +485,6 @@ YAML
         staging.start
       end
     end
-
-    context "when admin buildpacks are provided" do
-      before do
-        @buildpacks = [{
-                         "url" => "http://example.com/buildpacks/uri/abcdef",
-                         "key" => "abcdef"
-                       },
-                       {
-                         "url" => "http://example.com/buildpacks/uri/ghijk",
-                         "key" => "ghijk"
-                       }]
-        staging.stub(:attributes).and_return(
-          valid_staging_attributes.merge("admin_buildpacks" => @buildpacks))
-      end
-
-      it "downloads the admin buildpacks" do
-        AdminBuildpackDownloader.should_receive(:new).
-          with(@buildpacks, staging.workspace.admin_buildpacks_dir, staging.workspace.tmpdir).
-          and_return(downloader)
-        downloader.should_receive(:download)
-
-        stub_staging
-        stub_staging_setup
-
-        staging.start
-      end
-    end
-
 
     it "performs staging operations in correct order" do
       %w(unpack_app

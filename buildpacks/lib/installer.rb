@@ -25,7 +25,6 @@ module Buildpacks
     private
 
     def command(command_name)
-      p "#{path}/bin/#{command_name} #{app_dir}"
       "#{path}/bin/#{command_name} #{app_dir}"
     end
   end

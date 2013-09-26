@@ -53,7 +53,8 @@ describe Dea::StagingTaskWorkspace do
     describe "the plugin config file" do
       context "when admin buildpack exists" do
         before do
-          @admin_buildpack = Dir.mktmpdir("abcdef", subject.admin_buildpacks_dir)
+          @admin_buildpack = File.join(subject.admin_buildpacks_dir, "abcdef")
+          Dir.mkdir(@admin_buildpack)
           subject.prepare
           @config = YAML.load_file(subject.plugin_config_path)
         end
