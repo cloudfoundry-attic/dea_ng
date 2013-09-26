@@ -413,7 +413,6 @@ module Dea
     def resolve_staging_setup
       workspace.prepare
       with_network = false
-      logger.info("Done with preparing workspace")
       container.create_container(bind_mounts,
         disk_limit_in_bytes,
         memory_limit_in_bytes,

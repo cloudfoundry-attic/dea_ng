@@ -63,7 +63,6 @@ module Helpers
       "task_id" => VCAP.secure_uuid,
       "download_uri" => "http://127.0.0.1:12346/download",
       "upload_uri" => "http://127.0.0.1:12346/upload",
-      #"admin_buildpacks" => admin_buildpacks,
       "staged_path" => "",
       "start_message" => valid_instance_attributes
     }

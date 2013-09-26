@@ -53,11 +53,9 @@ class FileServer < Sinatra::Base
   end
 
   get "/admin_buildpacks/:name" do |name|
-    p File.join(BUILDPACKS_DIR, name)
     zip_filename = "/tmp/admin_buildpack_#{name}.zip"
     FileUtils.rm_f(zip_filename)
     zip(zip_filename, File.join(BUILDPACKS_DIR, name))
-    p zip_filename
     send_file(zip_filename)
   end
 
