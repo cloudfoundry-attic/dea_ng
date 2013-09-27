@@ -1334,6 +1334,16 @@ describe Dea::Instance do
         expect(instance.staged_info).to be_nil
       end
     end
+
+    it "doesn't pollute the temp directory" do
+      tmpdir = Dir.tmpdir
+
+      expect {
+        instance.staged_info
+      }.to_not change {
+        Dir.glob(File.join(tmpdir, "**", "*"), File::FNM_DOTMATCH)
+      }
+    end
   end
 
   describe "#instance_path" do

@@ -753,13 +753,14 @@ module Dea
 
     def staged_info
       @staged_info ||= begin
-        destination_dir = Dir.mktmpdir
-        staging_file_name = "staging_info.yml"
-        copied_file_name = "#{destination_dir}/#{staging_file_name}"
+        Dir.mktmpdir do |destination_dir|
+          staging_file_name = "staging_info.yml"
+          copied_file_name = "#{destination_dir}/#{staging_file_name}"
 
-        copy_out_request("/home/vcap/#{staging_file_name}", destination_dir)
+          copy_out_request("/home/vcap/#{staging_file_name}", destination_dir)
 
-        YAML.load_file(copied_file_name) if File.exists?(copied_file_name)
+          YAML.load_file(copied_file_name) if File.exists?(copied_file_name)
+        end
       end
     end
 
