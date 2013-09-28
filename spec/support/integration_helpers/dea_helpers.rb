@@ -31,7 +31,7 @@ module DeaHelpers
   end
 
   def dea_host
-    dea_server.host
+    dea_server.host || raise("unknown dea host")
   end
 
   def dea_id
@@ -184,7 +184,7 @@ module DeaHelpers
         File.expand_path("../../../integration/config.yml", __FILE__)
 
     def host
-      config["host"]
+      integration_config["host"]
     end
 
     def start
