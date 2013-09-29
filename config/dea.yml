@@ -21,7 +21,7 @@ resources:
 # production apps. (default: false)
 only_production_apps: false
 
-nats_uri: nats://testjpaas:testjpaas@10.50.33.25:4242 
+nats_uri: nats_uri: nats://localhost:4222/
 
 pid_filename: /tmp/dea_ng.pid
 
