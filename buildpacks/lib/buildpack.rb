@@ -86,9 +86,10 @@ module Buildpacks
 
     def build_pack
       @build_pack ||= begin
-        custom_buildpack_url = environment["buildpack"]
         if custom_buildpack_url
           clone_buildpack(custom_buildpack_url)
+        elsif specified_buildpack_key
+          buildpack_with_key(specified_buildpack_key)
         else
           detected_buildpack = installers.find(&:detect)
           raise "Unable to detect a supported application type" unless detected_buildpack
@@ -104,9 +105,17 @@ module Buildpacks
     end
 
     def installers
-      buildpack_dirs.map do |buildpack|
+      @installers ||= buildpack_dirs.map do |buildpack|
         Buildpacks::Installer.new(buildpack, app_dir, cache_dir)
       end
+    end
+
+    def custom_buildpack_url
+      environment["buildpack"] || environment["buildpack_git_url"]
+    end
+
+    def specified_buildpack_key
+      environment["buildpack_key"]
     end
 
     def clone_buildpack(buildpack_url)
@@ -114,6 +123,13 @@ module Buildpacks
       ok = system("git clone --recursive #{buildpack_url} #{buildpack_path}")
       raise "Failed to git clone buildpack" unless ok
       Buildpacks::Installer.new(Pathname.new(buildpack_path), app_dir, cache_dir)
+    end
+
+    def buildpack_with_key(buildpack_key)
+      detected_buildpack_dir = buildpack_dirs.find do |dir|
+        File.basename(dir) == specified_buildpack_key
+      end
+      Buildpacks::Installer.new(detected_buildpack_dir, app_dir, cache_dir)
     end
 
     def start_command

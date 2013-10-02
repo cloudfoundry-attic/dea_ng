@@ -202,9 +202,9 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
           NATS.publish("dea.locate", Yajl::Encoder.encode({})) do
             NATS.subscribe("dea.advertise") do |resp|
               available_memory_while_staging = Yajl::Parser.parse(resp)["available_memory"]
-            end
 
-            NATS.publish("staging.stop", Yajl::Encoder.encode({"app_id" => app_id}))
+              NATS.publish("staging.stop", Yajl::Encoder.encode({"app_id" => app_id}))
+            end
           end
         end
       end

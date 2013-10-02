@@ -164,12 +164,40 @@ describe Buildpacks::Buildpack, :type => :buildpack do
     end
   end
 
-  describe "#build_pack" do
+  describe "buildpack_key" do
+    let(:buildpack_dirs) { Pathname(fake_buildpacks_dir).children.map(&:to_s) }
+
+    before do
+      config["environment"]["buildpack_key"] = "fail_to_detect"
+    end
+
+    subject { build_pack.build_pack }
+
+    it "returns the buildpack with the right key from the buildpack cache" do
+      Buildpacks::Installer.stub(:new)
+        .with("#{fake_buildpacks_dir}/fail_to_detect", anything, anything)
+        .and_return("the right buildpack")
+
+      expect(subject).to eq("the right buildpack")
+    end
+
+    it "does not try to detect the buildpack" do
+      build_pack.stub(:system).with(anything) { true }
+
+      build_pack.send(:installers).each do |i|
+        i.should_not_receive(:detect)
+      end
+
+      subject
+    end
+  end
+
+  describe "buildpack_git_url" do
     let(:buildpack_dirs) { ["#{fake_buildpacks_dir}/start_command"] }
 
-    context "when a buildpack URL is passed" do
+    shared_examples "when a buildpack URL is passed" do |buildpack_url_config_key|
       let(:buildpack_url) { "git://github.com/heroku/heroku-buildpack-java.git" }
-      before { config["environment"]["buildpack"] = buildpack_url }
+      before { config["environment"][buildpack_url_config_key] = buildpack_url }
 
       subject { build_pack.build_pack }
 
@@ -198,6 +226,16 @@ describe Buildpacks::Buildpack, :type => :buildpack do
           expect { subject }.to raise_error("Failed to git clone buildpack")
         end
       end
+    end
+
+    context "the old buildpack url key" do
+      # soon to be deprecated.  Needs to stay around through one deploy so that things
+      # don't break during the deploy
+      include_examples "when a buildpack URL is passed", "buildpack"
+    end
+
+    context "the new, more clear, buildpack_git_url key" do
+      include_examples "when a buildpack URL is passed", "buildpack_git_url"
     end
   end
 end
