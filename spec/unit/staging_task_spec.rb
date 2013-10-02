@@ -18,7 +18,7 @@ describe Dea::StagingTask do
 
   let(:config) do
     {
-      "base_dir" => Dir.mktmpdir("base_dir"),
+      "base_dir" => base_dir,
       "directory_server" => {
         "file_api_port" => 1234
       },
@@ -31,6 +31,7 @@ describe Dea::StagingTask do
     }
   end
 
+  let(:base_dir) { Dir.mktmpdir("base_dir") }
   let(:bootstrap) { mock(:bootstrap, :config => Dea::Config.new(config)) }
   let(:dir_server) { Dea::DirectoryServerV2.new("domain", 1234, config) }
 
@@ -41,8 +42,8 @@ describe Dea::StagingTask do
   end
 
   let(:attributes) { valid_staging_attributes }
-  let(:staging) { Dea::StagingTask.new(bootstrap, dir_server, attributes) }
-
+  let(:staging) { Dea::StagingTask.new(bootstrap, dir_server, attributes, buildpacks_in_use) }
+  let(:buildpacks_in_use) { ["buildpack1", "buildpack2"] }
   let(:successful_promise) { Dea::Promise.new { |p| p.deliver } }
   let(:failing_promise) { Dea::Promise.new { |p| raise "failing promise" } }
 
@@ -206,6 +207,29 @@ YAML
     it "should delegate to workspace" do
       staging.workspace.should_receive(:prepare)
       staging.prepare_workspace
+    end
+
+    it "should pass the list of buildpacks in use to the workspace" do
+      Dea::StagingTaskWorkspace.should_receive(:new).with(
+        base_dir,
+        valid_staging_attributes["admin_buildpacks"],
+        buildpacks_in_use,
+        valid_staging_attributes["properties"]
+      ).and_return(Struct.new(:prepare).new(nil))
+
+      new_staging = Dea::StagingTask.new(bootstrap, dir_server, attributes, buildpacks_in_use)
+      new_staging.prepare_workspace
+    end
+  end
+
+  describe "#admin_buildpacks" do
+
+    let(:attributes) do
+      valid_staging_attributes.merge( { "admin_buildpacks" => %w(a b c) } )
+    end
+
+    it "returns the list of buildpacks passed in the constructor" do
+      expect(staging.admin_buildpacks).to eq(%w(a b c))
     end
   end
 

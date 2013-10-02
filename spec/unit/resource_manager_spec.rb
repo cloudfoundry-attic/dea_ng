@@ -46,7 +46,7 @@ describe Dea::ResourceManager do
         instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "mem" => 32 }).tap { |i| i.state = "CRASHED" })
         instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "mem" => 64 }).tap { |i| i.state = "DELETED" })
 
-        staging_registry.register(Dea::StagingTask.new(bootstrap, nil, {}))
+        staging_registry.register(Dea::StagingTask.new(bootstrap, nil, {}, []))
       end
 
       it "returns the correct remaining memory" do
@@ -75,7 +75,7 @@ describe Dea::ResourceManager do
         instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "disk" => 32 }).tap { |i| i.state = "CRASHED" })
         instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "disk" => 64 }).tap { |i| i.state = "DELETED" })
 
-        staging_registry.register(Dea::StagingTask.new(bootstrap, nil, {}))
+        staging_registry.register(Dea::StagingTask.new(bootstrap, nil, {}, []))
       end
 
       it "returns the correct remaining disk" do
@@ -152,7 +152,7 @@ describe Dea::ResourceManager do
   describe "available_memory_ratio" do
     before do
       instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "mem" => 512 }).tap { |i| i.state = "RUNNING" })
-      staging_registry.register(Dea::StagingTask.new(bootstrap, nil, {}))
+      staging_registry.register(Dea::StagingTask.new(bootstrap, nil, {}, []))
     end
 
     it "is the ratio of available memory to total memory" do
@@ -163,7 +163,7 @@ describe Dea::ResourceManager do
   describe "available_disk_ratio" do
     before do
       instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "disk" => 512 }).tap { |i| i.state = "RUNNING" })
-      staging_registry.register(Dea::StagingTask.new(bootstrap, nil, {}))
+      staging_registry.register(Dea::StagingTask.new(bootstrap, nil, {}, []))
     end
 
     it "is the ratio of available disk to total disk" do
@@ -174,7 +174,7 @@ describe Dea::ResourceManager do
   describe "could_reserve?" do
     before do
       instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "mem" => 512, "disk" => 1024 }).tap { |i| i.state = "RUNNING" })
-      staging_registry.register(Dea::StagingTask.new(bootstrap, nil, {}))
+      staging_registry.register(Dea::StagingTask.new(bootstrap, nil, {}, []))
 
       @remaining_memory = nominal_memory_capacity - 512 - 1024
       @remaining_disk = nominal_disk_capacity - 1024 - 2048

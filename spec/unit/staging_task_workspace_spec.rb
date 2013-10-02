@@ -29,8 +29,10 @@ describe Dea::StagingTaskWorkspace do
     }
   end
 
+  let(:buildpacks_in_use) {[]}
+
   subject do
-    Dea::StagingTaskWorkspace.new(base_dir, admin_buildpacks, env_properties)
+    Dea::StagingTaskWorkspace.new(base_dir, admin_buildpacks, buildpacks_in_use, env_properties)
   end
 
   before do
@@ -40,6 +42,54 @@ describe Dea::StagingTaskWorkspace do
   after { FileUtils.rm_f(base_dir) }
 
   let(:downloader) { double("AdminBuildpackDownloader").as_null_object }
+
+  describe "cleaning up deleted admin buildpacks" do
+    let(:admin_buildpacks) do
+      [
+        {
+          "url" => "http://example.com/buildpacks/uri/abcdef",
+          "key" => "abcdef"
+        }
+      ]
+    end
+
+    let(:file_to_delete) {File.join(subject.admin_buildpacks_dir, "1234") }
+    let(:file_to_keep) {File.join(subject.admin_buildpacks_dir, "abcdef") }
+
+    before do
+      [file_to_delete, file_to_keep].each do |path|
+        create_populated_directory path
+      end
+    end
+
+    def create_populated_directory(path)
+      FileUtils.mkdir_p(File.join(path, "a_buildpack_file"))
+    end
+
+    context "when there are no admin buildpacks in use" do
+      let(:builpacks_in_use) {[]}
+
+      it "cleans deleted admin buildpacks" do
+        expect { subject.prepare }.to change { File.exists? file_to_delete }.from(true).to(false)
+        expect(File.exists? file_to_keep).to be_true
+      end
+    end
+
+    context "when an admin buildpack is in use" do
+      let(:buildpacks_in_use) {["efghi"]}
+      let(:file_in_use) {File.join(subject.admin_buildpacks_dir, "efghi")}
+
+      before do
+        create_populated_directory(file_in_use)
+      end
+
+      it "that buildpack doesn't get deleted" do
+        expect { subject.prepare }.to change { File.exists? file_to_delete }.from(true).to(false)
+        expect(File.exists? file_to_keep).to be_true
+        expect(File.exists? file_in_use).to be_true
+      end
+    end
+  end
 
   describe "preparing the workspace" do
     it "downloads the admin buildpacks" do

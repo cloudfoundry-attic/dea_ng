@@ -153,7 +153,7 @@ describe Dea::Responders::Staging do
       it "starts staging task with registered callbacks" do
         Dea::StagingTask
           .should_receive(:new)
-          .with(bootstrap, dir_server, message.data, an_instance_of(Steno::TaggedLogger))
+          .with(bootstrap, dir_server, message.data, [], an_instance_of(Steno::TaggedLogger))
           .and_return(staging_task)
 
         staging_task.should_receive(:after_setup_callback).ordered
@@ -162,6 +162,33 @@ describe Dea::Responders::Staging do
         staging_task.should_receive(:start).ordered
 
         subject.handle(message)
+      end
+
+      it "passes a list of all potentially in-use buildpacks to the staging task" do
+
+        staging_task_registry.register(task_double ["a", "b", "c"])
+        staging_task_registry.register(task_double ["b", "c"])
+        staging_task_registry.register(task_double ["b", "c", "d", "e"])
+
+        buildpacks_in_use = as_buildpacks ["a", "b", "c", "d", "e"]
+
+        Dea::StagingTask
+          .should_receive(:new)
+          .with(bootstrap, dir_server, message.data, buildpacks_in_use, an_instance_of(Steno::TaggedLogger))
+          .and_return(staging_task)
+
+        subject.handle(message)
+      end
+
+      def task_double(buildpack_keys)
+        Struct.new(:task_id, :admin_buildpacks)
+          .new(SecureRandom.uuid, as_buildpacks(buildpack_keys))
+      end
+
+      def as_buildpacks(buildpack_keys)
+        buildpack_keys.map do |key|
+          { "url" => "some_url", "key" => key }
+        end
       end
 
       it_registers_task

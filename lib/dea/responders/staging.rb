@@ -38,7 +38,7 @@ module Dea::Responders
       Dea::Loggregator.emit(app_id, "Got staging request for app with id #{app_id}")
       logger.info("Got staging request with #{message.data.inspect}")
 
-      task = Dea::StagingTask.new(bootstrap, dir_server, message.data, logger)
+      task = Dea::StagingTask.new(bootstrap, dir_server, message.data, buildpacks_in_use, logger)
       staging_task_registry.register(task)
 
       notify_setup_completion(message, task)
@@ -149,6 +149,14 @@ module Dea::Responders
     def logger_for_app(app_id)
       logger = Steno::Logger.new("Staging", Steno.config.sinks, :level => Steno.config.default_log_level)
       logger.tag(:app_guid => app_id)
+    end
+
+    private
+
+    def buildpacks_in_use
+      staging_task_registry.flat_map do |task|
+        task.admin_buildpacks
+      end.uniq
     end
   end
 end

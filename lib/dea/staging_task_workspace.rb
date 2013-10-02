@@ -8,9 +8,10 @@ module Dea
     STAGING_LOG = "staging_task.log"
     STAGING_INFO = "staging_info.yml"
 
-    def initialize(base_dir, admin_buildpacks, environment_properties)
+    def initialize(base_dir, admin_buildpacks, buildpacks_in_use, environment_properties)
       @base_dir = base_dir
       @admin_buildpacks = admin_buildpacks || []
+      @buildpacks_in_use = buildpacks_in_use
       @environment_properties = environment_properties
       FileUtils.mkdir_p(tmpdir)
       FileUtils.mkdir_p(admin_buildpacks_dir)
@@ -42,6 +43,7 @@ module Dea
 
     def prepare
       download_admin_buildpacks
+      cleanup_admin_buildpacks
       write_config_file
     end
 
@@ -51,6 +53,12 @@ module Dea
         admin_buildpacks_dir,
         tmpdir
       ).download
+    end
+
+    def cleanup_admin_buildpacks
+      buildpacks_needing_deletion.each do |path|
+        FileUtils.rm_rf(path)
+      end
     end
 
     def warden_staged_droplet
@@ -99,6 +107,18 @@ module Dea
           buildpack["key"] == File.basename(s)
         end
       end.map(&:to_s)
+    end
+
+    def buildpacks_needing_deletion
+      all_buildpack_paths - (filtered_admin_buildpack_paths + buildpacks_in_use_paths)
+    end
+
+    def all_buildpack_paths
+      Pathname.new(admin_buildpacks_dir).children.map(&:to_s)
+    end
+
+    def buildpacks_in_use_paths
+      @buildpacks_in_use.map { |b| File.join(admin_buildpacks_dir, b).to_s }
     end
 
     def warden_staging_log

@@ -27,13 +27,14 @@ module Dea
 
     attr_reader :bootstrap, :dir_server, :attributes, :task_id, :droplet_sha1
 
-    def initialize(bootstrap, dir_server, attributes, custom_logger=nil)
+    def initialize(bootstrap, dir_server, attributes, buildpacks_in_use, custom_logger=nil)
       super(bootstrap.config, custom_logger)
 
       @bootstrap = bootstrap
       @dir_server = dir_server
       @attributes = attributes.dup
       @task_id = attributes["task_id"]
+      @buildpacks_in_use = buildpacks_in_use
 
       logger.user_data[:task_id] = task_id
     end
@@ -67,7 +68,7 @@ module Dea
     end
 
     def workspace
-      @workspace ||= StagingTaskWorkspace.new(config["base_dir"], attributes["admin_buildpacks"], attributes["properties"])
+      @workspace ||= StagingTaskWorkspace.new(config["base_dir"], admin_buildpacks, @buildpacks_in_use, attributes["properties"])
     end
 
     def task_log
@@ -406,6 +407,10 @@ module Dea
       [workspace.workspace_dir, workspace.buildpack_dir, workspace.admin_buildpacks_dir].collect do |path|
         {'src_path' => path, 'dst_path' => path}
       end + config["bind_mounts"]
+    end
+
+    def admin_buildpacks
+      @attributes["admin_buildpacks"]
     end
 
     private

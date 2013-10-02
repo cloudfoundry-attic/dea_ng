@@ -69,6 +69,37 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
       expect(staging_log).to include("-----> Some admin compilation output")
       expect(response["error"]).to be_nil
     end
+
+    context "after the buildpack is deleted" do
+
+      context "when one app has been previously deployed with the buildpack we're going to delete" do
+        before do
+          perform_stage_request(staging_message)
+        end
+
+        def stage_with_no_admin_buildpacks
+          staging_message_with_deleted_buildpacks = staging_message.dup
+          staging_message_with_deleted_buildpacks["admin_buildpacks"] = []
+          perform_stage_request(staging_message_with_deleted_buildpacks)
+        end
+
+        it "no longer stages the app with the admin buildpack" do
+          response, staging_log = stage_with_no_admin_buildpacks
+          expect(staging_log).to_not include("-----> Some admin compilation output")
+        end
+
+        it "deletes the buildpack from the filesystem" do
+          expect {
+            stage_with_no_admin_buildpacks
+          }.to change{ admin_buildpack_dir_size }.from(1).to(0)
+        end
+
+        def admin_buildpack_dir_size
+          admin_buildpack_dir = File.join(dea_config["base_dir"], "admin_buildpacks")
+          (Dir.entries(admin_buildpack_dir) - [".", ".."]).size
+        end
+      end
+    end
   end
 
   context "when a buildpack url is specified" do

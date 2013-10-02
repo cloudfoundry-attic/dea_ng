@@ -215,8 +215,8 @@ describe Dea::Bootstrap do
 
     context "when staging tasks are registered" do
       before do
-        bootstrap.staging_task_registry.register(Dea::StagingTask.new(bootstrap, nil, {}))
-        bootstrap.staging_task_registry.register(Dea::StagingTask.new(bootstrap, nil, {}))
+        bootstrap.staging_task_registry.register(Dea::StagingTask.new(bootstrap, nil, {}, []))
+        bootstrap.staging_task_registry.register(Dea::StagingTask.new(bootstrap, nil, {}, []))
       end
 
       it "stops registered tasks" do
