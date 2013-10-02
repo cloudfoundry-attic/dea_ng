@@ -103,14 +103,13 @@ rvmsudo bundle exec rake warden:start[config/test_vm.yml] 2>&1 > /tmp/warden.log
 # start the DEA's dependencies
 cd /vagrant
 bundle install
-foreman start > /tmp/foreman.log &
+rvmsudo foreman start > /tmp/foreman.log &
 ```
 
 To run the tests (unit, integration or all):
 ```
 bundle exec rspec spec/unit
-bundle exec rspec spec/integration
-bundle exec rspec
+LOCAL_DEA=true bundle exec rspec spec/integration
 ```
 
 Note that the integration tests stage and run real applications, which requires an internet connection.
