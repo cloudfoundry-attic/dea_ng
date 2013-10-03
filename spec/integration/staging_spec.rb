@@ -70,8 +70,32 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
       expect(response["error"]).to be_nil
     end
 
-    context "after the buildpack is deleted" do
+    context "when having 2 admin buildpacks" do
+      let(:admin_buildpacks) do
+        [
+          {
+            "url" => "http://#{file_server_address}/admin_buildpacks/admin_buildpack",
+            "key" => "abcdef"
+          },
+          {
+            "url" => "http://#{file_server_address}/admin_buildpacks/start_command",
+            "key" => "xyz"
+          }
+        ]
+      end
 
+      context "and a specific buildpack is requested by key" do
+        let(:properties) { {"buildpack_key" => "xyz", "environment" => env, "resources" => limits} }
+
+        it "uses the one specified in the message" do
+          response, staging_log = perform_stage_request(staging_message)
+          expect(staging_log).to include("-----> Some compilation output")
+          expect(response["error"]).to be_nil
+        end
+      end
+    end
+
+    context "after the buildpack is deleted" do
       context "when one app has been previously deployed with the buildpack we're going to delete" do
         before do
           perform_stage_request(staging_message)

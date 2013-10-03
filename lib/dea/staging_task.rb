@@ -68,7 +68,10 @@ module Dea
     end
 
     def workspace
-      @workspace ||= StagingTaskWorkspace.new(config["base_dir"], admin_buildpacks, @buildpacks_in_use, attributes["properties"])
+      @workspace ||= StagingTaskWorkspace.new(config["base_dir"],
+                                              admin_buildpacks,
+                                              @buildpacks_in_use,
+                                              attributes["properties"])
     end
 
     def task_log
