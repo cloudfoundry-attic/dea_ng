@@ -93,9 +93,7 @@ describe Dea::StagingTaskWorkspace do
 
   describe "preparing the workspace" do
     it "downloads the admin buildpacks" do
-      AdminBuildpackDownloader.should_receive(:new).
-        with(admin_buildpacks, subject.admin_buildpacks_dir, subject.tmpdir).
-        and_return(downloader)
+      AdminBuildpackDownloader.should_receive(:new).with(admin_buildpacks, subject.admin_buildpacks_dir).and_return(downloader)
       downloader.should_receive(:download)
       subject.prepare
     end

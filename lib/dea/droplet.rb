@@ -38,25 +38,18 @@ module Dea
     end
 
     def download(uri, &blk)
-      @download_waiting ||= []
-      @download_waiting << blk
+      if droplet_exist?
+        blk.call(nil)
+        return
+      end
 
-      logger.debug "Waiting for download to complete"
+      FileUtils.mkdir_p(droplet_dirname)
+      droplet = File.new(droplet_path, "w")
+      File.chmod(0744, droplet.path)
+      Download.new(uri, droplet, sha1).download! do |err|
+        logger.debug "Downloaded droplet to #{droplet_path}" unless err
 
-      if @download_waiting.size == 1
-        # Fire off request when this is the first call to #download
-        Download.new(uri, droplet_dirname, sha1).download! do |err, path|
-          if !err
-            File.rename(path, droplet_path)
-            File.chmod(0744, droplet_path)
-
-            logger.debug "Moved droplet to #{droplet_path}"
-          end
-
-          while blk = @download_waiting.shift
-            blk.call(err)
-          end
-        end
+        blk.call(err)
       end
     end
 

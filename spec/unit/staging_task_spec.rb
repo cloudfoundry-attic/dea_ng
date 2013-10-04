@@ -47,6 +47,8 @@ describe Dea::StagingTask do
   let(:successful_promise) { Dea::Promise.new { |p| p.deliver } }
   let(:failing_promise) { Dea::Promise.new { |p| raise "failing promise" } }
 
+  after { FileUtils.rm_rf(workspace_dir) if File.exists?(workspace_dir) }
+
   before do
     staging.stub(:workspace_dir) { workspace_dir }
     staging.stub(:staged_droplet_path) { __FILE__ }
@@ -681,10 +683,12 @@ YAML
       promise
     end
 
+    let(:staging_app_file_path) { "#{workspace_dir}/app.zip" }
+
     context "when there is an error" do
       before do
         Download.any_instance.stub(:download!).and_yield(
-          RuntimeError.new("This is an error"), nil)
+          RuntimeError.new("This is an error"))
       end
 
       it { expect { subject }.to raise_error(RuntimeError, "This is an error") }
@@ -692,16 +696,14 @@ YAML
 
     context "when there is no error" do
       before do
-        File.stub(:rename)
-        File.stub(:chmod)
-        Download.any_instance.stub(:download!).and_yield(nil, "/path/to/file")
+        Download.any_instance.stub(:download!).and_yield(nil)
       end
       its(:result) { should == [:deliver, nil] }
 
       it "should rename the file" do
-        File.should_receive(:rename).with("/path/to/file", "#{workspace_dir}/app.zip")
-        File.should_receive(:chmod).with(0744, "#{workspace_dir}/app.zip")
         subject
+        expect(File.exists?(staging_app_file_path)).to be_true
+        expect(sprintf("%o", File.stat(staging_app_file_path).mode)).to eq "100744"
       end
     end
   end
@@ -713,23 +715,23 @@ YAML
       promise
     end
 
+    let(:buildpack_cache_dest) { File.join workspace_dir, "buildpack_cache.tgz" }
+
     context "when there is an error" do
-      before { Download.any_instance.stub(:download!).and_yield("This is an error", nil) }
-      its(:result) { should == [:deliver, nil] }
+      before { Download.any_instance.stub(:download!).and_yield("This is an error") }
+
+      its(:result) { should eq([:deliver, nil]) }
     end
 
     context "when there is no error" do
-      before do
-        File.stub(:rename)
-        File.stub(:chmod)
-        Download.any_instance.stub(:download!).and_yield(nil, "/path/to/file")
-      end
-      its(:result) { should == [:deliver, nil] }
+      before { Download.any_instance.stub(:download!).and_yield(nil) }
+
+      its(:result) { should eq([:deliver, nil]) }
 
       it "should rename the file" do
-        File.should_receive(:rename).with("/path/to/file", "#{workspace_dir}/buildpack_cache.tgz")
-        File.should_receive(:chmod).with(0744, "#{workspace_dir}/buildpack_cache.tgz")
         subject
+        expect(File.exists?(buildpack_cache_dest)).to be_true
+        expect(sprintf("%o", File.stat(buildpack_cache_dest).mode)).to eq "100744"
       end
     end
   end

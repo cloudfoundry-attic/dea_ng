@@ -1,5 +1,5 @@
+require "spec_helper"
 require "dea/admin_buildpack_downloader"
-require "webmock/rspec"
 
 describe AdminBuildpackDownloader do
   let(:logger) do
@@ -12,21 +12,16 @@ describe AdminBuildpackDownloader do
 
   let(:destination_directory) { Dir.mktmpdir }
 
-  let(:workspace) { Dir.mktmpdir }
-
   before do
     stub_request(:any, "http://example.com/buildpacks/uri/abcdef").to_return(
       body: File.new(zip_file)
     )
   end
 
-  after do
-    FileUtils.rm_f(destination_directory)
-    FileUtils.rm_f(workspace)
-  end
+  after { FileUtils.rm_f(destination_directory) }
 
   subject(:downloader) do
-    AdminBuildpackDownloader.new(buildpacks, destination_directory, workspace, logger)
+    AdminBuildpackDownloader.new(buildpacks, destination_directory, logger)
   end
 
   context "with single buildpack" do
@@ -44,7 +39,7 @@ describe AdminBuildpackDownloader do
       expected_file_name = File.join(destination_directory, "abcdef")
       expect(File.exist?(expected_file_name)).to be_true
       expect(sprintf("%o", File.stat(expected_file_name).mode)).to eq("40755")
-      expect(Dir.entries(File.join(destination_directory, "abcdef"))).to include("content")
+      expect(Dir.entries(expected_file_name)).to include("content")
     end
 
     it "doesn't download buildpacks it already has" do

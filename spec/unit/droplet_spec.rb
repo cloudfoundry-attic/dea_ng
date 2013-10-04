@@ -45,86 +45,77 @@ describe Dea::Droplet do
   end
 
   describe "download" do
-    around do |example|
-      em do
-        example.call
-      end
-    end
+    context "when unsucessful" do
+      around { |example| em { example.call } }
 
-    it "should fail when server is unreachable" do
-      droplet.download("http://127.0.0.1:12346/droplet") do |err|
-        err.message.should match(/status: unknown/)
-        done
-      end
-    end
-
-    it "should fail when response has status other than 200" do
-      start_http_server(12345) do |connection, data|
-        connection.send_data("HTTP/1.1 404 Not Found\r\n")
-        connection.send_data("\r\n")
-      end
-
-      droplet.download("http://127.0.0.1:12345/droplet") do |err|
-        err.message.should match(/status: 404/)
-        done
-      end
-    end
-
-    it "should fail when response payload has invalid SHA1" do
-      start_http_server(12345) do |connection, data|
-        connection.send_data("HTTP/1.1 200 OK\r\n")
-        connection.send_data("Content-Length: 4\r\n")
-        connection.send_data("\r\n")
-        connection.send_data("fooz\r\n")
-        connection.send_data("\r\n")
-      end
-
-      droplet.download("http://127.0.0.1:12345/droplet") do |err|
-        err.message.should match(/SHA1 mismatch/)
-        done
-      end
-    end
-
-    describe "when successful" do
-      before do
-        body = payload
-
-        start_http_server(12345) do |connection, data|
-          connection.send_data("HTTP/1.1 200 OK\r\n")
-          connection.send_data("Content-Length: #{body.length}\r\n")
-          connection.send_data("\r\n")
-          connection.send_data(body)
-          connection.send_data("\r\n")
-
-          # Taint body so subsequent requests get a different response
-          body = body.succ
-        end
-      end
-
-      it "should call callback without error" do
-        droplet.download("http://127.0.0.1:12345/droplet") do |err|
-          err.should be_nil
-
-          # Droplet should now exist
-          droplet.droplet_exist?.should be_true
-
+      it "should fail when server is unreachable" do
+        droplet.download("http://127.0.0.1:12346/droplet") do |err|
+          err.message.should match(/status: unknown/)
           done
         end
       end
 
-      it "should coalesce attempts at concurrent downloads" do
-        in_flight = 0
+      it "should fail when response has status other than 200" do
+        stub_request(:get, "http://127.0.0.1:12345/droplet").to_return(status: 404)
 
-        5.times do
+        droplet.download("http://127.0.0.1:12345/droplet") do |err|
+          err.message.should match(/status: 404/)
+          done
+        end
+      end
+
+      it "should fail when response payload has invalid SHA1" do
+        stub_request(:get, "http://127.0.0.1:12345/droplet").to_return(body: "fooz")
+
+        droplet.download("http://127.0.0.1:12345/droplet") do |err|
+          err.message.should match(/SHA1 mismatch/)
+          done
+        end
+      end
+    end
+
+    context "when successful" do
+      before do
+        stub_request(:get, "http://127.0.0.1:12345/droplet").to_return(body: payload)
+      end
+
+      after do
+        FileUtils.rm_f droplet.droplet_path
+      end
+
+      it "should call callback without error" do
+        em do
           droplet.download("http://127.0.0.1:12345/droplet") do |err|
             err.should be_nil
 
-            in_flight -= 1
-            done if in_flight == 0
+            # Droplet should now exist
+            droplet.droplet_exist?.should be_true
+
+            done
+          end
+        end
+      end
+    end
+
+    context "when the same dea is running multiple instances of the app" do
+      before do
+        @request = stub_request(:get, "http://127.0.0.1:12345/droplet").to_return(body: payload)
+      end
+
+      it "only downloads the droplet once" do
+        called = 0
+        em do
+          3.times do
+            droplet.download("http://127.0.0.1:12345/droplet") do
+              called += 1
+            end
           end
 
-          in_flight += 1
+          done
         end
+
+        expect(@request).to have_been_made.times(1)
+        expect(called).to eq(3)
       end
     end
   end
@@ -138,7 +129,7 @@ describe Dea::Droplet do
 
       it "saves file in droplet path" do
         droplet.local_copy(source_file) {}
-        expect{
+        expect {
           File.exists?(droplet.droplet_path)
         }.to be_true
 

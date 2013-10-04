@@ -50,8 +50,7 @@ module Dea
     def download_admin_buildpacks
       AdminBuildpackDownloader.new(
         @admin_buildpacks,
-        admin_buildpacks_dir,
-        tmpdir
+        admin_buildpacks_dir
       ).download
     end
 

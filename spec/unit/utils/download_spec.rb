@@ -3,10 +3,12 @@ require "dea/utils/download"
 
 describe Download do
   around do |example|
-    em do
-      example.call
-    end
+    em { example.call }
   end
+
+  let(:from_uri) { "http://127.0.0.1:12345/droplet" }
+  let(:to_file) { Tempfile.new("some_dest") }
+  let(:sha) { "DEADBEEF" }
 
   it "fails when the file isn't found" do
     start_http_server(12345) do |connection, data|
@@ -14,7 +16,7 @@ describe Download do
       connection.send_data("\r\n")
     end
 
-    Download.new("http://127.0.0.1:12345/droplet", Dir.mktmpdir("foo"), "DEADBEEF").download! do |error|
+    Download.new(from_uri, to_file, ).download! do |error|
       error.message.should match(/status: 404/)
       done
     end
@@ -29,7 +31,7 @@ describe Download do
       connection.send_data("\r\n")
     end
 
-    Download.new("http://127.0.0.1:12345/droplet", Dir.mktmpdir("foo"), "DEADBEEF").download! do |err|
+    Download.new(from_uri, to_file, sha).download! do |err|
       err.message.should match(/SHA1 mismatch/)
       done
     end
@@ -49,9 +51,9 @@ describe Download do
     expected = Digest::SHA1.new
     expected << body
 
-    Download.new("http://127.0.0.1:12345/droplet", Dir.mktmpdir("foo"), expected.hexdigest).download! do |err, path|
+    Download.new(from_uri, to_file, expected.hexdigest).download! do |err|
       err.should be_nil
-      File.read(path).should == body
+      File.read(to_file).should == body
       done
     end
   end
@@ -74,7 +76,7 @@ describe Download do
     Tempfile.stub(:new => the_tempfile)
     Tempfile.should_receive(:new).once
     the_tempfile.should_receive(:binmode).once
-    Download.new("http://127.0.0.1:12345/droplet", Dir.mktmpdir("foo"), expected.hexdigest).download! { done }
+    Download.new(from_uri, to_file, expected.hexdigest).download! { done }
   end
 
   context "when the sha is not given" do
@@ -89,9 +91,9 @@ describe Download do
         connection.send_data("\r\n")
       end
 
-      Download.new("http://127.0.0.1:12345/droplet", Dir.mktmpdir("foo")).download! do |err, path|
+      Download.new(from_uri, to_file).download! do |err|
         err.should be_nil
-        File.read(path).should == body
+        File.read(to_file).should == body
         done
       end
     end

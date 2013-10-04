@@ -1,5 +1,5 @@
 class Download
-  attr_reader :uri, :blk, :destination_dir, :sha1_expected
+  attr_reader :source_uri, :destination_file, :sha1_expected
   attr_reader :logger
 
   class DownloadError < StandardError
@@ -16,71 +16,55 @@ class Download
     end
   end
 
-  def initialize(uri, destination_dir, sha1_expected=nil, custom_logger=nil)
-    @uri = uri
-    @destination_dir = destination_dir
+  def initialize(source_uri, destination_file, sha1_expected=nil, custom_logger=nil)
+    @source_uri = source_uri
+    @destination_file = destination_file
     @sha1_expected = sha1_expected
     @logger = custom_logger || self.class.logger
   end
 
   def download!(&blk)
-    FileUtils.mkdir_p(destination_dir)
-
-    file = Tempfile.new("droplet", destination_dir)
-    file.binmode
+    destination_file.binmode
     sha1 = Digest::SHA1.new
 
-    http = EM::HttpRequest.new(uri).get
+    http = EM::HttpRequest.new(source_uri).get
 
     http.stream do |chunk|
-      file << chunk
+      destination_file << chunk
       sha1 << chunk
     end
 
-    cleanup = lambda do |&inner|
-      file.close
-
-      begin
-        inner.call
-      ensure
-        FileUtils.rm_f(file.path)
-      end
-    end
-
-    context = { :droplet_uri => uri }
+    context = { :droplet_uri => source_uri }
 
     http.errback do
-      cleanup.call do
-        error = DownloadError.new("Response status: unknown", context)
-        logger.warn(error.message, error.data)
-        blk.call(error)
-      end
+      error = DownloadError.new("Response status: unknown", context)
+      logger.warn(error.message, error.data)
+      blk.call(error)
     end
 
     http.callback do
-      cleanup.call do
-        http_status = http.response_header.status
+      destination_file.close
+      http_status = http.response_header.status
 
-        context[:droplet_http_status] = http_status
+      context[:droplet_http_status] = http_status
 
-        if http_status == 200
-          sha1_actual   = sha1.hexdigest
-          if !sha1_expected || sha1_expected == sha1_actual
-            logger.info("Download succeeded")
-            blk.call(nil, file.path)
-          else
-            context[:droplet_sha1_expected] = sha1_expected
-            context[:droplet_sha1_actual]   = sha1_actual
-
-            error = DownloadError.new("SHA1 mismatch", context)
-            logger.warn(error.message, error.data)
-            blk.call(error)
-          end
+      if http_status == 200
+        sha1_actual = sha1.hexdigest
+        if !sha1_expected || sha1_expected == sha1_actual
+          logger.info("Download succeeded")
+          blk.call(nil)
         else
-          error = DownloadError.new("HTTP status: #{http_status}", context)
+          context[:droplet_sha1_expected] = sha1_expected
+          context[:droplet_sha1_actual] = sha1_actual
+
+          error = DownloadError.new("SHA1 mismatch", context)
           logger.warn(error.message, error.data)
           blk.call(error)
         end
+      else
+        error = DownloadError.new("HTTP status: #{http_status}", context)
+        logger.warn(error.message, error.data)
+        blk.call(error)
       end
     end
   end
