@@ -4,7 +4,7 @@ bundle install --without development
 rvmsudo foreman start &
 
 exit_code=0
-#bundle exec rspec spec/unit -fd || exit_code=$?
+bundle exec rspec spec/unit -fd || exit_code=$?
 export LOCAL_DEA=true
 bundle exec rspec spec/integration --fail-fast -fd || exit_code=$?
 
