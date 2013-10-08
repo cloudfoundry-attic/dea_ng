@@ -129,19 +129,45 @@ describe Dea::Bootstrap do
       end
     end
 
-    it "should restore original handler" do
-      original_handler_called = 0
-      ::Kernel.trap("TERM") do
-        original_handler_called += 1
+    describe "#with_signal_handlers" do
+      it "traps only for the duration of the block" do
+        original_handler_called = 0
+        ::Kernel.trap("TERM") do
+          original_handler_called += 1
+        end
+
+        # This should not call the original handler
+        test_signal("TERM")
+        original_handler_called.should == 0
+
+        # This should call the original handler
+        send_signal("TERM")
+        original_handler_called.should == 1
+      end
+    end
+
+    describe "handling USR1" do
+      before do
+        bootstrap.setup_instance_registry
+        bootstrap.stub(nats: nats_mock)
       end
 
-      # This should not call the original handler
-      test_signal("TERM")
-      original_handler_called.should == 0
+      it "sends shutdown message" do
+        nats_mock.should_receive(:publish).with("dea.shutdown", anything)
 
-      # This should call the original handler
-      send_signal("TERM")
-      original_handler_called.should == 1
+        bootstrap.with_signal_handlers do
+          send_signal("USR1")
+        end
+      end
+
+      it "ignores further signals" do
+        nats_mock.should_receive(:publish).with("dea.shutdown", anything).once
+
+        bootstrap.with_signal_handlers do
+          send_signal("USR1")
+          send_signal("USR1")
+        end
+      end
     end
   end
 
@@ -594,6 +620,25 @@ describe Dea::Bootstrap do
     it "advertises staging" do
       Dea::Responders::StagingLocator.any_instance.should_receive(:advertise)
       bootstrap.start_finish
+    end
+
+    context "when recovering from snapshots" do
+      let(:instances) do
+        [ Dea::Instance.new(bootstrap, valid_instance_attributes),
+          Dea::Instance.new(bootstrap, valid_instance_attributes),
+        ]
+      end
+
+      before do
+        instances.each do |instance|
+          bootstrap.instance_registry.register(instance)
+        end
+      end
+
+      it "heartbeats its registry" do
+        bootstrap.should_receive(:send_heartbeat).with(instances)
+        bootstrap.start_finish
+      end
     end
   end
 

@@ -183,8 +183,12 @@ module Dea
 
           optional("start_command") => enum(nil, String),
 
-          # TODO: use proper schema
+          optional("warden_handle")           => enum(nil, String),
+          optional("instance_host_port")      => Integer,
+          optional("instance_container_port") => Integer,
+
           "limits"              => limits_schema,
+
           "environment"         => dict(String, String),
           "services"            => [service_schema],
 
@@ -245,6 +249,8 @@ module Dea
       @exit_description      = ""
 
       logger.user_data[:attributes] = @attributes
+
+      setup_container_from_snapshot
     end
 
     def setup
@@ -476,6 +482,8 @@ module Dea
           disk_limit_in_bytes,
           memory_limit_in_bytes,
           with_network)
+
+        attributes["warden_handle"] = container.handle
 
         promise_setup_environment.resolve
         p.deliver
@@ -773,20 +781,47 @@ module Dea
 
     def snapshot_attributes
       {
-        'application_id'        => attributes['application_id'],
-        'state'                 => attributes['state'],
-        'warden_job_id'         => attributes['warden_job_id'],
-        'instance_index'        => attributes['instance_index'],
-        'warden_container_path' => container.path,
-        'warden_host_ip'        => container.host_ip,
-        'instance_host_port'    => container.network_ports["host_port"],
-        'instance_container_port'    => instance_container_port,
-        'instance_id'           => attributes['instance_id'],
-        'syslog_drain_urls'     => attributes['services'].map{|svc_hash| svc_hash["syslog_drain_url"]}.compact
+        "cc_partition"          => attributes["cc_partition"],
+
+        "instance_id"           => attributes["instance_id"],
+        "instance_index"        => attributes["instance_index"],
+        "private_instance_id"   => attributes["private_instance_id"],
+
+        "warden_handle"         => attributes["warden_handle"],
+        "limits"                => attributes["limits"],
+
+        "environment"           => attributes["environment"],
+        "services"              => attributes["services"],
+
+        "application_id"        => attributes['application_id'],
+        "application_version"   => attributes['application_version'],
+        "application_name"      => attributes["application_name"],
+        "application_uris"      => attributes["application_uris"],
+
+        "droplet_sha1"          => attributes["droplet_sha1"],
+        "droplet_uri"           => attributes["droplet_uri"],
+
+        "start_command"         => attributes["start_command"],
+
+        "state"                 => attributes["state"],
+
+        "warden_job_id"         => attributes["warden_job_id"],
+        "warden_container_path" => container.path,
+        "warden_host_ip"        => container.host_ip,
+        "instance_host_port"    => container.network_ports["host_port"],
+        "instance_container_port" => container.network_ports["container_port"],
+
+        "syslog_drain_urls"     => attributes["services"].map{|svc_hash| svc_hash["syslog_drain_url"]}.compact
       }
     end
 
     private
+
+    def setup_container_from_snapshot
+      container.handle = @attributes["warden_handle"]
+      container.network_ports["host_port"] = @attributes["instance_host_port"]
+      container.network_ports["container_port"] = @attributes["instance_container_port"]
+    end
 
     def determine_exit_description(link_response)
       info = link_response.info

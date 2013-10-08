@@ -134,6 +134,24 @@ describe Dea::Instance do
     end
   end
 
+  describe "attributes from snapshot" do
+    describe "container attributes" do
+      let(:attributes) do
+        valid_instance_attributes.merge(
+          "warden_handle" => "abc",
+          "instance_host_port" => 1234,
+          "instance_container_port" => 5678,
+        )
+      end
+
+      subject { described_class.new(bootstrap, attributes) }
+
+      its(:warden_handle) { should == "abc" }
+      its(:instance_host_port) { should == 1234 }
+      its(:instance_container_port) { should == 5678 }
+    end
+  end
+
   describe "resource limits" do
     it "exports the memory limit in bytes" do
       instance.memory_limit_in_bytes.should == 512 * 1024 * 1024
@@ -566,6 +584,18 @@ describe Dea::Instance do
 
         # Instance exit description should be set to the failure message
         instance.exit_description.should eql(msg)
+      end
+
+      it "saves the created container's handle on attributes" do
+        instance.container.stub(:create_container) do
+          instance.container.handle = "some-handle"
+        end
+
+        expect {
+          expect_start.to_not raise_error
+        }.to change {
+          instance.attributes["warden_handle"]
+        }.from(nil).to("some-handle")
       end
     end
 
@@ -1366,6 +1396,26 @@ describe Dea::Instance do
           instance.instance_path
         }.to raise_error("Instance path unavailable")
       end
+    end
+  end
+
+  describe "recovering from a snapshot" do
+    it "sets the container's warden handle" do
+      instance = described_class.new(bootstrap,
+        valid_instance_attributes.merge(
+          "warden_handle" => "abc"))
+
+      expect(instance.container.handle).to eq("abc")
+    end
+
+    it "sets the container's network ports" do
+      instance = described_class.new(bootstrap,
+        valid_instance_attributes.merge(
+          "instance_host_port" => 1234,
+          "instance_container_port" => 5678))
+
+      instance.instance_host_port.should == 1234
+      instance.instance_container_port.should == 5678
     end
   end
 end

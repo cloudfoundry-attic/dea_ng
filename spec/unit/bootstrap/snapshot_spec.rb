@@ -8,6 +8,7 @@ describe "snapshot" do
 
   before do
     bootstrap.unstub(:save_snapshot)
+    bootstrap.unstub(:load_snapshot)
 
     bootstrap.unstub(:setup_directories)
     bootstrap.setup_directories
@@ -112,6 +113,65 @@ describe "snapshot" do
 
       it 'has correct drain urls' do
         @instance["syslog_drain_urls"].should =~ %w(syslog://log.example.com syslog://log2.example.com)
+      end
+    end
+  end
+
+  describe "load" do
+    before do
+      File.open(bootstrap.snapshot_path, "w") do |file|
+        snapshot = {
+          "instances" => [
+            {
+              "k1" => "v1",
+              "k2" => "v2",
+              "state" => "abc",
+            },
+            {
+              "k1" => "v1",
+              "k2" => "v2",
+              "state" => "abc",
+            },
+          ],
+        }
+
+        file.write(::Yajl::Encoder.encode(snapshot))
+      end
+    end
+
+    it "should load a snapshot" do
+      2.times do
+        instance = Dea::Instance.new(bootstrap, valid_instance_attributes)
+        instance.stub(:validate)
+
+        instance.
+          should_receive(:state=).
+          ordered.
+          with(Dea::Instance::State::RESUMING)
+
+        instance.
+          should_receive(:state=).
+          ordered.
+          with("abc")
+
+        bootstrap.should_receive(:create_instance) do |attr|
+          attr.should_not include("state")
+
+          # Return mock instance
+          instance
+        end
+      end
+
+      bootstrap.load_snapshot
+    end
+
+    it "loads the snapshot on startup" do
+      bootstrap.should_receive(:load_snapshot)
+
+      em do
+        bootstrap.setup
+        bootstrap.start
+        EM.stop
       end
     end
   end
