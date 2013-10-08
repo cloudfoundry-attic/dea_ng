@@ -224,6 +224,7 @@ module Dea
 
     def trap_usr1
       send_shutdown_message
+      locator_responders.each(&:stop)
       ignore_signals
     end
 

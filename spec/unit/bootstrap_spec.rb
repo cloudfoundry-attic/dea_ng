@@ -148,12 +148,28 @@ describe Dea::Bootstrap do
 
     describe "handling USR1" do
       before do
-        bootstrap.setup_instance_registry
+        nats_mock.stub(:start)
         bootstrap.stub(nats: nats_mock)
+
+        em do
+          bootstrap.setup_instance_registry
+          bootstrap.setup_resource_manager
+          bootstrap.start_nats
+          done
+        end
       end
 
-      it "sends shutdown message" do
+      it "sends dea.shutdown" do
         nats_mock.should_receive(:publish).with("dea.shutdown", anything)
+
+        bootstrap.with_signal_handlers do
+          send_signal("USR1")
+        end
+      end
+
+      it "stops sending dea.advertise and staging.advertise" do
+        Dea::Responders::DeaLocator.any_instance.should_receive(:stop)
+        Dea::Responders::StagingLocator.any_instance.should_receive(:stop)
 
         bootstrap.with_signal_handlers do
           send_signal("USR1")
