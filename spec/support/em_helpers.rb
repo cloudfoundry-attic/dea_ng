@@ -5,7 +5,7 @@ require "eventmachine"
 module Helpers
   def em(options = {})
     raise "no block given" unless block_given?
-    timeout = options[:timeout] ||= 0.3
+    timeout = options[:timeout] ||= 10
 
     ::EM.epoll
 
