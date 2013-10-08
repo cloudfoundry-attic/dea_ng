@@ -27,12 +27,17 @@ class Upload
     )
 
     http.errback do
-      error = UploadError.new("Response status: unknown", @destination)
-      logger.warn(error.message)
-      upload_callback.call(error)
+      begin
+        error = UploadError.new("Response status: unknown", @destination)
+        logger.warn(error.message)
+        upload_callback.call(error)
+      rescue => e
+        logger.error "em-upload.failed", error: e, backtrace: e.backtrace
+      end
     end
 
     http.callback do
+      p :here
       http_status = http.response_header.status
 
       if http_status == 200

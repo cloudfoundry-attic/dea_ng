@@ -11,10 +11,7 @@ describe Download do
   let(:sha) { "DEADBEEF" }
 
   it "fails when the file isn't found" do
-    start_http_server(12345) do |connection, data|
-      connection.send_data("HTTP/1.1 404 Not Found\r\n")
-      connection.send_data("\r\n")
-    end
+    stub_request(:get, from_uri).to_return(status: 404)
 
     Download.new(from_uri, to_file, ).download! do |error|
       error.message.should match(/status: 404/)
@@ -23,13 +20,7 @@ describe Download do
   end
 
   it "should fail when response payload has invalid SHA1" do
-    start_http_server(12345) do |connection, data|
-      connection.send_data("HTTP/1.1 200 OK\r\n")
-      connection.send_data("Content-Length: 4\r\n")
-      connection.send_data("\r\n")
-      connection.send_data("fooz\r\n")
-      connection.send_data("\r\n")
-    end
+    stub_request(:get, from_uri).to_return(body: "fooz")
 
     Download.new(from_uri, to_file, sha).download! do |err|
       err.message.should match(/SHA1 mismatch/)
@@ -40,13 +31,7 @@ describe Download do
   it "should download the file if the sha1 matches" do
     body = "The Body"
 
-    start_http_server(12345) do |connection, data|
-      connection.send_data("HTTP/1.1 200 OK\r\n")
-      connection.send_data("Content-Length: #{body.length}\r\n")
-      connection.send_data("\r\n")
-      connection.send_data(body)
-      connection.send_data("\r\n")
-    end
+    stub_request(:get, from_uri).to_return(body: body)
 
     expected = Digest::SHA1.new
     expected << body
@@ -61,13 +46,7 @@ describe Download do
   it "saves the file in binary mode to work on Windows" do
     body = "The Body"
 
-    start_http_server(12345) do |connection, data|
-      connection.send_data("HTTP/1.1 200 OK\r\n")
-      connection.send_data("Content-Length: #{body.length}\r\n")
-      connection.send_data("\r\n")
-      connection.send_data(body)
-      connection.send_data("\r\n")
-    end
+    stub_request(:get, from_uri).to_return(body: body)
 
     expected = Digest::SHA1.new
     expected << body
@@ -79,17 +58,35 @@ describe Download do
     Download.new(from_uri, to_file, expected.hexdigest).download! { done }
   end
 
+  context "when the download causes an exception" do
+    it "catches the error but logs it (we really need an airbrake-esque thing" do
+      stub_request(:get, from_uri).to_return(body: "some body")
+
+      expect {
+        Download.new(from_uri, to_file).download! do |err|
+          raise "Some Terrible Error"
+        end
+      }.to_not raise_error
+
+      done
+    end
+
+    it "copes if the errback fails" do
+      expect {
+        Download.new(from_uri, to_file).download! do |err|
+          raise "Some Terrible Error"
+        end
+      }.to_not raise_error
+
+      done
+    end
+  end
+
   context "when the sha is not given" do
     it "does not verify the sha1" do
       body = "The Body"
 
-      start_http_server(12345) do |connection, data|
-        connection.send_data("HTTP/1.1 200 OK\r\n")
-        connection.send_data("Content-Length: #{body.length}\r\n")
-        connection.send_data("\r\n")
-        connection.send_data(body)
-        connection.send_data("\r\n")
-      end
+      stub_request(:get, from_uri).to_return(body: body)
 
       Download.new(from_uri, to_file).download! do |err|
         err.should be_nil

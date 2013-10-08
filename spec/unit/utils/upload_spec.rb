@@ -9,7 +9,9 @@ describe Upload do
     file_to_upload
   end
 
-  subject { Upload.new(file_to_upload.path, "http://127.0.0.1:12345/") }
+  let(:to_uri) { "http://127.0.0.1:12345/" }
+
+  subject { Upload.new(file_to_upload.path, to_uri) }
 
   describe "#upload!" do
     around do |example|
@@ -35,8 +37,8 @@ describe Upload do
     context "when there is no server running" do
       it "calls the block with the exception" do
         subject.upload! do |error|
-          error.should be_a(Upload::UploadError)
-          error.message.should == "Error uploading: http://127.0.0.1:12345/ (Response status: unknown)"
+          expect(error).to be_a(Upload::UploadError)
+          expect(error.message).to eq "Error uploading: http://127.0.0.1:12345/ (Response status: unknown)"
           done
         end
       end
@@ -54,10 +56,37 @@ describe Upload do
         end
 
         subject.upload! do |error|
+          p :called
           error.should be_a(Upload::UploadError)
-          error.message.should match %r{Error uploading: http://127.0.0.1:12345/ \(HTTP status: 500}
+          error.message.should match %r{Error uploading: #{to_uri} \(HTTP status: 500}
           done
         end
+      end
+    end
+
+    context "when the callback has an error" do
+      it "should catch the exception when the errback is called" do
+        body = "Some Good return"
+
+        expect {
+          subject.upload! do |error|
+            raise "the worst thing"
+          end
+        }.to_not raise_error
+
+        done
+      end
+
+      it "should catch the exception when the callback is called" do
+        body = "Some Good return"
+
+        expect {
+          subject.upload! do |error|
+            raise "the worst thing"
+          end
+        }.to_not raise_error
+
+        done
       end
     end
   end
