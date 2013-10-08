@@ -128,9 +128,7 @@ GEM
       chef (>= 0.10)
       highline
       thor (~> 0.15)
-    loggregator_emitter (0.0.12.pre)
-      loggregator_messages (~> 0.0.1.pre)
-    loggregator_messages (0.0.5.pre)
+    loggregator_emitter (0.0.13.pre)
       beefcake (~> 0.3.7)
     membrane (0.0.2)
     mime-types (1.23)
@@ -226,8 +224,7 @@ DEPENDENCIES
   foreman
   grape!
   librarian
-  loggregator_emitter (~> 0.0.12.pre)
-  loggregator_messages (~> 0.0.5.pre)
+  loggregator_emitter (~> 0.0.13.pre)
   nats
   net-ssh
   nokogiri (>= 1.4.4)
