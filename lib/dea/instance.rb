@@ -221,7 +221,6 @@ module Dea
     end
 
     attr_reader :bootstrap
-    attr_reader :attributes
     attr_accessor :exit_status
     attr_accessor :exit_description
 
@@ -298,6 +297,13 @@ module Dea
 
     def validate
       self.class.schema.validate(attributes)
+    end
+
+    def attributes
+      @attributes['used_memory_in_bytes'] = used_memory_in_bytes / 1024
+      @attributes['used_disk_in_bytes']   = used_disk_in_bytes
+      @attributes['computed_pcpu']        = computed_pcpu
+      @attributes
     end
 
     def state
