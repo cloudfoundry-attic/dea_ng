@@ -1,5 +1,7 @@
 require "yaml"
 require "net/ssh"
+require "shellwords"
+
 require_relative "process_helpers"
 require_relative "local_ip_finder"
 
@@ -162,6 +164,10 @@ module DeaHelpers
       File.read(config["pid_filename"]).to_i
     end
 
+    def directory_entries(path)
+      Dir.entries(path)
+    end
+
     def config
       @config ||= begin
         config = YAML.load(File.read("config/dea.yml"))
@@ -218,6 +224,10 @@ module DeaHelpers
       remote_exec("cat #{path}")
     end
 
+    def directory_entries(path)
+      remote_exec("ruby -e \"puts Dir.entries('#{path}')\"").split("\n")
+    end
+
     def integration_config
       @integration_config ||= YAML.load_file(INTEGRATION_CONFIG_FILE)
     end
@@ -234,7 +244,7 @@ module DeaHelpers
           ch.request_pty do |ch, success|
             raise "could not open pty" unless success
 
-            ch.exec("sudo bash -ic '#{cmd}'")
+            ch.exec("sudo bash -ic #{Shellwords.escape(cmd)}")
 
             ch.on_data do |_, data|
               if data =~ /^\[sudo\] password for #{username}:/

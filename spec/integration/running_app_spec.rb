@@ -7,9 +7,7 @@ describe "Running an app", :type => :integration, :requires_warden => true do
   let(:buildpack_cache_download_uri) { "http://#{file_server_address}/buildpack_cache" }
   let(:buildpack_cache_upload_uri) { "http://#{file_server_address}/buildpack_cache" }
   let(:app_id) { SecureRandom.hex(8) }
-  let(:original_memory) do
-    dea_config["resources"]["memory_mb"] * dea_config["resources"]["memory_overcommit_factor"]
-  end
+
   let(:valid_provided_service) do
     {
       "credentials" => { "user" => "Jerry", "password" => "Jellison" },
@@ -73,27 +71,26 @@ describe "Running an app", :type => :integration, :requires_warden => true do
     it "does not allocate any memory" do
       setup_fake_buildpack("start_command")
 
-      nats.make_blocking_request("staging", staging_message, 2)
+      expect do
+        nats.make_blocking_request("staging", staging_message, 2)
 
-      begin
-        wait_until do
-          nats.request("dea.find.droplet", {
-            "droplet" => app_id,
-          }, :timeout => 1)
+        begin
+          wait_until do
+            nats.request("dea.find.droplet", {
+              "droplet" => app_id,
+            }, :timeout => 1)
+          end
+
+          fail("App was created and should not have been")
+        rescue Timeout::Error
         end
-
-        fail("App was created and should not have been")
-      rescue Timeout::Error
-        expect(dea_memory).to eql(original_memory)
-      end
+      end.to_not change { dea_memory }
     end
   end
 
   describe 'starting a valid application' do
     before do
       setup_fake_buildpack("start_command")
-
-      nats.make_blocking_request("staging", staging_message, 2)
     end
 
     after do
@@ -101,25 +98,46 @@ describe "Running an app", :type => :integration, :requires_warden => true do
       wait_until_instance_gone(app_id)
     end
 
-    describe "starting the app" do
-      before { wait_until_instance_started(app_id) }
+    def stage
+      nats.make_blocking_request("staging", staging_message, 2)
+    end
 
+    def stop
+      nats.publish("dea.stop", {"droplet" => app_id})
+    end
+
+    def wait_until_started
+      wait_until_instance_started(app_id)
+    end
+
+    def wait_until_stopped
+      wait_until_instance_gone(app_id)
+    end
+
+    describe "starting the app" do
       it "decreases the dea's available memory" do
-        expect(dea_memory).to eql(original_memory - 64)
+        expect {
+          stage
+          wait_until_started
+        }.to change { dea_memory }.by(-64)
       end
     end
 
     describe "stopping the app" do
       it "restores the dea's available memory" do
-        wait_until_instance_started(app_id)
+        stage
+        wait_until_started
 
-        nats.publish("dea.stop", {"droplet" => app_id})
-        wait_until_instance_gone(app_id)
-
-        expect(dea_memory).to eql(original_memory)
+        expect {
+          stop
+          wait_until_stopped
+        }.to change { dea_memory }.by(64)
       end
 
       it "actually stops the app" do
+        stage
+        wait_until_started
+
         id = dea_id
         checked_port = false
         droplet_message = Yajl::Encoder.encode("droplet" => app_id, "states" => ["RUNNING"])

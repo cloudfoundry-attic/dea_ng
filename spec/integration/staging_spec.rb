@@ -115,12 +115,12 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
         it "deletes the buildpack from the filesystem" do
           expect {
             stage_with_no_admin_buildpacks
-          }.to change{ admin_buildpack_dir_size }.from(1).to(0)
+          }.to change{ admin_buildpack_dir_size }.by(-1)
         end
 
         def admin_buildpack_dir_size
           admin_buildpack_dir = File.join(dea_config["base_dir"], "admin_buildpacks")
-          (Dir.entries(admin_buildpack_dir) - [".", ".."]).size
+          (dea_server.directory_entries(admin_buildpack_dir) - %w[. ..]).size
         end
       end
     end
