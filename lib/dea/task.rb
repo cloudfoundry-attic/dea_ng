@@ -49,16 +49,20 @@ module Dea
 
     def promise_destroy
       Promise.new do |promise|
-        request = ::Warden::Protocol::DestroyRequest.new
-        request.handle = container.handle
+        if container.handle.nil?
+          logger.warn("task.destroy.failed", handle: container.handle, caller: caller(0), obj: self.inspect)
+        else
+          request = ::Warden::Protocol::DestroyRequest.new
+          request.handle = container.handle
 
-        begin
-          container.call_with_retry(:app, request)
-        rescue ::EM::Warden::Client::Error => error
-          logger.warn("Error destroying container: #{error.message}")
+          begin
+            container.call_with_retry(:app, request)
+          rescue ::EM::Warden::Client::Error => error
+            logger.warn("Error destroying container: #{error.message}")
+          end
+
+          container.handle = nil
         end
-
-        container.handle = nil
         promise.deliver
       end
     end
