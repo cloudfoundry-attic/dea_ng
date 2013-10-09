@@ -53,7 +53,7 @@ describe Dea::StagingTask do
   before do
     staging.stub(:workspace_dir) { workspace_dir }
     staging.stub(:staged_droplet_path) { __FILE__ }
-    staging.stub(:downloaded_droplet_path) { "/path/to/downloaded/droplet" }
+    staging.stub(:downloaded_app_package_path) { "/path/to/downloaded/droplet" }
     staging.stub(:logger) { logger }
     staging.stub(:container_exists?) { true }
   end
@@ -693,6 +693,11 @@ YAML
       end
 
       it { expect { subject }.to raise_error(RuntimeError, "This is an error") }
+
+      it "should not create an app file" do
+        subject rescue nil
+        expect(File.exists?(staging.workspace.downloaded_app_package_path)).to be_false
+      end
     end
 
     context "when there is no error" do

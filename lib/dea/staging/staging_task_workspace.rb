@@ -152,7 +152,7 @@ module Dea
       File.join(workspace_dir, STAGING_INFO)
     end
 
-    def downloaded_droplet_path
+    def downloaded_app_package_path
       File.join(workspace_dir, "app.zip")
     end
 

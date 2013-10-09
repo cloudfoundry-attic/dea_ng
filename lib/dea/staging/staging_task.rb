@@ -217,9 +217,9 @@ module Dea
         logger.info("Unpacking app to #{workspace.warden_unstaged_dir}")
 
         container.run_script(:app, <<-BASH)
-          package_size=`du -h #{workspace.downloaded_droplet_path} | cut -f1`
+          package_size=`du -h #{workspace.downloaded_app_package_path} | cut -f1`
           echo "-----> Downloaded app package ($package_size)" >> #{workspace.warden_staging_log}
-          unzip -q #{workspace.downloaded_droplet_path} -d #{workspace.warden_unstaged_dir}
+          unzip -q #{workspace.downloaded_app_package_path} -d #{workspace.warden_unstaged_dir}
         BASH
 
         p.deliver
@@ -241,10 +241,10 @@ module Dea
         logger.info("staging.app-download.start", :uri => attributes["download_uri"])
 
         start = Time.now
-        download_droplet_file = File.new(workspace.downloaded_droplet_path, "w")
-        File.chmod(0744, download_droplet_file.path)
 
-        Download.new(attributes["download_uri"], download_droplet_file, nil, logger).download! do |error|
+        download_destination = Tempfile.new("app-package-download.tgz")
+
+        Download.new(attributes["download_uri"], download_destination, nil, logger).download! do |error|
           done = Time.now
 
           if error
@@ -252,11 +252,16 @@ module Dea
               :duration => done - start,
               :error => error,
               :backtrace => error.backtrace)
+
             p.fail(error)
           else
+            File.rename(download_destination.path, workspace.downloaded_app_package_path)
+            File.chmod(0744, workspace.downloaded_app_package_path)
+
             logger.debug("staging.app-download.completed",
               :duration => done - start,
-              :destination => download_droplet_file.path)
+              :destination => workspace.downloaded_app_package_path)
+
             p.deliver
           end
         end
@@ -303,13 +308,13 @@ module Dea
       Promise.new do |p|
         logger.info("Downloading buildpack cache from #{attributes["buildpack_cache_download_uri"]}")
 
-        buildpack_cache_destination = Tempfile.new("buildpack-cache", workspace.tmpdir)
+        download_destination = Tempfile.new("buildpack-cache", workspace.tmpdir)
 
-        Download.new(attributes["buildpack_cache_download_uri"], buildpack_cache_destination, nil, logger).download! do |error|
+        Download.new(attributes["buildpack_cache_download_uri"], download_destination, nil, logger).download! do |error|
           if error
             logger.error("Failed to download buildpack cache from #{attributes["buildpack_cache_download_uri"]}")
           else
-            File.rename(buildpack_cache_destination.path, workspace.downloaded_buildpack_cache_path)
+            File.rename(download_destination.path, workspace.downloaded_buildpack_cache_path)
             File.chmod(0744, workspace.downloaded_buildpack_cache_path)
 
             logger.debug("Downloaded droplet to #{workspace.downloaded_buildpack_cache_path}")
