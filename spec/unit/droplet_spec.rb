@@ -46,31 +46,61 @@ describe Dea::Droplet do
 
   describe "download" do
     context "when unsucessful" do
-      around { |example| em { example.call } }
-
       it "should fail when server is unreachable" do
-        droplet.download("http://127.0.0.1:12346/droplet") do |err|
-          err.message.should match(/status: unknown/)
-          done
+        error = nil
+
+        em do
+          droplet.download("http://127.0.0.1:12346/droplet") do |err|
+            error = err
+            done
+          end
         end
+
+        error.message.should match(/status: unknown/)
       end
 
-      it "should fail when response has status other than 200" do
-        stub_request(:get, "http://127.0.0.1:12345/droplet").to_return(status: 404)
+      context "when response has status other than 200" do
+        before do
+          stub_request(:get, "http://127.0.0.1:12345/droplet").to_return(status: 404)
+        end
 
-        droplet.download("http://127.0.0.1:12345/droplet") do |err|
-          err.message.should match(/status: 404/)
-          done
+        it "should fail" do
+          error = nil
+
+          em do
+            droplet.download("http://127.0.0.1:12345/droplet") do |err|
+              error = err
+              done
+            end
+          end
+
+          error.message.should match(/status: 404/)
+        end
+
+        it "should not create droplet file" do
+          em do
+            droplet.download("http://127.0.0.1:12345/droplet") do |err|
+              done
+            end
+          end
+
+          expect(File.exist?(droplet.droplet_path)).to be_false
         end
       end
 
       it "should fail when response payload has invalid SHA1" do
         stub_request(:get, "http://127.0.0.1:12345/droplet").to_return(body: "fooz")
 
-        droplet.download("http://127.0.0.1:12345/droplet") do |err|
-          err.message.should match(/SHA1 mismatch/)
-          done
+        error = nil
+
+        em do
+          droplet.download("http://127.0.0.1:12345/droplet") do |err|
+            error = err
+            done
+          end
         end
+
+        error.message.should match(/SHA1 mismatch/)
       end
     end
 
@@ -116,6 +146,49 @@ describe Dea::Droplet do
 
         expect(@request).to have_been_made.times(1)
         expect(called).to eq(3)
+      end
+    end
+
+    context "when the droplet is already downloaded" do
+      before do
+        FileUtils.mkdir_p(droplet.droplet_dirname)
+        @request = stub_request(:get, "http://127.0.0.1:12345/droplet").to_return(body: payload)
+      end
+
+      context "and the sha matches" do
+        before do
+          File.open(droplet.droplet_path, "w") do |io|
+            io.write payload
+          end
+        end
+
+        it "does not download the file" do
+          em do
+            droplet.download("http://127.0.0.1:12345/droplet") do
+              done
+            end
+          end
+
+          expect(@request).to_not have_been_made
+        end
+      end
+
+      context "and the sha doesn't match" do
+        before do
+          File.open(droplet.droplet_path, "w") do |io|
+            io.write "bogus-droplet"
+          end
+        end
+
+        it "downloads the file" do
+          em do
+            droplet.download("http://127.0.0.1:12345/droplet") do
+              done
+            end
+          end
+
+          expect(@request).to have_been_made
+        end
       end
     end
   end

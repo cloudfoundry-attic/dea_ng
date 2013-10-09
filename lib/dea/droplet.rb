@@ -16,6 +16,7 @@ module Dea
     def initialize(base_dir, sha1)
       @base_dir = base_dir
       @sha1 = sha1
+      @pending_downloads = []
 
       # Make sure the directory exists
       FileUtils.mkdir_p(droplet_dirname)
@@ -38,18 +39,38 @@ module Dea
     end
 
     def download(uri, &blk)
-      if droplet_exist?
+      if already_downloaded?
         blk.call(nil)
         return
       end
 
-      FileUtils.mkdir_p(droplet_dirname)
-      droplet = File.new(droplet_path, "w")
-      File.chmod(0744, droplet.path)
-      Download.new(uri, droplet, sha1).download! do |err|
-        logger.debug "Downloaded droplet to #{droplet_path}" unless err
+      # ensure only one download is happening for a single droplet.
+      # this keeps 100 starts from causing a network storm.
+      #
+      # we do this by only having the first download attempt actually download,
+      # and just call the other callbacks when it's done.
+      is_first_downloader = register_downloader(blk)
 
-        blk.call(err)
+      return unless is_first_downloader
+
+      download_destination = Tempfile.new("droplet-download.tgz")
+
+      Download.new(uri, download_destination, sha1).download! do |err|
+        if err
+          logger.debug "droplet.download.failed", error: err
+        else
+          FileUtils.mkdir_p(droplet_dirname)
+          File.rename(download_destination.path, droplet_path)
+          File.chmod(0744, droplet_path)
+
+          logger.debug "droplet.download.succeeded", destination: droplet_path
+        end
+
+        with_pending_downloads do |pending_downloads|
+          while pending = pending_downloads.shift
+            pending.call(err)
+          end
+        end
       end
     end
 
@@ -85,7 +106,28 @@ module Dea
       EM.defer(operation, callback)
     end
 
+    def already_downloaded?
+      File.exists?(droplet_path) && \
+        Digest::SHA1.file(droplet_path).hexdigest == @sha1
+    end
+
     private
+
+    DOWNLOAD_PENDING = Mutex.new
+
+    def register_downloader(callback)
+      with_pending_downloads do
+        should_download = @pending_downloads.empty?
+        @pending_downloads << callback
+        should_download
+      end
+    end
+
+    def with_pending_downloads
+      DOWNLOAD_PENDING.synchronize do
+        yield @pending_downloads
+      end
+    end
 
     def logger
       @logger ||= self.class.logger.tag(:droplet_sha1 => sha1)
