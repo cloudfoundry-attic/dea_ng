@@ -303,14 +303,16 @@ module Dea
       Promise.new do |p|
         logger.info("Downloading buildpack cache from #{attributes["buildpack_cache_download_uri"]}")
 
-        buildpack_cache = File.new(workspace.downloaded_buildpack_cache_path, "w")
-        File.chmod(0744, buildpack_cache.path)
+        buildpack_cache_destination = Tempfile.new("buildpack-cache", workspace.tmpdir)
 
-        Download.new(attributes["buildpack_cache_download_uri"], buildpack_cache, nil, logger).download! do |error|
+        Download.new(attributes["buildpack_cache_download_uri"], buildpack_cache_destination, nil, logger).download! do |error|
           if error
             logger.error("Failed to download buildpack cache from #{attributes["buildpack_cache_download_uri"]}")
           else
-            logger.debug("Downloaded droplet to #{buildpack_cache.path}")
+            File.rename(buildpack_cache_destination.path, workspace.downloaded_buildpack_cache_path)
+            File.chmod(0744, workspace.downloaded_buildpack_cache_path)
+
+            logger.debug("Downloaded droplet to #{workspace.downloaded_buildpack_cache_path}")
           end
 
           p.deliver

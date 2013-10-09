@@ -721,6 +721,11 @@ YAML
       before { Download.any_instance.stub(:download!).and_yield("This is an error") }
 
       its(:result) { should eq([:deliver, nil]) }
+
+      it "does not create the buildpack cache tarball" do
+        subject
+        expect(File.exists?(buildpack_cache_dest)).to be_false
+      end
     end
 
     context "when there is no error" do
