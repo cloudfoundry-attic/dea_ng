@@ -14,19 +14,25 @@ require "vcap/common"
 require "vcap/component"
 
 require "dea/config"
-require "dea/directory_server"
-require "dea/directory_server_v2"
-require "dea/utils/download"
 require "dea/droplet_registry"
-require "dea/instance"
-require "dea/instance_registry"
-require "dea/staging_task_registry"
 require "dea/nats"
 require "dea/protocol"
 require "dea/resource_manager"
 require "dea/router_client"
-require "dea/staging_task"
 require "dea/loggregator"
+
+require "dea/directory_server/directory_server"
+require "dea/directory_server/directory_server_v2"
+
+require "dea/utils/download"
+
+require "dea/staging/staging_task_registry"
+require "dea/staging/staging_task"
+
+require "dea/starting/instance"
+require "dea/starting/instance_registry"
+
+
 Dir[File.join(File.dirname(__FILE__), "responders/*.rb")].each { |f| require(f) }
 
 module Dea

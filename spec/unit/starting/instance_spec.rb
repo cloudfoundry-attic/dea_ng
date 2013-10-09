@@ -1,5 +1,5 @@
 require "spec_helper"
-require "dea/instance"
+require "dea/starting/instance"
 
 describe Dea::Instance do
   include_context "tmpdir"
@@ -672,11 +672,7 @@ describe Dea::Instance do
         end
 
         before do
-          bootstrap.stub(:config).and_return({
-                                               "hooks" => {
-                                                 "#{hook}" => File.join(File.dirname(__FILE__), "hooks/#{hook}")
-                                               }
-                                             })
+          bootstrap.stub(:config).and_return("hooks" => { hook => fixture("hooks/#{hook}") })
           instance.stub(:runtime).and_return(runtime)
           instance.unstub(:promise_exec_hook_script)
         end
@@ -951,11 +947,7 @@ describe Dea::Instance do
 
         before do
           Dea::Env.stub(:new).with(instance).and_return(env)
-          bootstrap.stub(:config).and_return(
-            "hooks" => {
-              hook => File.join(File.dirname(__FILE__), "hooks/#{hook}")
-            }
-          )
+          bootstrap.stub(:config).and_return("hooks" => { hook => fixture("hooks/#{hook}") })
         end
 
         it "executes the #{hook} script file" do

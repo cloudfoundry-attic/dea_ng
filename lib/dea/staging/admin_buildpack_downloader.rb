@@ -1,6 +1,6 @@
 require "dea/promise"
 require "dea/utils/download"
-require "dea/non_blocking_unzipper"
+require "dea/utils/non_blocking_unzipper"
 
 class AdminBuildpackDownloader
   attr_reader :logger

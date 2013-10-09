@@ -1,15 +1,9 @@
 require "spec_helper"
-require "dea/admin_buildpack_downloader"
+require "dea/staging/admin_buildpack_downloader"
 
 describe AdminBuildpackDownloader do
-  let(:logger) do
-    double("logger").as_null_object
-  end
-
-  let(:zip_file) do
-    File.expand_path("../../fixtures/buildpack.zip", __FILE__)
-  end
-
+  let(:logger) { double("logger").as_null_object }
+  let(:zip_file) { fixture("buildpack.zip") }
   let(:destination_directory) { Dir.mktmpdir }
 
   before do

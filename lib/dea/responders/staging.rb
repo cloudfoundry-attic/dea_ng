@@ -1,4 +1,5 @@
-require "dea/staging_task"
+require "dea/staging/staging_task"
+
 require "dea/loggregator"
 
 module Dea::Responders

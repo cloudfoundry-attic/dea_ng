@@ -2,7 +2,7 @@
 
 require "spec_helper"
 require "dea/bootstrap"
-require "dea/instance"
+require "dea/starting/instance"
 require "steno/sink/counter"
 
 describe Dea::Bootstrap do

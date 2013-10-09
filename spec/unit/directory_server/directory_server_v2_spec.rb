@@ -1,7 +1,7 @@
 require "spec_helper"
-require "dea/directory_server_v2"
-require "dea/instance_registry"
-require "dea/staging_task_registry"
+require "dea/directory_server/directory_server_v2"
+require "dea/starting/instance_registry"
+require "dea/staging/staging_task_registry"
 
 describe Dea::DirectoryServerV2 do
   let(:instance_registry) do

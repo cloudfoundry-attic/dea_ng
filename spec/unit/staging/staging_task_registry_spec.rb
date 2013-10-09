@@ -1,7 +1,8 @@
 require "spec_helper"
-require "dea/staging_task"
-require "dea/staging_task_registry"
 require "vcap/common"
+
+require "dea/staging/staging_task"
+require "dea/staging/staging_task_registry"
 
 describe Dea::StagingTaskRegistry do
   let(:bootstrap) { mock(:bootstrap, :config => {}) }

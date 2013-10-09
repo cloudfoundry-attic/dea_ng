@@ -5,7 +5,7 @@ require "steno/core_ext"
 require "sys/filesystem"
 require "thread"
 require "dea/loggregator"
-require_relative "registry_enumeration"
+require "dea/registry_enumeration"
 
 module Dea
   class InstanceRegistry

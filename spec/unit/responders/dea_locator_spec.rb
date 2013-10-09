@@ -1,10 +1,11 @@
 require "spec_helper"
 require "dea/nats"
-require "dea/instance_registry"
-require "dea/staging_task_registry"
+require "dea/starting/instance_registry"
 require "dea/resource_manager"
 require "dea/responders/dea_locator"
 require "dea/config"
+
+require "dea/staging/staging_task_registry"
 
 describe Dea::Responders::DeaLocator do
   stub_nats

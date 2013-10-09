@@ -1,4 +1,4 @@
-require_relative "registry_enumeration"
+require "dea/registry_enumeration"
 
 module Dea
   class StagingTaskRegistry

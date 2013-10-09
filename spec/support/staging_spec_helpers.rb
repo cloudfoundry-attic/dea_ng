@@ -1,4 +1,4 @@
-require 'tmpdir'
+require "tmpdir"
 
 module StagingSpecHelpers
   def app_fixture(name)
@@ -32,6 +32,6 @@ module StagingSpecHelpers
   private
 
   def app_fixture_base_directory
-    Pathname.new(File.expand_path('../../fixtures/apps', __FILE__))
+    Pathname.new(fixture("apps"))
   end
 end

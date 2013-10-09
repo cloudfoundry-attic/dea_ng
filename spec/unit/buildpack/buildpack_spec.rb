@@ -1,7 +1,7 @@
-require 'spec_helper'
+require "spec_helper"
 
 describe Buildpacks::Buildpack, :type => :buildpack do
-  let(:fake_buildpacks_dir) { File.expand_path("../../../fixtures/fake_buildpacks", __FILE__) }
+  let(:fake_buildpacks_dir) { fixture("fake_buildpacks") }
   let(:buildpack_dirs) { Pathname(fake_buildpacks_dir).children.map(&:to_s) }
   let(:config) do
     {

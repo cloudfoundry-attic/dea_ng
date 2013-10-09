@@ -1,5 +1,5 @@
 require "fileutils"
-require "dea/admin_buildpack_downloader"
+require "dea/staging/admin_buildpack_downloader"
 
 module Dea
   class StagingTaskWorkspace
@@ -93,7 +93,7 @@ module Dea
     end
 
     def buildpack_dir
-      File.expand_path("../../../buildpacks", __FILE__)
+      File.expand_path("../../../../buildpacks", __FILE__)
     end
 
     def system_buildpack_paths

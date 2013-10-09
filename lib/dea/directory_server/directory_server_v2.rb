@@ -1,7 +1,7 @@
 # coding: UTF-8
 
 require "vcap/common"
-require "dea/hmac_helper"
+require "dea/directory_server/hmac_helper"
 
 module Dea
   class DirectoryServerV2

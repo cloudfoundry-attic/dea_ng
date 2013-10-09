@@ -2,11 +2,13 @@
 
 require "spec_helper"
 require "dea/resource_manager"
-require "dea/instance_registry"
-require "dea/staging_task_registry"
-require "dea/staging_task"
-require "dea/instance"
 require "dea/bootstrap"
+
+require "dea/staging/staging_task_registry"
+require "dea/staging/staging_task"
+
+require "dea/starting/instance_registry"
+require "dea/starting/instance"
 
 describe Dea::ResourceManager do
   let(:memory_mb) { 600 }

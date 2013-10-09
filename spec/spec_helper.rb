@@ -71,3 +71,7 @@ def by(message)
 end
 
 alias and_by by
+
+def fixture(path)
+  File.expand_path("../fixtures/#{path}", __FILE__)
+end

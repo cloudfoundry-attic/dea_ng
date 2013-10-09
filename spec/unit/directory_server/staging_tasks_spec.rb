@@ -3,9 +3,11 @@
 require "spec_helper"
 require "json"
 require "rack/test"
-require "dea/staging_task"
-require "dea/staging_task_registry"
-require "dea/directory_server_v2"
+
+require "dea/directory_server/directory_server_v2"
+
+require "dea/staging/staging_task"
+require "dea/staging/staging_task_registry"
 
 describe Dea::DirectoryServerV2::StagingTasks do
   include Rack::Test::Methods

@@ -7,9 +7,9 @@ require "dea/utils/download"
 require "dea/utils/upload"
 require "dea/promise"
 require "dea/task"
-require "dea/staging_task_workspace"
 require "dea/env"
-require "dea/admin_buildpack_downloader"
+require "dea/staging/admin_buildpack_downloader"
+require "dea/staging/staging_task_workspace"
 
 module Dea
   class StagingTask < Task

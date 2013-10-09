@@ -1,7 +1,9 @@
 require "spec_helper"
 require "dea/nats"
-require "dea/staging_task_registry"
-require "dea/directory_server_v2"
+require "dea/directory_server/directory_server_v2"
+
+require "dea/staging/staging_task_registry"
+
 require "dea/responders/staging"
 
 describe Dea::Responders::Staging do

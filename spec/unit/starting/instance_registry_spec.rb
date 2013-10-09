@@ -2,9 +2,8 @@
 
 require "spec_helper"
 require "dea/config"
-require "dea/instance"
-require "dea/instance_registry"
-
+require "dea/starting/instance"
+require "dea/starting/instance_registry"
 
 describe Dea::InstanceRegistry do
   let(:bootstrap) { mock("bootstrap", :config => {}) }

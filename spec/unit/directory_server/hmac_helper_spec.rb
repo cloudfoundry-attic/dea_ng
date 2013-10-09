@@ -1,5 +1,5 @@
 require "spec_helper"
-require "dea/hmac_helper"
+require "dea/directory_server/hmac_helper"
 
 describe HMACHelper do
   subject { HMACHelper.new("key") }

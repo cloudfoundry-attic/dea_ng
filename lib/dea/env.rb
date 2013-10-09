@@ -3,10 +3,12 @@
 require "steno"
 require "steno/core_ext"
 require "yajl"
-require "dea/staging_task"
+
+require "dea/staging/staging_task"
+require "dea/staging/staging_env"
+
 require "dea/starting/database_uri_generator"
 require "dea/starting/running_env"
-require "dea/staging/staging_env"
 
 module Dea
   class Env

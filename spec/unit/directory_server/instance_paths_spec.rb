@@ -3,7 +3,7 @@
 require "spec_helper"
 require "json"
 require "rack/test"
-require "dea/directory_server_v2"
+require "dea/directory_server/directory_server_v2"
 
 describe Dea::DirectoryServerV2::InstancePaths do
   include Rack::Test::Methods

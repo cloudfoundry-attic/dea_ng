@@ -1,10 +1,11 @@
 # coding: UTF-8
 
 require "spec_helper"
-require "dea/staging_task"
-require "dea/directory_server_v2"
-require "dea/config"
 require "em-http"
+require "dea/config"
+
+require "dea/directory_server/directory_server_v2"
+require "dea/staging/staging_task"
 
 describe Dea::StagingTask do
   let(:memory_limit_mb) { 256 }

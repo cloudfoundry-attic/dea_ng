@@ -3,7 +3,7 @@
 require "thin"
 require "vcap/common"
 
-require "dea/directory"
+require "dea/directory_server/directory"
 
 module Dea
   class DirectoryServer

@@ -1,14 +1,12 @@
 require "spec_helper"
-require "dea/staging_task_workspace"
+require "dea/staging/staging_task_workspace"
 
 describe Dea::StagingTaskWorkspace do
 
-  let(:base_dir) do
-    Dir.mktmpdir
-  end
+  let(:base_dir) { Dir.mktmpdir }
 
   let(:system_buildpack_dir) do
-    Pathname.new(File.expand_path("../../../buildpacks/vendor", __FILE__)).children.map(&:to_s)
+    Pathname.new(File.expand_path("../../../../buildpacks/vendor", __FILE__)).children.map(&:to_s)
   end
 
   let(:admin_buildpacks) do

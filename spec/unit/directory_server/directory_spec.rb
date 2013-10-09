@@ -4,8 +4,8 @@ require "rack/test"
 require "spec_helper"
 
 require "dea/directory"
-require "dea/instance"
-require "dea/instance_registry"
+require "dea/starting/instance"
+require "dea/starting/instance_registry"
 
 describe Dea::Directory do
   include Rack::Test::Methods
