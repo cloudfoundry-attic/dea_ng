@@ -562,6 +562,7 @@ module Dea
     def handle_dea_update(message)
       app_id = message.data["droplet"].to_s
       uris = message.data["uris"]
+      app_version = message.data["version"]
 
       instance_registry.instances_for_application(app_id).each do |_, instance|
         current_uris = instance.application_uris
@@ -580,6 +581,7 @@ module Dea
         end
 
         instance.application_uris = uris
+        instance.application_version = app_version if app_version
       end
     end
 

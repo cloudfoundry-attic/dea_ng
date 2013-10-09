@@ -221,27 +221,54 @@ describe Dea do
       end
     end
 
-    it "should update the instance's uris" do
-      instance = nil
-      uris = []
-
-      em(:timeout => 1) do
-        bootstrap.setup
-        bootstrap.start
-
-        instance = create_and_register_instance(bootstrap,
-                                                "application_id"   => 0.to_s,
-                                                "application_uris" => [])
-
-        uris = 2.times.map { |ii| "http://www.foo.com/#{ii}" }
-        nats_mock.publish("dea.update",
-                          { "droplet" => instance.application_id,
-                            "uris"    => uris})
-
-        EM.next_tick { done }
+    describe "updating the instance registry" do
+      let(:instance) do
+        create_and_register_instance(bootstrap,
+          "application_id"   => 0.to_s,
+          "application_uris" => ["old-uri"],
+          "application_version" => "old-version")
       end
 
-      instance.application_uris.should == uris
+      before do
+        bootstrap.setup
+      end
+
+      context "when both the uris and app version are specified" do
+        it "updates the instance's uris and app version" do
+          expect {
+            em do
+              bootstrap.start
+
+              nats_mock.publish("dea.update",
+                { "droplet" => instance.application_id,
+                  "uris"    => ["new-uri"],
+                  "version" => "new-version"
+                })
+
+              EM.next_tick { done }
+            end
+          }.to change {
+            [instance.application_uris, instance.application_version]
+          }.from([["old-uri"], "old-version"]).to([["new-uri"], "new-version"])
+        end
+      end
+
+      context "when the app version is not in the message (for backwards compatibility)" do
+        it "does not change the instance's app version" do
+          expect {
+            em do
+              bootstrap.start
+
+              nats_mock.publish("dea.update",
+                { "droplet" => instance.application_id,
+                  "uris"    => ["new-uri"],
+                })
+
+              EM.next_tick { done }
+            end
+          }.to_not change { instance.application_version }
+        end
+      end
     end
   end
 end

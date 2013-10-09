@@ -337,6 +337,11 @@ module Dea
       nil
     end
 
+    def application_version=(version)
+      attributes["application_version"] = version
+      nil
+    end
+
     def to_s
       "Instance(id=%s, idx=%s, app_id=%s)" % [instance_id.slice(0, 4),
                                               instance_index, application_id]
