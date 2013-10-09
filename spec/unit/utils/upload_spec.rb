@@ -19,17 +19,31 @@ describe Upload do
     end
 
     context "when uploading successfully" do
-      it "uploads a file" do
-        uploaded_contents = ""
+      let (:uploaded_contents) { "" }
+
+      before do
         start_http_server(12345) do |connection, data|
           uploaded_contents << data
           connection.send_data("HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n")
         end
+      end
 
+      it "uploads a file" do
         subject.upload! do |error|
           error.should be_nil
           uploaded_contents.should match(/.*multipart-boundary-.*Content-Disposition.*This is the file contents.*multipart-boundary-.*/m)
           done
+        end
+      end
+
+      context "when the callback has an error" do
+        it "should catch the exception when the errback is called" do
+          expect {
+            subject.upload! do |error|
+              done
+              raise "the worst"
+            end
+          }.to_not raise_error
         end
       end
     end
@@ -42,10 +56,22 @@ describe Upload do
           done
         end
       end
+
+      context "when the callback has an exception" do
+        it "copes if the errback fails" do
+          expect {
+            subject.upload! do |err|
+              raise "Some Terrible Error"
+            end
+          }.to_not raise_error
+
+          done
+        end
+      end
     end
 
     context "when you get a 500" do
-      it "calls the block with the exception" do
+      before do
         start_http_server(12345) do |connection, data|
           body = ""
           connection.send_data("HTTP/1.1 500\r\n")
@@ -54,39 +80,25 @@ describe Upload do
           connection.send_data(body)
           connection.send_data("\r\n")
         end
+      end
 
+      it "calls the block with the exception" do
         subject.upload! do |error|
-          p :called
           error.should be_a(Upload::UploadError)
           error.message.should match %r{Error uploading: #{to_uri} \(HTTP status: 500}
           done
         end
       end
-    end
 
-    context "when the callback has an error" do
-      it "should catch the exception when the errback is called" do
-        body = "Some Good return"
-
-        expect {
-          subject.upload! do |error|
-            raise "the worst thing"
-          end
-        }.to_not raise_error
-
-        done
-      end
-
-      it "should catch the exception when the callback is called" do
-        body = "Some Good return"
-
-        expect {
-          subject.upload! do |error|
-            raise "the worst thing"
-          end
-        }.to_not raise_error
-
-        done
+      context "when the callback has an error" do
+        it "should catch the exception when the errback is called" do
+          expect {
+            subject.upload! do |error|
+              done
+              raise "the worst"
+            end
+          }.to_not raise_error
+        end
       end
     end
   end

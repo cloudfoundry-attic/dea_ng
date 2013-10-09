@@ -37,16 +37,19 @@ class Upload
     end
 
     http.callback do
-      p :here
-      http_status = http.response_header.status
+      begin
+        http_status = http.response_header.status
 
-      if http_status == 200
-        logger.info("Upload succeeded")
-        upload_callback.call(nil)
-      else
-        error = UploadError.new("HTTP status: #{http_status} - #{http.response}", @destination)
-        logger.warn(error.message)
-        upload_callback.call(error)
+        if http_status == 200
+          logger.info("Upload succeeded")
+          upload_callback.call(nil)
+        else
+          error = UploadError.new("HTTP status: #{http_status} - #{http.response}", @destination)
+          logger.warn(error.message)
+          upload_callback.call(error)
+        end
+      rescue => e
+        logger.error "em-upload.failed", error: e, backtrace: e.backtrace
       end
     end
   end
