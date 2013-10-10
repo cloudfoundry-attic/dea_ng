@@ -19,7 +19,7 @@ module ProcessHelpers
 
   def graceful_kill(pid)
     Process.kill("TERM", pid)
-    Timeout.timeout(1) do
+    Timeout.timeout(30) do
       while process_alive?(pid) do
       end
     end
