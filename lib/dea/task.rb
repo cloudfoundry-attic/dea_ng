@@ -50,7 +50,7 @@ module Dea
     def promise_destroy
       Promise.new do |promise|
         if container.handle.nil?
-          logger.warn("task.destroy.failed", handle: container.handle, caller: caller(0), obj: self.inspect)
+          logger.error "task.destroy.invalid"
         else
           request = ::Warden::Protocol::DestroyRequest.new
           request.handle = container.handle
@@ -58,25 +58,25 @@ module Dea
           begin
             container.call_with_retry(:app, request)
           rescue ::EM::Warden::Client::Error => error
-            logger.warn("Error destroying container: #{error.message}")
+            logger.warn "task.destroy.failed",
+              error: error, backtrace: error.backtrace
           end
 
           container.handle = nil
         end
+
         promise.deliver
       end
     end
 
     def destroy(&callback)
       promise = Promise.new do
-        logger.info("Destroying instance")
-
+        logger.info "task.destroying"
         promise_destroy.resolve
-
         promise.deliver
       end
 
-      resolve_and_log(promise, "destroy instance") do |error, _|
+      resolve_and_log(promise, "destroy task") do |error, _|
         callback.call(error) unless callback.nil?
       end
     end

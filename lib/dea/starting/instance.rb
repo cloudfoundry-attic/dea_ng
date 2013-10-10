@@ -806,7 +806,7 @@ module Dea
         "instance_index"      => instance_index,
         "application_id"      => application_id,
         "application_version" => application_version,
-        "application_name" => application_name,
+        "application_name"    => application_name,
       }
 
       @logger ||= self.class.logger.tag(tags)

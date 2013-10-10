@@ -61,7 +61,7 @@ module Dea
         begin
           yield handle_incoming_message("response to #{subject}", raw_data, respond_to)
         rescue => e
-          logger.error "Error \"#{e}\" raised while processing #{subject.inspect}: #{raw_data}"
+          logger.error "nats.request.failed", subject: subject, data: raw_data
         end
       end
     end
@@ -94,7 +94,8 @@ module Dea
     end
 
     def create_nats_client
-      logger.info "Connecting to NATS on #{config["nats_uri"]}"
+      logger.info "nats.connecting", uri: config["nats_uri"]
+
       # NATS waits by default for 2s before attempting to reconnect, so a million reconnect attempts would
       # save us from a NATS outage for approximately 23 days - which is large enough.
       ::NATS.connect(:uri => config["nats_uri"], :max_reconnect_attempts => 999999)
@@ -136,7 +137,7 @@ module Dea
 
     def handle_incoming_message(subject, raw_data, respond_to)
       message = Message.decode(self, subject, raw_data, respond_to)
-      logger.debug "Received on #{subject.inspect}: #{message.data.inspect}"
+      logger.debug "nats.message.received", subject: subject, data: message.data
       message
     end
 
