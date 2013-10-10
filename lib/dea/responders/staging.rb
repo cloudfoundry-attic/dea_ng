@@ -43,6 +43,8 @@ module Dea::Responders
       task = Dea::StagingTask.new(bootstrap, dir_server, message.data, buildpacks_in_use, logger)
       staging_task_registry.register(task)
 
+      bootstrap.save_snapshot
+
       notify_setup_completion(message, task)
       notify_completion(message, task)
       notify_upload(message, task)
@@ -125,6 +127,8 @@ module Dea::Responders
         })
 
         staging_task_registry.unregister(task)
+
+        bootstrap.save_snapshot
       end
     end
 
@@ -134,7 +138,10 @@ module Dea::Responders
           :task_id => task.task_id,
           :error => (error.to_s if error),
         })
+
         staging_task_registry.unregister(task)
+
+        bootstrap.save_snapshot
       end
     end
 

@@ -378,6 +378,7 @@ module Dea
       snapshot = {
         "time"      => start.to_f,
         "instances" => instances.map(&:snapshot_attributes),
+        "staging_tasks" => staging_task_registry.map(&:attributes)
       }
 
       file = Tempfile.new("instances", File.join(config["base_dir"], "tmp"))

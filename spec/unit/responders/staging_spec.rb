@@ -11,7 +11,7 @@ describe Dea::Responders::Staging do
 
   let(:nats) { Dea::Nats.new(bootstrap, config) }
   let(:dea_id) { "unique-dea-id" }
-  let(:bootstrap) { mock(:bootstrap, :config => config) }
+  let(:bootstrap) { mock(:bootstrap, :config => config, :save_snapshot => nil) }
   let(:staging_task_registry) { Dea::StagingTaskRegistry.new }
   let(:staging_task) do
     mock(:staging_task,
@@ -195,6 +195,11 @@ describe Dea::Responders::Staging do
 
       it_registers_task
 
+      it "saves snapshot" do
+        bootstrap.should_receive(:save_snapshot)
+        subject.handle(message)
+      end
+
       describe "after staging container setup" do
         before { staging_task.stub(:streaming_log_url).and_return("streaming-log-url") }
 
@@ -277,6 +282,20 @@ describe Dea::Responders::Staging do
           end
 
           it_unregisters_task
+
+          it "saves snapshot" do
+            called = false
+
+            staging_task.should_receive(:after_upload_callback) do |&blk|
+              bootstrap.should_receive(:save_snapshot)
+              blk.call
+              called = true
+            end
+
+            subject.handle(message)
+
+            expect(called).to be_true
+          end
         end
 
         context "when failed" do
@@ -299,6 +318,20 @@ describe Dea::Responders::Staging do
           end
 
           it_unregisters_task
+
+          it "saves snapshot" do
+            called = false
+
+            staging_task.should_receive(:after_upload_callback) do |&blk|
+              bootstrap.should_receive(:save_snapshot)
+              blk.call
+              called = true
+            end
+
+            subject.handle(message)
+
+            expect(called).to be_true
+          end
         end
 
         context "when stopped" do
@@ -316,6 +349,20 @@ describe Dea::Responders::Staging do
           end
 
           it_unregisters_task
+
+          it "saves snapshot" do
+            called = false
+
+            staging_task.should_receive(:after_stop_callback) do |&blk|
+              bootstrap.should_receive(:save_snapshot)
+              blk.call
+              called = true
+            end
+
+            subject.handle(message)
+
+            expect(called).to be_true
+          end
         end
       end
     end

@@ -14,7 +14,13 @@ describe "snapshot" do
   end
 
   describe "save" do
-    before do
+    let(:staging_tasks) do
+      [ Dea::StagingTask.new(bootstrap, nil, valid_staging_attributes, nil),
+        Dea::StagingTask.new(bootstrap, nil, valid_staging_attributes, nil),
+      ]
+    end
+
+    let(:instances) do
       instances = []
 
       # Create an instance in every state
@@ -27,14 +33,25 @@ describe "snapshot" do
         instances << instance
       end
 
-      bootstrap.stub(:instance_registry).and_return(instances)
+      instances
     end
 
-    it "should save a snapshot so loggregator know what apps are running" do
+    before do
+      bootstrap.stub(:instance_registry).and_return(instances)
+      bootstrap.stub(:staging_task_registry).and_return(staging_tasks)
+    end
+
+    it "saves the timestamp to the snapshot" do
       bootstrap.save_snapshot
 
       snapshot = ::Yajl::Parser.parse(File.read(bootstrap.snapshot_path))
       snapshot["time"].should be_within(1.0).of(Time.now.to_f)
+    end
+
+    it "saves the instance registry" do
+      bootstrap.save_snapshot
+
+      snapshot = ::Yajl::Parser.parse(File.read(bootstrap.snapshot_path))
 
       expected_states = [
         Dea::Instance::State::RUNNING,
@@ -46,6 +63,20 @@ describe "snapshot" do
       end.sort.uniq
 
       actual_states.should == expected_states
+    end
+
+    it "saves the staging task registry" do
+      bootstrap.save_snapshot
+
+      snapshot = ::Yajl::Parser.parse(File.read(bootstrap.snapshot_path))
+
+      expect(snapshot["staging_tasks"].size).to eq(2)
+
+      expect(snapshot["staging_tasks"][0]).to include(
+        "task_id" => staging_tasks[0].task_id)
+
+      expect(snapshot["staging_tasks"][1]).to include(
+        "task_id" => staging_tasks[1].task_id)
     end
 
     context 'instances fields' do
