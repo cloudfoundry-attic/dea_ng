@@ -43,9 +43,17 @@ describe Dea::StagingTask do
   end
 
   let(:attributes) { valid_staging_attributes }
+
   let(:staging) { Dea::StagingTask.new(bootstrap, dir_server, attributes, buildpacks_in_use) }
-  let(:buildpacks_in_use) { ["buildpack1", "buildpack2"] }
+
+  let(:buildpacks_in_use) do
+    [ { "key" => "buildpack1", "uri" => "uri1" },
+      { "key" => "buildpack2", "uri" => "uri2" }
+    ]
+  end
+
   let(:successful_promise) { Dea::Promise.new { |p| p.deliver } }
+
   let(:failing_promise) { Dea::Promise.new { |p| raise "failing promise" } }
 
   after { FileUtils.rm_rf(workspace_dir) if File.exists?(workspace_dir) }
@@ -724,7 +732,10 @@ YAML
     let(:buildpack_cache_dest) { File.join workspace_dir, "buildpack_cache.tgz" }
 
     context "when there is an error" do
-      before { Download.any_instance.stub(:download!).and_yield("This is an error") }
+      before do
+        Download.any_instance.stub(:download!).and_yield(
+          RuntimeError.new("This is an error"))
+      end
 
       its(:result) { should eq([:deliver, nil]) }
 
@@ -846,7 +857,11 @@ YAML
     end
 
     context "when there is an error" do
-      before { Upload.any_instance.stub(:upload!).and_yield("This is an error") }
+      before do
+        Upload.any_instance.stub(:upload!).and_yield(
+          RuntimeError.new("This is an error"))
+      end
+
       it { expect { subject }.to raise_error(RuntimeError, "This is an error") }
     end
 
@@ -864,7 +879,11 @@ YAML
     end
 
     context "when there is an error" do
-      before { Upload.any_instance.stub(:upload!).and_yield("This is an error") }
+      before do
+        Upload.any_instance.stub(:upload!).and_yield(
+          RuntimeError.new("This is an error"))
+      end
+
       it { expect { subject }.to raise_error(RuntimeError, "This is an error") }
     end
 
@@ -879,12 +898,6 @@ YAML
       promise = staging.promise_copy_out
       promise.resolve
       promise
-    end
-
-    it "should print out some info" do
-      staging.stub(:copy_out_request)
-      logger.should_receive(:info).with(anything)
-      subject
     end
 
     it "should send copying out request" do
@@ -940,12 +953,6 @@ YAML
     end
 
     it "should send copying out request" do
-      staging.should_receive(:copy_out_request).with("/tmp/staged/logs/staging_task.log", /#{workspace_dir}/)
-      subject
-    end
-
-    it "should write the staging log to the main logger" do
-      logger.should_receive(:info).with(anything)
       staging.should_receive(:copy_out_request).with("/tmp/staged/logs/staging_task.log", /#{workspace_dir}/)
       subject
     end
