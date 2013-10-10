@@ -61,6 +61,10 @@ module Dea
             begin
               resolve_staging_upload
             rescue => e
+              logger.info "staging.task.upload-failed",
+                error: e,
+                backtrace: e.backtrace
+
               error = e
             end
           end
@@ -402,7 +406,7 @@ module Dea
 
     def promise_save_buildpack_cache
       Promise.new do |p|
-        resolve_and_log(promise_pack_buildpack_cache, "pack buildpack cache") do |error, result|
+        resolve_and_log(promise_pack_buildpack_cache, "staging.buildpack-cache.save") do |error, _|
           unless error
             promise_copy_out_buildpack_cache.resolve
             promise_buildpack_cache_upload.resolve

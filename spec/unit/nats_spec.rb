@@ -63,7 +63,7 @@ describe Dea::Nats do
       nats_mock.receive_message("some.subject", "{\"foo\": oops an error in the json", "echo.reply")
 
       logfile.rewind
-      expect(logfile.readlines[1]).to include "nats.subscribe.json_error"
+      expect(logfile.readlines[1]).to include "nats.subscription.json_error"
     end
   end
 

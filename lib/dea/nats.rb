@@ -75,9 +75,11 @@ module Dea
         begin
           yield handle_incoming_message(subject, raw_data, respond_to)
         rescue Yajl::ParseError => e
-          logger.error "nats.subscribe.json_error", error: e, backtrace: e.backtrace
+          logger.error "nats.subscription.json_error", error: e, backtrace: e.backtrace
         rescue => e
-          logger.error "nats.subscribe.error", error: e, backtrace: e.backtrace
+          logger.error "nats.subscription.error",
+            subject: subject, data: raw_data, respond_to: respond_to,
+            error: e, backtrace: e.backtrace
         end
       end
 

@@ -76,23 +76,32 @@ module Dea
         promise.deliver
       end
 
-      resolve_and_log(promise, "destroy task") do |error, _|
+      resolve_and_log(promise, "task.destroy") do |error, _|
         callback.call(error) unless callback.nil?
       end
     end
 
     def resolve_and_log(p, name)
       Promise.resolve(p) do |error, result|
-        took = "took %.3f" % p.elapsed_time
-
-        if error
-          logger.warn("Failed: #{name} (#{took})")
-          logger.log_exception(error)
-        else
-          logger.info("Delivered: #{name} (#{took})")
+        begin
+          yield(error, result)
+        rescue => e
+          error = e
         end
 
-        yield(error, result)
+        if error
+          logger.warn "#{name}.failed",
+            duration: p.elapsed_time,
+            error: error,
+            backtrace: error.backtrace
+
+          p.fail(error)
+        else
+          logger.warn "#{name}.completed",
+            duration: p.elapsed_time
+
+          p.deliver
+        end
       end
     end
 

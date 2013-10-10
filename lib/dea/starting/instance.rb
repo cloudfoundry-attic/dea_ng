@@ -94,7 +94,7 @@ module Dea
         @to = to
       end
 
-      def message
+      def to_s
         parts = []
         parts << "Cannot transition from %s" % [from.inspect]
 
@@ -456,7 +456,7 @@ module Dea
         p.deliver
       end
 
-      resolve_and_log(p, "start instance") do |error, _|
+      resolve_and_log(p, "instance.start") do |error, _|
         if error
           # An error occured while starting, mark as crashed
           self.exit_description = error.message
@@ -528,7 +528,7 @@ module Dea
         p.deliver
       end
 
-      resolve_and_log(p, "stop instance") do |error, _|
+      resolve_and_log(p, "instance.stop") do |error, _|
         callback.call(error) unless callback.nil?
       end
     end
@@ -639,6 +639,10 @@ module Dea
 
           self.exit_status = link_response.exit_status
           self.exit_description = description
+        end
+
+        if error
+          logger.warn "droplet.link.failed", error: error, backtrace: error.backtrace
         end
 
         case self.state
