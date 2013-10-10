@@ -1313,7 +1313,7 @@ describe Dea::Instance do
       expect {
         instance.staged_info
       }.to_not change {
-        Dir.glob(File.join(tmpdir, "**", "*"), File::FNM_DOTMATCH)
+        Dir.glob(File.join(tmpdir, "**", "*"), File::FNM_DOTMATCH).size
       }
     end
   end
