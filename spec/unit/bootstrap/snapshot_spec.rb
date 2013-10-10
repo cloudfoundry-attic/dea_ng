@@ -114,6 +114,10 @@ describe "snapshot" do
       it 'has correct drain urls' do
         @instance["syslog_drain_urls"].should =~ %w(syslog://log.example.com syslog://log2.example.com)
       end
+
+      it "has the instance's start timestamp so we can report its uptime" do
+        @instance.should have_key("state_starting_timestamp")
+      end
     end
   end
 
