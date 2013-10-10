@@ -4,8 +4,8 @@ set -e -x
 
 # Test Go
 export GOPATH=$PWD/go
-go test -i directoryserver
-go test -v directoryserver
+go test -i -race directoryserver
+go test -v -race directoryserver
 
 # Test Ruby
 bundle exec rspec -t ~requires_warden
