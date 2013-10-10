@@ -117,7 +117,7 @@ module Dea
     end
 
     def buildpacks_in_use_paths
-      @buildpacks_in_use.map { |b| File.join(admin_buildpacks_dir, b).to_s }
+      @buildpacks_in_use.map { |b| File.join(admin_buildpacks_dir, b["key"]).to_s }
     end
 
     def warden_staging_log

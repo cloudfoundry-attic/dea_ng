@@ -74,7 +74,8 @@ describe Dea::StagingTaskWorkspace do
     end
 
     context "when an admin buildpack is in use" do
-      let(:buildpacks_in_use) {["efghi"]}
+      let(:buildpacks_in_use) { [{ "uri" => "foo", "key" => "efghi" }] }
+
       let(:file_in_use) {File.join(subject.admin_buildpacks_dir, "efghi")}
 
       before do
