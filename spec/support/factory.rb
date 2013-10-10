@@ -38,7 +38,7 @@ module Helpers
       "droplet_sha1"        => "deadbeef",
       "droplet_uri"         => "http://foo.com/file.ext",
 
-      "limits"              => { "mem" => 1, "disk" => 2, "fds" => 3 },
+      "limits"              => { "mem" => 1, "disk" => 2, "fds" => 3, "cpu"=>4 },
       "environment"         => { "FOO" => "BAR" },
       "services"            => [valid_service_attributes],
       "flapping"            => false,
@@ -52,6 +52,7 @@ module Helpers
         "resources" => {
           "memory" => 128,
           "disk" => 128,
+          "cpu" => 50,
           "fds" => 5000,
         }
       },

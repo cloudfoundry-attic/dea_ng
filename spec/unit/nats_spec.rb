@@ -18,7 +18,7 @@ describe Dea::Nats do
       "healthmanager.start" => :handle_health_manager_start,
       "router.start"        => :handle_router_start,
       "dea.status"          => :handle_dea_status,
-      "dea.UUID.start"      => :handle_dea_directed_start,
+     # "dea.UUID.start"      => :handle_dea_directed_start,
       "dea.stop"            => :handle_dea_stop,
       "dea.update"          => :handle_dea_update,
       "dea.find.droplet"    => :handle_dea_find_droplet,

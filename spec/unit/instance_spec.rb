@@ -93,7 +93,7 @@ describe Dea::Instance do
     describe "other attributes" do
       let(:start_message_data) do
         {
-          "limits"   => { "mem" => 1, "disk" => 2, "fds" => 3 },
+          "limits"   => { "mem" => 1, "disk" => 2, "fds" => 3, "cpu"=> 4 },
           "env"      => ["FOO=BAR", "BAR=", "QUX"],
           "services" => { "name" => "redis", "type" => "redis" },
           "flapping" => false,
@@ -102,7 +102,7 @@ describe Dea::Instance do
         }
       end
 
-      its(:limits)      { should == { "mem" => 1, "disk" => 2, "fds" => 3 } }
+      its(:limits)      { should == { "mem" => 1, "disk" => 2, "fds" => 3, "cpu"=>4 } }
       its(:environment) { should == { "FOO" => "BAR", "BAR" => "", "QUX" => "" } }
       its(:services)    { should == { "name" => "redis", "type" => "redis" } }
       its(:flapping)    { should == false }
@@ -424,6 +424,7 @@ describe Dea::Instance do
       instance.stub(:promise_setup_network).and_return(delivering_promise)
       instance.stub(:promise_limit_disk).and_return(delivering_promise)
       instance.stub(:promise_limit_memory).and_return(delivering_promise)
+      instance.stub(:promise_limit_cpu).and_return(delivering_promise)
       instance.stub(:promise_setup_environment).and_return(delivering_promise)
       instance.stub(:promise_extract_droplet).and_return(delivering_promise)
       instance.stub(:promise_prepare_start_script).and_return(delivering_promise)

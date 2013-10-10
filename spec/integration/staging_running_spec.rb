@@ -34,6 +34,7 @@ describe "Running an app", :type => :integration, :requires_warden => true do
         "limits" => {
           "mem" => 64,
           "disk" => 128,
+          "cpu" => 50,
           "fds" => 32
         },
         "services" => []
