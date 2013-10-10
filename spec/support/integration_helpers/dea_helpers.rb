@@ -153,7 +153,8 @@ module DeaHelpers
       f = File.new("/tmp/dea.yml", "w")
       f.write(YAML.dump(config))
       f.close
-      run_cmd "bundle exec bin/dea #{f.path} 2>&1 >>tmp/logs/dea.log"
+
+      run_cmd "mkdir -p tmp/logs && bundle exec bin/dea #{f.path} 2>&1 >>tmp/logs/dea.log"
     end
 
     def stop
