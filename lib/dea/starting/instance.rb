@@ -243,6 +243,8 @@ module Dea
 
       @exit_status           = -1
       @exit_description      = ""
+
+      logger.user_data[:attributes] = @attributes
     end
 
     def setup
@@ -348,18 +350,6 @@ module Dea
       end
     end
 
-    def promise_droplet_download
-      Promise.new do |p|
-        droplet.download(droplet_uri) do |error|
-          if error
-            p.fail(error)
-          else
-            p.deliver
-          end
-        end
-      end
-    end
-
     def promise_setup_environment
       Promise.new do |p|
         script = "cd / && mkdir -p home/vcap/app && chown vcap:vcap home/vcap/app && ln -s home/vcap/app /app"
@@ -421,7 +411,7 @@ module Dea
             script << "exit"
             container.run_script(:app, script.join("\n"))
           else
-            log(:warn, "droplet.hook-script.missing", :hook => key, :script_path => script_path)
+            logger.warn "droplet.hook-script.missing", :hook => key, :script_path => script_path
           end
         end
         p.deliver
@@ -430,7 +420,7 @@ module Dea
 
     def start(&callback)
       p = Promise.new do
-        log(:info, "droplet.starting")
+        logger.info "droplet.starting"
 
         promise_state(State::BORN, State::STARTING).resolve
 
@@ -456,10 +446,10 @@ module Dea
 
         if promise_health_check.resolve
           promise_state(State::STARTING, State::RUNNING).resolve
-          log(:info, "droplet.healthy")
+          logger.info "droplet.healthy"
           promise_exec_hook_script('after_start').resolve
         else
-          log(:warn, "droplet.unhealthy")
+          logger.warn "droplet.unhealthy"
           p.fail("App instance failed health check")
         end
 
@@ -502,22 +492,28 @@ module Dea
 
     def promise_droplet
       Promise.new do |p|
-        if !droplet.droplet_exist?
-          log(:info, "droplet.download.starting")
-          start = Time.now
-          promise_droplet_download.resolve
-          log(:info, "droplet.download.finished", :took => Time.now - start)
-        else
-          log(:info, "droplet.download.skipped")
-        end
+        droplet.download(droplet_uri) do |error|
+          if error
+            logger.debug "droplet.download.failed",
+              duration: p.elapsed_time,
+              error: error,
+              backtrace: error.backtrace
 
-        p.deliver
+            p.fail(error)
+          else
+            logger.debug "droplet.download.succeeded",
+              duration: p.elapsed_time,
+              destination: droplet.droplet_path
+
+            p.deliver
+          end
+        end
       end
     end
 
     def stop(&callback)
       p = Promise.new do
-        log(:info, "droplet.stopping")
+        logger.info "droplet.stopping"
 
         promise_exec_hook_script('before_stop').resolve
 
@@ -582,9 +578,8 @@ module Dea
     def crash_handler(&callback)
       Promise.resolve(promise_crash_handler) do |error, _|
         if error
-          log(
-            :warn, "droplet.crash-handler.error",
-            :error => error, :backtrace => error.backtrace)
+          logger.warn "droplet.crash-handler.error",
+            error: error, backtrace: error.backtrace
         end
 
         callback.call(error) unless callback.nil?
@@ -623,8 +618,6 @@ module Dea
         request.job_id = attributes["warden_job_id"]
         response = container.call_with_retry(:link, request)
 
-        log(:info, "droplet.warden.link.completed", :exit_status => response.exit_status)
-
         p.deliver(response)
       end
     end
@@ -632,11 +625,20 @@ module Dea
     def link(&callback)
       Promise.resolve(promise_link) do |error, link_response|
         if error
+          logger.warn "droplet.warden.link.failed",
+            error: error, backtrace: error.backtrace
+
           self.exit_status = -1
           self.exit_description = "unknown"
         else
+          description = determine_exit_description(link_response)
+
+          logger.warn "droplet.warden.link.completed",
+            exit_status: link_response.exit_status,
+            exit_description: description
+
           self.exit_status = link_response.exit_status
-          self.exit_description = determine_exit_description(link_response)
+          self.exit_description = description
         end
 
         case self.state
@@ -644,7 +646,8 @@ module Dea
           self.state = State::CRASHED
         when State::RUNNING
           uptime = Time.now - attributes["state_running_timestamp"]
-          log(:info, "droplet.instance.uptime", :uptime => uptime)
+
+          logger.info "droplet.instance.crashed", :uptime => uptime
 
           self.state = State::CRASHED
         else
@@ -676,7 +679,7 @@ module Dea
       Promise.new do |p|
         host = bootstrap.local_ip
 
-        log(:debug, "droplet.healthcheck.port", :host => host, :port => port)
+        logger.debug "droplet.healthcheck.port", :host => host, :port => port
 
         @health_check = Dea::HealthCheck::PortOpen.new(host, port) do |hc|
           hc.callback { p.deliver(true) }
@@ -690,7 +693,7 @@ module Dea
 
     def promise_state_file_ready(path)
       Promise.new do |p|
-        log(:debug, "droplet.healthcheck.file", :path => path)
+        logger.debug "droplet.healthcheck.file", :path => path
 
         @health_check = Dea::HealthCheck::StateFileReady.new(path) do |hc|
           hc.callback { p.deliver(true) }
@@ -810,14 +813,6 @@ module Dea
       }
 
       @logger ||= self.class.logger.tag(tags)
-    end
-
-    def log(level, message, data = {})
-      logger.send(level, message, base_log_data.merge(data))
-    end
-
-    def base_log_data
-      { :attributes => @attributes }
     end
   end
 end

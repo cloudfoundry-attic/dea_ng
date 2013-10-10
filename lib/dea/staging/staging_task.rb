@@ -257,16 +257,12 @@ module Dea
       Promise.new do |p|
         logger.info "staging.app-download.starting", :uri => attributes["download_uri"]
 
-        start = Time.now
-
         download_destination = Tempfile.new("app-package-download.tgz")
 
         Download.new(attributes["download_uri"], download_destination, nil, logger).download! do |error|
-          done = Time.now
-
           if error
             logger.debug "staging.app-download.failed",
-              duration: done - start,
+              duration: p.elapsed_time,
               error: error,
               backtrace: error.backtrace
 
@@ -276,7 +272,7 @@ module Dea
             File.chmod(0744, workspace.downloaded_app_package_path)
 
             logger.debug "staging.app-download.completed",
-              duration: done - start,
+              duration: p.elapsed_time,
               destination: workspace.downloaded_app_package_path
 
             p.deliver
@@ -304,6 +300,7 @@ module Dea
         Upload.new(workspace.staged_droplet_path, attributes["upload_uri"], logger).upload! do |error|
           if error
             logger.info "staging.task.droplet-upload-failed",
+              duration: p.elapsed_time,
               destination: attributes["upload_uri"],
               error: error,
               backtrace: error.backtrace
@@ -311,6 +308,7 @@ module Dea
             p.fail(error)
           else
             logger.info "staging.task.droplet-upload-completed",
+              duration: p.elapsed_time,
               destination: attributes["upload_uri"]
 
             p.deliver
@@ -328,6 +326,7 @@ module Dea
         Upload.new(workspace.staged_buildpack_cache_path, attributes["buildpack_cache_upload_uri"], logger).upload! do |error|
           if error
             logger.info "staging.task.buildpack-cache-upload-failed",
+              duration: p.elapsed_time,
               destination: attributes["buildpack_cache_upload_uri"],
               error: error,
               backtrace: error.backtrace
@@ -335,6 +334,7 @@ module Dea
             p.fail(error)
           else
             logger.info "staging.task.buildpack-cache-upload-completed",
+              duration: p.elapsed_time,
               destination: attributes["buildpack_cache_upload_uri"]
 
             p.deliver
@@ -348,17 +348,13 @@ module Dea
         logger.info "staging.buildpack-cache-download.starting",
           uri: attributes["buildpack_cache_download_uri"]
 
-        start = Time.now
-
         download_destination = Tempfile.new("buildpack-cache", workspace.tmpdir)
 
         Download.new(attributes["buildpack_cache_download_uri"], download_destination, nil, logger).download! do |error|
-          done = Time.now
-
           if error
             logger.debug "staging.buildpack-cache-download.failed",
+              duration: p.elapsed_time,
               uri: attributes["buildpack_cache_download_uri"],
-              duration: done - start,
               error: error,
               backtrace: error.backtrace
 
@@ -367,7 +363,7 @@ module Dea
             File.chmod(0744, workspace.downloaded_buildpack_cache_path)
 
             logger.debug "staging.buildpack-cache-download.completed",
-              duration: done - start,
+              duration: p.elapsed_time,
               destination: workspace.downloaded_buildpack_cache_path
           end
 

@@ -454,7 +454,6 @@ describe Dea::Instance do
   describe "start transition" do
     let(:droplet) do
       droplet = mock("droplet")
-      droplet.stub(:droplet_exist?).and_return(true)
       droplet.stub(:droplet_dirname).and_return(File.join(tmpdir, "droplet", "some_sha1"))
       droplet.stub(:droplet_basename).and_return("droplet.tgz")
       droplet.stub(:droplet_path).and_return(File.join(droplet.droplet_dirname, droplet.droplet_basename))
@@ -465,7 +464,7 @@ describe Dea::Instance do
 
     before do
       bootstrap.stub(:config).and_return({ "bind_mounts" => [] })
-      instance.stub(:promise_droplet_download).and_return(delivering_promise)
+      instance.stub(:promise_droplet).and_return(delivering_promise)
       instance.container.stub(:get_connection).and_raise("bad connection bad")
       instance.container.stub(:create_container)
       instance.stub(:promise_setup_network).and_return(delivering_promise)
@@ -521,42 +520,23 @@ describe Dea::Instance do
     end
 
     describe "downloading droplet" do
-      before do
-        instance.unstub(:promise_droplet_download)
+      before { instance.unstub(:promise_droplet) }
+
+      it "succeeds when #download succeeds" do
+        droplet.stub(:download).and_yield(nil)
+
+        expect_start.to_not raise_error
+        instance.exit_description.should be_empty
       end
 
-      describe "when it already exists" do
-        before do
-          droplet.stub(:droplet_exist?).and_return(true)
-        end
+      it "fails when #download fails" do
+        msg = "download failed"
+        droplet.stub(:download).and_yield(Dea::Instance::BaseError.new(msg))
 
-        it "succeeds" do
-          expect_start.to_not raise_error
-          instance.exit_description.should be_empty
-        end
-      end
+        expect_start.to raise_error(Dea::Instance::BaseError, msg)
 
-      describe "when it does not yet exist" do
-        before do
-          droplet.stub(:droplet_exist?).and_return(false)
-        end
-
-        it "succeeds when #download succeeds" do
-          droplet.stub(:download).and_yield(nil)
-
-          expect_start.to_not raise_error
-          instance.exit_description.should be_empty
-        end
-
-        it "fails when #download fails" do
-          msg = "download failed"
-          droplet.stub(:download).and_yield(Dea::Instance::BaseError.new(msg))
-
-          expect_start.to raise_error(Dea::Instance::BaseError, msg)
-
-          # Instance exit description should be set to the failure message
-          instance.exit_description.should be_eql(msg)
-        end
+        # Instance exit description should be set to the failure message
+        instance.exit_description.should be_eql(msg)
       end
     end
 

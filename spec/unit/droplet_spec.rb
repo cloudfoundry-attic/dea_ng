@@ -23,9 +23,7 @@ describe Dea::Droplet do
     droplet.sha1.should == sha1
   end
 
-  it "should not exist" do
-    droplet.droplet_exist?.should be_false
-  end
+  it { should_not exist }
 
   it "should make sure its directory exists" do
     File.directory?(droplet.droplet_dirname).should be_true
@@ -114,16 +112,17 @@ describe Dea::Droplet do
       end
 
       it "should call callback without error" do
+        error = nil
+
         em do
           droplet.download("http://127.0.0.1:12345/droplet") do |err|
-            err.should be_nil
-
-            # Droplet should now exist
-            droplet.droplet_exist?.should be_true
-
+            error = err
             done
           end
         end
+
+        error.should be_nil
+        droplet.should exist
       end
     end
 

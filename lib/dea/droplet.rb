@@ -34,12 +34,13 @@ module Dea
       File.join(droplet_dirname, droplet_basename)
     end
 
-    def droplet_exist?
-      File.exist?(droplet_path)
+    def exists?
+      File.exists?(droplet_path) && \
+        Digest::SHA1.file(droplet_path).hexdigest == @sha1
     end
 
     def download(uri, &blk)
-      if already_downloaded?
+      if exists?
         blk.call(nil)
         return
       end
@@ -56,14 +57,10 @@ module Dea
       download_destination = Tempfile.new("droplet-download.tgz")
 
       Download.new(uri, download_destination, sha1).download! do |err|
-        if err
-          logger.debug "droplet.download.failed", error: err
-        else
+        unless err
           FileUtils.mkdir_p(droplet_dirname)
           File.rename(download_destination.path, droplet_path)
           File.chmod(0744, droplet_path)
-
-          logger.debug "droplet.download.succeeded", destination: droplet_path
         end
 
         with_pending_downloads do |pending_downloads|
@@ -104,11 +101,6 @@ module Dea
       end
 
       EM.defer(operation, callback)
-    end
-
-    def already_downloaded?
-      File.exists?(droplet_path) && \
-        Digest::SHA1.file(droplet_path).hexdigest == @sha1
     end
 
     private
