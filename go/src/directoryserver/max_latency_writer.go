@@ -41,54 +41,54 @@ type writeFlusher interface {
 }
 
 type maxLatencyWriter struct {
-	dst     writeFlusher
+	flusher writeFlusher
 	latency time.Duration
 
-	wlk  sync.Mutex // protects Write + Flush
-	slk  sync.Mutex // protects Stop
-	done chan bool
+	writeLock sync.Mutex // protects Write + Flush
+	stopLock  sync.Mutex // protects Stop
+	done      chan bool
 }
 
-func NewMaxLatencyWriter(dst writeFlusher, latency time.Duration) *maxLatencyWriter {
-	m := &maxLatencyWriter{
-		dst:     dst,
+func NewMaxLatencyWriter(flusher writeFlusher, latency time.Duration) *maxLatencyWriter {
+	writer := &maxLatencyWriter{
+		flusher: flusher,
 		latency: latency,
 		done:    make(chan bool),
 	}
 
-	go m.flushLoop(m.done)
+	go writer.flushLoop(writer.done)
 
-	return m
+	return writer
 }
 
-func (m *maxLatencyWriter) Write(p []byte) (int, error) {
-	m.wlk.Lock()
-	defer m.wlk.Unlock()
-	return m.dst.Write(p)
+func (writer *maxLatencyWriter) Write(bytes []byte) (int, error) {
+	writer.writeLock.Lock()
+	defer writer.writeLock.Unlock()
+	return writer.flusher.Write(bytes)
 }
 
-func (m *maxLatencyWriter) flushLoop(d chan bool) {
-	t := time.NewTicker(m.latency)
-	defer t.Stop()
+func (writer *maxLatencyWriter) flushLoop(done chan bool) {
+	ticker := time.NewTicker(writer.latency)
+	defer ticker.Stop()
 	for {
 		select {
-		case <-t.C:
-			m.wlk.Lock()
-			m.dst.Flush()
-			m.wlk.Unlock()
-		case <-d:
+		case <-ticker.C:
+			writer.writeLock.Lock()
+			writer.flusher.Flush()
+			writer.writeLock.Unlock()
+		case <-done:
 			return
 		}
 	}
 	panic("unreached")
 }
 
-func (m *maxLatencyWriter) Stop() {
-	m.slk.Lock()
-	defer m.slk.Unlock()
+func (writer *maxLatencyWriter) Stop() {
+	writer.stopLock.Lock()
+	defer writer.stopLock.Unlock()
 
-	if m.done != nil {
-		m.done <- true
-		m.done = nil
+	if writer.done != nil {
+		writer.done <- true
+		writer.done = nil
 	}
 }

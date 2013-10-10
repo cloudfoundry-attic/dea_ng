@@ -14,12 +14,12 @@ type StreamHandler struct {
 	IdleTimeout   time.Duration
 }
 
-func (x *StreamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (handler *StreamHandler) ServeHTTP(writer http.ResponseWriter, r *http.Request) {
 	var err error
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		w.WriteHeader(500)
+		writer.WriteHeader(500)
 		return
 	}
 
@@ -34,49 +34,51 @@ func (x *StreamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	err = watcher.Watch(x.File.Name())
+	err = watcher.Watch(handler.File.Name())
 	if err != nil {
-		w.WriteHeader(500)
+		writer.WriteHeader(500)
 		return
 	}
 
 	// Setup max latency writer
-	var u io.Writer = w
-	var mlw *maxLatencyWriter
-	if x.FlushInterval != 0 {
-		if v, ok := w.(writeFlusher); ok {
-			mlw = NewMaxLatencyWriter(v, x.FlushInterval)
-			defer mlw.Stop()
-			u = mlw
+	var ioWriter io.Writer = writer
+	var latencyWriter *maxLatencyWriter
+	if handler.FlushInterval != 0 {
+		if flusher, ok := writer.(writeFlusher); ok {
+			latencyWriter = NewMaxLatencyWriter(flusher, handler.FlushInterval)
+			defer latencyWriter.Stop()
+			ioWriter = latencyWriter
 		}
 	}
 
 	// Write header before starting stream
-	w.WriteHeader(200)
+	latencyWriter.writeLock.Lock()
+	writer.WriteHeader(200)
+	latencyWriter.writeLock.Unlock()
 
 	// Setup idle timeout
-	if x.IdleTimeout == 0 {
-		x.IdleTimeout = 1 * time.Minute
+	if handler.IdleTimeout == 0 {
+		handler.IdleTimeout = 1 * time.Minute
 	}
 
 	// Flush content before starting stream
-	_, err = io.Copy(u, x.File)
+	_, err = io.Copy(ioWriter, handler.File)
 	if err != nil {
 		return
 	}
 
 	for {
 		select {
-		case <-time.After(x.IdleTimeout):
-			hj, ok := w.(http.Hijacker)
+		case <-time.After(handler.IdleTimeout):
+			hj, ok := writer.(http.Hijacker)
 			if !ok {
 				panic("not a http.Hijacker")
 			}
 
 			// Stop max latency writer before hijacking connection to prevent flush
 			// on hijacked connection
-			if mlw != nil {
-				mlw.Stop()
+			if latencyWriter != nil {
+				latencyWriter.Stop()
 			}
 
 			conn, _, err := hj.Hijack()
@@ -96,12 +98,12 @@ func (x *StreamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 			// Since we keep the inode open
 			// we will not receive delete_self notification
-			_, err = os.Stat(x.File.Name())
+			_, err = os.Stat(handler.File.Name())
 			if err != nil {
 				return
 			}
 
-			_, err = io.Copy(u, x.File)
+			_, err = io.Copy(ioWriter, handler.File)
 			if err != nil {
 				return
 			}
