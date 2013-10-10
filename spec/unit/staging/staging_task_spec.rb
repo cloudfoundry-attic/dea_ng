@@ -838,12 +838,12 @@ YAML
 
       it "does not copy out the buildpack cache" do
         staging.should_not_receive :promise_copy_out_buildpack_cache
-        staging.promise_save_buildpack_cache.resolve
+        staging.promise_save_buildpack_cache.resolve rescue nil
       end
 
       it "does not upload the buildpack cache" do
         staging.should_not_receive :promise_buildpack_cache_upload
-        staging.promise_save_buildpack_cache.resolve
+        staging.promise_save_buildpack_cache.resolve rescue nil
       end
 
     end

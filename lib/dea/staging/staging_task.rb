@@ -408,10 +408,19 @@ module Dea
       Promise.new do |p|
         resolve_and_log(promise_pack_buildpack_cache, "staging.buildpack-cache.save") do |error, _|
           unless error
-            promise_copy_out_buildpack_cache.resolve
-            promise_buildpack_cache_upload.resolve
+            begin
+              promise_copy_out_buildpack_cache.resolve
+              promise_buildpack_cache_upload.resolve
+            rescue => e
+              error = e
+            end
           end
-          p.deliver
+
+          if error
+            p.fail(error)
+          else
+            p.deliver
+          end
         end
       end
     end

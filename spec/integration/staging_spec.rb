@@ -196,15 +196,55 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
 
   context "when an invalid upload URI is given" do
     let(:staged_url) { "http://localhost:45459/not_real" }
+
     let(:properties) do
       setup_fake_buildpack("start_command")
       {"buildpack" => fake_buildpack_url("start_command")}
     end
 
+    before { FileUtils.rm_f(dea_server.instance_file) }
+
     it "does not crash" do
       response, _ = perform_stage_request(staging_message)
       expect(response["error"]).to include("Error uploading")
       expect(dea_memory).to be > 0
+    end
+
+    it "unregisters the staging task" do
+      begin
+        Timeout::timeout(10) do
+          perform_stage_request(staging_message)
+        end
+      rescue Timeout::Error
+      end
+      expect(instances_json["staging_tasks"]).to be_empty
+    end
+  end
+
+  context "when an invalid buildpack cache upload URI" do
+    let(:buildpack_cache_upload_uri) { "http://localhost:45459/not_real" }
+
+    let(:properties) do
+      setup_fake_buildpack("start_command")
+      {"buildpack" => fake_buildpack_url("start_command")}
+    end
+
+    before { FileUtils.rm_f(dea_server.instance_file) }
+
+    it "does not crash" do
+      response, _ = perform_stage_request(staging_message)
+      expect(response["error"]).to include("Error uploading")
+      expect(dea_memory).to be > 0
+    end
+
+    it "unregisters the staging task" do
+      begin
+        Timeout::timeout(10) do
+          perform_stage_request(staging_message)
+        end
+      rescue Timeout::Error
+      end
+      expect(instances_json["staging_tasks"]).to be_empty
     end
   end
 
@@ -213,6 +253,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
       setup_fake_buildpack("long_compiling_buildpack")
       fake_buildpack_url("long_compiling_buildpack")
     end
+
     let(:properties) { {"buildpack" => buildpack_url} }
 
     it "decreases the DEA's available memory" do
