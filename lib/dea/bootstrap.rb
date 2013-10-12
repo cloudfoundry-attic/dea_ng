@@ -444,6 +444,15 @@ module Dea
     end
 
     def create_instance(attributes)
+      instance = Instance.new(self, attributes)
+
+      begin
+        instance.validate
+      rescue => error
+        logger.warn "Error validating instance: #{error.message}"
+        return
+      end
+
       unless resource_manager.could_reserve?(attributes["limits"]["mem"], attributes["limits"]["disk"])
         message = "Unable to start instance: #{attributes["instance_index"]}"
         message << " for app: #{attributes["application_id"]}, not enough resources available."
@@ -451,7 +460,6 @@ module Dea
         return nil
       end
 
-      instance = Instance.new(self, attributes)
       instance.setup
 
       instance.on(Instance::Transition.new(:starting, :crashed)) do
@@ -495,13 +503,6 @@ module Dea
       instance.on(Instance::Transition.new(:stopping, :stopped)) do
         @instance_registry.unregister(instance)
         EM.next_tick { instance.destroy }
-      end
-
-      begin
-        instance.validate
-      rescue => error
-        logger.warn "Error validating instance: #{error.message}"
-        return
       end
 
       instance_registry.register(instance)

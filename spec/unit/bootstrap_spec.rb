@@ -712,11 +712,13 @@ describe Dea::Bootstrap do
       end
 
       let(:logger) { double(:mock_logger) }
+
       let(:resource_manager) do
         manager = double(:resource_manager)
         manager.stub(:could_reserve?).with(1, 2).and_return(false)
         manager
       end
+
       let(:extra_attributes) { {"limits" => {"mem" => 1, "disk" => 2, "fds" => 3}} }
 
       it "log and error and return nil" do
@@ -744,6 +746,31 @@ describe Dea::Bootstrap do
         logger.should_not_receive(:warn)
 
         instance.should be_a(::Dea::Instance)
+      end
+    end
+
+    context "when limits are missing from the attributes" do
+      before do
+        bootstrap.instance_variable_set(:@logger, logger)
+        bootstrap.instance_variable_set(:@resource_manager, resource_manager)
+      end
+
+      let(:logger) { double(:mock_logger) }
+
+      let(:resource_manager) do
+        manager = double(:resource_manager)
+        manager.stub(:could_reserve?).with(1, 2).and_return(false)
+        manager
+      end
+
+      subject(:instance) do
+        em { bootstrap.setup_instance_registry; done }
+        bootstrap.create_instance(valid_instance_attributes.delete("limits"))
+      end
+
+      it "fails validation instead of blowing up" do
+        logger.should_receive(:warn).with(/validat/)
+        instance.should be_nil
       end
     end
 
