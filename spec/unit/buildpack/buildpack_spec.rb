@@ -109,11 +109,26 @@ describe Buildpacks::Buildpack, :type => :buildpack do
         [
           "#{fake_buildpacks_dir}/fail_to_detect",
           "#{fake_buildpacks_dir}/start_command",
+          "#{fake_buildpacks_dir}/ruby",
         ]
       end
 
       it "tries next buildpack in a set if first fails to detect" do
         expect(buildpack_info["detected_buildpack"]).to eq("Node.js")
+      end
+
+      context "when multiple buildpacks match" do
+        let(:buildpack_dirs) do
+          [
+            "#{fake_buildpacks_dir}/fail_to_detect",
+            "#{fake_buildpacks_dir}/ruby",
+            "#{fake_buildpacks_dir}/start_command",
+          ]
+        end
+
+        it "searches the buildpacks in order" do
+         expect(buildpack_info["detected_buildpack"]).to eq("Ruby/Rails")
+        end
       end
     end
 

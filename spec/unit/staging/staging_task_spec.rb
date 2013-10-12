@@ -233,17 +233,6 @@ YAML
     end
   end
 
-  describe "#admin_buildpacks" do
-
-    let(:attributes) do
-      valid_staging_attributes.merge( { "admin_buildpacks" => %w(a b c) } )
-    end
-
-    it "returns the list of buildpacks passed in the constructor" do
-      expect(staging.admin_buildpacks).to eq(%w(a b c))
-    end
-  end
-
   describe "#path_in_container" do
     context "when given path is not nil" do
       context "when container path is set" do
@@ -712,6 +701,7 @@ YAML
       before do
         Download.any_instance.stub(:download!).and_yield(nil)
       end
+
       its(:result) { should == [:deliver, nil] }
 
       it "should rename the file" do
@@ -724,6 +714,7 @@ YAML
 
   describe "#promise_buildpack_cache_download" do
     subject do
+      staging.workspace.prepare
       promise = staging.promise_buildpack_cache_download
       promise.resolve
       promise

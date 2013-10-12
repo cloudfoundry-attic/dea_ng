@@ -7,7 +7,7 @@ module Dea
       "memory_overcommit_factor" => 1,
       "disk_mb" => 16 * 1024 * 1024,
       "disk_overcommit_factor" => 1,
-    }
+    }.freeze
 
     def initialize(instance_registry, staging_task_registry, config = {})
       config = DEFAULT_CONFIG.merge(config)

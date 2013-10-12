@@ -93,6 +93,50 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
           expect(response["error"]).to be_nil
         end
       end
+
+      context "and autodetection is requested" do
+        let(:properties) { {"environment" => env, "resources" => limits} }
+
+        context "when the buildpacks are ordered 2nd, 1st " do
+          let(:admin_buildpacks) do
+            [
+              {
+                "url" => "http://#{file_server_address}/admin_buildpacks/admin_buildpack",
+                "key" => "1_sha_admin" # the number is here to ensure that we are not sorting by ls
+              },
+              {
+                "url" => "http://#{file_server_address}/admin_buildpacks/ruby",
+                "key" => "0_sha_ruby"
+              }
+            ]
+          end
+
+          it "uses the first matching buildpack" do
+            staging_log = perform_stage_request(staging_message)[1]
+            expect(staging_log).to include("-----> Some admin compilation output")
+          end
+        end
+
+        context "when the buildpacks are ordered first, second" do
+          let(:admin_buildpacks) do
+            [
+              {
+                "url" => "http://#{file_server_address}/admin_buildpacks/ruby",
+                "key" => "0_sha_ruby"
+              },
+              {
+                "url" => "http://#{file_server_address}/admin_buildpacks/admin_buildpack",
+                "key" => "1_sha_admin"
+              }
+            ]
+          end
+
+          it "uses the first matching buildpack" do
+            response, staging_log = perform_stage_request(staging_message)
+            expect(staging_log).to include("-----> Some compilation output")
+          end
+        end
+      end
     end
 
     context "after the buildpack is deleted" do
@@ -108,7 +152,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
         end
 
         it "no longer stages the app with the admin buildpack" do
-          response, staging_log = stage_with_no_admin_buildpacks
+          staging_log = stage_with_no_admin_buildpacks[1]
           expect(staging_log).to_not include("-----> Some admin compilation output")
         end
 

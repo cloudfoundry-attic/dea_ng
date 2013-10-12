@@ -41,55 +41,6 @@ describe Dea::StagingTaskWorkspace do
 
   let(:downloader) { double("AdminBuildpackDownloader").as_null_object }
 
-  describe "cleaning up deleted admin buildpacks" do
-    let(:admin_buildpacks) do
-      [
-        {
-          "url" => "http://example.com/buildpacks/uri/abcdef",
-          "key" => "abcdef"
-        }
-      ]
-    end
-
-    let(:file_to_delete) {File.join(subject.admin_buildpacks_dir, "1234") }
-    let(:file_to_keep) {File.join(subject.admin_buildpacks_dir, "abcdef") }
-
-    before do
-      [file_to_delete, file_to_keep].each do |path|
-        create_populated_directory path
-      end
-    end
-
-    def create_populated_directory(path)
-      FileUtils.mkdir_p(File.join(path, "a_buildpack_file"))
-    end
-
-    context "when there are no admin buildpacks in use" do
-      let(:builpacks_in_use) {[]}
-
-      it "cleans deleted admin buildpacks" do
-        expect { subject.prepare }.to change { File.exists? file_to_delete }.from(true).to(false)
-        expect(File.exists? file_to_keep).to be_true
-      end
-    end
-
-    context "when an admin buildpack is in use" do
-      let(:buildpacks_in_use) { [{ "uri" => "foo", "key" => "efghi" }] }
-
-      let(:file_in_use) {File.join(subject.admin_buildpacks_dir, "efghi")}
-
-      before do
-        create_populated_directory(file_in_use)
-      end
-
-      it "that buildpack doesn't get deleted" do
-        expect { subject.prepare }.to change { File.exists? file_to_delete }.from(true).to(false)
-        expect(File.exists? file_to_keep).to be_true
-        expect(File.exists? file_in_use).to be_true
-      end
-    end
-  end
-
   describe "preparing the workspace" do
     it "downloads the admin buildpacks" do
       AdminBuildpackDownloader.should_receive(:new).with(admin_buildpacks, subject.admin_buildpacks_dir).and_return(downloader)
@@ -100,6 +51,7 @@ describe Dea::StagingTaskWorkspace do
     describe "the plugin config file" do
       context "when admin buildpack exists" do
         before do
+          subject.prepare
           @admin_buildpack = File.join(subject.admin_buildpacks_dir, "abcdef")
           Dir.mkdir(@admin_buildpack)
           subject.prepare
@@ -121,6 +73,7 @@ describe Dea::StagingTaskWorkspace do
 
       context "when multiple admin buildpacks exist" do
         before do
+          subject.prepare
           @admin_buildpack = File.join(subject.admin_buildpacks_dir, "abcdef")
           Dir.mkdir(@admin_buildpack)
           @another_buildpack = File.join(subject.admin_buildpacks_dir, "xyz")
@@ -137,6 +90,60 @@ describe Dea::StagingTaskWorkspace do
         it "only returns buildpacks specified in start message" do
           expect(@config["buildpack_dirs"][0]).to eq(@admin_buildpack)
           expect(@config["buildpack_dirs"]).to_not include(@another_buildpack)
+        end
+      end
+
+      context "when the config lists multiple admin buildpacks which exist on disk" do
+        before do
+          subject.prepare
+          @admin_buildpack = File.join(subject.admin_buildpacks_dir, "abcdef")
+          Dir.mkdir(@admin_buildpack)
+          @another_buildpack = File.join(subject.admin_buildpacks_dir, "ghijk")
+          Dir.mkdir(@another_buildpack)
+          subject.prepare
+          @config = YAML.load_file(subject.plugin_config_path)
+        end
+
+        after do
+          FileUtils.rm_f(@admin_buildpack)
+          FileUtils.rm_f(@another_buildpack)
+        end
+
+        context "when the buildpacks are ordered admin_buildpack, another_buildpack" do
+          let(:admin_buildpacks) do
+            [{
+               "url" => "http://example.com/buildpacks/uri/abcdef",
+               "key" => "abcdef"
+             },
+             {
+               "url" => "http://example.com/buildpacks/uri/ghijk",
+               "key" => "ghijk"
+             }]
+          end
+
+          it "returns the buildpacks in the order of the admin_buildpacks message" do
+            expect(@config["buildpack_dirs"][0]).to eq(@admin_buildpack)
+            expect(@config["buildpack_dirs"][1]).to eq(@another_buildpack)
+          end
+        end
+
+        context "when the buildpacks are ordered another_buildpack, admin_buildpack" do
+          let(:admin_buildpacks) do
+            [
+              {
+                "url" => "http://example.com/buildpacks/uri/ghijk",
+                "key" => "ghijk"
+              },
+              {
+               "url" => "http://example.com/buildpacks/uri/abcdef",
+               "key" => "abcdef"
+              }]
+          end
+
+          it "returns the buildpacks in the order of the admin_buildpacks message" do
+            expect(@config["buildpack_dirs"][0]).to eq(@another_buildpack)
+            expect(@config["buildpack_dirs"][1]).to eq(@admin_buildpack)
+          end
         end
       end
 
@@ -168,12 +175,12 @@ describe Dea::StagingTaskWorkspace do
   end
 
   it "creates the tmp folder" do
-    subject
+    subject.prepare
     expect(File.exists?(subject.tmpdir)).to be_true
   end
 
   it "creates the admin buildpacks dir folder" do
-    subject
+    subject.prepare
     expect(File.exists?(subject.admin_buildpacks_dir)).to be_true
   end
 end

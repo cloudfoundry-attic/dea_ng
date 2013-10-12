@@ -1,21 +1,26 @@
 require "fileutils"
 require "dea/staging/admin_buildpack_downloader"
+require "dea/staging/buildpack_manager"
 
 module Dea
   class StagingTaskWorkspace
-    DROPLET_FILE = "droplet.tgz"
-    BUILDPACK_CACHE_FILE = "buildpack_cache.tgz"
-    STAGING_LOG = "staging_task.log"
-    STAGING_INFO = "staging_info.yml"
+    DROPLET_FILE = "droplet.tgz".freeze
+    BUILDPACK_CACHE_FILE = "buildpack_cache.tgz".freeze
+    STAGING_LOG = "staging_task.log".freeze
+    STAGING_INFO = "staging_info.yml".freeze
 
     def initialize(base_dir, admin_buildpacks, buildpacks_in_use, environment_properties)
       @base_dir = base_dir
-      @admin_buildpacks = admin_buildpacks || []
-      @buildpacks_in_use = buildpacks_in_use
       @environment_properties = environment_properties
-      FileUtils.mkdir_p(tmpdir)
-      FileUtils.mkdir_p(admin_buildpacks_dir)
+      @buildpack_manager = Dea::BuildpackManager.new(
+        admin_buildpacks_dir,
+        File.join(buildpack_dir, "vendor"),
+        admin_buildpacks || [],
+        buildpacks_in_use
+      )
     end
+
+    ###### Setup
 
     def workspace_dir
       @workspace_dir ||= begin
@@ -35,30 +40,22 @@ module Dea
         "cache_dir" => warden_cache,
         "environment" => @environment_properties,
         "staging_info_name" => STAGING_INFO,
-        "buildpack_dirs" => filtered_admin_buildpack_paths + system_buildpack_paths
+        "buildpack_dirs" => @buildpack_manager.list
       }
+
       logger.info plugin_config
       File.open(plugin_config_path, 'w') { |f| YAML.dump(plugin_config, f) }
     end
 
     def prepare
-      download_admin_buildpacks
-      cleanup_admin_buildpacks
+      FileUtils.mkdir_p(tmpdir)
+      FileUtils.mkdir_p(admin_buildpacks_dir)
+      @buildpack_manager.download
+      @buildpack_manager.clean
       write_config_file
     end
 
-    def download_admin_buildpacks
-      AdminBuildpackDownloader.new(
-        @admin_buildpacks,
-        admin_buildpacks_dir
-      ).download
-    end
-
-    def cleanup_admin_buildpacks
-      buildpacks_needing_deletion.each do |path|
-        FileUtils.rm_rf(path)
-      end
-    end
+    ###### Accessors
 
     def warden_staged_droplet
       "/tmp/#{DROPLET_FILE}"
@@ -84,40 +81,16 @@ module Dea
       "/tmp/staged"
     end
 
-    def admin_buildpacks_dir
-      File.join(@base_dir, "admin_buildpacks")
-    end
-
     def tmpdir
       File.join(@base_dir, "tmp")
     end
 
+    def admin_buildpacks_dir
+      File.join(@base_dir, "admin_buildpacks")
+    end
+
     def buildpack_dir
       File.expand_path("../../../../buildpacks", __FILE__)
-    end
-
-    def system_buildpack_paths
-      Pathname.new(File.join(buildpack_dir, "vendor")).children.map(&:to_s)
-    end
-
-    def filtered_admin_buildpack_paths
-      Pathname.new(admin_buildpacks_dir).children.select do |s|
-        @admin_buildpacks.detect do |buildpack|
-          buildpack["key"] == File.basename(s)
-        end
-      end.map(&:to_s)
-    end
-
-    def buildpacks_needing_deletion
-      all_buildpack_paths - (filtered_admin_buildpack_paths + buildpacks_in_use_paths)
-    end
-
-    def all_buildpack_paths
-      Pathname.new(admin_buildpacks_dir).children.map(&:to_s)
-    end
-
-    def buildpacks_in_use_paths
-      @buildpacks_in_use.map { |b| File.join(admin_buildpacks_dir, b["key"]).to_s }
     end
 
     def warden_staging_log
