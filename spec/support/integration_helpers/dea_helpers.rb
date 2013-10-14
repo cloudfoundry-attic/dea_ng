@@ -30,7 +30,7 @@ module DeaHelpers
 
   def dea_id
     nats.request("dea.status", {
-      "limits" => { "mem" => 1, "disk" => 1 }
+      "limits" => { "mem" => 1, "disk" => 1 , "cpu"=>1}
     })["id"]
   end
 

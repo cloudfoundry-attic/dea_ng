@@ -31,6 +31,7 @@ module Dea
       end
 
       subscribe("dea.#{bootstrap.uuid}.start") do |message|
+	message.data['limits']["cpu"]&&=(message.data['limits']["cpu"].to_f*config["logic_capacity_per_core"].to_i).to_i
         bootstrap.handle_dea_directed_start(message)
       end
 

@@ -101,6 +101,10 @@ module Dea
       (config.minimum_staging_disk_mb).to_i * 1024 * 1024
     end
 
+    def cpu_limit
+      (config.minimum_staging_cpu).to_i
+    end
+
     def stop(&callback)
       stopping_promise = Promise.new do |p|
         logger.info("Stopping staging task")
@@ -421,6 +425,7 @@ module Dea
       Promise.run_in_parallel(*promises)
       promise_limit_disk.resolve
       promise_limit_memory.resolve
+      promise_limit_cpu.resolve
       Promise.run_in_parallel(
         promise_prepare_staging_log,
         promise_app_dir,

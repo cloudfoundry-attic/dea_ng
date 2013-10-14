@@ -62,7 +62,10 @@ module Dea::Responders
 
     def subscribe_to_staging
       options = {:do_not_track_subscription => true, :queue => "staging"}
-      @staging_sid = nats.subscribe("staging", options) { |message| handle(message) }
+      @staging_sid = nats.subscribe("staging", options) { |message| 
+	 message.data["start_message"]["limits"]["cpu"]&&=(message.data["start_message"]["limits"]["cpu"].to_f*config["logic_capacity_per_core"].to_i).to_i
+	handle(message) 
+	}
     end
 
     def unsubscribe_from_staging
@@ -71,7 +74,10 @@ module Dea::Responders
 
     def subscribe_to_dea_specific_staging
       options = {:do_not_track_subscription => true}
-      @dea_specified_staging_sid = nats.subscribe("staging.#{@dea_id}.start", options) { |message| handle(message) }
+      @dea_specified_staging_sid = nats.subscribe("staging.#{@dea_id}.start", options) { |message| 
+	 message.data["start_message"]["limits"]["cpu"]&&=(message.data["start_message"]["limits"]["cpu"].to_f*config["logic_capacity_per_core"].to_i).to_i
+	handle(message)
+        }
     end
 
     def unsubscribe_from_dea_specific_staging

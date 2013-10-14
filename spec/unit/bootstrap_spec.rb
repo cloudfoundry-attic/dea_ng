@@ -406,13 +406,15 @@ describe Dea::Bootstrap do
       bootstrap.setup_instance_registry
       bootstrap.config.stub(:minimum_staging_memory_mb => 333)
       bootstrap.config.stub(:minimum_staging_disk_mb => 444)
+      bootstrap.config.stub(:minimum_staging_cpu => 50)
       bootstrap.resource_manager.stub(number_reservable: 0,
                                       available_disk_ratio: 0,
-                                      available_memory_ratio: 0)
+                                      available_memory_ratio: 0,
+                                      available_cpu_ratio: 0)
     end
 
     describe "can_stage" do
-      it "is 0 when there is not enough free memory or disk space" do
+      it "is 0 when there is not enough free memory or disk or cpu" do
         bootstrap.resource_manager.stub(:number_reservable).and_return(0)
         bootstrap.periodic_varz_update
 
@@ -429,7 +431,7 @@ describe Dea::Bootstrap do
 
     describe "reservable_stagers" do
       it "uses the value from resource_manager#number_reservable" do
-        bootstrap.resource_manager.stub(:number_reservable).with(333, 444).and_return(456)
+        bootstrap.resource_manager.stub(:number_reservable).with(333, 444, 50).and_return(456)
         bootstrap.periodic_varz_update
 
         VCAP::Component.varz[:reservable_stagers].should == 456
@@ -451,6 +453,15 @@ describe Dea::Bootstrap do
         bootstrap.periodic_varz_update
 
         VCAP::Component.varz[:available_disk_ratio].should == 0.75
+      end
+    end
+
+    describe "available_cpu_ratio" do
+      it "uses the value from resource_manager#available_cpu_ratio" do
+        bootstrap.resource_manager.stub(:available_cpu_ratio).and_return(0.75)
+        bootstrap.periodic_varz_update
+
+        VCAP::Component.varz[:available_cpu_ratio].should == 0.75
       end
     end
 
@@ -653,10 +664,10 @@ describe Dea::Bootstrap do
       let(:logger) { double(:mock_logger) }
       let(:resource_manager) do
         manager = double(:resource_manager)
-        manager.stub(:could_reserve?).with(1, 2).and_return(false)
+        manager.stub(:could_reserve?).with(1, 2,4).and_return(false)
         manager
       end
-      let(:extra_attributes) { {"limits" => {"mem" => 1, "disk" => 2, "fds" => 3}} }
+      let(:extra_attributes) { {"limits" => {"mem" => 1, "disk" => 2, "fds" => 3, "cpu"=> 4}} }
 
       it "log and error and return nil" do
         logger.should_receive(:error).with(/not enough resources available/)
@@ -673,10 +684,10 @@ describe Dea::Bootstrap do
       let(:logger) { double(:mock_logger) }
       let(:resource_manager) do
         manager = double(:resource_manager)
-        manager.stub(:could_reserve?).with(1, 2).and_return(true)
+        manager.stub(:could_reserve?).with(1, 2,4).and_return(true)
         manager
       end
-      let(:extra_attributes) { {"limits" => {"mem" => 1, "disk" => 2, "fds" => 3}} }
+      let(:extra_attributes) { {"limits" => {"mem" => 1, "disk" => 2, "fds" => 3, "cpu"=>4}} }
 
       it "create the instance" do
         logger.should_not_receive(:error)
@@ -694,7 +705,7 @@ describe Dea::Bootstrap do
 
       let(:resource_manager) do
         manager = double(:resource_manager)
-        manager.stub(:could_reserve?).with(1, 2).and_return(true)
+        manager.stub(:could_reserve?).with(1, 2, 4).and_return(true)
         manager
       end
 
