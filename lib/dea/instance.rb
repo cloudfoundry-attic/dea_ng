@@ -471,6 +471,15 @@ module Dea
       end
     end
 
+    def promise_setup_sshd
+      log(:debug, "start sshd service")
+      Promise.new do |p|
+        script = "service sshd start"
+        promise_warden_run(:app, script, true).resolve
+        p.deliver
+      end
+    end
+
     def promise_extract_droplet
       Promise.new do |p|
         script = "cd /home/vcap/ && tar zxf #{droplet.droplet_path}"
@@ -500,6 +509,11 @@ module Dea
         info = container.info
         manifest_path = info.container_path
         @attributes['instance_meta'] = promise_read_instance_manifest(manifest_path).resolve || {}
+        if ( config['enable_sshd'] == true )
+          @attributes['instance_meta']['raw_ports'] = {} if !@attributes['instance_meta']['raw_ports']
+          log(:warn, "ignore user defined sshd port") if @attributes['instance_meta']['raw_ports']['sshd']
+	  @attributes['instance_meta']['raw_ports']['sshd']={'port' => 22, 'http' => false, 'bns' => true} 
+        end
       rescue => e
         log(:warn, "parse droplet metadata failed with exception #{e}")
         @attributes['instance_meta'] = {}
@@ -623,6 +637,7 @@ module Dea
         promise_limit_memory.resolve
 	promise_limit_cpu.resolve
         promise_setup_environment.resolve
+        promise_setup_sshd.resolve if ( config['enable_sshd'] == true )
 
         p.deliver
       end
@@ -814,7 +829,6 @@ module Dea
           hc.errback  { p.deliver(false) }
 
           if attributes["debug"] != "suspend"
-            #hc.timeout(60)
             hc.timeout(timeout)
           end
         end
@@ -831,7 +845,6 @@ module Dea
           hc.errback { p.deliver(false) }
 
           if attributes["debug"] != "suspend"
-            #hc.timeout(60 * 5)
             hc.timeout(timeout)
           end
         end
@@ -868,10 +881,8 @@ module Dea
           end
           if manifest && manifest["state_file"]
             manifest_path = container_relative_path(info.container_path, manifest["state_file"])
-            #p.deliver(promise_state_file_ready(manifest_path).resolve)
             p.deliver(promise_state_file_ready(manifest_path,start_timeout).resolve)
           elsif !application_uris.empty?
-            #p.deliver(promise_port_open(instance_host_port).resolve)
             p.deliver(promise_port_open(instance_host_port,start_timeout).resolve)
           else
             p.deliver(true)
