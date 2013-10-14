@@ -10,12 +10,6 @@ module Dea
       reduce(0) { |sum, task| sum + task.used_memory_in_bytes }
     end
 
-    def reserved_cpu
-      reduce(0) do |sum, task|
-        sum + (task.consuming_cpu? ? task.cpu_limit : 0)
-      end
-    end
-
     def reserved_disk_bytes
       reduce(0) do |sum, task|
         sum + (task.consuming_disk? ? task.disk_limit_in_bytes : 0)

@@ -39,7 +39,7 @@ describe Dea::Env do
       "droplet_sha1"        => "deadbeef",
       "droplet_uri"         => "http://foo.com/file.ext",
 
-      "limits"              => { "mem" => 1, "disk" => 2, "fds" => 3, "cpu"=>4},
+      "limits"              => { "mem" => 1, "disk" => 2, "fds" => 3 },
       "environment"         => { "FOO" => "BAR" },
       "services"            => { "name" => "redis", "type" => "redis" },
       "flapping"            => false,

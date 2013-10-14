@@ -67,7 +67,6 @@ describe Dea do
       "limits"  => {
         "mem"  => 10,
         "disk" => 10,
-        "cpu" => 50,
       }
     }.merge(opts)
   end

@@ -37,7 +37,6 @@ describe "Running a Java App", :type => :integration, :requires_warden => true d
       "limits" => {
         "mem" => 256,
         "disk" => 1024,
-        "cpu" => 50,
         "fds" => 999
       },
       "services" => []

@@ -18,7 +18,6 @@ shared_examples :handles_registry_enumerations do
     double(:instance, {
       :consuming_memory? => true,
       :consuming_disk? => true,
-      :consuming_cpu? => true,
       :instance_id => @instance_id,
       :application_id => 123,
       :task_id => @instance_id
@@ -97,33 +96,6 @@ shared_examples :handles_registry_enumerations do
         registry.register(make_instance(:disk_limit_in_bytes => 67))
         registry.register(make_instance(:disk_limit_in_bytes => 89))
         registry.register(make_instance(:disk_limit_in_bytes => 102))
-      end
-
-      it { should == 258 }
-    end
-  end
-
-
-  describe "reserved_cpu" do
-    subject { registry.reserved_cpu }
-
-    context "with no instances" do
-      it { should == 0 }
-    end
-
-    context "with one instance" do
-      before do
-        registry.register(make_instance(:cpu_limit => 67))
-      end
-
-      it { should == 67 }
-    end
-
-    context "with multple instances" do
-      before do
-        registry.register(make_instance(:cpu_limit => 67))
-        registry.register(make_instance(:cpu_limit => 89))
-        registry.register(make_instance(:cpu_limit => 102))
       end
 
       it { should == 258 }

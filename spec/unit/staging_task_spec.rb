@@ -9,7 +9,6 @@ require "em-http"
 describe Dea::StagingTask do
   let(:memory_limit_mb) { 256 }
   let(:disk_limit_mb) { 1025 }
-  let(:cpu_limit) { 50 }
 
   let!(:workspace_dir) do
     staging.workspace.workspace_dir # force workspace creation
@@ -28,7 +27,6 @@ describe Dea::StagingTask do
         "platform_config" => {},
         "memory_limit_mb" => memory_limit_mb,
         "disk_limit_mb" => disk_limit_mb,
-        "cpu_limit" => cpu_limit,
         "max_staging_duration" => max_staging_duration
       },
     }
@@ -298,7 +296,6 @@ YAML
          create_container
          limit_disk
          limit_memory
-         limit_cpu
          prepare_staging_log
          app_dir
          container_info
@@ -474,7 +471,6 @@ YAML
          promise_create_container
          promise_limit_disk
          promise_limit_memory
-         promise_limit_cpu
          promise_prepare_staging_log
          promise_app_dir
          promise_container_info

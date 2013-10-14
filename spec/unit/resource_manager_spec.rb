@@ -13,11 +13,8 @@ describe Dea::ResourceManager do
   let(:memory_overcommit_factor) { 4 }
   let(:disk_mb) { 4000 }
   let(:disk_overcommit_factor) { 2 }
-  let(:cpu) { 1000 }
-  let(:cpu_overcommit_factor) { 1 }
   let(:nominal_memory_capacity) { memory_mb * memory_overcommit_factor }
   let(:nominal_disk_capacity) { disk_mb * disk_overcommit_factor }
-  let(:nominal_cpu_capacity) { cpu * cpu_overcommit_factor }
 
   let(:bootstrap) { Dea::Bootstrap.new }
   let(:instance_registry) { Dea::InstanceRegistry.new }
@@ -28,9 +25,7 @@ describe Dea::ResourceManager do
       "memory_mb" => memory_mb,
       "memory_overcommit_factor" => memory_overcommit_factor,
       "disk_mb" => disk_mb,
-      "disk_overcommit_factor" => disk_overcommit_factor,
-      "cpu" => cpu,
-      "cpu_overcommit_factor" => cpu_overcommit_factor
+      "disk_overcommit_factor" => disk_overcommit_factor
     })
   end
 
@@ -121,44 +116,35 @@ describe Dea::ResourceManager do
     let(:memory_overcommit_factor) { 1 }
     let(:disk_mb) { 4000 }
     let(:disk_overcommit_factor) { 1 }
-    let(:cpu) { 1000 }
-    let(:cpu_overcommit_factor) { 1 }
 
     context "when there is not enough memory to reserve any" do
       it "is 0" do
-        manager.number_reservable(10_000, 1, 50).should == 0
+        manager.number_reservable(10_000, 1).should == 0
       end
     end
 
     context "when there is not enough disk to reserve any" do
       it "is 0" do
-        manager.number_reservable(1, 10_000,50).should == 0
-      end
-    end
-
-    context "when there is not enough cpu to reserve any" do
-      it "is 0" do
-        manager.number_reservable(1, 1, 10_000).should == 0
+        manager.number_reservable(1, 10_000).should == 0
       end
     end
 
     context "when there are enough resources for a single reservation" do
       it "is 1" do
-        manager.number_reservable(500, 3000,50).should == 1
+        manager.number_reservable(500, 3000).should == 1
       end
     end
 
     context "when there are enough resources for many reservations" do
       it "is correct" do
-        manager.number_reservable(200, 1500,50).should == 2
-        manager.number_reservable(200, 1000,50).should == 3
-        manager.number_reservable(100,100,250).should == 4
+        manager.number_reservable(200, 1500).should == 2
+        manager.number_reservable(200, 1000).should == 3
       end
     end
 
     context "when 0 resources are requested" do
       it "returns 0" do
-        manager.number_reservable(0, 0,0).should == 0
+        manager.number_reservable(0, 0).should == 0
       end
     end
   end
@@ -187,35 +173,28 @@ describe Dea::ResourceManager do
 
   describe "could_reserve?" do
     before do
-      instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "mem" => 512, "disk" => 1024, "cpu"=>50 }).tap { |i| i.state = "RUNNING" })
+      instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "mem" => 512, "disk" => 1024 }).tap { |i| i.state = "RUNNING" })
       staging_registry.register(Dea::StagingTask.new(bootstrap, nil, {}))
 
       @remaining_memory = nominal_memory_capacity - 512 - 1024
       @remaining_disk = nominal_disk_capacity - 1024 - 2048
-      @remaining_cpu = nominal_cpu_capacity - 50 - 50
     end
 
     context "when the given amounts of memory and disk are available (including extra 'headroom' memory)" do
       it "can reserve" do
-        manager.could_reserve?(@remaining_memory - 1, @remaining_disk - 1,@remaining_cpu-1).should be_true
+        manager.could_reserve?(@remaining_memory - 1, @remaining_disk - 1).should be_true
       end
     end
 
     context "when too much memory is being used" do
       it "can't reserve" do
-        manager.could_reserve?(@remaining_memory, 1,1).should be_false
+        manager.could_reserve?(@remaining_memory, 1).should be_false
       end
     end
 
     context "when too much disk is being used" do
       it "can't reserve" do
-        manager.could_reserve?(1, @remaining_disk,1).should be_false
-      end
-    end
-
-    context "when too much cpu is being used" do
-      it "can't reserve" do
-        manager.could_reserve?(1, 1,@remaining_cpu).should be_false
+        manager.could_reserve?(1, @remaining_disk).should be_false
       end
     end
   end

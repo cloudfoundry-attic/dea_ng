@@ -52,7 +52,6 @@ shared_context "bootstrap_setup" do
     instance_attributes["limits"] = {
       "mem" => 10,
       "disk" => 10,
-      "cpu" => 50,
       "fds" => 16
     }
     instance = Dea::Instance.new(bootstrap, instance_attributes)
