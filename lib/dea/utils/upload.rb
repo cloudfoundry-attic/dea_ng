@@ -29,7 +29,18 @@ class Upload
     http.errback do
       begin
         error = UploadError.new("Response status: unknown", @destination)
-        logger.warn(error.message)
+
+        # Occasionally getting into this errback when we don't expect to...
+        # https://github.com/igrigorik/em-http-request/issues/190 says to check connection_count
+        open_connection_count = EM.connection_count
+        logger.warn("em-upload.error",
+                    connection_count: open_connection_count,
+                    message: error.message,
+                    http_error: http.error,
+                    http_status: http.response_header.status,
+                    http_response: http.response
+        )
+
         upload_callback.call(error)
       rescue => e
         logger.error "em-upload.failed", error: e, backtrace: e.backtrace
