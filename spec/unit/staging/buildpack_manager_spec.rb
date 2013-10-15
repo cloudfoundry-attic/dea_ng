@@ -8,8 +8,8 @@ describe Dea::BuildpackManager do
   let(:admin_buildpacks) do
     [
       {
-        "url" => "http://example.com/buildpacks/uri/abcdef",
-        "key" => "abcdef"
+        url: URI("http://example.com/buildpacks/uri/abcdef"),
+        key: "abcdef"
       }
     ]
   end
@@ -57,7 +57,7 @@ describe Dea::BuildpackManager do
     end
 
     context "when an admin buildpack is in use" do
-      let(:buildpacks_in_use) { [{ "uri" => "foo", "key" => "efghi" }] }
+      let(:buildpacks_in_use) { [{uri: URI("http://www.google.com"), key: "efghi"}] }
 
       let(:file_in_use) {File.join(admin_buildpacks_dir, "efghi")}
 
@@ -88,12 +88,12 @@ describe Dea::BuildpackManager do
       let(:admin_buildpacks) do
         [
           {
-            "url" => "http://example.com/buildpacks/uri/admin",
-            "key" => "admin"
+            url: "http://example.com/buildpacks/uri/admin",
+            key: "admin"
           },
           {
-            "url" => "http://example.com/buildpacks/uri/cant_find_admin",
-            "key" => "cant_find_admin"
+            url: "http://example.com/buildpacks/uri/cant_find_admin",
+            key: "cant_find_admin"
           }
         ]
       end
@@ -120,27 +120,6 @@ describe Dea::BuildpackManager do
         expect(manager.list).to have(1).item
         expect(manager.list).to include("#{system_buildpacks_dir}/abcdef")
       end
-    end
-  end
-end
-
-__END__
-
-describe StagingConfigFile do
-  describe "#write" do
-    it "includes the source dir of the warden container"
-    it "includes the destination dir of where the staging will put its droplet"
-    it "includes the cache dir where the builpack will put its cache"
-    it "includes the environment (which includes the buildpack, buildpack url, buildpack key and start command)"
-    it "includes the name of the file to put in the release info"
-
-    context "when there are admin buildpacks" do
-      it "includes the admin buildpacks in the correct order"
-      it "includes the system buildpacks"
-    end
-
-    context "when there are no admin buildpacks" do
-      it "includes the system buildpacks"
     end
   end
 end

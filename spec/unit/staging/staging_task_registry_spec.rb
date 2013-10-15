@@ -6,8 +6,8 @@ require "dea/staging/staging_task_registry"
 
 describe Dea::StagingTaskRegistry do
   let(:bootstrap) { mock(:bootstrap, :config => {}) }
-  let(:task_1) { Dea::StagingTask.new(bootstrap, nil, valid_staging_attributes, []) }
-  let(:task_2) { Dea::StagingTask.new(bootstrap, nil, valid_staging_attributes, []) }
+  let(:task_1) { Dea::StagingTask.new(bootstrap, nil, StagingMessage.new(valid_staging_attributes), []) }
+  let(:task_2) { Dea::StagingTask.new(bootstrap, nil, StagingMessage.new(valid_staging_attributes), []) }
 
   it_behaves_like :handles_registry_enumerations
 

@@ -16,31 +16,31 @@ module Dea
 
     attr_reader :strategy_env
 
-    def initialize(message_json, instance_or_staging_task=nil)
-      @strategy_env = if instance_or_staging_task.is_a? Dea::StagingTask
-        StagingEnv.new(message_json, instance_or_staging_task)
+    def initialize(message, instance_or_staging_task=nil)
+      @strategy_env = if message.is_a? StagingMessage
+        StagingEnv.new(message, instance_or_staging_task)
       else
-        RunningEnv.new(message_json, instance_or_staging_task)
+        RunningEnv.new(message, instance_or_staging_task)
       end
     end
 
-    def message_json
-      strategy_env.message_json
+    def message
+      strategy_env.message
     end
 
     def exported_system_environment_variables
       env = [
         ["VCAP_APPLICATION",  Yajl::Encoder.encode(vcap_application)],
         ["VCAP_SERVICES",     Yajl::Encoder.encode(vcap_services)],
-        ["MEMORY_LIMIT", "#{message_json['limits']['mem']}m"]
+        ["MEMORY_LIMIT", "#{message.mem_limit}m"]
       ]
-      env << ["DATABASE_URL", DatabaseUriGenerator.new(message_json["services"]).database_uri] if message_json["services"].any?
+      env << ["DATABASE_URL", DatabaseUriGenerator.new(message.services).database_uri] if message.services.any?
 
       to_export(env + strategy_env.exported_system_environment_variables)
     end
 
     def exported_user_environment_variables
-      to_export(translate_env(message_json["env"]))
+      to_export(translate_env(message.env))
     end
 
     def exported_environment_variables
@@ -54,7 +54,7 @@ module Dea
         begin
           services_hash = Hash.new { |h, k| h[k] = [] }
 
-          message_json["services"].each do |service|
+          message.services.each do |service|
             service_hash = {}
             WHITELIST_SERVICE_KEYS.each do |key|
               service_hash[key] = service[key] if service[key]
@@ -72,10 +72,10 @@ module Dea
         begin
           hash = strategy_env.vcap_application
 
-          hash["limits"] = message_json["limits"]
-          hash["application_version"] = message_json["version"]
-          hash["application_name"] = message_json["name"]
-          hash["application_uris"] = message_json["uris"]
+          hash["limits"] = message.limits
+          hash["application_version"] = message.version
+          hash["application_name"] = message.name
+          hash["application_uris"] = message.uris
           # Translate keys for backwards compatibility
           hash["version"] = hash["application_version"]
           hash["name"] = hash["application_name"]

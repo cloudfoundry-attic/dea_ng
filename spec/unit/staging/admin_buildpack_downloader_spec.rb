@@ -22,8 +22,8 @@ describe AdminBuildpackDownloader do
     let(:buildpacks) do
       [
         {
-          "url" => "http://example.com/buildpacks/uri/abcdef",
-          "key" => "abcdef"
+          url: URI("http://example.com/buildpacks/uri/abcdef"),
+          key: "abcdef"
         }
       ]
     end
@@ -47,12 +47,12 @@ describe AdminBuildpackDownloader do
     let(:buildpacks) do
       [
         {
-          "url" => "http://example.com/buildpacks/uri/abcdef",
-          "key" => "abcdef"
+          url: URI("http://example.com/buildpacks/uri/abcdef"),
+          key: "abcdef"
         },
         {
-          "url" => "http://example.com/buildpacks/uri/ijgh",
-          "key" => "ijgh"
+          url: URI("http://example.com/buildpacks/uri/ijgh"),
+          key: "ijgh"
         }
       ]
     end

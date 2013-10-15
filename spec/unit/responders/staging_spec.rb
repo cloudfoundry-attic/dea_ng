@@ -15,11 +15,11 @@ describe Dea::Responders::Staging do
   let(:staging_task_registry) { Dea::StagingTaskRegistry.new }
   let(:staging_task) do
     mock(:staging_task,
-      :attributes => {"app_id" => "some_app_id"},
-      :task_id => "task-id",
-      :task_log => "task-log",
-      :detected_buildpack => nil,
-      :droplet_sha1 => "some-droplet-sha")
+      staging_message: StagingMessage.new({"app_id" => "some_app_id"}),
+      task_id: "task-id",
+      task_log: "task-log",
+      detected_buildpack: nil,
+      droplet_sha1: "some-droplet-sha")
   end
   let(:dir_server) { Dea::DirectoryServerV2.new("domain", 1234, config) }
   let(:config) { {"directory_server" => {"file_api_port" => 2345}} }
@@ -155,7 +155,7 @@ describe Dea::Responders::Staging do
       it "starts staging task with registered callbacks" do
         Dea::StagingTask
           .should_receive(:new)
-          .with(bootstrap, dir_server, message.data, [], an_instance_of(Steno::TaggedLogger))
+          .with(bootstrap, dir_server, instance_of(StagingMessage), [], an_instance_of(Steno::TaggedLogger))
           .and_return(staging_task)
 
         staging_task.should_receive(:after_setup_callback).ordered
@@ -172,24 +172,25 @@ describe Dea::Responders::Staging do
         staging_task_registry.register(task_double ["b", "c"])
         staging_task_registry.register(task_double ["b", "c", "d", "e"])
 
-        buildpacks_in_use = as_buildpacks ["a", "b", "c", "d", "e"]
+        buildpacks_in_use = ["a", "b", "c", "d", "e"].map do |key|
+          { url: URI("http://www.goolge.com"), key: key }
+        end
 
         Dea::StagingTask
           .should_receive(:new)
-          .with(bootstrap, dir_server, message.data, buildpacks_in_use, an_instance_of(Steno::TaggedLogger))
+          .with(bootstrap, dir_server, instance_of(StagingMessage), buildpacks_in_use, an_instance_of(Steno::TaggedLogger))
           .and_return(staging_task)
 
         subject.handle(message)
       end
 
       def task_double(buildpack_keys)
-        Struct.new(:task_id, :admin_buildpacks)
-          .new(SecureRandom.uuid, as_buildpacks(buildpack_keys))
+        Struct.new(:task_id, :staging_message).new(SecureRandom.uuid, StagingMessage.new("admin_buildpacks" => as_buildpacks(buildpack_keys)))
       end
 
       def as_buildpacks(buildpack_keys)
         buildpack_keys.map do |key|
-          { "url" => "some_url", "key" => key }
+          { "url" => "http://www.goolge.com", "key" => key }
         end
       end
 
@@ -237,12 +238,12 @@ describe Dea::Responders::Staging do
       describe "after staging completion" do
         context "when successfully" do
           let(:app_id) { "my_app_id" }
-          let(:start_message) { {"droplet" => "dff77854-3767-41d9-ab16-c8a824beb77a"} }
+          let(:start_message) { {"droplet" => "dff77854-3767-41d9-ab16-c8a824beb77a", "sha1" => "some-droplet-sha"} }
           let(:message) { Dea::Nats::Message.new(nats, nil, {"app_id" => app_id, "start_message" => start_message}, "respond-to") }
           before { staging_task.stub(:after_complete_callback).and_yield(nil) }
 
           it "handles instance start with updated droplet sha" do
-            bootstrap.should_receive(:start_app).with(start_message.merge({"sha1" => "some-droplet-sha"}))
+            bootstrap.should_receive(:start_app).with(start_message)
             subject.handle(message)
           end
 

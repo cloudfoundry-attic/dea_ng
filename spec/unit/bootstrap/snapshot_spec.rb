@@ -16,8 +16,8 @@ describe "snapshot" do
 
   describe "save" do
     let(:staging_tasks) do
-      [ Dea::StagingTask.new(bootstrap, nil, valid_staging_attributes, nil),
-        Dea::StagingTask.new(bootstrap, nil, valid_staging_attributes, nil),
+      [ Dea::StagingTask.new(bootstrap, nil, StagingMessage.new(valid_staging_attributes), nil),
+        Dea::StagingTask.new(bootstrap, nil, StagingMessage.new(valid_staging_attributes), nil),
       ]
     end
 

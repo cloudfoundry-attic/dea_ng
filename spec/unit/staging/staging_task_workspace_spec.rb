@@ -1,5 +1,6 @@
 require "spec_helper"
 require "dea/staging/staging_task_workspace"
+require "dea/staging/staging_message"
 
 describe Dea::StagingTaskWorkspace do
 
@@ -10,27 +11,36 @@ describe Dea::StagingTaskWorkspace do
   end
 
   let(:admin_buildpacks) do
-    [{
-       "url" => "http://example.com/buildpacks/uri/abcdef",
-       "key" => "abcdef"
-     },
-     {
-       "url" => "http://example.com/buildpacks/uri/ghijk",
-       "key" => "ghijk"
-     }]
+    [
+      {
+        "url" => "http://example.com/buildpacks/uri/abcdef",
+        "key" => "abcdef"
+      },
+      {
+        "url" => "http://example.com/buildpacks/uri/ghijk",
+        "key" => "ghijk"
+      }
+    ]
   end
 
   let(:env_properties) do
     {
-      a: 1,
-      b: 2,
+      "a" => 1,
+      "b" => 2,
     }
   end
 
-  let(:buildpacks_in_use) {[]}
+  let(:staging_message) do
+    StagingMessage.new(
+      "admin_buildpacks" => admin_buildpacks,
+      "properties" => env_properties
+    )
+  end
+
+  let(:buildpacks_in_use) { [] }
 
   subject do
-    Dea::StagingTaskWorkspace.new(base_dir, admin_buildpacks, buildpacks_in_use, env_properties)
+    Dea::StagingTaskWorkspace.new(base_dir, staging_message, buildpacks_in_use)
   end
 
   before do
@@ -43,7 +53,7 @@ describe Dea::StagingTaskWorkspace do
 
   describe "preparing the workspace" do
     it "downloads the admin buildpacks" do
-      AdminBuildpackDownloader.should_receive(:new).with(admin_buildpacks, subject.admin_buildpacks_dir).and_return(downloader)
+      AdminBuildpackDownloader.should_receive(:new).with(instance_of(Array), subject.admin_buildpacks_dir).and_return(downloader)
       downloader.should_receive(:download)
       subject.prepare
     end
@@ -112,13 +122,13 @@ describe Dea::StagingTaskWorkspace do
         context "when the buildpacks are ordered admin_buildpack, another_buildpack" do
           let(:admin_buildpacks) do
             [{
-               "url" => "http://example.com/buildpacks/uri/abcdef",
-               "key" => "abcdef"
-             },
-             {
-               "url" => "http://example.com/buildpacks/uri/ghijk",
-               "key" => "ghijk"
-             }]
+              "url" => "http://example.com/buildpacks/uri/abcdef",
+              "key" => "abcdef"
+            },
+              {
+                "url" => "http://example.com/buildpacks/uri/ghijk",
+                "key" => "ghijk"
+              }]
           end
 
           it "returns the buildpacks in the order of the admin_buildpacks message" do
@@ -135,9 +145,10 @@ describe Dea::StagingTaskWorkspace do
                 "key" => "ghijk"
               },
               {
-               "url" => "http://example.com/buildpacks/uri/abcdef",
-               "key" => "abcdef"
-              }]
+                "url" => "http://example.com/buildpacks/uri/abcdef",
+                "key" => "abcdef"
+              }
+            ]
           end
 
           it "returns the buildpacks in the order of the admin_buildpacks message" do

@@ -3,6 +3,8 @@
 require "spec_helper"
 require "vcap/common"
 require "dea/env"
+require "dea/starting/start_message"
+require "dea/staging/staging_message"
 
 describe Dea::Env do
   let(:service) do
@@ -25,12 +27,8 @@ describe Dea::Env do
   let(:debug) { nil }
 
   let(:instance) do
-    mock(:instance,
-         instance_id: VCAP.secure_uuid,
-         instance_index: 37,
-         state_starting_timestamp: Time.now.to_f,
-         instance_container_port: 4567,
-    )
+    attributes = {"instance_id" => VCAP.secure_uuid}
+    mock(:instance, attributes: attributes, instance_container_port: 4567, state_starting_timestamp: Time.now.to_f)
   end
 
   let(:starting_message) do
@@ -58,6 +56,8 @@ describe Dea::Env do
     }
   end
 
+  subject(:env) { Dea::Env.new(StartMessage.new(starting_message), instance) }
+
   def self.it_exports(name, value)
     it "exports $#{name} as #{value}" do
       expect(`env | grep #{name}`).to be
@@ -65,52 +65,10 @@ describe Dea::Env do
     end
   end
 
-  describe "deciphering between staging and running" do
-    let (:start_message) { { "using" => "correct_env" } }
-    let (:staging_message) do
-      {
-        "using" => "wrong_env",
-        "start_message" => start_message
-      }
-    end
+  context "when running from the starting (instance) task" do
+    subject(:env) { Dea::Env.new(StartMessage.new(starting_message), instance) }
 
-    context "when an Instance is passed" do
-      it "finds the right ENV message for a runtime (instance) task" do
-        env = Dea::Env.new(start_message, instance)
-        env.message_json["using"].should == "correct_env"
-      end
-
-      it "creates a RunnningEnv" do
-        env = Dea::Env.new(start_message, instance)
-        env.strategy_env.should be_an_instance_of Dea::RunningEnv
-      end
-    end
-
-    context "when a StagerTask is passed" do
-      let (:staging_task) { mock "Fake StagingTask object" }
-
-      before do
-        staging_task.stub(:is_a).with(Dea::StagingTask).and_return(true)
-      end
-
-      it "finds the right ENV message for a compile task" do
-        staging_task.should_receive(:is_a?).with(Dea::StagingTask).and_return(true)
-
-        env = Dea::Env.new(staging_message, (staging_task))
-        env.message_json["using"].should == "correct_env"
-      end
-
-      it "finds creates a StagingEnv" do
-        staging_task.stub(:is_a?).with(Dea::StagingTask).and_return(true)
-
-        env = Dea::Env.new(staging_message, (staging_task))
-        env.strategy_env.should be_an_instance_of Dea::StagingEnv
-      end
-    end
-  end
-
-  context "when running from the instance task" do
-    subject(:env) { Dea::Env.new(starting_message, instance) }
+    its(:strategy_env) { should be_an_instance_of Dea::RunningEnv }
 
     describe "#vcap_services" do
       let(:vcap_services) { env.send(:vcap_services) }
@@ -218,9 +176,9 @@ describe Dea::Env do
     end
 
     describe "#exported_system_environment_variables" do
-      let(:exported_variables) { subject.exported_system_environment_variables }
+      let(:exported_variables) { env.exported_system_environment_variables }
 
-      it_exports "VCAP_APPLICATION", %r{\"instance_index\":37}
+      it_exports "VCAP_APPLICATION", %r{\"instance_index\":0}
       it_exports "VCAP_SERVICES", %r{\"plan\":\"panda\"}
       it_exports "VCAP_APP_HOST", "0.0.0.0"
       it_exports "VCAP_APP_PORT", "4567"
@@ -243,7 +201,7 @@ describe Dea::Env do
     end
 
     describe "#exported_user_environment_variables" do
-      let(:exported_variables) { subject.exported_user_environment_variables }
+      let(:exported_variables) { env.exported_user_environment_variables }
 
       it_exports "A", "one_value"
       it_exports "B", "with spaces"
@@ -279,6 +237,7 @@ describe Dea::Env do
         "start_message" => starting_message
       }
     end
+
     let(:staging_task) do
       staging_task = mock(:staging_task)
       staging_task.stub(:is_a?).with(Dea::StagingTask) { true }
@@ -287,7 +246,9 @@ describe Dea::Env do
       staging_task
     end
 
-    subject(:env) { Dea::Env.new(staging_message, staging_task) }
+    subject(:env) { Dea::Env.new(StagingMessage.new(staging_message), staging_task) }
+
+    its(:strategy_env) { should be_an_instance_of Dea::StagingEnv }
 
     describe "#vcap_services" do
       let(:vcap_services) { env.send(:vcap_services) }
@@ -380,7 +341,7 @@ describe Dea::Env do
     end
 
     describe "#exported_system_environment_variables" do
-      let(:exported_variables) { subject.exported_system_environment_variables }
+      let(:exported_variables) { env.exported_system_environment_variables }
 
       it_exports "VCAP_APPLICATION", %r{\"mem\":512}
       it_exports "VCAP_SERVICES", %r{\"plan\":\"panda\"}
@@ -398,7 +359,7 @@ describe Dea::Env do
     end
 
     describe "#user_environment_variables" do
-      let(:exported_variables) { subject.exported_user_environment_variables }
+      let(:exported_variables) { env.exported_user_environment_variables }
 
       it_exports "A", "one_value"
       it_exports "B", "with spaces"
@@ -411,9 +372,7 @@ describe Dea::Env do
 
   describe "exported_environment_variables" do
     let(:environment) { ["PORT=stupid idea"] }
-    let(:exported_variables) { subject.exported_environment_variables }
-
-    subject(:env) { Dea::Env.new(starting_message, instance) }
+    let(:exported_variables) { env.exported_environment_variables }
 
     it_exports "PORT", "stupid idea"
   end

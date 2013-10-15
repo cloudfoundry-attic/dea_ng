@@ -31,12 +31,12 @@ module Dea
 
     def admin_buildpacks_in_staging_message
       @admin_buildpacks.map do |buildpack|
-        Pathname.new(File.join(@admin_buildpacks_dir, buildpack["key"]))
+        Pathname.new(File.join(@admin_buildpacks_dir, buildpack[:key]))
       end.select{ |path| File.exists? path }.map(&:to_s)
     end
 
     def buildpacks_in_use_paths
-      @buildpacks_in_use.map { |b| File.join(@admin_buildpacks_dir, b["key"]).to_s }
+      @buildpacks_in_use.map { |b| File.join(@admin_buildpacks_dir, b[:key]).to_s }
     end
 
     def all_buildpack_paths

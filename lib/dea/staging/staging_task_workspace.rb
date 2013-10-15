@@ -9,13 +9,13 @@ module Dea
     STAGING_LOG = "staging_task.log".freeze
     STAGING_INFO = "staging_info.yml".freeze
 
-    def initialize(base_dir, admin_buildpacks, buildpacks_in_use, environment_properties)
+    def initialize(base_dir, staging_message, buildpacks_in_use)
       @base_dir = base_dir
-      @environment_properties = environment_properties
+      @environment_properties = staging_message.properties
       @buildpack_manager = Dea::BuildpackManager.new(
         admin_buildpacks_dir,
         File.join(buildpack_dir, "vendor"),
-        admin_buildpacks || [],
+        staging_message.admin_buildpacks,
         buildpacks_in_use
       )
     end

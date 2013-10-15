@@ -9,7 +9,7 @@ describe Upload do
     file_to_upload
   end
 
-  let(:to_uri) { "http://127.0.0.1:12345/" }
+  let(:to_uri) { URI("http://127.0.0.1:12345/") }
 
   subject { Upload.new(file_to_upload.path, to_uri) }
 

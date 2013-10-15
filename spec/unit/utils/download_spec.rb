@@ -6,12 +6,12 @@ describe Download do
     em { example.call }
   end
 
-  let(:from_uri) { "http://127.0.0.1:12345/droplet" }
+  let(:from_uri) { URI("http://127.0.0.1:12345/droplet") }
   let(:to_file) { Tempfile.new("some_dest") }
   let(:sha) { "DEADBEEF" }
 
   it "fails when the file isn't found" do
-    stub_request(:get, from_uri).to_return(status: 404)
+    stub_request(:get, from_uri.to_s).to_return(status: 404)
 
     Download.new(from_uri, to_file, ).download! do |error|
       error.message.should match(/status: 404/)
@@ -20,7 +20,7 @@ describe Download do
   end
 
   it "should fail when response payload has invalid SHA1" do
-    stub_request(:get, from_uri).to_return(body: "fooz")
+    stub_request(:get, from_uri.to_s).to_return(body: "fooz")
 
     Download.new(from_uri, to_file, sha).download! do |err|
       err.message.should match(/SHA1 mismatch/)
@@ -31,7 +31,7 @@ describe Download do
   it "should download the file if the sha1 matches" do
     body = "The Body"
 
-    stub_request(:get, from_uri).to_return(body: body)
+    stub_request(:get, from_uri.to_s).to_return(body: body)
 
     expected = Digest::SHA1.new
     expected << body
@@ -46,7 +46,7 @@ describe Download do
   it "saves the file in binary mode to work on Windows" do
     body = "The Body"
 
-    stub_request(:get, from_uri).to_return(body: body)
+    stub_request(:get, from_uri.to_s).to_return(body: body)
 
     expected = Digest::SHA1.new
     expected << body
@@ -60,7 +60,7 @@ describe Download do
 
   context "when the download causes an exception" do
     it "catches the error but logs it (we really need an airbrake-esque thing" do
-      stub_request(:get, from_uri).to_return(body: "some body")
+      stub_request(:get, from_uri.to_s).to_return(body: "some body")
 
       expect {
         Download.new(from_uri, to_file).download! do |err|
@@ -86,7 +86,7 @@ describe Download do
     it "does not verify the sha1" do
       body = "The Body"
 
-      stub_request(:get, from_uri).to_return(body: body)
+      stub_request(:get, from_uri.to_s).to_return(body: body)
 
       Download.new(from_uri, to_file).download! do |err|
         err.should be_nil

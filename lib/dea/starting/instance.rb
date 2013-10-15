@@ -233,6 +233,7 @@ module Dea
       super(bootstrap.config)
       @bootstrap = bootstrap
 
+      attributes = attributes.to_hash if attributes.is_a? StartMessage
       @raw_attributes = attributes.dup
       @attributes = Instance.translate_attributes(@raw_attributes)
       @attributes["application_uris"] ||= []
@@ -382,7 +383,7 @@ module Dea
 
     def promise_start
       Promise.new do |p|
-        env = Env.new(@raw_attributes, self)
+        env = Env.new(StartMessage.new(@raw_attributes), self)
 
         if staged_info
           command = start_command || staged_info["start_command"]
@@ -417,7 +418,7 @@ module Dea
           if File.exist?(script_path)
             script = []
             script << "umask 077"
-            script << Env.new(@raw_attributes, self).exported_environment_variables
+            script << Env.new(StartMessage.new(@raw_attributes), self).exported_environment_variables
             script << File.read(script_path)
             script << "exit"
             container.run_script(:app, script.join("\n"))

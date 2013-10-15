@@ -10,6 +10,7 @@ require "dea/task"
 require "dea/env"
 require "dea/staging/admin_buildpack_downloader"
 require "dea/staging/staging_task_workspace"
+require "dea/staging/staging_message"
 
 module Dea
   class StagingTask < Task
@@ -25,15 +26,15 @@ module Dea
       end
     end
 
-    attr_reader :bootstrap, :dir_server, :attributes, :task_id, :droplet_sha1
+    attr_reader :bootstrap, :dir_server, :staging_message, :task_id, :droplet_sha1
 
-    def initialize(bootstrap, dir_server, staging_message_data, buildpacks_in_use, custom_logger=nil)
+    def initialize(bootstrap, dir_server, staging_message, buildpacks_in_use, custom_logger=nil)
       super(bootstrap.config, custom_logger)
 
       @bootstrap = bootstrap
       @dir_server = dir_server
-      @attributes = staging_message_data.dup
-      @task_id = staging_message_data["task_id"]
+      @staging_message = staging_message
+      @task_id = staging_message.task_id
       @buildpacks_in_use = buildpacks_in_use
 
       logger.user_data[:task_id] = task_id
@@ -80,10 +81,11 @@ module Dea
     end
 
     def workspace
-      @workspace ||= StagingTaskWorkspace.new(config["base_dir"],
-                                              attributes["admin_buildpacks"],
-                                              @buildpacks_in_use,
-                                              attributes["properties"])
+      @workspace ||= StagingTaskWorkspace.new(
+        config["base_dir"],
+        staging_message,
+        @buildpacks_in_use
+      )
     end
 
     def task_log
@@ -195,7 +197,7 @@ module Dea
 
     def promise_stage
       Promise.new do |p|
-        env = Env.new(attributes, self)
+        env = Env.new(staging_message, self)
 
         script = [
           env.exported_environment_variables,
@@ -259,11 +261,11 @@ module Dea
 
     def promise_app_download
       Promise.new do |p|
-        logger.info "staging.app-download.starting", :uri => attributes["download_uri"]
+        logger.info "staging.app-download.starting", uri: staging_message.download_uri
 
         download_destination = Tempfile.new("app-package-download.tgz")
 
-        Download.new(attributes["download_uri"], download_destination, nil, logger).download! do |error|
+        Download.new(staging_message.download_uri, download_destination, nil, logger).download! do |error|
           if error
             logger.debug "staging.app-download.failed",
               duration: p.elapsed_time,
@@ -299,13 +301,13 @@ module Dea
       Promise.new do |p|
         logger.info "staging.droplet-upload.starting",
           source: workspace.staged_droplet_path,
-          destination: attributes["upload_uri"]
+          destination: staging_message.upload_uri
 
-        Upload.new(workspace.staged_droplet_path, attributes["upload_uri"], logger).upload! do |error|
+        Upload.new(workspace.staged_droplet_path, staging_message.upload_uri, logger).upload! do |error|
           if error
             logger.info "staging.task.droplet-upload-failed",
               duration: p.elapsed_time,
-              destination: attributes["upload_uri"],
+              destination: staging_message.upload_uri,
               error: error,
               backtrace: error.backtrace
 
@@ -313,7 +315,7 @@ module Dea
           else
             logger.info "staging.task.droplet-upload-completed",
               duration: p.elapsed_time,
-              destination: attributes["upload_uri"]
+              destination: staging_message.upload_uri
 
             p.deliver
           end
@@ -325,13 +327,13 @@ module Dea
       Promise.new do |p|
         logger.info "staging.buildpack-cache-upload.starting",
           source: workspace.staged_buildpack_cache_path,
-          destination: attributes["buildpack_cache_upload_uri"]
+          destination: staging_message.buildpack_cache_upload_uri
 
-        Upload.new(workspace.staged_buildpack_cache_path, attributes["buildpack_cache_upload_uri"], logger).upload! do |error|
+        Upload.new(workspace.staged_buildpack_cache_path, staging_message.buildpack_cache_upload_uri, logger).upload! do |error|
           if error
             logger.info "staging.task.buildpack-cache-upload-failed",
               duration: p.elapsed_time,
-              destination: attributes["buildpack_cache_upload_uri"],
+              destination: staging_message.buildpack_cache_upload_uri,
               error: error,
               backtrace: error.backtrace
 
@@ -339,7 +341,7 @@ module Dea
           else
             logger.info "staging.task.buildpack-cache-upload-completed",
               duration: p.elapsed_time,
-              destination: attributes["buildpack_cache_upload_uri"]
+              destination: staging_message.buildpack_cache_upload_uri
 
             p.deliver
           end
@@ -350,15 +352,15 @@ module Dea
     def promise_buildpack_cache_download
       Promise.new do |p|
         logger.info "staging.buildpack-cache-download.starting",
-          uri: attributes["buildpack_cache_download_uri"]
+          uri: staging_message.buildpack_cache_download_uri
 
         download_destination = Tempfile.new("buildpack-cache", workspace.tmpdir)
 
-        Download.new(attributes["buildpack_cache_download_uri"], download_destination, nil, logger).download! do |error|
+        Download.new(staging_message.buildpack_cache_download_uri, download_destination, nil, logger).download! do |error|
           if error
             logger.debug "staging.buildpack-cache-download.failed",
               duration: p.elapsed_time,
-              uri: attributes["buildpack_cache_download_uri"],
+              uri: staging_message.buildpack_cache_download_uri,
               error: error,
               backtrace: error.backtrace
 
@@ -495,7 +497,7 @@ module Dea
         memory_limit_in_bytes,
         with_network)
       promises = [promise_app_download]
-      promises << promise_buildpack_cache_download if attributes["buildpack_cache_download_uri"]
+      promises << promise_buildpack_cache_download if staging_message.buildpack_cache_download_uri
 
       Promise.run_in_parallel(*promises)
       promise_update = Promise.new do |p|

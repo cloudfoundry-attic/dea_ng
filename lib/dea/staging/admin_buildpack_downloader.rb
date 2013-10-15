@@ -17,7 +17,7 @@ class AdminBuildpackDownloader
 
     download_promises = []
     @buildpacks.each do |buildpack|
-      dest_dir = File.join(@destination_directory, buildpack.fetch("key"))
+      dest_dir = File.join(@destination_directory, buildpack.fetch(:key))
       unless File.exists?(dest_dir)
         download_promises << download_one_buildpack(buildpack, dest_dir)
       end
@@ -32,7 +32,7 @@ class AdminBuildpackDownloader
     Dea::Promise.new do |p|
       tmpfile = Tempfile.new('temp_admin_buildpack')
 
-      Download.new(buildpack.fetch("url"), tmpfile, nil, logger).download! do |err|
+      Download.new(buildpack.fetch(:url), tmpfile, nil, logger).download! do |err|
         if err
           p.deliver
         else

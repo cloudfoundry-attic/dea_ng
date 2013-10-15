@@ -44,17 +44,17 @@ describe Dea::StagingTask do
 
   let(:attributes) { valid_staging_attributes }
 
-  let(:staging) { Dea::StagingTask.new(bootstrap, dir_server, attributes, buildpacks_in_use) }
-
   let(:buildpacks_in_use) do
-    [ { "key" => "buildpack1", "uri" => "uri1" },
-      { "key" => "buildpack2", "uri" => "uri2" }
+    [ {key: "buildpack1", uri: URI("http://www.goolge.com")},
+      {key: "buildpack2", uri: URI("http://www.goolge2.com")}
     ]
   end
 
   let(:successful_promise) { Dea::Promise.new { |p| p.deliver } }
 
   let(:failing_promise) { Dea::Promise.new { |p| raise "failing promise" } }
+
+  subject(:staging) { Dea::StagingTask.new(bootstrap, dir_server, StagingMessage.new(attributes), buildpacks_in_use) }
 
   after { FileUtils.rm_rf(workspace_dir) if File.exists?(workspace_dir) }
 
@@ -221,14 +221,11 @@ YAML
     end
 
     it "should pass the list of buildpacks in use to the workspace" do
-      Dea::StagingTaskWorkspace.should_receive(:new).with(
-        base_dir,
-        valid_staging_attributes["admin_buildpacks"],
-        buildpacks_in_use,
-        valid_staging_attributes["properties"]
-      ).and_return(Struct.new(:prepare).new(nil))
+      staging_message = StagingMessage.new(attributes)
 
-      new_staging = Dea::StagingTask.new(bootstrap, dir_server, attributes, buildpacks_in_use)
+      Dea::StagingTaskWorkspace.should_receive(:new).with(base_dir, staging_message, buildpacks_in_use).and_return(Struct.new(:prepare).new(nil))
+
+      new_staging = Dea::StagingTask.new(bootstrap, dir_server, staging_message, buildpacks_in_use)
       new_staging.prepare_workspace
     end
   end
@@ -495,10 +492,7 @@ YAML
     end
 
     context "when buildpack_cache_download_uri is provided" do
-      before do
-        staging.stub(:attributes).and_return(
-          valid_staging_attributes.merge({ "buildpack_cache_download_uri" => "http://some_url" }))
-      end
+      subject(:staging) { Dea::StagingTask.new(bootstrap, dir_server, StagingMessage.new(attributes.merge("buildpack_cache_download_uri" => "http://www.someurl.com")), buildpacks_in_use) }
 
       it "downloads buildpack cache" do
         staging.should_receive(:promise_buildpack_cache_download)

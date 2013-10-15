@@ -33,22 +33,23 @@ module Dea::Responders
       unsubscribe_from_staging_stop
     end
 
-    def handle(message)
-      app_id = message.data["app_id"]
+    def handle(response)
+      message = StagingMessage.new(response.data)
+      app_id = message.app_id
       logger = logger_for_app(app_id)
 
       Dea::Loggregator.emit(app_id, "Got staging request for app with id #{app_id}")
-      logger.info("staging.handle.start", request: message.data)
+      logger.info("staging.handle.start", request: message)
 
-      task = Dea::StagingTask.new(bootstrap, dir_server, message.data, buildpacks_in_use, logger)
+      task = Dea::StagingTask.new(bootstrap, dir_server, message, buildpacks_in_use, logger)
       staging_task_registry.register(task)
 
       bootstrap.save_snapshot
 
-      notify_setup_completion(message, task)
+      notify_setup_completion(response, task)
       notify_completion(message, task)
-      notify_upload(message, task)
-      notify_stop(message, task)
+      notify_upload(response, task)
+      notify_stop(response, task)
 
       task.start
     rescue => e
@@ -57,7 +58,7 @@ module Dea::Responders
 
     def handle_stop(message)
       staging_task_registry.each do |task|
-        if message.data["app_id"] == task.attributes["app_id"]
+        if message.data["app_id"] == task.staging_message.app_id
           task.stop
         end
       end
@@ -71,9 +72,9 @@ module Dea::Responders
       config["staging"] && config["staging"]["enabled"]
     end
 
-    def subscribe_to_staging
+    def subscribe_to_staging # Can we delete this??
       options = {:do_not_track_subscription => true, :queue => "staging"}
-      @staging_sid = nats.subscribe("staging", options) { |message| handle(message) }
+      @staging_sid = nats.subscribe("staging", options) { |response| handle(response) }
     end
 
     def unsubscribe_from_staging
@@ -82,7 +83,7 @@ module Dea::Responders
 
     def subscribe_to_dea_specific_staging
       options = {:do_not_track_subscription => true}
-      @dea_specified_staging_sid = nats.subscribe("staging.#{@dea_id}.start", options) { |message| handle(message) }
+      @dea_specified_staging_sid = nats.subscribe("staging.#{@dea_id}.start", options) { |response| handle(response) }
     end
 
     def unsubscribe_from_dea_specific_staging
@@ -91,16 +92,16 @@ module Dea::Responders
 
     def subscribe_to_staging_stop
       options = {:do_not_track_subscription => true}
-      @staging_stop_sid = nats.subscribe("staging.stop", options) { |message| handle_stop(message) }
+      @staging_stop_sid = nats.subscribe("staging.stop", options) { |response| handle_stop(response) }
     end
 
     def unsubscribe_from_staging_stop
       nats.unsubscribe(@staging_stop_sid) if @staging_stop_sid
     end
 
-    def notify_setup_completion(message, task)
+    def notify_setup_completion(response, task)
       task.after_setup_callback do |error|
-        respond_to_message(message, {
+        respond_to_response(response, {
           :task_id => task.task_id,
           :streaming_log_url => task.streaming_log_url,
           :error => (error.to_s if error)
@@ -110,16 +111,17 @@ module Dea::Responders
 
     def notify_completion(message, task)
       task.after_complete_callback do |error|
-        if message.data["start_message"] && !error
-          message.data["start_message"]["sha1"] = task.droplet_sha1
-          bootstrap.start_app(message.data["start_message"])
+        if message.start_message && !error
+          start_message = message.start_message.to_hash
+          start_message["sha1"] = task.droplet_sha1
+          bootstrap.start_app(start_message)
         end
       end
     end
 
-    def notify_upload(message, task)
+    def notify_upload(response, task)
       task.after_upload_callback do |error|
-        respond_to_message(message, {
+        respond_to_response(response, {
           :task_id => task.task_id,
           :error => (error.to_s if error),
           :detected_buildpack => task.detected_buildpack,
@@ -132,9 +134,9 @@ module Dea::Responders
       end
     end
 
-    def notify_stop(message, task)
+    def notify_stop(response, task)
       task.after_stop_callback do |error|
-        respond_to_message(message, {
+        respond_to_response(response, {
           :task_id => task.task_id,
           :error => (error.to_s if error),
         })
@@ -145,8 +147,8 @@ module Dea::Responders
       end
     end
 
-    def respond_to_message(message, params)
-      message.respond(
+    def respond_to_response(response, params)
+      response.respond(
         "task_id" => params[:task_id],
         "task_streaming_log_url" => params[:streaming_log_url],
         "detected_buildpack" => params[:detected_buildpack],
@@ -164,7 +166,7 @@ module Dea::Responders
 
     def buildpacks_in_use
       staging_task_registry.flat_map do |task|
-        task.admin_buildpacks
+        task.staging_message.admin_buildpacks
       end.uniq
     end
   end

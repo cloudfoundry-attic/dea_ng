@@ -3,12 +3,11 @@
 module Dea
   class RunningEnv
     HOST = "0.0.0.0".freeze
-    WHITELIST_APP_KEYS = %W[instance_id instance_index].map(&:freeze).freeze
 
-    attr_reader :message_json, :instance
+    attr_reader :message, :instance
 
-    def initialize(message_json, instance)
-      @message_json = message_json
+    def initialize(message, instance)
+      @message = message
       @instance = instance
     end
 
@@ -28,9 +27,8 @@ module Dea
     def vcap_application
       hash = {}
 
-      WHITELIST_APP_KEYS.each do |key|
-        hash[key] = instance.send(key)
-      end
+      hash["instance_id"] = instance.attributes["instance_id"]
+      hash["instance_index"] = message.index
 
       hash["host"] = HOST
       hash["port"] = instance.instance_container_port
