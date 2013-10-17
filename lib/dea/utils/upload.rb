@@ -16,6 +16,8 @@ class Upload
   end
 
   def upload!(&upload_callback)
+    logger.info("em-upload.begin", destination: @destination)
+
     http = EM::HttpRequest.new(@destination).post(
       head: {
         EM::HttpClient::MULTIPART_HACK => {
@@ -34,6 +36,7 @@ class Upload
         # https://github.com/igrigorik/em-http-request/issues/190 says to check connection_count
         open_connection_count = EM.connection_count
         logger.warn("em-upload.error",
+                    destination: @destination,
                     connection_count: open_connection_count,
                     message: error.message,
                     http_error: http.error,
