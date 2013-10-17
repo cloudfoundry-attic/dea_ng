@@ -8,6 +8,11 @@ require "dea/directory_server/directory_server_v2"
 require "dea/staging/staging_task"
 
 describe Dea::StagingTask do
+  before(:all) do
+    @emitter = FakeEmitter.new
+    Dea::Loggregator.emitter = @emitter
+  end
+
   let(:memory_limit_mb) { 256 }
   let(:disk_limit_mb) { 1025 }
 
@@ -54,6 +59,8 @@ describe Dea::StagingTask do
 
   let(:failing_promise) { Dea::Promise.new { |p| raise "failing promise" } }
 
+  let (:empty_streams) { double(:stdout => '', :stderr => '') }
+
   subject(:staging) { Dea::StagingTask.new(bootstrap, dir_server, StagingMessage.new(attributes), buildpacks_in_use) }
 
   after { FileUtils.rm_rf(workspace_dir) if File.exists?(workspace_dir) }
@@ -76,8 +83,19 @@ describe Dea::StagingTask do
         expect(cmd).to include %Q{export VCAP_SERVICES="}
 
         expect(cmd).to match %r{.*/bin/run .*/plugin_config >> /tmp/staged/logs/staging_task.log 2>&1$}
-      end
+      end.and_return(empty_streams)
       staging.promise_stage.resolve
+    end
+
+    it "logs to the loggregator" do
+      @emitter.reset
+      staging.container.should_receive(:run_script).and_return(double(:stdout => "stdout message", :stderr => "stderr message"))
+      staging.promise_stage.resolve
+      app_id = staging.staging_message.app_id
+      expect(@emitter.messages.size).to eql(1)
+      expect(@emitter.error_messages.size).to eql(1)
+      expect(@emitter.messages[app_id][0]).to eql("stdout message")
+      expect(@emitter.error_messages[app_id][0]).to eql("stderr message")
     end
 
     context "when env variables need to be escaped" do
@@ -86,28 +104,28 @@ describe Dea::StagingTask do
       it "copes with spaces" do
         staging.container.should_receive(:run_script) do |_, cmd|
           expect(cmd).to include(%Q{export PATH="x y z";})
-        end
+        end.and_return(empty_streams)
         staging.promise_stage.resolve
       end
 
       it "copes with quotes" do
         staging.container.should_receive(:run_script) do |_, cmd|
           expect(cmd).to include(%Q{export FOO="z'y\\"d";})
-        end
+        end.and_return(empty_streams)
         staging.promise_stage.resolve
       end
 
       it "copes with blank" do
         staging.container.should_receive(:run_script) do |_, cmd|
           expect(cmd).to include(%Q{export BAR="";})
-        end
+        end.and_return(empty_streams)
         staging.promise_stage.resolve
       end
 
       it "copes with equal sign" do
         staging.container.should_receive(:run_script) do |_, cmd|
           expect(cmd).to include(%Q{export BAZ="foo=baz";})
-        end
+        end.and_return(empty_streams)
         staging.promise_stage.resolve
       end
     end
@@ -133,7 +151,7 @@ describe Dea::StagingTask do
 
           staging.container.should_receive(:run_script) do
             sleep 0.75
-          end
+          end.and_return(empty_streams)
 
           expect { staging.promise_stage.resolve }.to_not raise_error
         end
@@ -747,9 +765,19 @@ YAML
     it "assembles a shell command" do
       staging.container.should_receive(:run_script) do |connection_name, cmd|
         cmd.should include("unzip -q #{workspace_dir}/app.zip -d /tmp/unstaged")
-      end
-
+      end.and_return(empty_streams)
       staging.promise_unpack_app.resolve
+    end
+
+    it "logs to loggregator" do
+      @emitter.reset
+      staging.container.should_receive(:run_script).and_return(double(:stdout => "stdout message", :stderr => "stderr message"))
+      staging.promise_unpack_app.resolve
+      app_id = staging.staging_message.app_id
+      expect(@emitter.messages.size).to eql(1)
+      expect(@emitter.error_messages.size).to eql(1)
+      expect(@emitter.messages[app_id][0]).to eql("stdout message")
+      expect(@emitter.error_messages[app_id][0]).to eql("stderr message")
     end
   end
 
@@ -769,9 +797,19 @@ YAML
       it "assembles a shell command" do
         staging.container.should_receive(:run_script) do |_, cmd|
           cmd.should include("tar xfz #{workspace_dir}/buildpack_cache.tgz -C /tmp/cache")
-        end
-
+        end.and_return(empty_streams)
         staging.promise_unpack_buildpack_cache.resolve
+      end
+
+      it "logs to loggregator" do
+        @emitter.reset
+        staging.container.should_receive(:run_script).and_return(double(:stdout => "stdout message", :stderr => "stderr message"))
+        staging.promise_unpack_buildpack_cache.resolve
+        app_id = staging.staging_message.app_id
+        expect(@emitter.messages.size).to eql(1)
+        expect(@emitter.error_messages.size).to eql(1)
+        expect(@emitter.messages[app_id][0]).to eql("stdout message")
+        expect(@emitter.error_messages[app_id][0]).to eql("stderr message")
       end
     end
   end
