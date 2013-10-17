@@ -552,9 +552,6 @@ describe Dea::Instance do
         droplet.stub(:download).and_yield(Dea::Instance::BaseError.new(msg))
 
         expect_start.to raise_error(Dea::Instance::BaseError, msg)
-
-        # Instance exit description should be set to the failure message
-        instance.exit_description.should be_eql(msg)
       end
     end
 
@@ -581,9 +578,6 @@ describe Dea::Instance do
         instance.container.should_receive(:create_container).and_raise(RuntimeError.new(msg))
 
         expect_start.to raise_error(RuntimeError, /error/i)
-
-        # Instance exit description should be set to the failure message
-        instance.exit_description.should eql(msg)
       end
 
       it "saves the created container's handle on attributes" do
@@ -620,9 +614,6 @@ describe Dea::Instance do
         end
 
         expect_start.to raise_error(msg)
-
-        # Instance exit description should be set to the failure message
-        instance.exit_description.should be_eql(msg)
       end
     end
 
@@ -666,11 +657,7 @@ describe Dea::Instance do
         end
 
         expect_start.to raise_error(msg)
-
-        # Instance exit description should be set to the failure message
-        instance.exit_description.should be_eql(msg)
       end
-
     end
 
     shared_examples_for "start script hook" do |hook|
@@ -709,9 +696,6 @@ describe Dea::Instance do
           end
 
           expect_start.to raise_error(msg)
-
-          # Instance exit description should be set to the failure message
-          instance.exit_description.should be_eql(msg)
         end
       end
     end
@@ -870,7 +854,7 @@ describe Dea::Instance do
         expect_start.to raise_error
 
         # Instance exit description should be set to the failure message
-        instance.exit_description.should be_eql("App instance failed health check")
+        instance.exit_description.should == "didn't start accepting for connections"
       end
     end
 
@@ -886,7 +870,16 @@ describe Dea::Instance do
 
       it "sets exit description based on link response" do
         instance.start
-        instance.exit_description.should eq ("out of memory")
+        instance.exit_description.should == "out of memory"
+      end
+    end
+
+    context "when an arbitrary error occurs" do
+      before { instance.stub(:link) { raise "heck" } }
+
+      it "sets a generic exit description" do
+        instance.start
+        instance.exit_description.should == "failed to start"
       end
     end
   end

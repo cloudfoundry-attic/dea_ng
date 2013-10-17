@@ -219,16 +219,22 @@ module Dea
 
     def promise_task_log
       Promise.new do |p|
+        logger.info "staging.task-log.copying-out",
+          source: workspace.warden_staging_log,
+          destination: workspace.staging_log_path
+
         copy_out_request(workspace.warden_staging_log, File.dirname(workspace.staging_log_path))
-        logger.info "staging.task-log", log: task_log
         p.deliver
       end
     end
 
     def promise_staging_info
       Promise.new do |p|
+        logger.info "staging.task-info.copying-out",
+          source: workspace.warden_staging_info,
+          destination: workspace.staging_info_path
+
         copy_out_request(workspace.warden_staging_info, File.dirname(workspace.staging_info_path))
-        logger.info "staging.task-info", info: task_info
         p.deliver
       end
     end

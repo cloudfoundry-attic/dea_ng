@@ -14,6 +14,7 @@ require "dea/stat_collector"
 require "dea/task"
 require "dea/utils/event_emitter"
 require "dea/starting/startup_script_generator"
+require "dea/user_facing_errors"
 
 module Dea
   class Instance < Task
@@ -389,7 +390,7 @@ module Dea
           command = start_command || staged_info["start_command"]
 
           unless command
-            p.fail("missing start command")
+            p.fail(MissingStartCommand.new)
             next
           end
 
@@ -462,7 +463,7 @@ module Dea
           promise_exec_hook_script('after_start').resolve
         else
           logger.warn "droplet.unhealthy"
-          p.fail("App instance failed health check")
+          p.fail(HealthCheckFailed.new)
         end
 
         p.deliver
@@ -471,7 +472,7 @@ module Dea
       resolve_and_log(p, "instance.start") do |error, _|
         if error
           # An error occured while starting, mark as crashed
-          self.exit_description = error.message
+          self.exit_description = determine_exit_description_from_error(error)
           self.state = State::CRASHED
         end
 
@@ -645,7 +646,7 @@ module Dea
           self.exit_status = -1
           self.exit_description = "unknown"
         else
-          description = determine_exit_description(link_response)
+          description = determine_exit_description_from_link_response(link_response)
 
           logger.warn "droplet.warden.link.completed",
             exit_status: link_response.exit_status,
@@ -831,13 +832,22 @@ module Dea
       container.network_ports["container_port"] = @attributes["instance_container_port"]
     end
 
-    def determine_exit_description(link_response)
+    def determine_exit_description_from_link_response(link_response)
       info = link_response.info
       return "cannot be determined" unless info
 
       return info.events.first if info.events && info.events.first
 
       "app instance exited"
+    end
+
+    def determine_exit_description_from_error(error)
+      case error
+      when UserFacingError
+        error.to_s
+      else
+        "failed to start"
+      end
     end
 
     def container_relative_path(root, *parts)
