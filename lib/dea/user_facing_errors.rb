@@ -3,7 +3,7 @@ module Dea
 
   class HealthCheckFailed < UserFacingError
     def to_s
-      "didn't start accepting connections"
+      "failed to start accepting connections"
     end
   end
 
