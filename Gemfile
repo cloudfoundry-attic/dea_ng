@@ -23,7 +23,7 @@ gem "uuidtools", "~> 2.1.2"
 gem "nokogiri", ">= 1.4.4"
 gem "vmstat"
 
-gem "loggregator_emitter", "~> 0.0.15.pre"
+gem "loggregator_emitter", "~> 1.0"
 
 gem "sys-filesystem"
 
