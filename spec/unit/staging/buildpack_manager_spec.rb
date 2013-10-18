@@ -83,6 +83,20 @@ describe Dea::BuildpackManager do
     before do
       create_populated_directory(system_buildpack)
     end
+    
+    context "when there are multiple system buildpacks" do
+      let(:additional_system_buildpacks) { [File.join(system_buildpacks_dir, "abc"),File.join(system_buildpacks_dir, "def")]} 
+
+      before {additional_system_buildpacks.each {|path| create_populated_directory(path)}}
+
+      after {FileUtils.rm_rf(additional_system_buildpacks)}
+
+      it "has a sorted list of system buildpacks" do
+        sorted_buildpacks = additional_system_buildpacks.dup
+        sorted_buildpacks << system_buildpack
+        expect(manager.list).to eq(sorted_buildpacks.sort)
+      end
+    end
 
     context "when there are admin buildpacks" do
       let(:admin_buildpacks) do
