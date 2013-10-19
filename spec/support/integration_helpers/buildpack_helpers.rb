@@ -1,12 +1,6 @@
 require "socket"
 
 module BuildpackHelpers
-  def file_server_address
-    local_ip = LocalIPFinder.new.find
-
-    "#{local_ip.ip_address}:9999"
-  end
-
   def fake_buildpack_url(buildpack_name)
     "http://#{file_server_address}/buildpacks/#{buildpack_name}/.git"
   end
