@@ -55,11 +55,11 @@ class Upload
         http_status = http.response_header.status
 
         if http_status == 200
-          logger.info("Upload succeeded")
+          logger.info("em-upload.completion.success", destination: @destination)
           upload_callback.call(nil)
         else
           error = UploadError.new("HTTP status: #{http_status} - #{http.response}", @destination)
-          logger.warn(error.message)
+          logger.warn("em-upload.completion.failure", destination: @destination, message: error.message)
           upload_callback.call(error)
         end
       rescue => e
