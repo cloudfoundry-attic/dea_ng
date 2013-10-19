@@ -67,11 +67,17 @@ module DeaHelpers
   def start_file_server
     @file_server_pid = run_cmd("bundle exec ruby spec/bin/file_server.rb", :debug => true)
 
-    wait_until { is_port_open?("127.0.0.1", 9999) }
+    wait_until { is_port_open?("127.0.0.1", 10197) }
   end
 
   def stop_file_server
     graceful_kill(@file_server_pid) if @file_server_pid
+  end
+
+  def file_server_address
+    local_ip = LocalIPFinder.new.find
+
+    "#{local_ip.ip_address}:10197"
   end
 
   def dea_start

@@ -40,11 +40,17 @@ RSpec.configure do |config|
     Steno.init(Steno::Config.new(steno_config))
   end
 
-  config.before(:all, :type => :integration, :requires_warden => true) { dea_start if ENV.has_key?("LOCAL_DEA") }
-  config.after(:all, :type => :integration, :requires_warden => true) { dea_stop if ENV.has_key?("LOCAL_DEA") }
+  config.before(:all, :type => :integration, :requires_warden => true) do
+    dea_start if ENV.has_key?("LOCAL_DEA")
+  end
+
+  config.after(:all, :type => :integration, :requires_warden => true) do
+    dea_stop if ENV.has_key?("LOCAL_DEA")
+  end
 
   config.before(:all, :type => :integration) do
     WebMock.disable!
+
     start_file_server
   end
 
