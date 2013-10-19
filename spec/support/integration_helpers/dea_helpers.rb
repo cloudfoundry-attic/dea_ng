@@ -65,11 +65,9 @@ module DeaHelpers
   end
 
   def start_file_server
-    @file_server_port = ephemeral_port
+    @file_server_pid = run_cmd("bundle exec ruby spec/bin/file_server.rb", :debug => true)
 
-    @file_server_pid = run_cmd("bundle exec ruby spec/bin/file_server.rb #{@file_server_port}", :debug => true)
-
-    wait_until { is_port_open?("127.0.0.1", @file_server_port) }
+    wait_until { is_port_open?("127.0.0.1", 9999) }
   end
 
   def stop_file_server
@@ -142,23 +140,6 @@ module DeaHelpers
 
   def dea_config
     @dea_config ||= dea_server.config
-  end
-
-  def file_server_address
-    local_ip = LocalIPFinder.new.find
-
-    "#{local_ip.ip_address}:#{@file_server_port}"
-  end
-
-  def ephemeral_port
-    socket = TCPServer.new("0.0.0.0", 0)
-    socket.setsockopt(Socket::SOL_SOCKET, Socket::SO_REUSEADDR, true)
-    orig, Socket.do_not_reverse_lookup = Socket.do_not_reverse_lookup, true
-    port = socket.addr[1]
-    socket.close
-    return port
-  ensure
-    Socket.do_not_reverse_lookup = orig
   end
 
   class LocalDea

@@ -12,8 +12,6 @@ BUILDPACKS_DIR = File.expand_path("../../fixtures/fake_buildpacks", __FILE__)
 STAGED_APPS_DIR = "/tmp/dea"
 FileUtils.mkdir_p(STAGED_APPS_DIR)
 
-PORT = (ARGV[0] || 9999).to_i
-
 class FileServer < Sinatra::Base
   get "/unstaged/:name" do |name|
     zip_path = "/tmp/fixture-#{name}.zip"
@@ -83,4 +81,4 @@ app = Rack::Builder.new do
 end
 
 $stdout.sync = true
-Rack::Handler::Thin.run(app, :Port => PORT)
+Rack::Handler::Thin.run(app, :Port => 9999)
