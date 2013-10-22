@@ -1,4 +1,4 @@
-# coding: UTF-8
+  # coding: UTF-8
 
 require "rack/test"
 require "spec_helper"
@@ -115,7 +115,7 @@ describe Dea::Directory do
     last_response.status.should == 403
   end
 
-  it "should forbid requests for symlinks outside the container" do
+  it "should forbid requests for symlinks outside the container", unix_only: true do
     FileUtils.symlink(@tmpdir, File.join(@app_dir, "invalid_symlink"))
 
     get "#{instance.instance_id}/app/invalid_symlink"
@@ -123,7 +123,7 @@ describe Dea::Directory do
     last_response.status.should == 403
   end
 
-  it "should resolve symlinks inside the container" do
+  it "should resolve symlinks inside the container", unix_only: true do
     src_path = File.join(@app_dir, "symlink_target")
     FileUtils.touch(src_path)
     FileUtils.symlink(src_path, File.join(@app_dir, "valid_symlink"))

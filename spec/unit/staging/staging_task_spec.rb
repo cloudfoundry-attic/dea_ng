@@ -1,6 +1,7 @@
 # coding: UTF-8
 
 require "spec_helper"
+require "dea/staging/win_staging_task"
 require "em-http"
 require "dea/config"
 
@@ -20,6 +21,10 @@ describe Dea::StagingTask do
     staging.workspace.workspace_dir # force workspace creation
   end
 
+  let!(:win_workspace_dir) do
+    winstaging.workspace.workspace_dir # force workspace creation
+  end
+
   let(:max_staging_duration) { 900 }
 
   let(:config) do
@@ -34,6 +39,7 @@ describe Dea::StagingTask do
         "disk_limit_mb" => disk_limit_mb,
         "max_staging_duration" => max_staging_duration
       },
+      "dea_ruby" => "/foo/dea_ruby"
     }
   end
 
@@ -48,6 +54,9 @@ describe Dea::StagingTask do
   end
 
   let(:attributes) { valid_staging_attributes }
+
+  let(:staging) { Dea::StagingTask.new(bootstrap, dir_server, StagingMessage.new(attributes), buildpacks_in_use) }
+  let(:winstaging) { Dea::WinStagingTask.new(bootstrap, dir_server, StagingMessage.new(attributes), buildpacks_in_use) }
 
   let(:buildpacks_in_use) do
     [ {key: "buildpack1", uri: URI("http://www.goolge.com")},
@@ -226,6 +235,7 @@ YAML
 
   describe "#streaming_log_url" do
     let(:url) { staging.streaming_log_url }
+    let(:win_url) { winstaging.streaming_log_url }
 
     it "returns url for staging log" do
       url.should include("/staging_tasks/#{staging.task_id}/file_path",)
@@ -233,6 +243,10 @@ YAML
 
     it "includes path to staging task output" do
       url.should include "path=%2Ftmp%2Fstaged%2Flogs%2Fstaging_task.log"
+    end
+
+    it "includes path to staging task output on windows" do
+      win_url.should include "path=%40ROOT%40%2Ftmp%2Fstaged%2Flogs%2Fstaging_task.log"
     end
 
     it "hmacs url" do
@@ -691,6 +705,13 @@ YAML
       end
       staging.promise_prepare_staging_log.resolve
     end
+
+    it "assembles a shell command that creates staging_task.log file for tailing it on windows" do
+      winstaging.container.should_receive(:run_script) do |connection_name, cmd|
+        cmd.should match "[{\"cmd\":\"mkdir\",\"args\":[\"@ROOT@/tmp/staged/logs\"]},{\"cmd\":\"touch\",\"args\":[\"@ROOT@/tmp/staged/logs/staging_task.log\"]}]"
+      end
+      winstaging.promise_prepare_staging_log.resolve
+    end
   end
 
   describe "#promise_app_download" do
@@ -716,7 +737,7 @@ YAML
       end
     end
 
-    context "when there is no error" do
+    context "when there is no error", unix_only:true do
       before do
         Download.any_instance.stub(:download!).and_yield(nil)
       end
@@ -755,7 +776,7 @@ YAML
       end
     end
 
-    context "when there is no error" do
+    context "when there is no error", unix_only:true do
       before { Download.any_instance.stub(:download!).and_yield(nil) }
 
       its(:result) { should eq([:deliver, nil]) }
@@ -788,6 +809,14 @@ YAML
       expect(@emitter.messages[app_id][0]).to eql("stdout message")
       expect(@emitter.error_messages[app_id][0]).to eql("stderr message")
     end
+
+    it "assembles a shell command on windows" do
+      winstaging.container.should_receive(:run_script) do |connection_name, cmd|
+        cmd.should include("{\"cmd\":\"unzip\",\"args\":[\"#{win_workspace_dir}/app.zip\",\"@ROOT@/tmp/unstaged\"]}")
+      end.and_return(empty_streams)
+
+      winstaging.promise_unpack_app.resolve
+    end
   end
 
   describe "#promise_unpack_buildpack_cache" do
@@ -801,6 +830,7 @@ YAML
     context "when buildpack cache exists" do
       before do
         FileUtils.touch("#{workspace_dir}/buildpack_cache.tgz")
+        FileUtils.touch("#{win_workspace_dir}/buildpack_cache.tgz")
       end
 
       it "assembles a shell command" do
@@ -822,6 +852,15 @@ YAML
         expect(@emitter.messages[app_id][0]).to eql("stdout message")
         expect(@emitter.error_messages[app_id][0]).to eql("stderr message")
       end
+
+      it "assembles a shell command on windows" do
+        winstaging.container.should_receive(:run_script) do |_, cmd|
+          cmd.should include("#{win_workspace_dir}/buildpack_cache.tgz")
+          cmd.should include("\"cmd\":\"tar\"")
+        end.and_return(empty_streams)
+
+        winstaging.promise_unpack_buildpack_cache.resolve
+      end
     end
   end
 
@@ -833,6 +872,14 @@ YAML
 
       staging.promise_pack_app.resolve
     end
+
+    it "assembles a shell command on windows" do
+      winstaging.container.should_receive(:run_script) do |connection_name, cmd|
+        normalize_whitespace(cmd).should include("{\"cmd\":\"tar\",\"args\":[\"c\",\"@ROOT@/tmp/staged\",\"@ROOT@/tmp/droplet.tgz\"]}")
+      end
+
+      winstaging.promise_pack_app.resolve
+    end
   end
 
   describe "#promise_pack_buildpack_cache" do
@@ -842,6 +889,14 @@ YAML
       end
 
       staging.promise_pack_buildpack_cache.resolve
+    end
+
+    it "assembles a shell command on windows" do
+      winstaging.container.should_receive(:run_script) do |_, cmd|
+        normalize_whitespace(cmd).should include("{\"cmd\":\"tar\",\"args\":[\"c\",\"@ROOT@/tmp/cache\",\"@ROOT@/tmp/buildpack_cache.tgz\"]}")
+      end
+
+      winstaging.promise_pack_buildpack_cache.resolve
     end
   end
 
@@ -940,6 +995,19 @@ YAML
     end
   end
 
+  describe "#promise_copy_out on windows" do
+    subject do
+      promise = winstaging.promise_copy_out
+      promise.resolve
+      promise
+    end
+
+    it "should send copying out request on windows" do
+      winstaging.should_receive(:copy_out_request).with("@ROOT@/tmp/droplet.tgz", /.{5,}/)
+      subject
+    end
+  end
+
   describe "#promise_save_droplet" do
     subject do
       promise = staging.promise_save_droplet
@@ -979,6 +1047,19 @@ YAML
     end
   end
 
+  describe "#promise_copy_out_buildpack_cache on windows" do
+    subject do
+      promise = winstaging.promise_copy_out_buildpack_cache
+      promise.resolve
+      promise
+    end
+
+    it "should send copying out request on windows" do
+      winstaging.should_receive(:copy_out_request).with("@ROOT@/tmp/buildpack_cache.tgz", /.{5,}/)
+      subject
+    end
+  end
+
   describe "#promise_task_log" do
     subject do
       promise = staging.promise_task_log
@@ -992,6 +1073,24 @@ YAML
     end
   end
 
+  describe "#promise_task_log on windows" do
+    subject do
+      promise = winstaging.promise_task_log
+      promise.resolve
+      promise
+    end
+
+    it "should send copying out request on windows" do
+      winstaging.should_receive(:copy_out_request).with("@ROOT@/tmp/staged/logs/staging_task.log", /#{win_workspace_dir}/)
+      subject
+    end
+
+    it "should write the staging log to the main logger on windows" do
+      winstaging.should_receive(:copy_out_request).with("@ROOT@/tmp/staged/logs/staging_task.log", /#{win_workspace_dir}/)
+      subject
+    end
+  end
+
   describe "#promise_staging_info" do
     subject do
       promise = staging.promise_staging_info
@@ -1001,6 +1100,19 @@ YAML
 
     it "should send copying out request" do
       staging.should_receive(:copy_out_request).with("/tmp/staged/staging_info.yml", /#{workspace_dir}/)
+      subject
+    end
+  end
+
+  describe "#promise_staging_info on windows" do
+    subject do
+      promise = winstaging.promise_staging_info
+      promise.resolve
+      promise
+    end
+
+    it "should send copying out request on windows" do
+      winstaging.should_receive(:copy_out_request).with("@ROOT@/tmp/staged/staging_info.yml", /#{win_workspace_dir}/)
       subject
     end
   end

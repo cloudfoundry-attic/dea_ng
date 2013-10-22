@@ -57,6 +57,12 @@ RSpec.configure do |config|
   config.after(:all, :type => :integration) do
     stop_file_server
   end
+
+  if RbConfig::CONFIG['host_os'] =~ /mswin|mingw|cygwin/
+    config.filter_run_excluding :unix_only => true
+  else
+    config.filter_run_excluding :windows_only => true
+  end
 end
 
 TEST_TEMP = Dir.mktmpdir

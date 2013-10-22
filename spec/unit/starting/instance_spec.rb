@@ -1,5 +1,6 @@
 require "spec_helper"
 require "dea/starting/instance"
+require "dea/starting/win_instance"
 
 describe Dea::Instance do
   include_context "tmpdir"
@@ -14,6 +15,10 @@ describe Dea::Instance do
 
   subject(:instance) do
     Dea::Instance.new(bootstrap, valid_instance_attributes)
+  end
+
+  subject(:wininstance) do
+    Dea::WinInstance.new(bootstrap, valid_instance_attributes)
   end
 
   describe "default attributes" do
@@ -195,7 +200,7 @@ describe Dea::Instance do
     it "should set state_timestamp when invoked" do
       old_timestamp = instance.state_timestamp
       instance.state = Dea::Instance::State::RUNNING
-      instance.state_timestamp.should > old_timestamp
+      instance.state_timestamp.should >= old_timestamp
     end
   end
 
@@ -523,6 +528,23 @@ describe Dea::Instance do
       instance.stub(:droplet).and_return(droplet)
       instance.stub(:start_stat_collector)
       instance.stub(:link)
+
+      wininstance.stub(:promise_droplet).and_return(delivering_promise)
+      wininstance.container.stub(:get_connection).and_raise("bad connection bad")
+      wininstance.container.stub(:create_container)
+      wininstance.stub(:promise_setup_network).and_return(delivering_promise)
+      wininstance.stub(:promise_limit_disk).and_return(delivering_promise)
+      wininstance.stub(:promise_limit_memory).and_return(delivering_promise)
+      wininstance.stub(:promise_setup_environment).and_return(delivering_promise)
+      wininstance.stub(:promise_extract_droplet).and_return(delivering_promise)
+      wininstance.stub(:promise_prepare_start_script).and_return(delivering_promise)
+      wininstance.stub(:promise_exec_hook_script).with('before_start').and_return(delivering_promise)
+      wininstance.stub(:promise_start).and_return(delivering_promise)
+      wininstance.stub(:promise_exec_hook_script).with('after_start').and_return(delivering_promise)
+      wininstance.stub(:promise_health_check).and_return(delivering_promise(true))
+      wininstance.stub(:droplet).and_return(droplet)
+      wininstance.stub(:start_stat_collector)
+      wininstance.stub(:link)
     end
 
     def expect_start
@@ -530,6 +552,21 @@ describe Dea::Instance do
 
       em do
         instance.start do |error_|
+          error = error_
+          done
+        end
+      end
+
+      expect do
+        raise error if error
+      end
+    end
+
+    def win_expect_start
+      error = nil
+
+      em do
+        wininstance.start do |error_|
           error = error_
           done
         end
@@ -632,6 +669,15 @@ describe Dea::Instance do
         instance.exit_description.should be_empty
       end
 
+      it "should run tar on windows" do
+        wininstance.container.stub(:run_script) do |_, script|
+          script.should =~ /\"cmd\":\"tar\"/
+        end
+
+        win_expect_start.to_not raise_error
+        wininstance.exit_description.should be_empty
+      end
+
       it "can fail by run failing" do
         msg = "droplet extraction failure"
         instance.container.stub(:run_script) do |*_|
@@ -656,7 +702,16 @@ describe Dea::Instance do
         instance.exit_description.should be_empty
       end
 
-      it "should chown the app dir" do
+      it "should create the app dir on windows" do
+        wininstance.container.stub(:run_script) do |_, script|
+          script.should =~ %r{"cmd":"mkdir","args":\["@ROOT@/app"\]}
+        end
+
+        win_expect_start.to_not raise_error
+        wininstance.exit_description.should be_empty
+      end
+
+      it "should chown the app dir", unix_only: true do
         instance.container.stub(:run_script) do |_, script|
           script.should =~ %r{chown vcap:vcap home/vcap/app}
         end
@@ -672,6 +727,15 @@ describe Dea::Instance do
 
         expect_start.to_not raise_error
         instance.exit_description.should be_empty
+      end
+
+      it "should symlink the app dir on windows" do
+        wininstance.container.stub(:run_script) do |_, script|
+          script.should =~ %r{@ROOT@/app}
+        end
+
+        win_expect_start.to_not raise_error
+        wininstance.exit_description.should be_empty
       end
 
       it "can fail by run failing" do
@@ -728,6 +792,48 @@ describe Dea::Instance do
     it_behaves_like 'start script hook', 'before_start'
     it_behaves_like 'start script hook', 'after_start'
 
+    shared_examples_for "start script hook on windows" do |hook|
+      describe "#{hook} hook" do
+        let(:runtime) do
+          runtime = double(:runtime)
+          runtime.stub(:environment).and_return({})
+          runtime
+        end
+
+        before do
+          bootstrap.stub(:config).and_return("hooks" => { hook => fixture("hooks/#{hook}") })
+          wininstance.stub(:runtime).and_return(runtime)
+          wininstance.unstub(:promise_exec_hook_script)
+        end
+
+        it "should execute script file" do
+          script_content = nil
+          wininstance.container.stub(:run_script) do |_, script|
+            script.should_not be_empty
+            script_content = script
+          end
+
+          win_expect_start.to_not raise_error
+          wininstance.exit_description.should be_empty
+
+          script_content.should include("echo \\\"#{hook}\\\"")
+        end
+
+        it "should raise error when script execution fails" do
+          msg = "script execution failed"
+
+          wininstance.container.stub(:run_script) do |_, script|
+            raise RuntimeError.new(msg)
+          end
+
+          win_expect_start.to raise_error(msg)
+        end
+      end
+    end
+
+    it_behaves_like 'start script hook on windows', 'before_start'
+    it_behaves_like 'start script hook on windows', 'after_start'
+
     describe "#promise_start" do
       let(:response) { double("spawn_response", job_id: 37) }
       let(:env) do
@@ -743,6 +849,11 @@ describe Dea::Instance do
         instance.stub(:staged_info).and_return(nil)
         instance.attributes["warden_handle"] = "handle"
         Dea::Env.stub(:new).and_return(env)
+
+        wininstance.unstub(:promise_start)
+        wininstance.stub(:staged_info).and_return(nil)
+        wininstance.attributes["warden_handle"] = "handle"
+        Dea::WinEnv.stub(:new).and_return(env)
       end
 
       it "raises errors when the request fails" do
@@ -765,6 +876,10 @@ describe Dea::Instance do
           instance.stub(:staged_info).and_return(
             "start_command" => "fake_start_command.sh"
           )
+
+          wininstance.stub(:staged_info).and_return(
+              "start_command" => "fake_start_command.sh"
+          )
         end
 
         it "generates the correct script and calls promise spawn" do
@@ -779,6 +894,20 @@ describe Dea::Instance do
             .and_return(response)
 
           instance.promise_start.resolve
+        end
+
+        it "generates the correct script and calls promise spawn on windows" do
+          Dea::WinStartupScriptGenerator.should_receive(:new).with(
+              "fake_start_command.sh",
+              env.exported_user_environment_variables,
+              env.exported_system_environment_variables
+          ).and_return(generator)
+
+          wininstance.container.should_receive(:spawn)
+            .with("[{\"cmd\":\"ps1\",\"args\":[\"./dostuffscript\",\"exit\"]}]", wininstance.file_descriptor_limit, Dea::Instance::NPROC_LIMIT, true)
+            .and_return(response)
+
+          wininstance.promise_start.resolve
         end
       end
 
@@ -850,6 +979,15 @@ describe Dea::Instance do
 
           instance.promise_start.resolve
         end
+
+        it "runs the startup script instead of generating one on windows" do
+          wininstance.container.should_receive(:call) do |name, request|
+            expect(request.script).to include("./startup.ps1")
+            response
+          end
+
+          wininstance.promise_start.resolve
+        end
       end
     end
 
@@ -920,6 +1058,11 @@ describe Dea::Instance do
       instance.container.stub(:get_connection).and_return(connection)
       instance.stub(:promise_stop).and_return(delivering_promise)
       Dea::Env.stub(:new).and_return(env)
+
+      wininstance.stub(:promise_state).and_return(delivering_promise)
+      wininstance.container.stub(:get_connection).and_return(connection)
+      wininstance.stub(:promise_stop).and_return(delivering_promise)
+      Dea::WinEnv.stub(:new).and_return(env)
     end
 
     def expect_stop
@@ -927,6 +1070,21 @@ describe Dea::Instance do
 
       em do
         instance.stop do |error_|
+          error = error_
+          done
+        end
+      end
+
+      expect do
+        raise error if error
+      end
+    end
+
+    def win_expect_stop
+      error = nil
+
+      em do
+        wininstance.stop do |error_|
           error = error_
           done
         end
@@ -1001,6 +1159,44 @@ describe Dea::Instance do
 
     it_behaves_like 'stop script hook', 'before_stop'
     it_behaves_like 'stop script hook', 'after_stop'
+
+    shared_examples_for "stop script hook on windows" do |hook|
+      describe "script hook" do
+        let(:runtime) do
+          runtime = mock(:runtime)
+          runtime.stub(:environment).and_return({})
+          runtime
+        end
+
+        let(:env) { double("environment", exported_environment_variables: "export A=B;\n") }
+
+        before do
+          Dea::Env.stub(:new).with(instance).and_return(env)
+          bootstrap.stub(:config).and_return("hooks" => { hook => fixture("hooks/#{hook}") })
+        end
+
+        it "executes the #{hook} script file" do
+          script_content = nil
+          wininstance.container.stub(:run_script) do |_, script|
+            script_content = script
+          end
+          win_expect_stop.to_not raise_error
+          script_content.should include("echo \\\"#{hook}\\\"")
+        end
+
+        it "exports the variables in the hook files" do
+          actual_script_content = nil
+          wininstance.container.stub(:run_script) do |_, script|
+            actual_script_content = script
+          end
+          win_expect_stop.to_not raise_error
+          actual_script_content.should match /export A=B/
+        end
+      end
+    end
+
+    it_behaves_like 'stop script hook on windows', 'before_stop'
+    it_behaves_like 'stop script hook on windows', 'after_stop'
   end
 
   describe "#promise_link" do
@@ -1337,6 +1533,11 @@ describe Dea::Instance do
         instance.staged_info
       end
 
+      it "sends copying out request on windows" do
+        wininstance.should_receive(:copy_out_request).with("@ROOT@/staging_info.yml", instance_of(String))
+        wininstance.staged_info
+      end
+
       it "reads the file from the copy out" do
         YAML.should_receive(:load_file).with(/.+staging_info\.yml/)
         expect(instance.staged_info).to eq(a: 1)
@@ -1367,15 +1568,27 @@ describe Dea::Instance do
 
   describe "#instance_path" do
     context "when state is CRASHED" do
-      before { instance.state = Dea::Instance::State::CRASHED }
+      before {
+        instance.state = Dea::Instance::State::CRASHED
+        wininstance.state = Dea::Instance::State::CRASHED
+      }
 
       context "when warden_container_path is set" do
-        before { instance.container.stub(:path => "/root/dir") }
+        before {
+          instance.container.stub(:path => "/root/dir")
+          wininstance.container.stub(:path => "/root/dir")
+        }
 
-        it "returns container path" do
+        it "returns container path", unix_only:true do
           expect(instance.instance_path).to eq("/root/dir/tmp/rootfs/home/vcap")
         end
+
+        it "returns container path on windows", windows_only:true do
+          expect(wininstance.instance_path).to eq("C:/root/dir")
+        end
       end
+
+
 
       context "when warden_container_path is not set" do
         it "raises" do
@@ -1387,12 +1600,22 @@ describe Dea::Instance do
     end
 
     context "when state is RUNNING" do
-      before { instance.state = Dea::Instance::State::RUNNING }
+      before {
+        instance.state = Dea::Instance::State::RUNNING
+        wininstance.state = Dea::Instance::State::RUNNING
+      }
       context "when warden_container_path is set" do
-        before { instance.container.stub(:path => "/root/dir") }
+        before {
+          instance.container.stub(:path => "/root/dir")
+          wininstance.container.stub(:path => "/root/dir")
+        }
 
-        it "returns container path" do
+        it "returns container path", unix_only:true do
           expect(instance.instance_path).to eq("/root/dir/tmp/rootfs/home/vcap")
+        end
+
+        it "returns container path", windows_only:true do
+          expect(wininstance.instance_path).to eq("C:/root/dir")
         end
       end
 

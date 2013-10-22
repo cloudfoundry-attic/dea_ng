@@ -1,5 +1,8 @@
+require "vcap/common"
 require "dea/staging/staging_task"
-
+if VCAP::WINDOWS
+require "dea/staging/win_staging_task"
+end
 require "dea/loggregator"
 
 module Dea::Responders
@@ -43,7 +46,12 @@ module Dea::Responders
       Dea::Loggregator.emit(app_id, "Got staging request for app with id #{app_id}")
       logger.info("staging.handle.start", request: message)
 
-      task = Dea::StagingTask.new(bootstrap, dir_server, message, buildpacks_in_use, logger)
+      task = nil
+      if VCAP::WINDOWS
+        task = Dea::WinStagingTask.new(bootstrap, dir_server, message, buildpacks_in_use, logger)
+      else
+        task = Dea::StagingTask.new(bootstrap, dir_server, message, buildpacks_in_use, logger)
+      end
       unless resource_manager.could_reserve?(task.memory_limit_mb, task.disk_limit_mb)
         constrained_resource = resource_manager.get_constrained_resource(task.memory_limit_mb, task.disk_limit_mb)
         respond_to_response(response, {

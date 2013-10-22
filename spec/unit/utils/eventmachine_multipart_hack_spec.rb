@@ -78,9 +78,14 @@ describe EventMachine::HttpClient do
         subject
       end
 
-      it "adds the multipart footer to the file" do
+      it "adds the multipart footer to the file", unix_only: true do
         subject
         File.read(tempfile.path).should eq("#{body}\r\n--multipart-boundary-UUID--\n")
+      end
+
+      it "adds the multipart footer to the file on windows", windows_only: true do
+        subject
+        File.read(tempfile.path).should eq("#{body}\n--multipart-boundary-UUID--\n")
       end
     end
 

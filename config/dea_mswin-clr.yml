@@ -1,0 +1,68 @@
+# See src/lib/dea/config.rb for optional config values.
+
+# Base directory for dea, application directories, dea temp files, etc. are all relative to this.
+base_dir: C:/IronFoundry/dea_ng
+
+logging:
+  # level: debug2
+  level: error
+  # file: C:/IronFoundry/log/dea_ng.log
+
+#local_route: 192.168.170.141
+loggregator:
+  router: 192.168.170.141:3456
+  shared_secret: loggregatorsharedsecret
+  
+resources:
+  memory_mb: 2048
+  memory_overcommit_factor: 2
+  disk_mb: 2048
+  disk_overcommit_factor: 2
+
+# The this flag determines whether or not this DEA should only host
+# production apps. (default: false)
+only_production_apps: false
+
+nats_uri: nats://192.168.170.132:4222/
+
+pid_filename: C:/IronFoundry/run/dea_ng.pid
+
+warden_socket: tcp://localhost:4444
+
+evacuation_delay_secs: 10
+
+maximum_health_check_timeout: 60 # 1 minute
+
+index: 0
+domain: "vcap.me"
+
+staging:
+  enabled: true
+  environment:
+    PATH: C:\Ruby193\bin # NB: backslashes
+    BUILDPACK_CACHE: C:/IronFoundry/buildpack_cache
+  memory_limit_mb: 1024
+  disk_limit_mb: 2048
+  max_staging_duration: 900 # 15 minutes
+
+dea_ruby: C:/Ruby193/bin/ruby.exe
+
+# For Go-based directory server
+directory_server:
+  protocol: 'http'
+  v1_port: 4385
+  v2_port: 5678
+  file_api_port: 1234
+  streaming_timeout: 10
+  logging:
+    level: all
+
+stacks:
+  - mswin-clr
+
+# Hook scripts for droplet start/stop
+# hooks:
+#   before_start: path/to/script
+#   after_start: path/to/script
+#   before_stop: path/to/script
+#   after_stop: path/to/script

@@ -28,7 +28,7 @@ describe AdminBuildpackDownloader do
       ]
     end
 
-    it "downloads the buildpack and unzip it" do
+    it "downloads the buildpack and unzip it", unix_only:true do
       do_download
       expected_file_name = File.join(destination_directory, "abcdef")
       expect(File.exist?(expected_file_name)).to be_true
@@ -57,7 +57,7 @@ describe AdminBuildpackDownloader do
       ]
     end
 
-    it "only returns when all the downloads are done" do
+    it "only returns when all the downloads are done", unix_only:true do
       stub_request(:any, "http://example.com/buildpacks/uri/ijgh").to_return(
         body: File.new(zip_file)
       )
@@ -67,7 +67,7 @@ describe AdminBuildpackDownloader do
       expect(Pathname.new(destination_directory).children).to have(2).items
     end
 
-    it "doesn't throw exceptions if the download fails" do
+    it "doesn't throw exceptions if the download fails", unix_only:true do
       stub_request(:any, "http://example.com/buildpacks/uri/ijgh").to_return(
         :status => [500, "Internal Server Error"]
       )
