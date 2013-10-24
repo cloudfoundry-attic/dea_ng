@@ -20,6 +20,30 @@ describe Dea::InstanceRegistry do
 
   it_behaves_like :handles_registry_enumerations
 
+  describe "#change_instance_id" do
+    before do
+      instance_registry.register(instance)
+      @old_instance_id = instance.instance_id
+      instance_registry.change_instance_id(instance)
+    end
+
+    it "should change the instance_id on the instance" do
+      instance.instance_id.should_not == @old_instance_id
+    end
+
+    it "should return the instance when querying against the new instance_id" do
+      instance_registry.lookup_instance(@old_instance_id).should be_nil
+      instance_registry.lookup_instance(instance.instance_id).should == instance
+    end
+
+    context "when looking up by application_id, the instances have the correct changed id" do
+      it "should rearrange the by_application cache" do
+        instances = instance_registry.instances_for_application(instance.application_id)
+        instances.should == { instance.instance_id => instance }
+      end
+    end
+  end
+
   describe "#register" do
     it "should allow one to lookup the instance by id" do
       instance_registry.register(instance)

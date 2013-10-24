@@ -251,6 +251,26 @@ describe Dea do
             [instance.application_uris, instance.application_version]
           }.from([["old-uri"], "old-version"]).to([["new-uri"], "new-version"])
         end
+
+        it "changes the instance's id" do
+          bootstrap.instance_registry.lookup_instance(instance.instance_id).should == instance
+
+          expect {
+            em do
+              bootstrap.start
+
+              nats_mock.publish("dea.update",
+                                { "droplet" => instance.application_id,
+                                  "uris"    => ["new-uri"],
+                                  "version" => "new-version"
+                                })
+
+              EM.next_tick { done }
+            end
+          }.to change { instance.instance_id }
+
+          bootstrap.instance_registry.lookup_instance(instance.instance_id).should == instance
+        end
       end
 
       context "when the app version is not in the message (for backwards compatibility)" do
@@ -267,6 +287,25 @@ describe Dea do
               EM.next_tick { done }
             end
           }.to_not change { instance.application_version }
+        end
+
+        it "does not change the instance's id" do
+          bootstrap.instance_registry.lookup_instance(instance.instance_id).should == instance
+
+          expect {
+            em do
+              bootstrap.start
+
+              nats_mock.publish("dea.update",
+                                { "droplet" => instance.application_id,
+                                  "uris"    => ["new-uri"],
+                                })
+
+              EM.next_tick { done }
+            end
+          }.to_not change { instance.instance_id }
+
+          bootstrap.instance_registry.lookup_instance(instance.instance_id).should == instance
         end
       end
     end

@@ -344,6 +344,10 @@ module Dea
       nil
     end
 
+    def change_instance_id!
+      attributes["instance_id"] = VCAP.secure_uuid
+    end
+
     def to_s
       "Instance(id=%s, idx=%s, app_id=%s)" % [instance_id.slice(0, 4),
                                               instance_index, application_id]

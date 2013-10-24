@@ -565,7 +565,7 @@ module Dea
       uris = message.data["uris"]
       app_version = message.data["version"]
 
-      instance_registry.instances_for_application(app_id).each do |_, instance|
+      instance_registry.instances_for_application(app_id).dup.each do |_, instance|
         current_uris = instance.application_uris
 
         logger.debug("Mapping new URIs")
@@ -582,7 +582,11 @@ module Dea
         end
 
         instance.application_uris = uris
-        instance.application_version = app_version if app_version
+
+        if app_version
+          instance.application_version = app_version
+          instance_registry.change_instance_id(instance)
+        end
       end
     end
 

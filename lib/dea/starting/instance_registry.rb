@@ -38,12 +38,7 @@ module Dea
       Dea::Loggregator.emit(app_id, "Registering instance")
       logger.debug2("Registering instance #{instance.instance_id}")
 
-      @instances[instance.instance_id] = instance
-
-      @instances_by_app_id[app_id] ||= {}
-      @instances_by_app_id[app_id][instance.instance_id] = instance
-
-      nil
+      add_instance(instance)
     end
 
     def unregister(instance)
@@ -52,17 +47,13 @@ module Dea
       Dea::Loggregator.emit(app_id, "Removing instance")
       logger.debug2("Removing instance #{instance.instance_id}")
 
-      @instances.delete(instance.instance_id)
+      remove_instance(instance)
+    end
 
-      if @instances_by_app_id.has_key?(app_id)
-        @instances_by_app_id[app_id].delete(instance.instance_id)
-
-        if @instances_by_app_id[app_id].empty?
-          @instances_by_app_id.delete(app_id)
-        end
-      end
-
-      nil
+    def change_instance_id(instance)
+      remove_instance(instance)
+      instance.change_instance_id!
+      add_instance(instance)
     end
 
     def instances_for_application(app_id)
@@ -234,6 +225,35 @@ module Dea
       end
 
       r
+    end
+
+    private
+
+    def add_instance(instance)
+      @instances[instance.instance_id] = instance
+
+      app_id = instance.application_id
+
+      @instances_by_app_id[app_id] ||= {}
+      @instances_by_app_id[app_id][instance.instance_id] = instance
+
+      nil
+    end
+
+    def remove_instance(instance)
+      @instances.delete(instance.instance_id)
+
+      app_id = instance.application_id
+
+      if @instances_by_app_id.has_key?(app_id)
+        @instances_by_app_id[app_id].delete(instance.instance_id)
+
+        if @instances_by_app_id[app_id].empty?
+          @instances_by_app_id.delete(app_id)
+        end
+      end
+
+      nil
     end
   end
 end
