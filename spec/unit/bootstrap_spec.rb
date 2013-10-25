@@ -531,6 +531,23 @@ describe Dea::Bootstrap do
             "state_timestamp" => Time.now.to_f
           )
         end
+
+        it "uses the values from stat_collector" do
+          instance_1.stat_collector.stub(:used_memory_in_bytes).and_return(28 * 1024)
+          instance_1.stat_collector.stub(:used_disk_in_bytes).and_return(40)
+          instance_1.stat_collector.stub(:computed_pcpu).and_return(0.123)
+
+          bootstrap.periodic_varz_update
+
+          varz = VCAP::Component.varz[:instance_registry]
+
+          varz.keys.should == ["app-1"]
+          varz["app-1"][instance_1.instance_id].should include(
+            "used_memory_in_bytes" => 28,
+            "used_disk_in_bytes" => 40,
+            "computed_pcpu" => 0.123
+          )
+        end
       end
 
       context "with a registry containing two instances of one app" do

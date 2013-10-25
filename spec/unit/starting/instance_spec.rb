@@ -302,6 +302,23 @@ describe Dea::Instance do
     end
   end
 
+  describe "attributes_and_stats from stat collector" do
+    it "returns the used_memory_in_bytes stat in the attributes_and_stats hash" do
+      instance.stat_collector.stub(:used_memory_in_bytes).and_return(28 * 1024)
+      instance.attributes_and_stats.should include("used_memory_in_bytes" => 28)
+    end
+
+    it "returns the used_disk_in_bytes stat in the attributes_and_stats hash" do
+      instance.stat_collector.stub(:used_disk_in_bytes).and_return(40)
+      instance.attributes_and_stats.should include("used_disk_in_bytes" => 40)
+    end
+
+    it "returns the computed_pcpu stat in the attributes_and_stats hash" do
+      instance.stat_collector.stub(:computed_pcpu).and_return(0.123)
+      instance.attributes_and_stats.should include("computed_pcpu" => 0.123)
+    end
+  end
+
   describe "#promise_health_check unit test" do
     #let(:info_response) do
     #  info_response = mock("InfoResponse")
