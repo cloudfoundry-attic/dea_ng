@@ -15,6 +15,7 @@ module Dea
       "crash_block_usage_ratio_threshold" => 0.8,
       "crash_inode_usage_ratio_threshold" => 0.8,
       "clean_droplet" => true,
+      "enable_sshd" => false,
     }
 
     def self.schema
