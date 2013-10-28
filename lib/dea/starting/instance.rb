@@ -709,7 +709,7 @@ module Dea
 
           hc.errback  { p.deliver(false) }
 
-          hc.timeout(60)
+          hc.timeout(max_healthcheck_timeout)
         end
       end
     end
@@ -870,6 +870,10 @@ module Dea
 
       # New path
       File.join(root, "tmp", "rootfs", "home", "vcap", *parts)
+    end
+
+    def max_healthcheck_timeout
+      config["maximum_health_check_timeout"] || 60
     end
 
     def logger

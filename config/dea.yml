@@ -23,6 +23,8 @@ warden_socket: /tmp/warden.sock
 
 evacuation_delay_secs: 10
 
+maximum_health_check_timeout: 60 # 1 minute
+
 index: 0
 domain: "localhost.xip.io"
 
