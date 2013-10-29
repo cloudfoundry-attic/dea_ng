@@ -18,6 +18,17 @@ describe Upload do
       em { example.call }
     end
 
+    it "sets the timeout to 300 seconds (must be lowered latter when we get async upload to the CC)" do
+      request = double('request', method: 'delete').as_null_object
+      http = double('http', req: request).as_null_object
+      EM::HttpRequest.should_receive(:new).
+          with(anything, hash_including(inactivity_timeout: 300)).
+          and_return(http)
+      http.should_receive(:post)
+      subject.upload! {}
+      done
+    end
+
     context "when uploading successfully" do
       let (:uploaded_contents) { "" }
 

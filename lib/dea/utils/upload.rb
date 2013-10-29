@@ -1,6 +1,8 @@
 require "dea/utils/eventmachine_multipart_hack"
 
 class Upload
+  INACTIVITY_TIMEOUT = 300.freeze
+
   attr_reader :logger
 
   class UploadError < StandardError
@@ -18,7 +20,7 @@ class Upload
   def upload!(&upload_callback)
     logger.info("em-upload.begin", destination: @destination)
 
-    http = EM::HttpRequest.new(@destination).post(
+    http = EM::HttpRequest.new(@destination, inactivity_timeout: INACTIVITY_TIMEOUT).post(
       head: {
         EM::HttpClient::MULTIPART_HACK => {
           :name => "upload[droplet]",
