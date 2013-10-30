@@ -44,7 +44,7 @@ module Dea
     end
 
     def system_buildpack_paths
-      Pathname.new(@system_buildpacks_dir).children.map(&:to_s)
+      Pathname.new(@system_buildpacks_dir).children.sort.map(&:to_s)
     end
   end
 end
