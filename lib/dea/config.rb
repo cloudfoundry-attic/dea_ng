@@ -46,6 +46,8 @@ module Dea
 
           optional("evacuation_delay_secs") => Integer,
 
+          optional("maximum_health_check_timeout") => Integer,
+
           optional("status") => {
             optional("user")     => String,
             optional("port")     => Integer,
