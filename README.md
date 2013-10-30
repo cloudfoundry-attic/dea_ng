@@ -76,7 +76,7 @@ bundle install
 vagrant --version
 
 # create your test VM
-rake test_vm
+bundle exec rake test_vm
 ```
 
 Creating the test VM is likely to take a while.
