@@ -95,6 +95,7 @@ describe Dea::Responders::DeaLocator do
   end
 
   describe "#advertise" do
+    let(:available_disk) { 12345 }
     let(:available_memory) { 45678 }
     before do
       resource_manager.stub(:app_id_to_count => {
@@ -102,6 +103,7 @@ describe Dea::Responders::DeaLocator do
           "app_id_2" => 3
       })
       resource_manager.stub(:remaining_memory => available_memory)
+      resource_manager.stub(:remaining_disk => available_disk)
     end
 
     context "when config specifies stacks" do
@@ -112,11 +114,23 @@ describe Dea::Responders::DeaLocator do
             "id" => dea_id,
             "stacks" => ["stack-1", "stack-2"],
             "available_memory" => available_memory,
+            "available_disk" => available_disk,
             "app_id_to_count" => {
                 "app_id_1" => 1,
                 "app_id_2" => 3
             }
         ))
+        subject.advertise
+      end
+
+      RSpec::Matchers.define :json_containing_entry do |key, value|
+        match do |actual|
+          JSON.parse(actual).fetch(key) == value
+        end
+      end
+
+      it "publishes advertise message with available_disk information" do
+        nats_mock.should_receive(:publish).with("dea.advertise", json_containing_entry("available_disk", available_disk))
         subject.advertise
       end
     end

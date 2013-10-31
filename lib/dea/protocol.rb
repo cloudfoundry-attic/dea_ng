@@ -76,6 +76,7 @@ module Dea::Protocol::V1
       { "id" => message[:id],
         "stacks" => message[:stacks],
         "available_memory" => message[:available_memory],
+        "available_disk" => message[:available_disk],
         "app_id_to_count" => message[:app_id_to_count],
       }
     end
