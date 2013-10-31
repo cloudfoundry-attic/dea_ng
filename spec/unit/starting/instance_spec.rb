@@ -433,8 +433,16 @@ describe Dea::Instance do
         Dea::HealthCheck::PortOpen.stub(:new).and_yield(deferrable)
       end
 
-      it "sets a timeout of 60 seconds" do
+      it "defaults to 60 seconds timeout" do
         deferrable.should_receive(:timeout).with(60)
+        execute_health_check do
+          deferrable.succeed
+        end
+      end
+
+      it "has a configurable timeout" do
+        bootstrap.config["maximum_health_check_timeout"] = 100
+        deferrable.should_receive(:timeout).with(100)
         execute_health_check do
           deferrable.succeed
         end
