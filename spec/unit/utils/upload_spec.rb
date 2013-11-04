@@ -14,12 +14,34 @@ describe Upload do
   subject { Upload.new(file_to_upload.path, to_uri) }
 
   describe "#upload!" do
+    let(:request) { double(:request, method: 'delete').as_null_object }
+    let(:http) { double(:http, req: request).as_null_object }
+    let(:uploaded_contents) { "" }
+    let(:status) { "running" }
+    let(:job_url) { "http://127.0.0.1:12345/v2/jobs/123" }
+    let(:job_string) { JSON.dump(job_json) }
+
+    let(:job_json) do
+      {
+          metadata: {guid: 123, created_at: Time.now.to_s, url: job_url},
+          entity: {guid: 123, status: status}
+      }
+    end
+
+    def create_response(connection, message, code = 200)
+      connection.send_data("HTTP/1.1 #{code}\r\n")
+      connection.send_data("Content-Length: #{message.length}\r\n")
+      connection.send_data("\r\n")
+      connection.send_data(message)
+      connection.send_data("\r\n")
+    end
+
     around do |example|
       em { example.call }
     end
 
     it "requests an async upload of the droplet" do
-      stub_request(:post, "http://127.0.0.1:12345/").with(query: {async: "true"})
+      stub = stub_request(:post, "http://127.0.0.1:12345/").with(query: {async: "true"})
       subject.upload! {}
       done
     end
@@ -37,13 +59,11 @@ describe Upload do
       done
     end
 
-    context "when uploading successfully" do
-      let (:uploaded_contents) { "" }
-
+    context "when sync and successfully" do
       before do
         start_http_server(12345) do |connection, data|
           uploaded_contents << data
-          connection.send_data("HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n")
+          create_response(connection, "")
         end
       end
 
@@ -54,15 +74,95 @@ describe Upload do
           done
         end
       end
+    end
 
-      context "when the callback has an error" do
-        it "should catch the exception when the errback is called" do
-          expect {
-            subject.upload! do |error|
-              done
-              raise "the worst"
+    context "when async" do
+      context "and successfully" do
+        let(:finished_json_string) { JSON.dump(job_json.merge(entity: {guid: 123, status: "finished"})) }
+
+        before do
+          @request_timestamps ||= []
+          counter = 0
+          start_http_server(12345) do |connection, data|
+            @request_timestamps << Time.now
+            create_response(connection, counter < 2 ? job_string : finished_json_string)
+            counter += 1
+          end
+        end
+
+        it "should poll the cloud controller until done" do
+          subject.upload! do |error|
+            expect(error).to be_nil
+            done
+          end
+        end
+
+        it "should poll around every second" do
+          subject.upload! do
+            expect(@request_timestamps[-1] - @request_timestamps[-2]).to be >= 1.0
+            done
+          end
+        end
+      end
+
+      context "and unsuccefully" do
+        context "and the polling response from the cc is a 5xx" do
+          before do
+            counter = 0
+            start_http_server(12345) do |connection, data|
+              create_response(connection, job_string, counter > 1 ? 500 : 200)
+              counter += 1
             end
-          }.to_not raise_error
+          end
+
+          it "should poll the cloud controller until errback-ed and returns failure information" do
+            subject.upload! do |error|
+              expect(error.message).to include "Error uploading: #{job_url} (Polling status:"
+              done
+            end
+          end
+
+        end
+
+        context "and the polling response from the cc is not a 200" do
+          before do
+            counter = 0
+            start_http_server(12345) do |connection, data|
+              if counter < 2
+                create_response(connection, job_string)
+              else
+                create_response(connection, "Client Error", 400)
+              end
+              counter += 1
+            end
+          end
+
+          it "should poll the cloud controller until failed and returns failure information" do
+            subject.upload! do |error|
+              expect(error.message).not_to be_nil
+              expect(error.message).to eq "Error uploading: #{job_url} (Polling status: 400 - Client Error)"
+              done
+            end
+          end
+        end
+
+        context "and the polling returns a failed upload" do
+          let(:error_json_string) { JSON.dump(job_json.merge(entity: {guid: 123, status: "failed"})) }
+
+          before do
+            counter = 0
+            start_http_server(12345) do |connection, data|
+              create_response(connection, counter < 2 ? job_string : error_json_string)
+              counter += 1
+            end
+          end
+
+          it "should poll the cloud controller until failed and returns failure information" do
+            subject.upload! do |error|
+              expect(error.message).to include "Error uploading: #{job_url} (Polling status:"
+              done
+            end
+          end
         end
       end
     end
@@ -70,20 +170,8 @@ describe Upload do
     context "when there is no server running" do
       it "calls the block with the exception" do
         subject.upload! do |error|
-          expect(error).to be_a(Upload::UploadError)
-          expect(error.message).to eq "Error uploading: http://127.0.0.1:12345/ (Response status: unknown)"
-          done
-        end
-      end
-
-      context "when the callback has an exception" do
-        it "copes if the errback fails" do
-          expect {
-            subject.upload! do |err|
-              raise "Some Terrible Error"
-            end
-          }.to_not raise_error
-
+          expect(error).to be_a(UploadError)
+          expect(error.message).to include "Error uploading: http://127.0.0.1:12345/ (Upload status:"
           done
         end
       end
@@ -92,31 +180,15 @@ describe Upload do
     context "when you get a 500" do
       before do
         start_http_server(12345) do |connection, data|
-          body = ""
-          connection.send_data("HTTP/1.1 500\r\n")
-          connection.send_data("Content-Length: #{body.length}\r\n")
-          connection.send_data("\r\n")
-          connection.send_data(body)
-          connection.send_data("\r\n")
+          create_response(connection, "", 500)
         end
       end
 
       it "calls the block with the exception" do
         subject.upload! do |error|
-          error.should be_a(Upload::UploadError)
-          error.message.should match %r{Error uploading: #{to_uri} \(HTTP status: 500}
+          expect(error).to be_a(UploadError)
+          expect(error.message).to match %r{Error uploading: #{to_uri} \(Upload status: 500 - }
           done
-        end
-      end
-
-      context "when the callback has an error" do
-        it "should catch the exception when the errback is called" do
-          expect {
-            subject.upload! do |error|
-              done
-              raise "the worst"
-            end
-          }.to_not raise_error
         end
       end
     end
