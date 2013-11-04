@@ -1358,11 +1358,10 @@ describe Dea::Instance do
     it "doesn't pollute the temp directory" do
       tmpdir = Dir.tmpdir
 
-      expect {
-        instance.staged_info
-      }.to_not change {
-        Dir.glob(File.join(tmpdir, "**", "*"), File::FNM_DOTMATCH).size
-      }
+      old_size = Dir.glob(File.join(tmpdir, "**", "*"), File::FNM_DOTMATCH).size
+      instance.staged_info
+
+      expect(Dir.glob(File.join(tmpdir, "**", "*"), File::FNM_DOTMATCH).size).to be <= old_size
     end
   end
 
