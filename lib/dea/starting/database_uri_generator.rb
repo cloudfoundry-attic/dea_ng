@@ -1,7 +1,7 @@
 module Dea
   class DatabaseUriGenerator
     VALID_DB_TYPES = %w[mysql mysql2 postgres postgresql].freeze
-    DATABASE_TO_ADAPTER_MAPPING = {
+    RAILS_STYLE_DATABASE_TO_ADAPTER_MAPPING = {
       'mysql' => 'mysql2',
       'postgresql' => 'postgres'
     }.freeze
@@ -11,23 +11,16 @@ module Dea
     end
 
     def database_uri
-      convert_scheme_to_rails_adapter(bound_database_uri).to_s if bound_database_uri
+      convert_scheme_to_rails_style_adapter(bound_database_uri).to_s if bound_database_uri
     end
 
     private
 
     def bound_database_uri
-      case bound_relational_valid_databases.size
-        when 0
-          nil
-        when 1
-          bound_relational_valid_databases.first[:uri]
-        else
-          binding = bound_relational_valid_databases.detect { |binding| binding[:name] && binding[:name] =~ /^.*production$|^.*prod$/ }
-          unless binding
-            raise "Unable to determine primary database from multiple. Please bind only one database service to Rails applications."
-          end
-          binding[:uri]
+      if bound_relational_valid_databases.any?
+        bound_relational_valid_databases.first[:uri]
+      else
+        nil
       end
     end
 
@@ -45,8 +38,8 @@ module Dea
       end
     end
 
-    def convert_scheme_to_rails_adapter(uri)
-      uri.scheme = DATABASE_TO_ADAPTER_MAPPING[uri.scheme] if DATABASE_TO_ADAPTER_MAPPING[uri.scheme]
+    def convert_scheme_to_rails_style_adapter(uri)
+      uri.scheme = RAILS_STYLE_DATABASE_TO_ADAPTER_MAPPING[uri.scheme] if RAILS_STYLE_DATABASE_TO_ADAPTER_MAPPING[uri.scheme]
       uri
     end
   end

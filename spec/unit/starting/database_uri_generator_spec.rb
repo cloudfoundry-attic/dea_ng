@@ -33,8 +33,8 @@ describe Dea::DatabaseUriGenerator do
       context "and there are more than one production relational database" do
         let(:services_env) do
           [
-            {"name" => "production", "credentials" => {"uri" => "postgres://username:password@host/db1"}},
-            {"name" => "prod", "credentials" => {"uri" => "postgres://username:password@host/db2"}}
+            {"name" => "first_db", "credentials" => {"uri" => "postgres://username:password@host/db1"}},
+            {"name" => "second_db", "credentials" => {"uri" => "postgres://username:password@host/db2"}}
           ]
         end
 
