@@ -873,7 +873,15 @@ module Dea
     end
 
     def max_healthcheck_timeout
-      config["maximum_health_check_timeout"] || 60
+      app_specific_healthcheck_timeout || global_default_healthcheck_timeout || 60
+    end
+
+    def app_specific_healthcheck_timeout
+      attributes["maximum_health_check_timeout"]
+    end
+
+    def global_default_healthcheck_timeout
+      config["maximum_health_check_timeout"]
     end
 
     def logger
