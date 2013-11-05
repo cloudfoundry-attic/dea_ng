@@ -8,6 +8,7 @@ logging:
 
 loggregator:
   router: 127.0.0.1:3456
+  shared_secret: loggregatorsharedsecret
 
 resources:
   memory_mb: 2048
