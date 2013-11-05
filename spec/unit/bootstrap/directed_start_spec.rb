@@ -22,7 +22,7 @@ describe Dea do
 
     attr_reader :instance_mock
 
-    let(:resource_manager) { double(:resource_manager, :could_reserve? => true, :remaining_memory => nil, :app_id_to_count => {}) }
+    let(:resource_manager) { double(:resource_manager, :could_reserve? => true, :remaining_memory => nil, :remaining_disk => nil, :app_id_to_count => {}) }
 
     before do
       bootstrap.stub(:resource_manager).and_return(resource_manager)
