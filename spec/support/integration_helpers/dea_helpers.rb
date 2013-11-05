@@ -183,8 +183,16 @@ module DeaHelpers
       end
     end
 
+    def remove_instance_file
+      FileUtils.rm_f(instance_file_path)
+    end
+
     def instance_file
-      File.read File.join(config["base_dir"], "db", "instances.json")
+      File.read instance_file_path()
+    end
+
+    def instance_file_path
+      File.join(config["base_dir"], "db", "instances.json")
     end
 
     def evacuate_dea
