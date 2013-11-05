@@ -11,7 +11,11 @@ describe Upload do
 
   let(:to_uri) { URI("http://127.0.0.1:12345/") }
 
-  subject { Upload.new(file_to_upload.path, to_uri) }
+  let(:polling_timeout_in_second) { 3 }
+
+  let(:logger) { nil }
+
+  subject { Upload.new(file_to_upload.path, to_uri, logger, polling_timeout_in_second) }
 
   describe "#upload!" do
     let(:request) { double(:request, method: 'delete').as_null_object }
@@ -80,7 +84,7 @@ describe Upload do
       context "and the polling returns a 2xx" do
         let(:finished_json_string) { JSON.dump(job_json.merge(entity: {guid: 123, status: "finished"})) }
 
-        context "and the polling is succesful" do
+        context "and the polling is successful" do
           before do
             @request_timestamps ||= []
             counter = 0
@@ -101,6 +105,35 @@ describe Upload do
           it "should poll around every second" do
             subject.upload! do
               expect(@request_timestamps[-1] - @request_timestamps[-2]).to be >= 1.0
+              done
+            end
+          end
+        end
+
+        context "and the polling never finishes" do
+          let(:processing_json_string) { JSON.dump(job_json.merge(entity: {guid: 123, status: "processing"})) }
+
+          before do
+            @request_timestamps ||= []
+            counter = 0
+            start_http_server(12345) do |connection, data|
+              @request_timestamps << Time.now
+              create_response(connection, counter < 2 ? job_string : processing_json_string)
+              counter += 1
+            end
+          end
+
+          it "should poll for a configured period of time before giving up" do
+            subject.upload! do |error|
+              expect(@request_timestamps.size).to be <= 4
+              #expect(error.message).to include "Error uploading: #{job_url} Job took too long"
+              done
+            end
+          end
+
+          it "should return an error" do
+            subject.upload! do |error|
+              expect(error.message).to include "Error uploading: #{job_url} (Job took too long"
               done
             end
           end

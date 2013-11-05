@@ -2,13 +2,15 @@ require "dea/utils/sync_upload"
 
 class Upload
   POLLING_INTERVAL = 1.freeze
+  POLLING_TIMEOUT_IN_SECOND = 300.freeze
 
   attr_reader :logger
 
-  def initialize(source, destination, custom_logger=nil)
+  def initialize(source, destination, custom_logger=nil, polling_timeout_in_second=POLLING_TIMEOUT_IN_SECOND)
     @source = source
     @destination = destination
     @logger = custom_logger || self.class.logger
+    @polling_timeout_in_second = polling_timeout_in_second
   end
 
   def upload!(&upload_callback)
@@ -23,6 +25,7 @@ class Upload
           begin
             response = JSON.parse(http.response)
             polling_destination = response.fetch("metadata", {}).fetch("url", nil)
+            @remaining_polling_time = @polling_timeout_in_second
             poll(polling_destination, &upload_callback) if polling_destination
           rescue JSON::ParserError
             upload_callback.call UploadError.new("invalid json", http, @destination)
@@ -58,7 +61,12 @@ class Upload
         when "failed"
           upload_callback.call UploadError.new("Polling", http, polling_destination)
         else
-          EM.add_timer(POLLING_INTERVAL) { poll(polling_destination, &upload_callback) }
+          @remaining_polling_time -= POLLING_INTERVAL
+          if @remaining_polling_time <= 0
+            upload_callback.call UploadError.new("Job took too long", http, polling_destination)
+          else
+            EM.add_timer(POLLING_INTERVAL) { poll(polling_destination, &upload_callback) }
+          end
       end
     else
       handle_error(http, polling_destination, upload_callback)
