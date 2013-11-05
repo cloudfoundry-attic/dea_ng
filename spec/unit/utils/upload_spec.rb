@@ -77,70 +77,30 @@ describe Upload do
     end
 
     context "when async" do
-      context "and successfully" do
+      context "and the polling returns a 2xx" do
         let(:finished_json_string) { JSON.dump(job_json.merge(entity: {guid: 123, status: "finished"})) }
 
-        before do
-          @request_timestamps ||= []
-          counter = 0
-          start_http_server(12345) do |connection, data|
-            @request_timestamps << Time.now
-            create_response(connection, counter < 2 ? job_string : finished_json_string)
-            counter += 1
-          end
-        end
-
-        it "should poll the cloud controller until done" do
-          subject.upload! do |error|
-            expect(error).to be_nil
-            done
-          end
-        end
-
-        it "should poll around every second" do
-          subject.upload! do
-            expect(@request_timestamps[-1] - @request_timestamps[-2]).to be >= 1.0
-            done
-          end
-        end
-      end
-
-      context "and unsuccefully" do
-        context "and the polling response from the cc is a 5xx" do
+        context "and the polling is succesful" do
           before do
+            @request_timestamps ||= []
             counter = 0
             start_http_server(12345) do |connection, data|
-              create_response(connection, job_string, counter > 1 ? 500 : 200)
+              @request_timestamps << Time.now
+              create_response(connection, counter < 2 ? job_string : finished_json_string)
               counter += 1
             end
           end
 
-          it "should poll the cloud controller until errback-ed and returns failure information" do
+          it "should poll the cloud controller until done" do
             subject.upload! do |error|
-              expect(error.message).to include "Error uploading: #{job_url} (Polling status:"
+              expect(error).to be_nil
               done
             end
           end
 
-        end
-
-        context "and the polling response from the cc is not a 200" do
-          before do
-            counter = 0
-            start_http_server(12345) do |connection, data|
-              if counter < 2
-                create_response(connection, job_string)
-              else
-                create_response(connection, "Client Error", 400)
-              end
-              counter += 1
-            end
-          end
-
-          it "should poll the cloud controller until failed and returns failure information" do
-            subject.upload! do |error|
-              expect(error.message).not_to be_nil
-              expect(error.message).to eq "Error uploading: #{job_url} (Polling status: 400 - Client Error)"
+          it "should poll around every second" do
+            subject.upload! do
+              expect(@request_timestamps[-1] - @request_timestamps[-2]).to be >= 1.0
               done
             end
           end
@@ -160,6 +120,86 @@ describe Upload do
           it "should poll the cloud controller until failed and returns failure information" do
             subject.upload! do |error|
               expect(error.message).to include "Error uploading: #{job_url} (Polling status:"
+              done
+            end
+          end
+        end
+
+        context "and the upload returns invalid json" do
+          before do
+            start_http_server(12345) do |connection, _|
+              create_response(connection, "invalid_json_with_url")
+            end
+          end
+
+          it "returns a error" do
+            subject.upload! do |error|
+              expect(error).to be_a(UploadError)
+              expect(error.message).to match /invalid json/i
+              done
+            end
+          end
+        end
+
+        context "and the polling returns invalid json" do
+          before do
+            counter = 0
+            start_http_server(12345) do |connection, _|
+              if counter == 0
+                create_response(connection, job_string)
+              else
+                create_response(connection, "invalid_json_after_polling")
+              end
+              counter += 1
+            end
+          end
+
+          it "returns a error" do
+            subject.upload! do |error|
+              expect(error).to be_a(UploadError)
+              expect(error.message).to match /polling invalid json/i
+              done
+            end
+          end
+        end
+      end
+
+      context "and the polling does not return a 2xx" do
+        context "and the polling response from the cc is a 5xx" do
+          before do
+            counter = 0
+            start_http_server(12345) do |connection, data|
+              create_response(connection, job_string, counter > 1 ? 500 : 200)
+              counter += 1
+            end
+          end
+
+          it "should poll the cloud controller until errback-ed and returns failure information" do
+            subject.upload! do |error|
+              expect(error.message).to include "Error uploading: #{job_url} (Polling status:"
+              done
+            end
+          end
+
+        end
+
+        context "and the polling response from the cc is a 4xx" do
+          before do
+            counter = 0
+            start_http_server(12345) do |connection, data|
+              if counter < 2
+                create_response(connection, job_string)
+              else
+                create_response(connection, "Client Error", 400)
+              end
+              counter += 1
+            end
+          end
+
+          it "should poll the cloud controller until failed and returns failure information" do
+            subject.upload! do |error|
+              expect(error.message).not_to be_nil
+              expect(error.message).to eq "Error uploading: #{job_url} (Polling status: 400 - Client Error)"
               done
             end
           end

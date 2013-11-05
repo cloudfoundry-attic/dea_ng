@@ -20,8 +20,13 @@ class Upload
       else
         logger.info("em-upload.completion.success", destination: @destination)
         if http.response.include?("url")
-          polling_destination = JSON.parse(http.response)["metadata"]["url"]
-          poll(polling_destination, &upload_callback)
+          begin
+            response = JSON.parse(http.response)
+            polling_destination = response.fetch("metadata", {}).fetch("url", nil)
+            poll(polling_destination, &upload_callback) if polling_destination
+          rescue JSON::ParserError
+            upload_callback.call UploadError.new("invalid json", http, @destination)
+          end
         else
           upload_callback.call(nil)
         end
@@ -47,7 +52,7 @@ class Upload
     if http.response_header.status < 300
       response = JSON.parse(http.response)
 
-      case response["entity"]["status"]
+      case response.fetch("entity", {}).fetch("status", nil)
         when "finished"
           upload_callback.call nil
         when "failed"
@@ -58,6 +63,8 @@ class Upload
     else
       handle_error(http, polling_destination, upload_callback)
     end
+  rescue JSON::ParserError
+    upload_callback.call UploadError.new("polling invalid json", http, @destination)
   end
 
   def handle_error(http, polling_destination, upload_callback)
