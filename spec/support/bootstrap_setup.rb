@@ -45,7 +45,7 @@ shared_context "bootstrap_setup" do
     bootstrap.stub(:start_finish)
 
     bootstrap.stub(:setup_directory_server_v2)
-    bootstrap.stub(:directory_server_v2 => mock(:directory_server, :start => nil))
+    bootstrap.stub(:directory_server_v2 => double(:directory_server, :start => nil))
     bootstrap
   end
 

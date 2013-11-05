@@ -6,7 +6,7 @@ require "dea/nats"
 describe Dea::Nats do
   stub_nats
 
-  let(:bootstrap) { mock("bootstrap") }
+  let(:bootstrap) { double("bootstrap") }
   let(:config) { {"nats_uri" => "nats://something:4222"} }
   subject(:nats) { Dea::Nats.new(bootstrap, config) }
 

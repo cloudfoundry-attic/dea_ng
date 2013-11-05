@@ -13,7 +13,7 @@ describe Dea::DirectoryServerV2::StagingTasks do
   include Rack::Test::Methods
   include_context "tmpdir"
 
-  let(:bootstrap) { mock(:bootstrap, :config => {}) }
+  let(:bootstrap) { double(:bootstrap, :config => {}) }
   let(:directory_server) { Dea::DirectoryServerV2.new("example.org", 1234, {"directory_server" => {"protocol" => "http"}}) }
 
   let(:staging_task_registry) { Dea::StagingTaskRegistry.new }

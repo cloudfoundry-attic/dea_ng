@@ -26,7 +26,7 @@ describe Dea::BuildpackManager do
 
   describe "#download" do
     it "calls AdminBuildpackDownloader" do
-      downloader_mock = mock(:downloader)
+      downloader_mock = double(:downloader)
       downloader_mock.should_receive(:download)
       AdminBuildpackDownloader.should_receive(:new).with(admin_buildpacks, admin_buildpacks_dir) { downloader_mock }
 
@@ -83,9 +83,9 @@ describe Dea::BuildpackManager do
     before do
       create_populated_directory(system_buildpack)
     end
-    
+
     context "when there are multiple system buildpacks" do
-      let(:additional_system_buildpacks) { [File.join(system_buildpacks_dir, "abc"),File.join(system_buildpacks_dir, "def")]} 
+      let(:additional_system_buildpacks) { [File.join(system_buildpacks_dir, "abc"),File.join(system_buildpacks_dir, "def")]}
 
       before {additional_system_buildpacks.each {|path| create_populated_directory(path)}}
 

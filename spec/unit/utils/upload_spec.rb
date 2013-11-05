@@ -18,14 +18,22 @@ describe Upload do
       em { example.call }
     end
 
-    it "sets the timeout to 300 seconds (must be lowered latter when we get async upload to the CC)" do
-      request = double('request', method: 'delete').as_null_object
-      http = double('http', req: request).as_null_object
-      EM::HttpRequest.should_receive(:new).
-          with(anything, hash_including(inactivity_timeout: 300)).
-          and_return(http)
-      http.should_receive(:post)
+    it "requests an async upload of the droplet" do
+      stub_request(:post, "http://127.0.0.1:12345/").with(query: {async: "true"})
       subject.upload! {}
+      done
+    end
+
+    it "creates the correct multipart request (with a high inactivity timeout which should be removed when everything is aysnc)" do
+      expect(EM::HttpRequest).to receive(:new).with(to_uri, inactivity_timeout: 300).and_return(http)
+      expect(http).to receive(:post).with(
+                          head: {'x-cf-multipart' => {name: "upload[droplet]", filename: anything}},
+                          file: file_to_upload.path,
+                          query: {async: "true"}
+                      )
+
+      subject.upload! {}
+
       done
     end
 

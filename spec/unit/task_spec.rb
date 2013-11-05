@@ -31,13 +31,9 @@ describe Dea::Task do
   end
 
   describe "#promise_stop -" do
-    let(:response) do
-      mock("Warden::Protocol::StopResponse mock")
-    end
+    let(:response) { double("Warden::Protocol::StopResponse mock") }
 
-    before do
-      task.container.stub(:handle) { "handle" }
-    end
+    before { task.container.stub(:handle) { "handle" } }
 
     it "executes a StopRequest" do
       task.container.should_receive(:call) do |connection, request|

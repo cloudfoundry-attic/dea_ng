@@ -10,7 +10,7 @@ require "dea/starting/instance_registry"
 describe Dea::Directory do
   include Rack::Test::Methods
 
-  let(:bootstrap) { mock(:bootstrap, :config => {}) }
+  let(:bootstrap) { double(:bootstrap, :config => {}) }
   let(:instance) { Dea::Instance.new(bootstrap, {}) }
   let(:container) { double(:fake_container, :path => @tmpdir) }
 

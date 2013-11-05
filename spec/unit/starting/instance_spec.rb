@@ -4,7 +4,7 @@ require "dea/starting/instance"
 describe Dea::Instance do
   include_context "tmpdir"
 
-  let(:connection) { mock("connection", :promise_call => delivering_promise) }
+  let(:connection) { double("connection", :promise_call => delivering_promise) }
   let(:bootstrap) do
     double("bootstrap", :config => {})
   end
@@ -321,7 +321,7 @@ describe Dea::Instance do
 
   describe "#promise_health_check unit test" do
     #let(:info_response) do
-    #  info_response = mock("InfoResponse")
+    #  info_response = double("InfoResponse")
     #  info_response.stub(:container_path).and_return("fake/container/path")
     #  info_response.stub(:host_ip).and_return("fancy ip")
     #  info_response
@@ -349,7 +349,7 @@ describe Dea::Instance do
 
   describe "#promise_health_check" do
     let(:info_response) do
-      info_response = mock("InfoResponse")
+      info_response = double("InfoResponse")
       info_response.stub(:container_path).and_return("/")
       info_response.stub(:host_ip).and_return("127.0.0.1")
       info_response
@@ -496,14 +496,14 @@ describe Dea::Instance do
 
   describe "start transition" do
     let(:droplet) do
-      droplet = mock("droplet")
+      droplet = double("droplet")
       droplet.stub(:droplet_dirname).and_return(File.join(tmpdir, "droplet", "some_sha1"))
       droplet.stub(:droplet_basename).and_return("droplet.tgz")
       droplet.stub(:droplet_path).and_return(File.join(droplet.droplet_dirname, droplet.droplet_basename))
       droplet
     end
 
-    let(:warden_connection) { mock("warden_connection") }
+    let(:warden_connection) { double("warden_connection") }
 
     before do
       bootstrap.stub(:config).and_return({ "bind_mounts" => [] })
@@ -688,7 +688,7 @@ describe Dea::Instance do
     shared_examples_for "start script hook" do |hook|
       describe "#{hook} hook" do
         let(:runtime) do
-          runtime = mock(:runtime)
+          runtime = double(:runtime)
           runtime.stub(:environment).and_return({})
           runtime
         end
@@ -729,7 +729,7 @@ describe Dea::Instance do
     it_behaves_like 'start script hook', 'after_start'
 
     describe "#promise_start" do
-      let(:response) { mock("spawn_response", job_id: 37) }
+      let(:response) { double("spawn_response", job_id: 37) }
       let(:env) do
         double("environment 1",
                exported_environment_variables: 'system="sytem_value";\nexport user="user_value";\n',
@@ -910,7 +910,7 @@ describe Dea::Instance do
   end
 
   describe "stop transition" do
-    let(:connection) { mock("connection", :promise_call => delivering_promise) }
+    let(:connection) { double("connection", :promise_call => delivering_promise) }
 
     let(:env) { double("environment").as_null_object }
 
@@ -966,7 +966,7 @@ describe Dea::Instance do
     shared_examples_for "stop script hook" do |hook|
       describe "script hook" do
         let(:runtime) do
-          runtime = mock(:runtime)
+          runtime = double(:runtime)
           runtime.stub(:environment).and_return({})
           runtime
         end
@@ -1008,13 +1008,13 @@ describe Dea::Instance do
     let(:info_events) { [] }
 
     let(:info_response) do
-      mock("Warden::Protocol::InfoResponse").tap do |info|
+      double("Warden::Protocol::InfoResponse").tap do |info|
         info.stub(:events).and_return(info_events)
       end
     end
 
     let(:response) do
-      response = mock("Warden::Protocol::LinkResponse")
+      response = double("Warden::Protocol::LinkResponse")
       response.stub(:exit_status).and_return(exit_status)
       response.stub(:info).and_return(info_response)
       response
@@ -1066,13 +1066,13 @@ describe Dea::Instance do
     let(:info_events) { nil }
 
     let(:info_response) do
-      mock("Warden::Protocol::InfoResponse").tap do |info|
+      double("Warden::Protocol::InfoResponse").tap do |info|
         info.stub(:events).and_return(info_events)
       end
     end
 
     let(:response) do
-      response = mock("Warden::Protocol::LinkResponse")
+      response = double("Warden::Protocol::LinkResponse")
       response.stub(:exit_status).and_return(exit_status)
       response.stub(:info).and_return(info_response)
       response
@@ -1182,7 +1182,7 @@ describe Dea::Instance do
       Dea::Instance.new(bootstrap, valid_instance_attributes)
     end
 
-    let(:connection) { mock("connection", :promise_call => delivering_promise) }
+    let(:connection) { double("connection", :promise_call => delivering_promise) }
 
     before do
       instance.container.stub(:get_connection).and_return(connection)

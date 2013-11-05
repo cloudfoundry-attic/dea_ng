@@ -10,13 +10,13 @@ describe Dea::DirectoryServerV2::InstancePaths do
   include_context "tmpdir"
 
   let(:instance_registry) do
-    mock("instance_registry").tap do |r|
+    double("instance_registry").tap do |r|
       r.stub(:lookup_instance).with(instance.instance_id).and_return(instance)
     end
   end
 
   let(:instance) do
-    mock("instance_mock").tap do |i|
+    double("instance_mock").tap do |i|
       i.stub(:instance_id => "test_instance", :instance_path => tmpdir)
     end
   end

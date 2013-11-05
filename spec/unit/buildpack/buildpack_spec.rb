@@ -18,7 +18,7 @@ describe Buildpacks::Buildpack, :type => :buildpack do
   describe "#stage_application" do
     let(:buildpack_name) { "Not Rubby" }
 
-    before { build_pack.stub(:build_pack) { mock(:build_pack, name: buildpack_name) } }
+    before { build_pack.stub(:build_pack) { double(:build_pack, name: buildpack_name) } }
 
     it "runs from the correct folder" do
       Dir.should_receive(:chdir).with(File.expand_path "fakedestdir").and_yield

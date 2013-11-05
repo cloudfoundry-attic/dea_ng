@@ -5,7 +5,7 @@ describe "Dea::Bootstrap#create_instance" do
   include_context "bootstrap_setup"
 
   let(:router_client) do
-    client = mock('router_client')
+    client = double('router_client')
     client.stub(:register_instance)
     client.stub(:unregister_instance)
     client

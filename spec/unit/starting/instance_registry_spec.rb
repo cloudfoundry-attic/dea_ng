@@ -6,7 +6,7 @@ require "dea/starting/instance"
 require "dea/starting/instance_registry"
 
 describe Dea::InstanceRegistry do
-  let(:bootstrap) { mock("bootstrap", :config => {}) }
+  let(:bootstrap) { double("bootstrap", :config => {}) }
   let(:instance_registry) do
     instance_registry = nil
     em do

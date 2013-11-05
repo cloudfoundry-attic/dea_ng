@@ -11,7 +11,7 @@ describe Dea::Responders::DeaLocator do
   stub_nats
 
   let(:nats) { Dea::Nats.new(bootstrap, config) }
-  let(:bootstrap) { mock(:bootstrap, :config => config) }
+  let(:bootstrap) { double(:bootstrap, :config => config) }
   let(:dea_id) { "unique-dea-id" }
   let(:instance_registry) { instance_registry = Dea::InstanceRegistry.new }
   let(:staging_task_registry) { Dea::StagingTaskRegistry.new }

@@ -9,14 +9,14 @@ describe EventMachine::HttpClient do
   describe "#send_request" do
     let(:body) { "BODY" }
     let(:conn) do
-      conn = mock("connection")
+      conn = double("connection")
       conn.stub(:send_data)
       conn.stub(:stream_file_data)
       conn.stub_chain(:connopts, :proxy) { "CONN_OPTS" }
       conn
     end
     let(:options) do
-      options = mock("options")
+      options = double("options")
       options.stub(:file) { tempfile.path }
       options.stub(:method) { "POST" }
       options.stub(:uri) { "POST" }

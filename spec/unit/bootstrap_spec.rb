@@ -34,7 +34,7 @@ describe Dea::Bootstrap do
   end
 
   let(:nats_client_mock) do
-    nats_client_mock = mock("nats_client").as_null_object
+    nats_client_mock = double("nats_client").as_null_object
     nats_client_mock.stub(:flush) { |&blk| blk.call }
     nats_client_mock
   end
@@ -73,7 +73,7 @@ describe Dea::Bootstrap do
     it "logs the creation of the DEA" do
       @config = { "logging" => { "level" => "debug" } }
 
-      logger = mock("logger")
+      logger = double("logger")
       bootstrap.should_receive(:logger).and_return(logger)
       logger.should_receive(:info).with("Dea started")
     end
@@ -277,7 +277,7 @@ describe Dea::Bootstrap do
     end
 
     it "should stop and flush nats" do
-      nats_mock = mock("nats")
+      nats_mock = double("nats")
       nats_mock.should_receive(:stop)
       nats_mock.should_receive(:client).and_return(nats_client_mock)
 
@@ -376,7 +376,7 @@ describe Dea::Bootstrap do
     let(:droplet_registry) do
       droplet_registry = {}
       ["a", "b", "c", "d", "e", "f"].each do |sha|
-        droplet_registry[sha] = mock("droplet_#{sha}")
+        droplet_registry[sha] = double("droplet_#{sha}")
         droplet_registry[sha].stub(:destroy)
       end
       droplet_registry
@@ -385,7 +385,7 @@ describe Dea::Bootstrap do
     let(:instance_registry) do
       instance_registry = []
       ["a", "b"].each do |sha|
-        instance_registry << mock("instance_#{sha}")
+        instance_registry << double("instance_#{sha}")
         instance_registry.last.stub(:droplet_sha1).and_return(sha)
       end
       instance_registry
@@ -394,7 +394,7 @@ describe Dea::Bootstrap do
     let(:staging_task_registry) do
       staging_task_registry= []
       ["e", "f"].each do |sha|
-        staging_task_registry << mock("staging_task_#{sha}")
+        staging_task_registry << double("staging_task_#{sha}")
         staging_task_registry.last.stub(:droplet_sha1).and_return(sha)
       end
       staging_task_registry
@@ -803,7 +803,7 @@ describe Dea::Bootstrap do
         manager
       end
 
-      let(:logger) { mock(:mock_logger) }
+      let(:logger) { double(:mock_logger) }
 
       it "does not register and logs" do
         Dea::Instance.any_instance.stub(:validate).and_raise(RuntimeError)
@@ -823,7 +823,7 @@ describe Dea::Bootstrap do
       Steno::Sink::Counter.should_receive(:new).once.and_return(log_counter)
 
       VCAP::Component.stub(:uuid)
-      nats_mock = mock("nats")
+      nats_mock = double("nats")
       nats_mock.stub(:client)
       subject.stub(:nats).and_return(nats_mock)
 
@@ -845,7 +845,7 @@ describe Dea::Bootstrap do
       }
     end
 
-    let(:instance) { mock("instance", :start => nil) }
+    let(:instance) { double("instance", :start => nil) }
     let(:production_app) { false }
 
     before do

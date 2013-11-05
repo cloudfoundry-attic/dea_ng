@@ -28,7 +28,7 @@ describe Dea::Env do
 
   let(:instance) do
     attributes = {"instance_id" => VCAP.secure_uuid}
-    mock(:instance, attributes: attributes, instance_container_port: 4567, state_starting_timestamp: Time.now.to_f)
+    double(:instance, attributes: attributes, instance_container_port: 4567, state_starting_timestamp: Time.now.to_f)
   end
 
   let(:starting_message) do
@@ -239,7 +239,7 @@ describe Dea::Env do
     end
 
     let(:staging_task) do
-      staging_task = mock(:staging_task)
+      staging_task = double(:staging_task)
       staging_task.stub(:is_a?).with(Dea::StagingTask) { true }
       staging_task.stub(:staging_config) { {"environment" => {"BUILDPACK_CACHE" => ""}} }
       staging_task.stub(:staging_timeout) { 900 }

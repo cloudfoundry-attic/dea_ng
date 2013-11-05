@@ -38,11 +38,11 @@ describe Dea::StagingTask do
   end
 
   let(:base_dir) { Dir.mktmpdir("base_dir") }
-  let(:bootstrap) { mock(:bootstrap, :config => Dea::Config.new(config)) }
+  let(:bootstrap) { double(:bootstrap, :config => Dea::Config.new(config)) }
   let(:dir_server) { Dea::DirectoryServerV2.new("domain", 1234, config) }
 
   let(:logger) do
-    mock("logger").tap do |l|
+    double("logger").tap do |l|
       %w(debug debug2 info warn log_exception error).each { |m| l.stub(m) }
     end
   end
@@ -82,8 +82,10 @@ describe Dea::StagingTask do
         expect(cmd).to include %Q{export MEMORY_LIMIT="512m";} # the user assiged 512 should overwrite the system 256
         expect(cmd).to include %Q{export VCAP_SERVICES="}
 
-        expect(cmd).to match %r{.*/bin/run .*/plugin_config >> /tmp/staged/logs/staging_task.log 2>&1$}
-      end.and_return(empty_streams)
+        expect(cmd).to match %r{.*/bin/run .*/plugin_config | tee -a}
+
+        empty_streams
+      end
       staging.promise_stage.resolve
     end
 
@@ -104,7 +106,9 @@ describe Dea::StagingTask do
       it "copes with spaces" do
         staging.container.should_receive(:run_script) do |_, cmd|
           expect(cmd).to include(%Q{export PATH="x y z";})
-        end.and_return(empty_streams)
+
+          empty_streams
+        end
         staging.promise_stage.resolve
       end
 
@@ -118,7 +122,9 @@ describe Dea::StagingTask do
       it "copes with blank" do
         staging.container.should_receive(:run_script) do |_, cmd|
           expect(cmd).to include(%Q{export BAR="";})
-        end.and_return(empty_streams)
+
+          empty_streams
+        end
         staging.promise_stage.resolve
       end
 
@@ -151,7 +157,9 @@ describe Dea::StagingTask do
 
           staging.container.should_receive(:run_script) do
             sleep 0.75
-          end.and_return(empty_streams)
+
+            empty_streams
+          end
 
           expect { staging.promise_stage.resolve }.to_not raise_error
         end
@@ -443,7 +451,7 @@ YAML
       end
 
       it "still copies out the task log" do
-        staging.should_receive(:promise_task_log) { mock("promise", :resolve => nil) }
+        staging.should_receive(:promise_task_log) { double("promise", :resolve => nil) }
         staging.start rescue nil
       end
 
@@ -765,7 +773,9 @@ YAML
     it "assembles a shell command" do
       staging.container.should_receive(:run_script) do |connection_name, cmd|
         cmd.should include("unzip -q #{workspace_dir}/app.zip -d /tmp/unstaged")
-      end.and_return(empty_streams)
+
+        empty_streams
+      end
       staging.promise_unpack_app.resolve
     end
 
@@ -797,7 +807,9 @@ YAML
       it "assembles a shell command" do
         staging.container.should_receive(:run_script) do |_, cmd|
           cmd.should include("tar xfz #{workspace_dir}/buildpack_cache.tgz -C /tmp/cache")
-        end.and_return(empty_streams)
+
+          empty_streams
+        end
         staging.promise_unpack_buildpack_cache.resolve
       end
 
@@ -936,7 +948,7 @@ YAML
       promise
     end
 
-    let(:droplet) { mock(:droplet) }
+    let(:droplet) { double(:droplet) }
     let(:droplet_sha) { Digest::SHA1.file(__FILE__).hexdigest }
 
     before do

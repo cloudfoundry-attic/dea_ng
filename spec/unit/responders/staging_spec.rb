@@ -11,10 +11,10 @@ describe Dea::Responders::Staging do
 
   let(:nats) { Dea::Nats.new(bootstrap, config) }
   let(:dea_id) { "unique-dea-id" }
-  let(:bootstrap) { mock(:bootstrap, :config => config, :save_snapshot => nil) }
+  let(:bootstrap) { double(:bootstrap, :config => config, :save_snapshot => nil) }
   let(:staging_task_registry) { Dea::StagingTaskRegistry.new }
   let(:staging_task) do
-    mock(:staging_task,
+    double(:staging_task,
       staging_message: StagingMessage.new({"app_id" => "some_app_id"}),
       task_id: "task-id",
       task_log: "task-log",
@@ -379,7 +379,7 @@ describe Dea::Responders::Staging do
   end
 
   describe "#handle_stop" do
-    let(:message) { mock(:message, :data => {"app_id" => "some_app_id"}) }
+    let(:message) { double(:message, :data => {"app_id" => "some_app_id"}) }
 
     before do
       staging_task_registry.register(staging_task)
