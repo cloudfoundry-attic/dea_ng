@@ -165,7 +165,7 @@ module Dea
     def setup_loggregator
       if @config["loggregator"] && @config["loggregator"]["router"] && @config["loggregator"]["shared_secret"]
         Dea::Loggregator.emitter = LoggregatorEmitter::Emitter.new(@config["loggregator"]["router"], "DEA", @config["index"], @config["loggregator"]["shared_secret"])
-        Dea::Loggregator.stagging_emitter = LoggregatorEmitter::Emitter.new(@config["loggregator"]["router"], "STG", @config["index"], @config["loggregator"]["shared_secret"])
+        Dea::Loggregator.staging_emitter = LoggregatorEmitter::Emitter.new(@config["loggregator"]["router"], "STG", @config["index"], @config["loggregator"]["shared_secret"])
       end
     end
 
