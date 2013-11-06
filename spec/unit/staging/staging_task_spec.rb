@@ -10,7 +10,7 @@ require "dea/staging/staging_task"
 describe Dea::StagingTask do
   before(:all) do
     @emitter = FakeEmitter.new
-    Dea::Loggregator.emitter = @emitter
+    Dea::Loggregator.staging_emitter = @emitter
   end
 
   let(:memory_limit_mb) { 256 }

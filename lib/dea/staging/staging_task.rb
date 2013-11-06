@@ -558,8 +558,8 @@ module Dea
 
     def loggregator_emit_result(result)
       if (result != nil)
-        Dea::Loggregator.emit(staging_message.app_id, result.stdout)
-        Dea::Loggregator.emit_error(staging_message.app_id, result.stderr)
+        Dea::Loggregator.staging_emit(staging_message.app_id, result.stdout)
+        Dea::Loggregator.staging_emit_error(staging_message.app_id, result.stderr)
       end
       result
     end
