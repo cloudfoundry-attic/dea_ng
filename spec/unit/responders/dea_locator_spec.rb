@@ -118,7 +118,8 @@ describe Dea::Responders::DeaLocator do
             "app_id_to_count" => {
                 "app_id_1" => 1,
                 "app_id_2" => 3
-            }
+            },
+            "placement_properties" => nil
         ))
         subject.advertise
       end
@@ -131,6 +132,32 @@ describe Dea::Responders::DeaLocator do
 
       it "publishes advertise message with available_disk information" do
         nats_mock.should_receive(:publish).with("dea.advertise", json_containing_entry("available_disk", available_disk))
+        subject.advertise
+      end
+    end
+
+    context "when config placement properties" do
+      let(:placement_properties_exists){ {"zone" => "zone1"} }
+      before { config["placement_properties"] = { "zone" => "zone1" } }
+
+      it "publishes 'dea.advertise' message with placement properties including zone" do
+        nats_mock.should_receive(:publish).with("dea.advertise", json_containing_entry("placement_properties", placement_properties_exists))
+        subject.advertise
+      end
+    end
+
+    context "when config empty placement properties" do
+      before { config["placement_properties"] = {} }
+
+      it "publishes 'dea.advertise' message with placement properties without zone" do
+        nats_mock.should_receive(:publish).with("dea.advertise", json_containing_entry("placement_properties", {}))
+        subject.advertise
+      end
+    end
+
+    context "when does not config placement properties" do
+      it "publishes 'dea.advertise' message without placement properties" do
+        nats_mock.should_receive(:publish).with("dea.advertise", json_containing_entry("placement_properties", nil))
         subject.advertise
       end
     end
