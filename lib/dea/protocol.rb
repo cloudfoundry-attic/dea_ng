@@ -78,6 +78,7 @@ module Dea::Protocol::V1
         "available_memory" => message[:available_memory],
         "available_disk" => message[:available_disk],
         "app_id_to_count" => message[:app_id_to_count],
+        "placement_properties" => message[:placement_properties]
       }
     end
   end

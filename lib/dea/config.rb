@@ -79,6 +79,8 @@ module Dea
             optional('before_stop')  => String,
             optional('after_stop')   => String
           },
+
+          optional('placement_properties') => Hash,
         }
       end
     end
