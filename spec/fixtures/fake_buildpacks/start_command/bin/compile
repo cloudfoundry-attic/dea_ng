@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 echo "-----> Some compilation output"
+echo "-----> Start command buildpack output"
 if [ -d $2 ]; then
   echo "-----> Copying files from cache"
   mv $2/* $1

@@ -89,7 +89,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
 
         it "uses the one specified in the message" do
           response, staging_log = perform_stage_request(staging_message)
-          expect(staging_log).to include("-----> Some compilation output")
+          expect(staging_log).to include("-----> Start command buildpack output")
           expect(response["error"]).to be_nil
         end
       end

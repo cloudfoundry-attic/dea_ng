@@ -45,7 +45,7 @@ describe Upload do
     end
 
     it "requests an async upload of the droplet" do
-      stub = stub_request(:post, "http://127.0.0.1:12345/").with(query: {async: "true"})
+      stub_request(:post, "http://127.0.0.1:12345/").with(query: {async: "true"})
       subject.upload! {}
       done
     end
@@ -81,14 +81,31 @@ describe Upload do
     end
 
     context "when async" do
-      context "and the polling returns a 2xx" do
+      context "and the polling URL is invalid" do
+        let(:job_url) { "I am not a url!" }
+        before do
+          start_http_server(12345) do |connection, data|
+            create_response(connection, job_string)
+          end
+        end
+
+        it "should report an error" do
+          subject.upload! do |error|
+            expect(error).to be_a(UploadError)
+            expect(error.message).to match /invalid url/i
+            done
+          end
+        end
+      end
+
+      context "and the polling URL is valid and the polling returns a 2xx" do
         let(:finished_json_string) { JSON.dump(job_json.merge(entity: {guid: 123, status: "finished"})) }
 
         context "and the polling is successful" do
           before do
             @request_timestamps ||= []
             counter = 0
-            start_http_server(12345) do |connection, data|
+            start_http_server(12345) do |connection, _|
               @request_timestamps << Time.now
               create_response(connection, counter < 2 ? job_string : finished_json_string)
               counter += 1
@@ -197,7 +214,7 @@ describe Upload do
         end
       end
 
-      context "and the polling does not return a 2xx" do
+      context "and the polling URL is valid and the polling does not return a 2xx" do
         context "and the polling response from the cc is a 5xx" do
           before do
             counter = 0

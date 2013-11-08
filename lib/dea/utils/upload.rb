@@ -20,15 +20,24 @@ class Upload
       if error
         upload_callback.call(error)
       else
-        logger.info("em-upload.completion.success", destination: @destination)
+        logger.debug("em-upload.completion.success", destination: @destination,
+                    response: http.response,
+                    class: http.response.class.name,
+                    include: http.response.include?("url")
+        )
         if http.response.include?("url")
           begin
             response = JSON.parse(http.response)
-            polling_destination = response.fetch("metadata", {}).fetch("url", nil)
+            polling_destination = URI.parse(response.fetch("metadata", {}).fetch("url", nil))
             @remaining_polling_time = @polling_timeout_in_second
+            logger.debug("em-upload.completion.polling", destination: polling_destination)
             poll(polling_destination, &upload_callback) if polling_destination
           rescue JSON::ParserError
+            logger.warn("em-upload.completion.parsing-error")
             upload_callback.call UploadError.new("invalid json", http, @destination)
+          rescue URI::InvalidURIError => e
+            logger.warn("em-upload.completion.invlid-polling-url", url: e)
+            upload_callback.call UploadError.new("invalid URL #{e}", http, @destination)
           end
         else
           upload_callback.call(nil)
@@ -40,13 +49,15 @@ class Upload
   private
 
   def poll(polling_destination, &upload_callback)
+    logger.debug("em-upload.polling", polling_destination: polling_destination)
     http = EM::HttpRequest.new(polling_destination).get
-
     http.errback do
+      logger.warn("em-upload.polling.handle_error")
       handle_error(http, polling_destination, upload_callback)
     end
 
     http.callback do
+      logger.debug("em-upload.polling.handle_http_response")
       handle_http_response(http, polling_destination, upload_callback)
     end
   end
@@ -57,14 +68,18 @@ class Upload
 
       case response.fetch("entity", {}).fetch("status", nil)
         when "finished"
+          logger.debug("em-upload.polling.success.job-done")
           upload_callback.call nil
         when "failed"
+          logger.warn("em-upload.polling.failed", response: http.response)
           upload_callback.call UploadError.new("Polling", http, polling_destination)
         else
           @remaining_polling_time -= POLLING_INTERVAL
           if @remaining_polling_time <= 0
+            logger.warn("em-upload.polling.timing-out")
             upload_callback.call UploadError.new("Job took too long", http, polling_destination)
           else
+            logger.debug("em-upload.polling.retry")
             EM.add_timer(POLLING_INTERVAL) { poll(polling_destination, &upload_callback) }
           end
       end
