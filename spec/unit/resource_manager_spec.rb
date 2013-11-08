@@ -15,6 +15,7 @@ describe Dea::ResourceManager do
   let(:memory_overcommit_factor) { 4 }
   let(:disk_mb) { 4000 }
   let(:disk_overcommit_factor) { 2 }
+  let(:max_instances) { 2 }
   let(:nominal_memory_capacity) { memory_mb * memory_overcommit_factor }
   let(:nominal_disk_capacity) { disk_mb * disk_overcommit_factor }
 
@@ -27,7 +28,8 @@ describe Dea::ResourceManager do
       "memory_mb" => memory_mb,
       "memory_overcommit_factor" => memory_overcommit_factor,
       "disk_mb" => disk_mb,
-      "disk_overcommit_factor" => disk_overcommit_factor
+      "disk_overcommit_factor" => disk_overcommit_factor,
+      "max_instances" => max_instances
     })
   end
 
@@ -86,6 +88,32 @@ describe Dea::ResourceManager do
     end
   end
 
+  describe "remaining_instances" do
+    context "where no instance is registered" do
+      it "returns the max_instances" do
+        manager.remaining_instances.should eql(2)
+      end
+    end
+
+    context "when a regular instance is added" do
+      before do
+        instance_registry.register(Dea::Instance.new(bootstrap, "limits" => {}))
+      end
+      it "returns 1" do
+        manager.remaining_instances.should eql(1)
+      end
+    end
+
+    context "when a instance in DELETED state is added" do
+      before do
+        instance_registry.register(Dea::Instance.new(bootstrap, "limits" => {}).tap { |i| i.state = "DELETED" })
+      end
+      it "returns two, which unchanged." do
+        manager.remaining_instances.should eql(2)
+      end
+    end
+  end
+
   describe "app_id_to_count" do
     before do
       instance_registry.register(Dea::Instance.new(bootstrap, "application_id" => "a").tap { |i| i.state = "BORN" })
@@ -118,6 +146,7 @@ describe Dea::ResourceManager do
     let(:memory_overcommit_factor) { 1 }
     let(:disk_mb) { 4000 }
     let(:disk_overcommit_factor) { 1 }
+    let(:max_instances) { 5 }
 
     context "when there is not enough memory to reserve any" do
       it "is 0" do
@@ -137,6 +166,12 @@ describe Dea::ResourceManager do
       end
     end
 
+    context "when there are enough memory and disk" do
+      it "is limited by max_instances" do
+        manager.number_reservable(1, 1).should == 5
+      end
+    end
+
     context "when there are enough resources for many reservations" do
       it "is correct" do
         manager.number_reservable(200, 1500).should == 2
@@ -144,9 +179,42 @@ describe Dea::ResourceManager do
       end
     end
 
+    context "when too many instances are registered" do
+      before do
+        5.times do
+          instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "mem" => 1, "disk" => 1 }))
+        end
+      end
+
+      it "cannot reserve because of too many resvered instances" do
+        manager.number_reservable(1, 1).should == 0
+      end
+    end
+
     context "when 0 resources are requested" do
       it "returns 0" do
         manager.number_reservable(0, 0).should == 0
+      end
+    end
+  end
+
+  describe "get_constrained_resource" do
+    context "when this is no sufficient memory" do
+      it "identifies memory" do
+        manager.get_constrained_resource(nominal_memory_capacity + 1, 1).should == "memory"
+      end
+    end
+    
+    context "when there is no sufficient disk available" do
+      it "identifies disk" do
+        manager.get_constrained_resource(1, nominal_disk_capacity + 1).should == "disk"
+      end
+    end
+
+    context "when there is no sufficient instance available" do
+      let(:max_instances) { 0 }
+      it "identifies instance" do
+        manager.get_constrained_resource(1, 1).should == "instance"
       end
     end
   end
@@ -200,6 +268,66 @@ describe Dea::ResourceManager do
           manager.could_reserve?(1, @remaining_disk + 1).should be_false
         end
       end
+
+      context "when too many instances are registered" do
+        before do
+          instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "mem" => 1, "disk" => 1 }))
+        end
+
+        it "can't reserve because of too many reserved instances" do
+          manager.could_reserve?(1, 1).should be_false
+        end
+      end
+
+      context "when an instance in DELETED state is registered to bring the total number of instances to its maximum limit" do
+        before do
+          instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "mem" => 1, "disk" => 1 }).tap { |i| i.state = "DELETED" })
+        end
+
+        it "allows to reserve" do
+          manager.could_reserve?(1, 1).should be_true
+        end
+      end
+
+      context "when an instance in STOPPED state is registered" do
+        before do
+          instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "mem" => 1, "disk" => 1 }).tap { |i| i.state = "STOPPED" })
+        end
+
+        it "doesn't allow to reserve" do
+          manager.could_reserve?(1, 1).should be_false
+        end
+      end
+
+      context "when too many instances are registered" do
+        before do
+          instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "mem" => 1, "disk" => 1 }))
+        end
+
+        it "can't reserve because of too many reserved instances" do
+          manager.could_reserve?(1, 1).should be_false
+        end
+      end
+
+      context "when an instance in DELETED state is registered to bring the total number of instances to its maximum limit" do
+        before do
+          instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "mem" => 1, "disk" => 1 }).tap { |i| i.state = "DELETED" })
+        end
+
+        it "allows to reserve" do
+          manager.could_reserve?(1, 1).should be_true
+        end
+      end
+
+      context "when an instance in STOPPED state is registered" do
+        before do
+          instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "mem" => 1, "disk" => 1 }).tap { |i| i.state = "STOPPED" })
+        end
+
+        it "doesn't allow to reserve" do
+          manager.could_reserve?(1, 1).should be_false
+        end
+      end
     end
 
     describe "could_reserve_memory?" do
@@ -226,6 +354,21 @@ describe Dea::ResourceManager do
       context "when too much disk is being used" do
         it "can't reserve" do
           manager.could_reserve_disk?(@remaining_disk + 1).should be_false
+        end
+      end
+    end
+
+    describe "could_reserve_instance?" do
+      context "with enough instances" do
+        it "can reserve instance" do
+          manager.could_reserve_instance?.should be_true
+        end
+      end
+
+      context "when there is no instance available" do
+        let(:max_instances) { 0 }
+        it "can't reserve" do
+          manager.could_reserve_instance?.should be_false
         end
       end
     end

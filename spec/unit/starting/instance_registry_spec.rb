@@ -18,6 +18,7 @@ describe Dea::InstanceRegistry do
   let(:instance) { Dea::Instance.new(bootstrap, {"application_id" => 1, "warden_handle" => "handle1", "index" => 0}) }
 
   let(:instance1) { Dea::Instance.new(bootstrap, {"application_id" => 1, "warden_handle" => "handle2"}) }
+  let(:instance2) { Dea::Instance.new(bootstrap, "application_id" => "g").tap { |i| i.state = "DELETED" }}
 
   it_behaves_like :handles_registry_enumerations
 
@@ -90,6 +91,76 @@ describe Dea::InstanceRegistry do
 
       expect(emitter.messages[1][0]).to eql("Stopping app instance (index 0) with guid 1")
       expect(emitter.messages[1][1]).to eql("Stopped app instance (index 0) with guid 1")
+    end
+  end
+
+  describe "#undeleted_instances_count" do
+    before :each do
+      instance_registry.register(instance)
+      instance_registry.register(instance1)
+    end
+
+    context "when no instance is deleted" do
+      it "should return total number of instances which is two" do
+        instance_registry.undeleted_instances_count.should  eql(2)
+      end
+    end
+
+    context "when a regular instance is unregistered" do
+      it "should decrement total number of instances by one" do
+        instance_registry.unregister(instance)
+        expect(instance_registry.undeleted_instances_count).to eql(1)
+      end
+    end
+
+    context "when an instance with DELETED state is registered" do
+      it "should have total number of instances unchanged" do
+        instance_registry.register(instance2)
+        expect(instance_registry.undeleted_instances_count).to eql(2)
+      end
+    end
+
+    context "when an instance with DELETED state is registered and a regular instance is unregistered" do
+      it "should decrement total number of instances by one" do
+        instance_registry.register(instance2)
+        instance_registry.unregister(instance)
+        expect(instance_registry.undeleted_instances_count).to eql(1)
+      end
+    end
+  end
+
+  describe "#undeleted_instances_count" do
+    before :each do
+      instance_registry.register(instance)
+      instance_registry.register(instance1)
+    end
+
+    context "when no instance is deleted" do
+      it "should return total number of instances which is two" do
+        instance_registry.undeleted_instances_count.should  eql(2)
+      end
+    end
+
+    context "when a regular instance is unregistered" do
+      it "should decrement total number of instances by one" do
+        instance_registry.unregister(instance)
+        expect(instance_registry.undeleted_instances_count).to eql(1)
+      end
+    end
+
+    context "when an instance with DELETED state is registered" do
+      it "should have total number of instances unchanged" do
+        instance_registry.register(instance2)
+        expect(instance_registry.undeleted_instances_count).to eql(2)
+      end
+    end
+
+    context "when an instance with DELETED state is registered and a regular instance is unregistered" do
+      it "should decrement total number of instances by one" do
+        instance_registry.register(instance2) 
+        instance_registry.unregister(instance)
+        expect(instance_registry.undeleted_instances_count).to eql(1)
+      end
     end
   end
 

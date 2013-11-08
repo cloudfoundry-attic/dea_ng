@@ -7,12 +7,14 @@ module Dea
       "memory_overcommit_factor" => 1,
       "disk_mb" => 16 * 1024 * 1024,
       "disk_overcommit_factor" => 1,
+      "max_instances" => 256,
     }.freeze
 
     def initialize(instance_registry, staging_task_registry, config = {})
       config = DEFAULT_CONFIG.merge(config)
       @memory_capacity = config["memory_mb"] * config["memory_overcommit_factor"]
       @disk_capacity = config["disk_mb"] * config["disk_overcommit_factor"]
+      @max_instances = config["max_instances"]
       @staging_task_registry = staging_task_registry
       @instance_registry = instance_registry
     end
@@ -24,7 +26,7 @@ module Dea
     end
 
     def could_reserve?(memory, disk)
-      could_reserve_memory?(memory) && could_reserve_disk?(disk)
+      could_reserve_memory?(memory) && could_reserve_disk?(disk) && could_reserve_instance?
     end
 
     def could_reserve_memory?(memory)
@@ -35,15 +37,20 @@ module Dea
       remaining_disk >= disk
     end
 
+    def could_reserve_instance?
+      remaining_instances > 0
+    end
+
     def get_constrained_resource(memory, disk)
       return "disk" unless could_reserve_disk?(disk)
       return "memory" unless could_reserve_memory?(memory)
+      return "instance" unless could_reserve_instance?
       nil
     end
 
     def number_reservable(memory, disk)
-      return 0 if memory.zero? || disk.zero?
-      [remaining_memory / memory, remaining_disk / disk].min
+      return 0 if memory.zero? || disk.zero? || remaining_instances.zero?
+      [remaining_memory / memory, remaining_disk / disk, remaining_instances ].min
     end
 
     def available_memory_ratio
@@ -74,6 +81,10 @@ module Dea
 
     def remaining_disk
       disk_capacity - reserved_disk
+     end
+
+    def remaining_instances
+      @max_instances - @instance_registry.undeleted_instances_count
     end
 
     private

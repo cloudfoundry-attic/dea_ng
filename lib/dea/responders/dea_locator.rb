@@ -34,6 +34,7 @@ module Dea::Responders
           stacks: config["stacks"] || [],
           available_memory: resource_manager.remaining_memory,
           available_disk: resource_manager.remaining_disk,
+          available_instances: resource_manager.remaining_instances,
           app_id_to_count: resource_manager.app_id_to_count,
           placement_zone: config["placement_properties"]["zone"]
         ),
