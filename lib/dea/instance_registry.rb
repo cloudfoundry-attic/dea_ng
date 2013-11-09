@@ -21,6 +21,7 @@ module Dea
       @config = config
       @instances = {}
       @instances_by_app_id = {}
+      @instances_by_space_id = {}
       @crash_lifetime_secs = config["crash_lifetime_secs"] || DEFAULT_CRASH_LIFETIME_SECS
     end
 
@@ -34,13 +35,16 @@ module Dea
 
     def register(instance)
       logger.debug2("Registering instance #{instance.instance_id}")
-
       @instances[instance.instance_id] = instance
 
       app_id = instance.application_id
       @instances_by_app_id[app_id] ||= {}
       @instances_by_app_id[app_id][instance.instance_id] = instance
-
+      if instance.tags && instance.tags['space']
+         space_id = instance.tags['space']
+         @instances_by_space_id[space_id] ||= {}
+         @instances_by_space_id[space_id][instance.instance_id] = instance
+      end
       nil
     end
 
@@ -50,11 +54,23 @@ module Dea
       @instances.delete(instance.instance_id)
 
       app_id = instance.application_id
+
       if @instances_by_app_id.has_key?(app_id)
         @instances_by_app_id[app_id].delete(instance.instance_id)
 
         if @instances_by_app_id[app_id].empty?
           @instances_by_app_id.delete(app_id)
+        end
+      end
+
+      if instance.tags && instance.tags['space']
+        space_id = instance.tags['space']
+        if @instances_by_space_id.has_key?(space_id)
+          @instances_by_space_id[space_id].delete(instance.instance_id)
+
+          if @instances_by_space_id[space_id].empty?
+            @instances_by_space_id.delete(space_id)
+          end
         end
       end
 
@@ -84,6 +100,14 @@ module Dea
         app_count[app_id] = instance_hash.size
       end
       app_count
+    end
+
+    def space_id_to_count
+      space_count = {}
+      @instances_by_space_id.each do |space_id, instance_hash|
+        space_count[space_id] = instance_hash.size
+      end
+      space_count
     end
 
     def each(&block)
