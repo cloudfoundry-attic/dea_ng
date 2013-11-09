@@ -20,7 +20,8 @@ shared_examples :handles_registry_enumerations do
       :consuming_disk? => true,
       :instance_id => @instance_id,
       :application_id => 123,
-      :task_id => @instance_id
+      :task_id => @instance_id,
+      :tags => {}
     }.merge(options))
   end
 

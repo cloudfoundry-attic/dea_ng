@@ -40,11 +40,13 @@ module Dea
       app_id = instance.application_id
       @instances_by_app_id[app_id] ||= {}
       @instances_by_app_id[app_id][instance.instance_id] = instance
+
       if instance.tags && instance.tags['space']
          space_id = instance.tags['space']
          @instances_by_space_id[space_id] ||= {}
          @instances_by_space_id[space_id][instance.instance_id] = instance
       end
+
       nil
     end
 
