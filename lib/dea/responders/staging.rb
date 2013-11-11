@@ -9,13 +9,15 @@ module Dea::Responders
     attr_reader :bootstrap
     attr_reader :staging_task_registry
     attr_reader :dir_server
+    attr_reader :resource_manager
     attr_reader :config
 
-    def initialize(nats, dea_id, bootstrap, staging_task_registry, dir_server, config)
+    def initialize(nats, dea_id, bootstrap, staging_task_registry, dir_server, resource_manager, config)
       @nats = nats
       @dea_id = dea_id
       @bootstrap = bootstrap
       @staging_task_registry = staging_task_registry
+      @resource_manager = resource_manager
       @dir_server = dir_server
       @config = config
     end
@@ -42,6 +44,18 @@ module Dea::Responders
       logger.info("staging.handle.start", request: message)
 
       task = Dea::StagingTask.new(bootstrap, dir_server, message, buildpacks_in_use, logger)
+      unless resource_manager.could_reserve?(task.memory_limit_mb, task.disk_limit_mb)
+        constrained_resource = resource_manager.get_constrained_resource(task.memory_limit_mb, task.disk_limit_mb)
+        respond_to_response(response, {
+          :task_id => task.task_id,
+          :error => "Not enough #{constrained_resource} resources available"
+        })
+        logger.error "staging.start.insufficient-resource",
+                     :app => app_id,
+                     :constrained_resource => constrained_resource
+        return
+      end
+
       staging_task_registry.register(task)
 
       bootstrap.save_snapshot
@@ -161,8 +175,6 @@ module Dea::Responders
       logger = Steno::Logger.new("Staging", Steno.config.sinks, :level => Steno.config.default_log_level)
       logger.tag(:app_guid => app_id)
     end
-
-    private
 
     def buildpacks_in_use
       staging_task_registry.flat_map do |task|

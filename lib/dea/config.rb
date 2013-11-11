@@ -122,8 +122,6 @@ module Dea
     end
 
     def minimum_staging_memory_mb
-      # FIXME: This is a bug
-      #[staging_task.config.minimum_staging_memory_mb.to_i, ].max
       @config.fetch("staging", {}).fetch("memory_limit_mb", 1024)
     end
 

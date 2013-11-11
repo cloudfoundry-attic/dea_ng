@@ -105,13 +105,23 @@ module Dea
       task_info["detected_buildpack"]
     end
 
+    def memory_limit_mb
+      #TODO: this should take into account the memory limit passed in message for starting
+      (config.minimum_staging_memory_mb).to_i
+    end
+
     def memory_limit_in_bytes
-      (config.minimum_staging_memory_mb).to_i * 1024 * 1024
+      memory_limit_mb * 1024 * 1024
     end
     alias :used_memory_in_bytes :memory_limit_in_bytes
 
+    def disk_limit_mb
+      #TODO: this should take into account the disk limit passed in message for starting
+      (config.minimum_staging_disk_mb).to_i
+    end
+
     def disk_limit_in_bytes
-      (config.minimum_staging_disk_mb).to_i * 1024 * 1024
+      disk_limit_mb * 1024 * 1024
     end
 
     def stop(&callback)
