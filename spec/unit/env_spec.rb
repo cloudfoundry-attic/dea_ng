@@ -18,7 +18,8 @@ describe Dea::Env do
       "plan" => "panda",
       "plan_option" => "plan_option",
       "name" => "elephantsql-vip-uat",
-      "tags" => {"key" => "value"}
+      "tags" => {"key" => "value"},
+      "syslog_drain_url" => "syslog://drain-url.example.com:514"
     }
   end
   let(:services) { [service] }
@@ -80,6 +81,7 @@ describe Dea::Env do
         plan
         plan_option
         credentials
+        syslog_drain_url
       )
 
       keys.each do |key|
