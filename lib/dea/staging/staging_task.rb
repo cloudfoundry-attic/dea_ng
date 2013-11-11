@@ -31,7 +31,6 @@ module Dea
 
     def initialize(bootstrap, dir_server, staging_message, buildpacks_in_use, custom_logger=nil)
       super(bootstrap.config, custom_logger)
-
       @bootstrap = bootstrap
       @dir_server = dir_server
       @staging_message = staging_message
@@ -57,8 +56,6 @@ module Dea
             logger.info "staging.task.completed"
           end
 
-          trigger_after_complete(error)
-
           unless error
             begin
               resolve_staging_upload
@@ -71,7 +68,7 @@ module Dea
             end
           end
 
-          trigger_after_upload(error)
+          trigger_after_complete(error)
 
           raise(error) if error
         ensure
@@ -156,15 +153,6 @@ module Dea
       @after_complete_callback.call(error) if @after_complete_callback
     end
     private :trigger_after_complete
-
-    def after_upload_callback(&blk)
-      @after_upload_callback = blk
-    end
-
-    def trigger_after_upload(error)
-      @after_upload_callback.call(error) if @after_upload_callback
-    end
-    private :trigger_after_upload
 
     def after_stop_callback(&blk)
       @after_stop_callback = blk

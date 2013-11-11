@@ -15,7 +15,7 @@ describe Dea::Responders::Staging do
   let(:staging_task_registry) { Dea::StagingTaskRegistry.new }
   let(:staging_task) do
     double(:staging_task,
-      staging_message: StagingMessage.new({"app_id" => "some_app_id"}),
+      staging_message: staging_message,
       task_id: "task-id",
       task_log: "task-log",
       detected_buildpack: nil,
@@ -25,8 +25,16 @@ describe Dea::Responders::Staging do
     )
   end
   let(:dir_server) { Dea::DirectoryServerV2.new("domain", 1234, config) }
+  let(:app_id) { "my_app_id" }
+  let(:message) { Dea::Nats::Message.new(nats, nil, {"app_id" => app_id}, "respond-to") }
+  let(:staging_message) { StagingMessage.new(message.data) }
   let(:resource_manager) { double(:resource_manager, :could_reserve? => true) }
   let(:config) { {"directory_server" => {"file_api_port" => 2345}} }
+
+  before do
+    config.stub(:minimum_staging_memory_mb) { 1 }
+    config.stub(:minimum_staging_disk_mb) { 2 }
+  end
 
   subject { described_class.new(nats, dea_id, bootstrap, staging_task_registry, dir_server, resource_manager, config) }
 
@@ -128,7 +136,6 @@ describe Dea::Responders::Staging do
       Dea::StagingTask.stub(:new => staging_task)
       staging_task.stub(:after_setup_callback)
       staging_task.stub(:after_complete_callback)
-      staging_task.stub(:after_upload_callback)
       staging_task.stub(:after_stop_callback)
       staging_task.stub(:start)
     end
@@ -153,8 +160,6 @@ describe Dea::Responders::Staging do
       end
     end
 
-    let(:message) { Dea::Nats::Message.new(nats, nil, {}, "respond-to") }
-
     context "staging async" do
       it "starts staging task with registered callbacks" do
         Dea::StagingTask
@@ -164,7 +169,6 @@ describe Dea::Responders::Staging do
 
         staging_task.should_receive(:after_setup_callback).ordered
         staging_task.should_receive(:after_complete_callback).ordered
-        staging_task.should_receive(:after_upload_callback).ordered
         staging_task.should_receive(:start).ordered
 
         subject.handle(message)
@@ -239,41 +243,12 @@ describe Dea::Responders::Staging do
         end
       end
 
-      describe "after staging completion" do
+      describe "after staging completed" do
         context "when successfully" do
-          let(:app_id) { "my_app_id" }
-          let(:start_message) { {"droplet" => "dff77854-3767-41d9-ab16-c8a824beb77a", "sha1" => "some-droplet-sha"} }
-          let(:message) { Dea::Nats::Message.new(nats, nil, {"app_id" => app_id, "start_message" => start_message}, "respond-to") }
-          before { staging_task.stub(:after_complete_callback).and_yield(nil) }
-
-          it "handles instance start with updated droplet sha" do
-            bootstrap.should_receive(:start_app).with(start_message)
-            subject.handle(message)
+          before do
+            staging_task.stub(:after_complete_callback).and_yield(nil)
+            bootstrap.stub(:start_app)
           end
-
-          it "logs to the loggregator" do
-            emitter = FakeEmitter.new
-            Dea::Loggregator.emitter = emitter
-
-            bootstrap.should_receive(:start_app)
-            subject.handle(message)
-            expect(emitter.messages[app_id][0]).to eql("Got staging request for app with id #{app_id}")
-          end
-        end
-
-        context "when failed" do
-          before { staging_task.stub(:after_complete_callback).and_yield(RuntimeError.new("error-description")) }
-
-          it "does not start an instance" do
-            bootstrap.should_not_receive(:start_app)
-            subject.handle(message)
-          end
-        end
-      end
-
-      describe "after staging upload" do
-        context "when successfully" do
-          before { staging_task.stub(:after_upload_callback).and_yield(nil) }
 
           it "responds successful message" do
             nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
@@ -291,7 +266,7 @@ describe Dea::Responders::Staging do
           it "saves snapshot" do
             called = false
 
-            staging_task.should_receive(:after_upload_callback) do |&blk|
+            staging_task.should_receive(:after_complete_callback) do |&blk|
               bootstrap.should_receive(:save_snapshot)
               blk.call
               called = true
@@ -301,11 +276,29 @@ describe Dea::Responders::Staging do
 
             expect(called).to be_true
           end
+
+          it "logs to the loggregator" do
+            emitter = FakeEmitter.new
+            Dea::Loggregator.emitter = emitter
+
+            subject.handle(message)
+            expect(emitter.messages[app_id][0]).to eql("Got staging request for app with id #{app_id}")
+          end
+
+          context "when there is a start message in staging message" do
+            let(:start_message) { {"droplet" => "dff77854-3767-41d9-ab16-c8a824beb77a", "sha1" => "some-droplet-sha"} }
+            let(:message) { Dea::Nats::Message.new(nats, nil, {"app_id" => app_id, "start_message" => start_message}, "respond-to") }
+
+            it "handles instance start with updated droplet sha" do
+              bootstrap.should_receive(:start_app).with(start_message)
+              subject.handle(message)
+            end
+          end
         end
 
         context "when failed" do
           before do
-            staging_task.stub(:after_upload_callback) do |&blk|
+            staging_task.stub(:after_complete_callback) do |&blk|
               staging_task.stub(:droplet_sha1) { nil }
               blk.call(RuntimeError.new("error-description"))
             end
@@ -327,15 +320,20 @@ describe Dea::Responders::Staging do
           it "saves snapshot" do
             called = false
 
-            staging_task.should_receive(:after_upload_callback) do |&blk|
+            staging_task.should_receive(:after_complete_callback) do |&blk|
               bootstrap.should_receive(:save_snapshot)
-              blk.call
+              blk.call(RuntimeError.new("error-description"))
               called = true
             end
 
             subject.handle(message)
 
             expect(called).to be_true
+          end
+
+          it "does not start an instance" do
+            bootstrap.should_not_receive(:start_app)
+            subject.handle(message)
           end
         end
 

@@ -461,7 +461,7 @@ YAML
 
       it "returns an error in response" do
         response = nil
-        staging.after_upload_callback do |callback_response|
+        staging.after_complete_callback do |callback_response|
           response = callback_response
         end
 
@@ -569,11 +569,10 @@ YAML
       stub_staging_upload
 
       staging.should_receive(:resolve_staging).ordered
-      staging.should_receive(:trigger_after_complete).ordered
       staging.should_receive(:resolve_staging_upload).ordered.and_call_original
       staging.should_receive(:promise_app_upload).ordered
       staging.should_receive(:promise_save_buildpack_cache).ordered
-      staging.should_receive(:trigger_after_upload).ordered
+      staging.should_receive(:trigger_after_complete).ordered
 
       staging.start
     end
@@ -588,7 +587,7 @@ YAML
 
       def it_raises_and_returns_an_error
         response = nil
-        staging.after_upload_callback do |callback_response|
+        staging.after_complete_callback do |callback_response|
           response = callback_response
         end
 
