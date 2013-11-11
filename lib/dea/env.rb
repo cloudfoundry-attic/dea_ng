@@ -12,7 +12,7 @@ require "dea/starting/running_env"
 
 module Dea
   class Env
-    WHITELIST_SERVICE_KEYS = %W[name label tags plan plan_option credentials].freeze
+    WHITELIST_SERVICE_KEYS = %W[name label tags plan plan_option credentials syslog_drain_url].freeze
 
     attr_reader :strategy_env
 
