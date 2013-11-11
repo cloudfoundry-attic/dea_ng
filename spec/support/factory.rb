@@ -1,7 +1,6 @@
 # coding: UTF-8
 
 module Helpers
-  #let(:admin_buildpacks)
   def valid_service_attributes(syslog_drain_url = nil)
     {
       "name"        => "name",
@@ -30,9 +29,9 @@ module Helpers
       "cc_partition"        => "partition",
 
       "instance_id"         => VCAP.secure_uuid,
-      "instance_index"      => 37,
+      "index"      => 42,
 
-      "application_id"      => "37",
+      "droplet"      => "37",
       "application_version" => "some_version",
       "application_name"    => "my_application",
       "application_uris"    => ["foo.com", "bar.com"],

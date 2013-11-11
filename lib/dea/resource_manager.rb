@@ -24,7 +24,21 @@ module Dea
     end
 
     def could_reserve?(memory, disk)
-      (remaining_memory > memory) && (remaining_disk > disk)
+      could_reserve_memory?(memory) && could_reserve_disk?(disk)
+    end
+
+    def could_reserve_memory?(memory)
+      remaining_memory > memory
+    end
+
+    def could_reserve_disk?(disk)
+      remaining_disk > disk
+    end
+
+    def get_constrained_resource(memory, disk)
+      return "disk" unless could_reserve_disk?(disk)
+      return "memory" unless could_reserve_memory?(memory)
+      nil
     end
 
     def number_reservable(memory, disk)

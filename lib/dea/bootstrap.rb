@@ -454,10 +454,20 @@ module Dea
         return
       end
 
+      instance.on(Instance::Transition.new(:born, :crashed)) do
+        send_exited_message(instance, EXIT_REASON_CRASHED)
+      end
+
       unless resource_manager.could_reserve?(attributes["limits"]["mem"], attributes["limits"]["disk"])
-        message = "Unable to start instance: #{attributes["instance_index"]}"
-        message << " for app: #{attributes["application_id"]}, not enough resources available."
-        logger.error(message)
+        constrained_resource = resource_manager.get_constrained_resource(attributes["limits"]["mem"],
+                                                  attributes["limits"]["disk"])
+        logger.error "instance.start.insufficient-resource",
+                     :app => instance.attributes["application_id"],
+                     :instance => instance.attributes["instance_index"],
+                     :constrained_resource => constrained_resource
+
+        instance.exit_description = "Not enough #{constrained_resource} resource available."
+        instance.state = Instance::State::CRASHED
         return nil
       end
 

@@ -173,7 +173,7 @@ describe Dea::ResourceManager do
     end
   end
 
-  describe "could_reserve?" do
+  describe "check if there are available resources" do
     before do
       instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "mem" => 512, "disk" => 1024 }).tap { |i| i.state = "RUNNING" })
       staging_registry.register(Dea::StagingTask.new(bootstrap, nil, StagingMessage.new({}), []))
@@ -182,21 +182,51 @@ describe Dea::ResourceManager do
       @remaining_disk = nominal_disk_capacity - 1024 - 2048
     end
 
-    context "when the given amounts of memory and disk are available (including extra 'headroom' memory)" do
-      it "can reserve" do
-        manager.could_reserve?(@remaining_memory - 1, @remaining_disk - 1).should be_true
+    describe "could_reserve?" do
+      context "when the given amounts of memory and disk are available (including extra 'headroom' memory)" do
+        it "can reserve" do
+          manager.could_reserve?(@remaining_memory - 1, @remaining_disk - 1).should be_true
+        end
+      end
+
+      context "when too much memory is being used" do
+        it "can't reserve" do
+          manager.could_reserve?(@remaining_memory, 1).should be_false
+        end
+      end
+
+      context "when too much disk is being used" do
+        it "can't reserve" do
+          manager.could_reserve?(1, @remaining_disk).should be_false
+        end
       end
     end
 
-    context "when too much memory is being used" do
-      it "can't reserve" do
-        manager.could_reserve?(@remaining_memory, 1).should be_false
+    describe "could_reserve_memory?" do
+      context "with enough memory" do
+        it "can reserve memory" do
+          manager.could_reserve_memory?(@remaining_memory - 1).should be_true
+        end
+      end
+
+      context "when too much memory is being used" do
+        it "can't reserve" do
+          manager.could_reserve_memory?(@remaining_memory + 1).should be_false
+        end
       end
     end
 
-    context "when too much disk is being used" do
-      it "can't reserve" do
-        manager.could_reserve?(1, @remaining_disk).should be_false
+    describe "could_reserve_disk?" do
+      context "with enough disk" do
+        it "can reserve disk" do
+          manager.could_reserve_disk?(@remaining_disk - 1).should be_true
+        end
+      end
+
+      context "when too much disk is being used" do
+        it "can't reserve" do
+          manager.could_reserve_disk?(@remaining_disk + 1).should be_false
+        end
       end
     end
   end

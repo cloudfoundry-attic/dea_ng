@@ -717,45 +717,92 @@ describe Dea::Bootstrap do
   end
 
   describe "creating an instance" do
-    subject(:instance) do
+    let(:attributes) { valid_instance_attributes.merge(extra_attributes) }
+    subject(:subject) do
       em { bootstrap.setup_instance_registry; done }
-      bootstrap.create_instance(valid_instance_attributes.merge(extra_attributes))
+      bootstrap.create_instance(attributes)
     end
 
-    context "when the resource manager can not reserve space for the app" do
+    let(:instance) { Dea::Instance.new(bootstrap, attributes) }
+
+    let(:logger) { double(:mock_logger, :error => nil) }
+
+    before do
+      bootstrap.instance_variable_set(:@logger, logger)
+      bootstrap.instance_variable_set(:@resource_manager, resource_manager)
+    end
+
+    context "when the resource manager cannot reserve memory or space for the app" do
       before do
-        bootstrap.instance_variable_set(:@logger, logger)
+        Dea::Instance.stub(:new => instance)
+        bootstrap.stub(:nats).and_return(nats_client_mock)
         bootstrap.instance_variable_set(:@resource_manager, resource_manager)
       end
 
-      let(:logger) { double(:mock_logger) }
-
       let(:resource_manager) do
         manager = double(:resource_manager)
-        manager.stub(:could_reserve?).with(1, 2).and_return(false)
+        manager.stub(:could_reserve?) { false }
         manager
       end
 
       let(:extra_attributes) { {"limits" => {"mem" => 1, "disk" => 2, "fds" => 3}} }
 
-      it "log and error and return nil" do
-        logger.should_receive(:error).with(/not enough resources available/)
-        instance.should be_nil
+      context "when memory cannot be reserved" do
+        before do
+          resource_manager.stub(:get_constrained_resource) { "memory" }
+        end
+
+        it "should log error indicating not enough memory resource available" do
+          logger.should_receive(:error).with(
+            "instance.start.insufficient-resource",
+            hash_including(:app => "37", :instance => 42, :constrained_resource => "memory"))
+          subject.should be_nil
+        end
+
+        it "should mark app as crashed" do
+          subject
+          expect(instance.exit_description).to eq "Not enough memory resource available."
+          expect(instance.state).to eq Dea::Instance::State::CRASHED
+        end
+
+        it "should send exited message" do
+          nats_client_mock.should_receive(:publish).with("droplet.exited", hash_including("droplet" => "37"))
+          subject
+        end
+      end
+
+      context "when disk space cannot be reserved" do
+        before do
+          resource_manager.stub(:get_constrained_resource) { "disk" }
+        end
+
+        it "should log error indicating not enough disk resource available" do
+          logger.should_receive(:error).with(
+            "instance.start.insufficient-resource",
+            hash_including(:app => "37", :instance => 42, :constrained_resource => "disk"))
+          subject.should be_nil
+        end
+
+        it "should mark app as crashed" do
+          subject
+          expect(instance.exit_description).to eq "Not enough disk resource available."
+          expect(instance.state).to eq Dea::Instance::State::CRASHED
+        end
+
+        it "should send exited message" do
+          nats_client_mock.should_receive(:publish).with("droplet.exited", hash_including("droplet" => "37"))
+          subject
+        end
       end
     end
 
     context "when the resource manager can reserve space for the app" do
-      before do
-        bootstrap.instance_variable_set(:@logger, logger)
-        bootstrap.instance_variable_set(:@resource_manager, resource_manager)
-      end
-
-      let(:logger) { double(:mock_logger) }
       let(:resource_manager) do
         manager = double(:resource_manager)
         manager.stub(:could_reserve?).with(1, 2).and_return(true)
         manager
       end
+
       let(:extra_attributes) { {"limits" => {"mem" => 1, "disk" => 2, "fds" => 3}} }
 
       it "create the instance" do
@@ -767,13 +814,6 @@ describe Dea::Bootstrap do
     end
 
     context "when limits are missing from the attributes" do
-      before do
-        bootstrap.instance_variable_set(:@logger, logger)
-        bootstrap.instance_variable_set(:@resource_manager, resource_manager)
-      end
-
-      let(:logger) { double(:mock_logger) }
-
       let(:resource_manager) do
         manager = double(:resource_manager)
         manager.stub(:could_reserve?).with(1, 2).and_return(false)
