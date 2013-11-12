@@ -35,7 +35,7 @@ module Dea::Responders
           :available_memory => resource_manager.remaining_memory,
           :available_disk => resource_manager.remaining_disk,
           :app_id_to_count => resource_manager.app_id_to_count,
-          :placement_properties => config["placement_properties"]
+          :placement_properties => config.placement_properties
         }),
       )
     rescue => e

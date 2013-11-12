@@ -130,5 +130,9 @@ module Dea
     def minimum_staging_disk_mb
       @config.fetch("staging", {}).fetch("disk_limit_mb", 2*1024)
     end
+
+    def placement_properties
+      @config.fetch("placement_properties", {})
+    end
   end
 end
