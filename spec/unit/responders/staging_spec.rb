@@ -11,7 +11,8 @@ describe Dea::Responders::Staging do
 
   let(:nats) { Dea::Nats.new(bootstrap, config) }
   let(:dea_id) { "unique-dea-id" }
-  let(:bootstrap) { double(:bootstrap, :config => config, :save_snapshot => nil) }
+  let(:snapshot) { double(:snapshot, :save => nil, :load => nil)}
+  let(:bootstrap) { double(:bootstrap, :config => config, :snapshot => snapshot) }
   let(:staging_task_registry) { Dea::StagingTaskRegistry.new }
   let(:staging_task) do
     double(:staging_task,
@@ -205,7 +206,7 @@ describe Dea::Responders::Staging do
       it_registers_task
 
       it "saves snapshot" do
-        bootstrap.should_receive(:save_snapshot)
+        bootstrap.snapshot.should_receive(:save)
         subject.handle(message)
       end
 
@@ -267,7 +268,7 @@ describe Dea::Responders::Staging do
             called = false
 
             staging_task.should_receive(:after_complete_callback) do |&blk|
-              bootstrap.should_receive(:save_snapshot)
+              bootstrap.snapshot.should_receive(:save)
               blk.call
               called = true
             end
@@ -321,7 +322,7 @@ describe Dea::Responders::Staging do
             called = false
 
             staging_task.should_receive(:after_complete_callback) do |&blk|
-              bootstrap.should_receive(:save_snapshot)
+              bootstrap.snapshot.should_receive(:save)
               blk.call(RuntimeError.new("error-description"))
               called = true
             end
@@ -357,7 +358,7 @@ describe Dea::Responders::Staging do
             called = false
 
             staging_task.should_receive(:after_stop_callback) do |&blk|
-              bootstrap.should_receive(:save_snapshot)
+              bootstrap.snapshot.should_receive(:save)
               blk.call
               called = true
             end

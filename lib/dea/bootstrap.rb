@@ -32,6 +32,7 @@ require "dea/staging/staging_task"
 require "dea/starting/instance"
 require "dea/starting/instance_registry"
 
+require "dea/snapshot"
 
 Dir[File.join(File.dirname(__FILE__), "responders/*.rb")].each { |f| require(f) }
 
@@ -79,6 +80,7 @@ module Dea
       setup_droplet_registry
       setup_instance_registry
       setup_staging_task_registry
+      setup_snapshot
       setup_resource_manager
       setup_directory_server
       setup_directory_server_v2
@@ -154,6 +156,12 @@ module Dea
 
     def setup_staging_task_registry
       @staging_task_registry = Dea::StagingTaskRegistry.new
+    end
+
+    attr_reader :snapshot
+
+    def setup_snapshot
+      @snapshot = Dea::Snapshot.new(staging_task_registry, instance_registry, config["base_dir"], self)
     end
 
     attr_reader :router_client
@@ -352,7 +360,7 @@ module Dea
     end
 
     def start
-      load_snapshot
+      snapshot.load
 
       start_component
       start_nats
@@ -368,66 +376,6 @@ module Dea
     def greet_router
       @router_client.greet do |response|
         handle_router_start(response)
-      end
-    end
-
-    def snapshot_path
-      File.join(config["base_dir"], "db", "instances.json")
-    end
-
-    def save_snapshot
-      start = Time.now
-
-      instances = instance_registry.select do |i|
-        [
-          Dea::Instance::State::RUNNING,
-          Dea::Instance::State::CRASHED,
-        ].include?(i.state)
-      end
-
-      snapshot = {
-        "time"      => start.to_f,
-        "instances" => instances.map(&:snapshot_attributes),
-        "staging_tasks" => staging_task_registry.map { |staging_task| staging_task.staging_message.to_hash }
-      }
-
-      file = Tempfile.new("instances", File.join(config["base_dir"], "tmp"))
-      file.write(::Yajl::Encoder.encode(snapshot, :pretty => true))
-      file.close
-
-      FileUtils.mv(file.path, snapshot_path)
-
-      logger.debug("Saving snapshot took: %.3fs" % [Time.now - start])
-    end
-
-    def load_snapshot
-      return unless File.exist?(snapshot_path)
-
-      start = Time.now
-
-      snapshot = ::Yajl::Parser.parse(File.read(snapshot_path))
-      snapshot ||= {}
-
-      if snapshot["instances"]
-        snapshot["instances"].each do |attributes|
-          instance_state = attributes.delete("state")
-          instance = create_instance(attributes)
-          next unless instance
-
-          # Ignore instance if it doesn't validate
-          begin
-            instance.validate
-          rescue => error
-            logger.warn("Error validating instance: #{error.message}")
-            next
-          end
-
-          # Enter instance state via "RESUMING" to trigger the right transitions
-          instance.state = Instance::State::RESUMING
-          instance.state = instance_state
-        end
-
-        logger.debug("Loading snapshot took: %.3fs" % [Time.now - start])
       end
     end
 
@@ -500,15 +448,15 @@ module Dea
       end
 
       instance.on(Instance::Transition.new(:starting, :running)) do
-        save_snapshot
+        snapshot.save
       end
 
       instance.on(Instance::Transition.new(:running, :stopping)) do
-        save_snapshot
+        snapshot.save
       end
 
       instance.on(Instance::Transition.new(:running, :crashed)) do
-        save_snapshot
+        snapshot.save
       end
 
       instance.on(Instance::Transition.new(:stopping, :stopped)) do

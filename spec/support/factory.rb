@@ -1,4 +1,5 @@
 # coding: UTF-8
+require "vcap/common"
 
 module Helpers
   def valid_service_attributes(syslog_drain_url = nil)

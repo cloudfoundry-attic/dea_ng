@@ -900,4 +900,31 @@ describe Dea::Bootstrap do
       bootstrap.handle_dea_directed_start(Dea::Nats::Message.new(nil, nil, instance_data, nil))
     end
   end
+
+  describe "start" do
+    before do
+      bootstrap.stub(:snapshot) { double(:snapshot, :load => nil) }
+      bootstrap.stub(:start_component)
+      bootstrap.stub(:start_nats)
+      bootstrap.stub(:start_directory_server)
+      bootstrap.stub(:greet_router)
+      bootstrap.stub(:register_directory_server_v2)
+      bootstrap.stub(:directory_server_v2) { double(:directory_server_v2, :start => nil) }
+      bootstrap.stub(:setup_varz)
+      bootstrap.stub(:start_finish)
+    end
+
+    describe "snapshot" do
+      before do
+        bootstrap.unstub(:snapshot)
+      end
+
+      it "loads the snapshot on startup" do
+        Dea::Snapshot.any_instance.should_receive(:load)
+
+        bootstrap.setup_snapshot
+        bootstrap.start
+      end
+    end
+  end
 end

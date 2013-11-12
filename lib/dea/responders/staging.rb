@@ -58,7 +58,7 @@ module Dea::Responders
 
       staging_task_registry.register(task)
 
-      bootstrap.save_snapshot
+      bootstrap.snapshot.save
 
       notify_setup_completion(response, task)
       notify_completion(response, task)
@@ -133,7 +133,7 @@ module Dea::Responders
 
         staging_task_registry.unregister(task)
 
-        bootstrap.save_snapshot
+        bootstrap.snapshot.save
 
         if task.staging_message.start_message && !error
           start_message = task.staging_message.start_message.to_hash
@@ -152,7 +152,7 @@ module Dea::Responders
 
         staging_task_registry.unregister(task)
 
-        bootstrap.save_snapshot
+        bootstrap.snapshot.save
       end
     end
 

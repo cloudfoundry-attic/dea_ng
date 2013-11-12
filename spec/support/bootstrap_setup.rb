@@ -24,8 +24,7 @@ shared_context "bootstrap_setup" do
 
     bootstrap.stub(:validate_config)
 
-    bootstrap.stub(:save_snapshot)
-    bootstrap.stub(:load_snapshot)
+    bootstrap.stub(:snapshot) { double(:snapshot, :save => nil, :load => nil) }
 
     # No setup (explicitly unstub)
     bootstrap.stub(:setup_logging)
