@@ -3,11 +3,11 @@ require "dea/starting/instance"
 
 module Dea
   class Snapshot
-    def initialize(staging_task_registry, instance_registry, base_dir, bootstrap)
+    def initialize(staging_task_registry, instance_registry, base_dir, instance_manager)
       @staging_task_registry = staging_task_registry
       @instance_registry = instance_registry
       @base_dir = base_dir
-      @bootstrap = bootstrap
+      @instance_manager = instance_manager
     end
 
     def path
@@ -50,7 +50,7 @@ module Dea
       if snapshot["instances"]
         snapshot["instances"].each do |attributes|
           instance_state = attributes.delete("state")
-          instance = bootstrap.create_instance(attributes)
+          instance = instance_manager.create_instance(attributes)
           next unless instance
 
           # Ignore instance if it doesn't validate
@@ -71,7 +71,7 @@ module Dea
     end
 
     private
-    attr_reader :staging_task_registry, :instance_registry, :base_dir, :bootstrap
+    attr_reader :staging_task_registry, :instance_registry, :base_dir, :instance_manager
 
     def logger
       @logger ||= Steno::Logger.new("Snapshot", Steno.config.sinks, :level => Steno.config.default_log_level)

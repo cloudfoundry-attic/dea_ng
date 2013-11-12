@@ -7,9 +7,10 @@ describe Dea::Snapshot do
   let(:staging_task_registry) { double(:staging_task_registry) }
   let(:instance_registry) { double(:instance_registry) }
   let(:base_dir) { Dir.mktmpdir }
-  let(:bootstrap) { double(:bootstrap, :create_instance => nil, :config => {}) }
+  let(:instance_manager) { double(:instance_manager, :create_instance => nil) }
+  let(:bootstrap) { double(:bootstrap, :config => {}) }
 
-  let(:snapshot) { described_class.new(staging_task_registry, instance_registry, base_dir, bootstrap) }
+  let(:snapshot) { described_class.new(staging_task_registry, instance_registry, base_dir, instance_manager) }
 
   before do
     FileUtils.mkdir_p(File.join(base_dir, "tmp"))
@@ -157,7 +158,7 @@ describe Dea::Snapshot do
           ordered.
           with("abc")
 
-        bootstrap.should_receive(:create_instance) do |attr|
+        instance_manager.should_receive(:create_instance) do |attr|
           attr.should_not include("state")
 
           # Return mock instance

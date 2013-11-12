@@ -19,7 +19,7 @@ describe "Dea::Bootstrap#handle_dea_stop" do
     end
   end
 
-  let(:instance_mock) { bootstrap.create_instance(valid_instance_attributes) }
+  let(:instance_mock) { bootstrap.instance_manager.create_instance(valid_instance_attributes) }
 
   let(:resource_manager) do
     manager = double(:resource_manager)

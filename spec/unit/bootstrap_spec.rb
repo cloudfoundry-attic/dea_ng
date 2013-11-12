@@ -716,147 +716,6 @@ describe Dea::Bootstrap do
     end
   end
 
-  describe "creating an instance" do
-    let(:attributes) { valid_instance_attributes.merge(extra_attributes) }
-    subject(:subject) do
-      em { bootstrap.setup_instance_registry; done }
-      bootstrap.create_instance(attributes)
-    end
-
-    let(:instance) { Dea::Instance.new(bootstrap, attributes) }
-
-    let(:logger) { double(:mock_logger, :error => nil) }
-
-    before do
-      bootstrap.instance_variable_set(:@logger, logger)
-      bootstrap.instance_variable_set(:@resource_manager, resource_manager)
-    end
-
-    context "when the resource manager cannot reserve memory or space for the app" do
-      before do
-        Dea::Instance.stub(:new => instance)
-        bootstrap.stub(:nats).and_return(nats_client_mock)
-        bootstrap.instance_variable_set(:@resource_manager, resource_manager)
-      end
-
-      let(:resource_manager) do
-        manager = double(:resource_manager)
-        manager.stub(:could_reserve?) { false }
-        manager
-      end
-
-      let(:extra_attributes) { {"limits" => {"mem" => 1, "disk" => 2, "fds" => 3}} }
-
-      context "when memory cannot be reserved" do
-        before do
-          resource_manager.stub(:get_constrained_resource) { "memory" }
-        end
-
-        it "should log error indicating not enough memory resource available" do
-          logger.should_receive(:error).with(
-            "instance.start.insufficient-resource",
-            hash_including(:app => "37", :instance => 42, :constrained_resource => "memory"))
-          subject.should be_nil
-        end
-
-        it "should mark app as crashed" do
-          subject
-          expect(instance.exit_description).to eq "Not enough memory resource available."
-          expect(instance.state).to eq Dea::Instance::State::CRASHED
-        end
-
-        it "should send exited message" do
-          nats_client_mock.should_receive(:publish).with("droplet.exited", hash_including("droplet" => "37"))
-          subject
-        end
-      end
-
-      context "when disk space cannot be reserved" do
-        before do
-          resource_manager.stub(:get_constrained_resource) { "disk" }
-        end
-
-        it "should log error indicating not enough disk resource available" do
-          logger.should_receive(:error).with(
-            "instance.start.insufficient-resource",
-            hash_including(:app => "37", :instance => 42, :constrained_resource => "disk"))
-          subject.should be_nil
-        end
-
-        it "should mark app as crashed" do
-          subject
-          expect(instance.exit_description).to eq "Not enough disk resource available."
-          expect(instance.state).to eq Dea::Instance::State::CRASHED
-        end
-
-        it "should send exited message" do
-          nats_client_mock.should_receive(:publish).with("droplet.exited", hash_including("droplet" => "37"))
-          subject
-        end
-      end
-    end
-
-    context "when the resource manager can reserve space for the app" do
-      let(:resource_manager) do
-        manager = double(:resource_manager)
-        manager.stub(:could_reserve?).with(1, 2).and_return(true)
-        manager
-      end
-
-      let(:extra_attributes) { {"limits" => {"mem" => 1, "disk" => 2, "fds" => 3}} }
-
-      it "create the instance" do
-        logger.should_not_receive(:error)
-        logger.should_not_receive(:warn)
-
-        instance.should be_a(::Dea::Instance)
-      end
-    end
-
-    context "when limits are missing from the attributes" do
-      let(:resource_manager) do
-        manager = double(:resource_manager)
-        manager.stub(:could_reserve?).with(1, 2).and_return(false)
-        manager
-      end
-
-      subject(:instance) do
-        em { bootstrap.setup_instance_registry; done }
-        bootstrap.create_instance(valid_instance_attributes.delete("limits"))
-      end
-
-      it "fails validation instead of blowing up" do
-        logger.should_receive(:warn).with(/validat/)
-        instance.should be_nil
-      end
-    end
-
-    context "when the app message validation fails" do
-      before do
-        bootstrap.instance_variable_set(:@logger, logger)
-        bootstrap.instance_variable_set(:@resource_manager, resource_manager)
-      end
-
-      let(:resource_manager) do
-        manager = double(:resource_manager)
-        manager.stub(:could_reserve?).with(512, 128).and_return(true)
-        manager
-      end
-
-      let(:logger) { double(:mock_logger) }
-
-      it "does not register and logs" do
-        Dea::Instance.any_instance.stub(:validate).and_raise(RuntimeError)
-        logger.should_receive(:warn)
-
-        em { bootstrap.setup_instance_registry; done }
-        instance = bootstrap.create_instance(valid_instance_attributes)
-
-        instance.should be_nil
-      end
-    end
-  end
-
   describe "counting logs" do
     it "registers a log counter with the component" do
       log_counter = Steno::Sink::Counter.new
@@ -886,17 +745,14 @@ describe Dea::Bootstrap do
     end
 
     let(:instance) { double("instance", :start => nil) }
-    let(:production_app) { false }
 
     before do
-      bootstrap.stub(:create_instance) do
-        instance.stub(:production_app?) { production_app }
-        instance
-      end
+      bootstrap.setup_instance_manager
     end
 
     it "creates an instance" do
-      bootstrap.should_receive(:create_instance).with(instance_data)
+      bootstrap.instance_manager.should_receive(:create_instance).with(instance_data).and_return(instance)
+      instance.should_receive(:start)
       bootstrap.handle_dea_directed_start(Dea::Nats::Message.new(nil, nil, instance_data, nil))
     end
   end
