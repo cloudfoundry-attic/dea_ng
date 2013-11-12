@@ -119,7 +119,7 @@ describe Dea::Responders::DeaLocator do
                 "app_id_1" => 1,
                 "app_id_2" => 3
             },
-            "placement_properties" => nil
+            "placement_properties" => {}
         ))
         subject.advertise
       end
@@ -156,8 +156,8 @@ describe Dea::Responders::DeaLocator do
     end
 
     context "when does not config placement properties" do
-      it "publishes 'dea.advertise' message without placement properties" do
-        nats_mock.should_receive(:publish).with("dea.advertise", json_containing_entry("placement_properties", nil))
+      it "publishes 'dea.advertise' message with default placement properties" do
+        nats_mock.should_receive(:publish).with("dea.advertise", json_containing_entry("placement_properties", {}))
         subject.advertise
       end
     end
