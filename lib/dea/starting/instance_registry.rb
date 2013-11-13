@@ -227,6 +227,32 @@ module Dea
       r
     end
 
+    def instances_filtered_by_message(message)
+      app_id = message.data["droplet"].to_s
+
+      logger.debug2("Filter message for app_id: %s" % app_id, :app_id => app_id)
+
+      instances = instances_for_application(app_id)
+      if instances.empty?
+        logger.debug2("No instances found for app_id: %s" % app_id, :app_id => app_id)
+        return
+      end
+
+      make_set = lambda { |key| Set.new(message.data.fetch(key, [])) }
+      version = message.data["version"]
+      instance_ids = make_set.call("instances") | make_set.call("instance_ids")
+      indices = make_set.call("indices")
+      states = make_set.call("states").map { |e| Dea::Instance::State.from_external(e) }
+      instances.each do |_, instance|
+        next if version && (instance.application_version != version)
+        next if instance_ids.any? && !instance_ids.include?(instance.instance_id)
+        next if indices.any? && !indices.include?(instance.instance_index)
+        next if states.any? && !states.include?(instance.state)
+
+        yield(instance)
+      end
+    end
+
     private
 
     def add_instance(instance)

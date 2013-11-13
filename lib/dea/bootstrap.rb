@@ -441,7 +441,7 @@ module Dea
     end
 
     def handle_dea_stop(message)
-      instances_filtered_by_message(message) do |instance|
+      instance_registry.instances_filtered_by_message(message) do |instance|
         next unless instance.running? || instance.starting?
 
         instance.stop do |error|
@@ -481,7 +481,7 @@ module Dea
     end
 
     def handle_dea_find_droplet(message)
-      instances_filtered_by_message(message) do |instance|
+      instance_registry.instances_filtered_by_message(message) do |instance|
         response = Dea::Protocol::V1::FindDropletResponse.generate(self,
           instance,
           message.data)
@@ -626,46 +626,6 @@ module Dea
       nats.publish("dea.heartbeat", hbs)
 
       nil
-    end
-
-    def instances_filtered_by_message(message)
-      app_id = message.data["droplet"].to_s
-
-      if app_id
-        logger.debug2("Filter message for app_id: %s" % app_id, :app_id => app_id)
-      else
-        logger.warn("Filter message missing app_id")
-        return
-      end
-
-      instances = instance_registry.instances_for_application(app_id)
-      if instances.empty?
-        logger.debug2("No instances found for app_id: %s" % app_id, :app_id => app_id)
-        return
-      end
-
-      set_or_nil = lambda { |h, k| h.has_key?(k) ? Set.new(h[k]) : nil }
-
-      # Optional search filters
-      version = message.data["version"]
-      instance_ids = set_or_nil.call(message.data, "instances")
-      instance_ids ||= set_or_nil.call(message.data, "instance_ids")
-      indices = set_or_nil.call(message.data, "indices")
-      states = set_or_nil.call(message.data, "states")
-      states = states.map { |e| Dea::Instance::State.from_external(e) } unless states.nil?
-
-      instances.each do |_, instance|
-        matched = true
-
-        matched &&= (instance.application_version == version) unless version.nil?
-        matched &&= instance_ids.include?(instance.instance_id) unless instance_ids.nil?
-        matched &&= indices.include?(instance.instance_index) unless indices.nil?
-        matched &&= states.include?(instance.state) unless states.nil?
-
-        if matched
-          yield(instance)
-        end
-      end
     end
 
     def periodic_varz_update

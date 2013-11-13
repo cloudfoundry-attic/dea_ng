@@ -162,6 +162,98 @@ describe Dea::InstanceRegistry do
     end
   end
 
+  describe "#instances_filtered_by_message" do
+    let(:instance) do
+      instance = Dea::Instance.new(
+        bootstrap,
+        {"application_id" => "1", "application_version" => "abc", "instance_id" => "id1", "index" => 0})
+      instance.state = Dea::Instance::State::RUNNING
+      instance
+    end
+    let(:instance2) do
+      Dea::Instance.new(
+        bootstrap,
+        {"application_id" => "1", "application_version" => "def", "instance_id" => "id2", "index" => 1})
+    end
+
+    before do
+      instance_registry.register(instance)
+      instance_registry.register(instance2)
+    end
+
+    def filtered_instances(data)
+      instances = []
+      message = double(:data => data)
+      instance_registry.instances_filtered_by_message(message) do |i|
+        instances << i
+      end
+      instances
+    end
+
+    context "when the app id doesn't match anything" do
+      it "does not yield anything" do
+        expect(filtered_instances({"droplet" => ""})).to eq([])
+      end
+    end
+
+    context "when the app id matches some instances" do
+      let(:message_data) { {"droplet" => "1"} }
+      it "returns matching instances of the app" do
+        expect(filtered_instances(message_data)).to match_array([instance, instance2])
+      end
+
+      context "when filtered by version" do
+        let(:message_data) { {"droplet" => "1", "version" => "abc"} }
+        it "returns matching instances of the app" do
+          expect(filtered_instances(message_data)).to match_array([instance])
+        end
+      end
+
+      context "when filtered by instances" do
+        let(:message_data) { {"droplet" => "1", "instances" => ["id2"]} }
+        it "returns matching instances of the app" do
+          expect(filtered_instances(message_data)).to match_array([instance2])
+        end
+      end
+
+      context "when filtered by instance_ids" do
+        let(:message_data) { {"droplet" => "1", "instance_ids" => ["id2"]} }
+        it "returns matching instances of the app" do
+          expect(filtered_instances(message_data)).to match_array([instance2])
+        end
+      end
+
+      context "when filtered by indices" do
+        let(:message_data) { {"droplet" => "1", "indices" => [0]} }
+        it "returns matching instances of the app" do
+          expect(filtered_instances(message_data)).to match_array([instance])
+        end
+      end
+
+      context "when filtered by state" do
+        let(:message_data) { {"droplet" => "1", "states" => ["RUNNING", "STARTING"]} }
+        it "returns matching instances of the app" do
+          expect(filtered_instances(message_data)).to match_array([instance])
+        end
+      end
+
+      context "when filtered by version, instances, indices, state" do
+        let(:message_data) do
+          {
+            "droplet" => "1",
+            "version" => "abc",
+            "instances" => ["id1"],
+            "indices" => [0, 1],
+            "states" => ["RUNNING", "BORN"]
+          }
+        end
+        it "returns matching instances of the app" do
+          expect(filtered_instances(message_data)).to match_array([instance])
+        end
+      end
+    end
+  end
+
   describe "crash reaping of orphans" do
     include_context "tmpdir"
 

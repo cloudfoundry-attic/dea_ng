@@ -28,6 +28,8 @@ describe "Dea::Bootstrap#handle_dea_stop" do
     manager
   end
 
+  let(:instance_registry) { double(:instance_registry, :register => nil, :unregister => nil) }
+
   before do
     bootstrap.unstub(:setup_router_client)
     em do
@@ -38,15 +40,16 @@ describe "Dea::Bootstrap#handle_dea_stop" do
     Dea::Instance.any_instance.stub(:setup_link)
     Dea::Responders::DeaLocator.any_instance.stub(:start) # to deal with test pollution
     bootstrap.stub(:resource_manager).and_return(resource_manager)
-    bootstrap.stub(:instances_filtered_by_message).and_yield(instance_mock)
+    bootstrap.stub(:instance_registry).and_return(instance_registry)
 
+    instance_registry.stub(:instances_filtered_by_message).and_yield(instance_mock)
     instance_mock.stub(:promise_stop).and_return(delivering_promise)
     instance_mock.stub(:destroy)
   end
 
   describe "filtering" do
     before do
-      bootstrap.stub(:instances_filtered_by_message) do
+      instance_registry.stub(:instances_filtered_by_message) do
         EM.next_tick do
           done
         end
@@ -116,7 +119,7 @@ describe "Dea::Bootstrap#handle_dea_stop" do
     before do
       instance_mock.stub(:running?).and_return(true)
 
-      bootstrap.stub(:instances_filtered_by_message) do
+      instance_registry.stub(:instances_filtered_by_message) do
         EM.next_tick do
           done
         end
