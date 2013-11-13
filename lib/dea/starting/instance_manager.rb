@@ -45,7 +45,7 @@ module Dea
 
       instance.on(Instance::Transition.new(:starting, :running)) do
         # Notify others immediately
-        bootstrap.send_heartbeat([instance])
+        bootstrap.send_heartbeat()
 
         # Register with router
         bootstrap.router_client.register_instance(instance)

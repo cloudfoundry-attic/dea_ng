@@ -669,7 +669,7 @@ describe Dea::Bootstrap do
       end
 
       it "heartbeats its registry" do
-        bootstrap.should_receive(:send_heartbeat).with(instances)
+        bootstrap.should_receive(:send_heartbeat)
         bootstrap.start_finish
       end
     end

@@ -271,7 +271,7 @@ module Dea
     def setup_sweepers
       # Heartbeats of instances we're managing
       hb_interval = config["intervals"]["heartbeat"] || DEFAULT_HEARTBEAT_INTERVAL
-      @heartbeat_timer = EM.add_periodic_timer(hb_interval) { send_heartbeat(instance_registry.to_a) }
+      @heartbeat_timer = EM.add_periodic_timer(hb_interval) { send_heartbeat() }
 
       # Ensure we keep around only the most recent crash for short amount of time
       instance_registry.start_reaper
@@ -346,7 +346,7 @@ module Dea
 
       unless instance_registry.empty?
         logger.info("Loaded #{instance_registry.size} instances from snapshot")
-        send_heartbeat(instance_registry.to_a)
+        send_heartbeat()
       end
     end
 
@@ -400,7 +400,7 @@ module Dea
     end
 
     def handle_health_manager_start(message)
-      send_heartbeat(instance_registry.to_a)
+      send_heartbeat()
     end
 
     def handle_router_start(message)
@@ -611,13 +611,9 @@ module Dea
       nil
     end
 
-    def send_heartbeat(instances)
-      instances = instances.select do |instance|
-        match = false
-        match ||= instance.starting?
-        match ||= instance.running?
-        match ||= instance.crashed?
-        match
+    def send_heartbeat()
+      instances = instance_registry.to_a.select do |instance|
+        instance.starting? || instance.running? || instance.crashed?
       end
 
       return if instances.empty?

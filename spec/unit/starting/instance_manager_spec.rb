@@ -109,7 +109,7 @@ describe Dea::InstanceManager do
               subject { instance.state = Dea::Instance::State::RUNNING }
 
               it "sends heartbeat" do
-                bootstrap.should_receive(:send_heartbeat).with([instance])
+                bootstrap.should_receive(:send_heartbeat)
                 subject
               end
 
