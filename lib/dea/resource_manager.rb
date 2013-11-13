@@ -23,6 +23,10 @@ module Dea
       @instance_registry.app_id_to_count
     end
 
+    def space_id_to_count
+      @instance_registry.space_id_to_count
+    end
+
     def could_reserve?(memory, disk)
       (remaining_memory > memory) && (remaining_disk > disk)
     end

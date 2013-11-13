@@ -146,7 +146,8 @@ describe Dea::Responders::DeaLocator do
           "app_id_to_count" => {
             "app_id_1" => 1,
             "app_id_2" => 3
-          }
+          },
+          "space_id_to_count" => {}
         ))
         subject.advertise
       end
@@ -164,7 +165,8 @@ describe Dea::Responders::DeaLocator do
           "app_id_to_count" => {
             "app_id_1" => 1,
             "app_id_2" => 3
-          }
+          },
+          "space_id_to_count" => { }
         ))
         subject.advertise
       end
@@ -182,7 +184,8 @@ describe Dea::Responders::DeaLocator do
           "app_id_to_count" => {
             "app_id_1" => 1,
             "app_id_2" => 3
-          }
+          },
+          "space_id_to_count" => {}
         ))
         subject.advertise
       end

@@ -100,6 +100,7 @@ module Dea::Protocol::V1
         "stacks" => message[:stacks],
         "available_memory" => message[:available_memory],
         "app_id_to_count" => message[:app_id_to_count],
+        "space_id_to_count" => message[:space_id_to_count],
       }
     end
   end

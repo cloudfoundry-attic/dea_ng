@@ -7,7 +7,7 @@ logging:
   level: debug
 
 resources:
-  memory_mb: 2048
+  memory_mb: 20480
   memory_overcommit_factor: 2
   disk_mb: 2048
   disk_overcommit_factor: 2
