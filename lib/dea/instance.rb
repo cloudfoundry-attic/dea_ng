@@ -450,7 +450,7 @@ module Dea
 
     def promise_setup_environment
       Promise.new do |p|
-        script = "cd / && mkdir -p home/vcap/app && chown vcap:vcap home/vcap/app && ln -s home/vcap/app /app"
+        script = "cd / && mkdir -p home/work && chown vcap:vcap home/work && ln -s home/work /app"
         promise_warden_run(:app, script, true).resolve
 
         p.deliver
@@ -468,7 +468,7 @@ module Dea
 
     def promise_extract_droplet
       Promise.new do |p|
-        script = "cd /home/vcap/ && tar zxf #{droplet.droplet_path}"
+        script = "cd /home/vcap/ && tar zxf #{droplet.droplet_path} && mv app/* /home/work/ && mkdir -p /home/work/logs"
 
         promise_warden_run(:app, script).resolve
 

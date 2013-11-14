@@ -79,7 +79,6 @@ module Buildpacks
         #{environment_statements_for(env_vars)}
       #{after_env_before_script}
         DROPLET_BASE_DIR=$PWD
-        cd app
         (#{start_command}) > $DROPLET_BASE_DIR/logs/stdout.log 2> $DROPLET_BASE_DIR/logs/stderr.log &
         STARTED=$!
         echo "$STARTED" >> $DROPLET_BASE_DIR/run.pid
@@ -182,8 +181,9 @@ module Buildpacks
       generate_startup_script(running_environment_variables) do
         script_content = <<-BASH
 unset GEM_PATH
-if [ -d app/.profile.d ]; then
-  for i in app/.profile.d/*.sh; do
+cd /home/work
+if [ -d .profile.d ]; then
+  for i in .profile.d/*.sh; do
     if [ -r $i ]; then
       . $i
     fi
