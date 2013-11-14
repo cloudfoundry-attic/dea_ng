@@ -7,6 +7,9 @@
 [submodule "go/vendor"]
 	path = go/vendor
 	url = https://github.com/cloudfoundry/govendor
+[submodule "buildpacks/vendor/clr"]
+	path = buildpacks/vendor/clr
+	url = https://github.com/IronFoundry/cloudfoundry-buildpack-clr.git
 [submodule "buildpacks/vendor/java"]
 	path = buildpacks/vendor/java
 	url = https://github.com/cloudfoundry/java-buildpack

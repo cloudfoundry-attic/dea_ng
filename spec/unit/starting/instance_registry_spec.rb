@@ -475,6 +475,14 @@ describe Dea::InstanceRegistry do
       instance_registry.disk_pressure?.should be_false
     end
 
+    it "should return false when #stat raises on windows" do
+      stub_const('VCAP::WINDOWS', true)
+      Sys::Filesystem.should_receive(:mount_point)
+      Sys::Filesystem.should_receive(:stat).and_raise("error")
+
+      instance_registry.disk_pressure?.should be_false
+    end
+
     it "should return false when thresholds are not reached" do
       stat = double
       stat.stub(:blocks => 10, :blocks_free => 8)

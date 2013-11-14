@@ -6,19 +6,11 @@ GIT
       em-warden-client
 
 GIT
-  remote: https://github.com/cloudfoundry/steno.git
-  revision: d88c70767c43a5eff32ccb47e3bb561b981e62e8
-  specs:
-    steno (1.1.0)
-      fluent-logger
-      grape
-      yajl-ruby (~> 1.0)
-
-GIT
   remote: https://github.com/cloudfoundry/vcap-common.git
-  revision: f7653c1140e6818fca6dd9a7591c2e3dc8d2e24b
+  revision: cc1d06f746cba7215497fc05c32ad175c819b726
   specs:
-    vcap_common (2.0.11)
+    vcap_common (2.2.2)
+      addressable (~> 2.2)
       em-http-request (~> 1.0)
       eventmachine
       httpclient
@@ -27,13 +19,16 @@ GIT
       multipart-post
       nats (~> 0.4.24)
       posix-spawn (~> 0.3.6)
+      squash_ruby
+      steno
       thin
+      uuidtools
       vmstat (~> 2.0)
       yajl-ruby
 
 GIT
   remote: https://github.com/cloudfoundry/warden.git
-  revision: 30d3df1d9709ea254f5cc005e7c8b7b9825d293b
+  revision: 48fa0bf6fb28960894dfd62a9ef78bf94adf02e4
   specs:
     em-warden-client (0.1.1)
       eventmachine
@@ -109,15 +104,20 @@ GEM
       eventmachine (>= 1.0.0.beta.4)
     erubis (2.7.0)
     eventmachine (1.0.3)
+    eventmachine (1.0.3-x86-mingw32)
     ffi (1.0.11)
     fluent-logger (0.4.5)
       msgpack (= 0.4.7)
       yajl-ruby (~> 1.0)
     foreman (0.61.0)
       thor (>= 0.13.6)
+    foreman (0.61.0-x86-mingw32)
+      thor (>= 0.13.6)
+      win32console (~> 1.3.0)
     hashie (2.0.5)
     highline (1.6.15)
     http_parser.rb (0.5.3)
+    http_parser.rb (0.5.3-x86-mingw32)
     httpclient (2.3.3)
     i18n (0.6.1)
     ipaddress (0.8.0)
@@ -138,7 +138,10 @@ GEM
     mixlib-config (1.1.2)
     mixlib-log (1.4.1)
     mixlib-shellout (1.1.0)
+    mixlib-shellout (1.1.0-x86-mingw32)
+      win32-process (~> 0.6.5)
     msgpack (0.4.7)
+    msgpack (0.4.7-x86-mingw32)
     multi_json (1.7.6)
     multi_xml (0.5.4)
     multipart-post (1.2.0)
@@ -154,6 +157,7 @@ GEM
       net-ssh (>= 2.1.4)
       net-ssh-gateway (>= 0.99.0)
     nokogiri (1.5.6)
+    nokogiri (1.5.6-x86-mingw32)
     ohai (6.16.0)
       ipaddress
       mixlib-cli
@@ -191,8 +195,21 @@ GEM
       rack (~> 1.4)
       rack-protection (~> 1.3)
       tilt (~> 1.3, >= 1.3.3)
+    squash_ruby (1.2.2)
+      json
+    steno (1.2.2)
+      fluent-logger
+      grape
+      yajl-ruby (~> 1.0)
+    steno (1.2.2-x86-mingw32)
+      fluent-logger
+      grape
+      win32-eventlog
+      yajl-ruby (~> 1.0)
     sys-filesystem (1.0.0)
       ffi (>= 1.0.0)
+    sys-filesystem (1.0.0-x86-mingw32)
+      windows-pr (>= 1.0.5)
     systemu (2.5.2)
     thin (1.5.1)
       daemons (>= 1.0.9)
@@ -209,10 +226,23 @@ GEM
     webmock (1.15.2)
       addressable (>= 2.2.7)
       crack (>= 0.3.2)
+    win32-api (1.5.0-x86-mingw32)
+    win32-eventlog (0.5.3)
+      windows-pr (>= 0.9.3)
+    win32-process (0.6.6)
+      windows-pr (>= 1.2.2)
+    win32console (1.3.2-x86-mingw32)
+    windows-api (0.4.2)
+      win32-api (>= 1.4.5)
+    windows-pr (1.2.2)
+      win32-api (>= 1.4.5)
+      windows-api (>= 0.3.0)
     yajl-ruby (1.1.0)
+    yajl-ruby (1.1.0-x86-mingw32)
 
 PLATFORMS
   ruby
+  x86-mingw32
 
 DEPENDENCIES
   ci_reporter
@@ -236,7 +266,7 @@ DEPENDENCIES
   rspec
   rubyzip
   sinatra
-  steno (~> 1.1.0)!
+  steno
   sys-filesystem
   thin
   timecop

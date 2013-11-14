@@ -14,7 +14,13 @@ EventMachine::HttpClient.class_eval do
       multipart_header = make_multipart_header(multipart[:name], multipart[:filename])
 
       # We append as #stream_file_data closes the connection
-      system "echo '#{EventMachine::HttpClient::CRLF}#{multipart_footer}' >> #{file}"
+      if VCAP::WINDOWS
+        File.open(file, 'ab') do |f|
+          f.puts("#{EventMachine::HttpClient::CRLF}#{multipart_footer}")
+        end
+      else
+        system "echo '#{EventMachine::HttpClient::CRLF}#{multipart_footer}' >> #{file}"
+      end
 
       @conn.send_data http_header(file, head, multipart_header)
       @conn.send_data multipart_header

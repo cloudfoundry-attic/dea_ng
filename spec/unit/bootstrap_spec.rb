@@ -3,6 +3,7 @@
 require "spec_helper"
 require "dea/bootstrap"
 require "dea/starting/instance"
+require "dea/starting/win_instance"
 require "steno/sink/counter"
 
 describe Dea::Bootstrap do
@@ -33,6 +34,20 @@ describe Dea::Bootstrap do
     bootstrap
   end
 
+  subject(:win_bootstrap) do
+    stub_const('VCAP::WINDOWS', true)
+    bootstrap = nil
+    if EM.reactor_running?
+      em do
+        bootstrap = Dea::Bootstrap.new(@config)
+        done
+      end
+    else
+      bootstrap = Dea::Bootstrap.new(@config)
+    end
+    bootstrap
+  end
+
   let(:nats_client_mock) do
     nats_client_mock = double("nats_client").as_null_object
     nats_client_mock.stub(:flush) { |&blk| blk.call }
@@ -42,7 +57,7 @@ describe Dea::Bootstrap do
   describe "logging setup" do
     after { bootstrap.setup_logging }
 
-    it "should use a file sink when specified" do
+    it "should use a file sink when specified", unix_only:true do
       @config = { "logging" => { "file" => File.join(tmpdir, "out.log") } }
 
       Steno.should_receive(:init).with do |config|
@@ -52,7 +67,7 @@ describe Dea::Bootstrap do
       end
     end
 
-    it "should use a syslog sink when specified" do
+    it "should use a syslog sink when specified", unix_only:true do
       @config = { "logging" => { "syslog" => "ident" } }
 
       Steno.should_receive(:init).with do |config|
@@ -108,7 +123,7 @@ describe Dea::Bootstrap do
     end
   end
 
-  describe "signal handlers" do
+  describe "signal handlers", unix_only:true do
     def send_signal(signal)
       Process.kill(signal, Process.pid)
 
@@ -124,7 +139,7 @@ describe Dea::Bootstrap do
     end
 
     %W(TERM INT QUIT USR1 USR2).each do |signal|
-      it "should trap SIG#{signal}" do
+      it "should trap SIG#{signal}", unix_only:true do
         test_signal(signal)
       end
     end
@@ -146,7 +161,7 @@ describe Dea::Bootstrap do
       end
     end
 
-    describe "handling USR1" do
+    describe "handling USR1", unix_only:true do
       before do
         nats_mock.stub(:start)
         bootstrap.stub(nats: nats_mock)
@@ -183,6 +198,29 @@ describe Dea::Bootstrap do
           send_signal("USR1")
           send_signal("USR1")
         end
+      end
+    end
+  end
+
+  describe "signal handlers on windows" do
+    def send_signal(signal)
+      Process.kill(signal, Process.pid)
+
+      # Wait for the signal to arrive
+      sleep 0.15
+    end
+
+    def test_signal(signal)
+      win_bootstrap.with_signal_handlers do
+        win_bootstrap.should_receive("trap_#{signal.downcase}")
+        send_signal(signal)
+      end
+    end
+
+    %W(TERM INT).each do |signal|
+      it "should trap SIG#{signal}" do
+        stub_const('VCAP::WINDOWS', true)
+        test_signal(signal)
       end
     end
   end

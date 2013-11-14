@@ -50,7 +50,11 @@ module Dea
     EXIT_REASON_SHUTDOWN = "DEA_SHUTDOWN"
     EXIT_REASON_EVACUATION = "DEA_EVACUATION"
 
-    SIGNALS_OF_INTEREST = %W(TERM INT QUIT USR1 USR2)
+    if VCAP::WINDOWS
+      SIGNALS_OF_INTEREST = %W(TERM INT)
+    else
+      SIGNALS_OF_INTEREST = %W(TERM INT QUIT USR1 USR2)
+    end
 
     attr_reader :config
     attr_reader :nats, :responders

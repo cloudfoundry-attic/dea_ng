@@ -5,6 +5,7 @@ require "pathname"
 
 require "steno"
 require "steno/core_ext"
+require "vcap/common"
 
 # Rack::Directory serves entries below the +root+ given, according to the
 # path info of the Rack request. If a directory is found, the file's contents
@@ -17,7 +18,11 @@ module Dea
   class FileServer < Rack::File
     # based on Rack::File, just add the NOFOLLOW flag
     def each
-      F.open(@path, File::RDONLY | File::NOFOLLOW | File::BINARY) do |file|
+      options = File::RDONLY | File::BINARY
+      unless VCAP::WINDOWS
+        options = File::RDONLY | File::NOFOLLOW | File::BINARY
+      end
+      F.open(@path, options) do |file|
         file.seek(@range.begin)
         remaining_len = @range.end-@range.begin+1
         while remaining_len > 0

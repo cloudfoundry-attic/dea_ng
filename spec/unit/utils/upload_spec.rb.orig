@@ -1,0 +1,202 @@
+require 'spec_helper'
+require 'dea/utils/upload'
+
+describe Upload do
+  let(:file_to_upload) do
+    file_to_upload = Tempfile.new("file_to_upload")
+    file_to_upload << "This is the file contents"
+    file_to_upload.close
+    file_to_upload
+  end
+
+  let(:to_uri) { URI("http://127.0.0.1:12345/") }
+
+  subject { Upload.new(file_to_upload.path, to_uri) }
+
+  describe "#upload!" do
+    let(:request) { double(:request, method: 'delete').as_null_object }
+    let(:http) { double(:http, req: request).as_null_object }
+    let(:uploaded_contents) { "" }
+    let(:status) { "running" }
+    let(:job_url) { "http://127.0.0.1:12345/v2/jobs/123" }
+    let(:job_string) { JSON.dump(job_json) }
+
+    let(:job_json) do
+      {
+          metadata: {guid: 123, created_at: Time.now.to_s, url: job_url},
+          entity: {guid: 123, status: status}
+      }
+    end
+
+    def create_response(connection, message, code = 200)
+      connection.send_data("HTTP/1.1 #{code}\r\n")
+      connection.send_data("Content-Length: #{message.length}\r\n")
+      connection.send_data("\r\n")
+      connection.send_data(message)
+      connection.send_data("\r\n")
+    end
+
+    around do |example|
+      em { example.call }
+    end
+
+    it "requests an async upload of the droplet" do
+      stub = stub_request(:post, "http://127.0.0.1:12345/").with(query: {async: "true"})
+      subject.upload! {}
+      done
+    end
+
+    it "creates the correct multipart request (with a high inactivity timeout which should be removed when everything is aysnc)" do
+      expect(EM::HttpRequest).to receive(:new).with(to_uri, inactivity_timeout: 300).and_return(http)
+      expect(http).to receive(:post).with(
+                          head: {'x-cf-multipart' => {name: "upload[droplet]", filename: anything}},
+                          file: file_to_upload.path,
+                          query: {async: "true"}
+                      )
+
+      subject.upload! {}
+
+      done
+    end
+
+<<<<<<< HEAD
+    context "when sync and successfully" do
+=======
+    context "when uploading successfully", unix_only:true do
+      let (:uploaded_contents) { "" }
+
+>>>>>>> Add support for Windows with .NET Warden.
+      before do
+        start_http_server(12345) do |connection, data|
+          uploaded_contents << data
+          create_response(connection, "")
+        end
+      end
+
+      it "uploads a file" do
+        subject.upload! do |error|
+          error.should be_nil
+          uploaded_contents.should match(/.*multipart-boundary-.*Content-Disposition.*This is the file contents.*multipart-boundary-.*/m)
+          done
+        end
+      end
+    end
+
+    context "when async" do
+      context "and successfully" do
+        let(:finished_json_string) { JSON.dump(job_json.merge(entity: {guid: 123, status: "finished"})) }
+
+        before do
+          @request_timestamps ||= []
+          counter = 0
+          start_http_server(12345) do |connection, data|
+            @request_timestamps << Time.now
+            create_response(connection, counter < 2 ? job_string : finished_json_string)
+            counter += 1
+          end
+        end
+
+        it "should poll the cloud controller until done" do
+          subject.upload! do |error|
+            expect(error).to be_nil
+            done
+          end
+        end
+
+        it "should poll around every second" do
+          subject.upload! do
+            expect(@request_timestamps[-1] - @request_timestamps[-2]).to be >= 1.0
+            done
+          end
+        end
+      end
+
+      context "and unsuccefully" do
+        context "and the polling response from the cc is a 5xx" do
+          before do
+            counter = 0
+            start_http_server(12345) do |connection, data|
+              create_response(connection, job_string, counter > 1 ? 500 : 200)
+              counter += 1
+            end
+          end
+
+          it "should poll the cloud controller until errback-ed and returns failure information" do
+            subject.upload! do |error|
+              expect(error.message).to include "Error uploading: #{job_url} (Polling status:"
+              done
+            end
+          end
+
+        end
+
+        context "and the polling response from the cc is not a 200" do
+          before do
+            counter = 0
+            start_http_server(12345) do |connection, data|
+              if counter < 2
+                create_response(connection, job_string)
+              else
+                create_response(connection, "Client Error", 400)
+              end
+              counter += 1
+            end
+          end
+
+          it "should poll the cloud controller until failed and returns failure information" do
+            subject.upload! do |error|
+              expect(error.message).not_to be_nil
+              expect(error.message).to eq "Error uploading: #{job_url} (Polling status: 400 - Client Error)"
+              done
+            end
+          end
+        end
+
+        context "and the polling returns a failed upload" do
+          let(:error_json_string) { JSON.dump(job_json.merge(entity: {guid: 123, status: "failed"})) }
+
+          before do
+            counter = 0
+            start_http_server(12345) do |connection, data|
+              create_response(connection, counter < 2 ? job_string : error_json_string)
+              counter += 1
+            end
+          end
+
+          it "should poll the cloud controller until failed and returns failure information" do
+            subject.upload! do |error|
+              expect(error.message).to include "Error uploading: #{job_url} (Polling status:"
+              done
+            end
+          end
+        end
+      end
+    end
+
+    context "when there is no server running" do
+      it "calls the block with the exception" do
+        subject.upload! do |error|
+          expect(error).to be_a(UploadError)
+          expect(error.message).to include "Error uploading: http://127.0.0.1:12345/ (Upload status:"
+          done
+        end
+      end
+    end
+
+    context "when you get a 500", unix_only:true do
+      before do
+        start_http_server(12345) do |connection, data|
+          create_response(connection, "", 500)
+        end
+      end
+
+      it "calls the block with the exception" do
+        subject.upload! do |error|
+          expect(error).to be_a(UploadError)
+          expect(error.message).to match %r{Error uploading: #{to_uri} \(Upload status: 500 - }
+          done
+        end
+      end
+    end
+  end
+end

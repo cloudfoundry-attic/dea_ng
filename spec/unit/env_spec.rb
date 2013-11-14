@@ -6,7 +6,7 @@ require "dea/env"
 require "dea/starting/start_message"
 require "dea/staging/staging_message"
 
-describe Dea::Env do
+describe Dea::Env, unix_only: true do
   let(:service) do
     {
       "credentials" => {"uri" => "postgres://user:pass@host:5432/db"},
