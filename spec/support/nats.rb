@@ -80,8 +80,7 @@ module NatsClientMockHelpers
     before do
       @nats_mock = NatsClientMock.new({})
       allow(NATS).to receive(:connect) do |opts|
-        # By setting the max reconnect attempts to a large number, it gives us more time to recover from NATS outages
-        opts[:max_reconnect_attempts].should == 999999
+        opts[:max_reconnect_attempts].should == Float::INFINITY
         nats_mock
       end
     end

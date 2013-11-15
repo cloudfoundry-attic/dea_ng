@@ -7,7 +7,7 @@ describe Dea::Nats do
   stub_nats
 
   let(:bootstrap) { double("bootstrap") }
-  let(:config) { {"nats_uri" => "nats://something:4222"} }
+  let(:config) { {"nats_servers" => ["nats://something:4222"]} }
   subject(:nats) { Dea::Nats.new(bootstrap, config) }
 
   describe "subscription setup" do

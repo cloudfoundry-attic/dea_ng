@@ -16,7 +16,8 @@ resources:
   disk_mb: 2048
   disk_overcommit_factor: 2
 
-nats_uri: nats://localhost:4222/
+nats_servers:
+  - nats://localhost:4222/
 
 pid_filename: /tmp/dea_ng.pid
 

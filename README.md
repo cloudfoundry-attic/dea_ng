@@ -53,7 +53,7 @@ bin/dea config/dea.yml
 The following is a partial list of the keys that are read from the YAML file:
 
 * `logging` - a [Steno configuration](http://github.com/cloudfoundry/steno#from-yaml-file)
-* `nats_uri` - a URI of the form `nats://host:port` that the DEA will use to connect to NATS.
+* `nats_servers` - an array of URIs of the form `nats://host:port` that the DEA will use to connect to NATS.
 * `warden_socket` - the path to a unix domain socket that the DEA will use to communicate to a warden server.
 
 ### Running the DEA in the provided Vagrant VM

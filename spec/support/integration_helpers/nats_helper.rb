@@ -19,7 +19,7 @@ class NatsHelper
   end
 
   def with_nats(&blk)
-    NATS.start(:uri => nats_uri, &blk)
+    NATS.start(:uri => nats_servers, &blk)
   end
 
   def with_subscription(key)
@@ -82,7 +82,7 @@ class NatsHelper
     Yajl::Parser.parse(response) if response
   end
 
-  def nats_uri
-    @dea_config["nats_uri"]
+  def nats_servers
+    @dea_config["nats_servers"]
   end
 end

@@ -26,7 +26,7 @@ module Dea
             optional("syslog") => String,
           },
 
-          "nats_uri" => String,
+          "nats_servers" => [String],
           "pid_filename" => String,
           "warden_socket" => String,
           "index" => Integer,

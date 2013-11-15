@@ -9,7 +9,7 @@ gem "warden-protocol", :git => "https://github.com/cloudfoundry/warden.git"
 gem "container_tools", :git => "https://github.com/cloudfoundry/container_tools.git"
 
 
-gem "nats", :require => "nats/client"
+gem "nats", ">= 0.5.0.beta.12", "< 0.6", :require => "nats/client"
 gem "rack", :require => %w[rack/utils rack/mime]
 gem "rake"
 gem "thin"

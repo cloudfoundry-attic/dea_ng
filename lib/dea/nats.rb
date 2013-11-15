@@ -96,11 +96,13 @@ module Dea
     end
 
     def create_nats_client
-      logger.info "nats.connecting", uri: config["nats_uri"]
+      logger.info "nats.connecting", servers: config["nats_servers"]
 
-      # NATS waits by default for 2s before attempting to reconnect, so a million reconnect attempts would
-      # save us from a NATS outage for approximately 23 days - which is large enough.
-      ::NATS.connect(:uri => config["nats_uri"], :max_reconnect_attempts => 999999)
+      ::NATS.connect(
+        :servers => config["nats_servers"],
+        :max_reconnect_attempts => Float::INFINITY,
+        :dont_randomize_servers => true,
+      )
     end
 
     class Message
