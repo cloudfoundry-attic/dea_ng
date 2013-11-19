@@ -1,4 +1,5 @@
 require "spec_helper"
+require "securerandom"
 
 describe "Running an app immediately after staging", :type => :integration, :requires_warden => true do
   let(:unstaged_url) { "http://#{file_server_address}/unstaged/sinatra" }
@@ -10,12 +11,12 @@ describe "Running an app immediately after staging", :type => :integration, :req
     fake_buildpack_url("start_command")
   end
 
-  let(:app_id) { "some-app-id" }
+  let(:app_id) { SecureRandom.uuid }
 
   let(:start_message) do
     {
       "index" => 1,
-      "droplet" => "some-app-id",
+      "droplet" => app_id,
       "version" => "some-version",
       "name" => "some-app-name",
       "uris" => [],
