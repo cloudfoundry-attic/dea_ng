@@ -1,3 +1,5 @@
+# coding: UTF-8
+
 require "spec_helper"
 require "em-http"
 require "dea/config"
@@ -82,22 +84,6 @@ describe Dea::StagingTask do
 
         expect(cmd).to match %r{.*/bin/run .*/plugin_config | tee -a}
 
-        empty_streams
-      end
-      staging.promise_stage.resolve
-    end
-
-    it "runs the script without privilege" do
-      staging.container.should_receive(:run_script) do |_, cmd, with_privilege, _|
-        expect(with_privilege).to be_false
-        empty_streams
-      end
-      staging.promise_stage.resolve
-    end
-
-    it "tells the container to discard output" do
-      staging.container.should_receive(:run_script) do |_, cmd, _, discard_output|
-        expect(discard_output).to be_true
         empty_streams
       end
       staging.promise_stage.resolve

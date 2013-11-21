@@ -208,10 +208,6 @@ module DeaHelpers
       integration_config["host"]
     end
 
-    def remove_instance_file
-      remote_exec("rm #{instance_file_path}")
-    end
-
     def start
       remote_exec("monit start dea_next")
     end
@@ -226,6 +222,10 @@ module DeaHelpers
 
     def evacuate_dea
       remote_exec("kill -USR2 #{pid}")
+    end
+
+    def instance_file
+      remote_file(File.join(config["base_dir"], "db", "instances.json"))
     end
 
     def config
@@ -275,15 +275,6 @@ module DeaHelpers
 
         return result
       end
-    end
-
-    def instance_file
-      remote_file(instance_file_path())
-    end
-
-    private
-    def instance_file_path
-      File.join(config["base_dir"], "db", "instances.json")
     end
   end
 end

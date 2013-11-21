@@ -210,8 +210,7 @@ module Dea
         logger.debug "staging.task.execute-staging", script: script
 
         Timeout.timeout(staging_timeout + staging_timeout_grace_period) do
-          result = container.run_script(:app, script, false, true)
-          loggregator_emit_result result
+          loggregator_emit_result container.run_script(:app, script)
         end
 
         p.deliver
