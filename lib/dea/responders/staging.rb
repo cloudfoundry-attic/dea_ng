@@ -131,6 +131,8 @@ module Dea::Responders
           :droplet_sha1 => task.droplet_sha1
         })
 
+        # Unregistering the staging task will release the reservation of excess memory reserved for the app,
+        # if the app requires more memory than the staging process.
         staging_task_registry.unregister(task)
 
         bootstrap.snapshot.save
@@ -138,6 +140,9 @@ module Dea::Responders
         if task.staging_message.start_message && !error
           start_message = task.staging_message.start_message.to_hash
           start_message["sha1"] = task.droplet_sha1
+          # Now re-reserve the app's memory.  There may be a window between staging task unregistration and here
+          # where the DEA could no longer have enough memory to start the app.  In that case, the health manager
+          # should cause the app to be relocated on another DEA.
           bootstrap.start_app(start_message)
         end
       end

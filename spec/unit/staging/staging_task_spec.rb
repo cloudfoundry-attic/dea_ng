@@ -653,10 +653,6 @@ YAML
   end
 
   describe "#memory_limit_in_bytes" do
-    it "exports memory in bytes as specified in the config file" do
-      staging.memory_limit_in_bytes.should eq(1024 * 1024 * memory_limit_mb)
-    end
-
     context "when unspecified" do
       before do
         config["staging"].delete("memory_limit_mb")
@@ -664,6 +660,28 @@ YAML
 
       it "uses 1GB as a default" do
         staging.memory_limit_in_bytes.should eq(1024*1024*1024)
+      end
+    end
+
+    context "when the app requests less than the config" do
+      before do
+        config["staging"]["memory_limit_mb"] = 1024
+        attributes["start_message"]["limits"]["mem"] = 512
+      end
+
+      it "sets the memory_limit_in_bytes to the config value" do
+        expect(staging.memory_limit_in_bytes).to eq(1024*1024*1024)
+      end
+    end
+
+    context "when the app requests more than the config" do
+      before do
+        config["staging"]["memory_limit_mb"] = 1024
+        attributes["start_message"]["limits"]["mem"] = 2048
+      end
+
+      it "sets the memory_limit_in_bytes to the app value" do
+        expect(staging.memory_limit_in_bytes).to eq(2048*1024*1024)
       end
     end
   end

@@ -103,8 +103,7 @@ module Dea
     end
 
     def memory_limit_mb
-      #TODO: this should take into account the memory limit passed in message for starting
-      (config.minimum_staging_memory_mb).to_i
+      [(config.minimum_staging_memory_mb).to_i, staging_message.start_message.mem_limit.to_i].max
     end
 
     def memory_limit_in_bytes
@@ -113,8 +112,7 @@ module Dea
     alias :used_memory_in_bytes :memory_limit_in_bytes
 
     def disk_limit_mb
-      #TODO: this should take into account the disk limit passed in message for starting
-      (config.minimum_staging_disk_mb).to_i
+      [(config.minimum_staging_disk_mb).to_i, staging_message.start_message.disk_limit.to_i].max
     end
 
     def disk_limit_in_bytes

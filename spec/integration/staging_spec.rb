@@ -300,17 +300,15 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
 
     let(:properties) { {"buildpack" => buildpack_url} }
 
-    it "decreases the DEA's available memory" do
-      initial_mem = dea_memory
-
-      available_memory_while_staging = nil
+    def available_memory_while_staging
+      memory_while_staging = nil
       expected_responses = 2
 
       nats.make_blocking_request("staging", staging_message, expected_responses, 20) do |index, _|
         if index == 0
           NATS.publish("dea.locate", Yajl::Encoder.encode({})) do
             NATS.subscribe("dea.advertise") do |resp|
-              available_memory_while_staging = Yajl::Parser.parse(resp)["available_memory"]
+              memory_while_staging = Yajl::Parser.parse(resp)["available_memory"]
 
               NATS.publish("staging.stop", Yajl::Encoder.encode({"app_id" => app_id}))
             end
@@ -318,7 +316,26 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
         end
       end
 
-      expect(available_memory_while_staging).to equal(initial_mem - 1024)
+      memory_while_staging
+    end
+
+    context "when the app uses less than the staging memory" do
+      it "decreases the DEA's available memory by the default staging amount" do
+        initial_mem = dea_memory
+
+        expect(available_memory_while_staging).to eq(initial_mem - 1024)
+        expect(dea_memory).to eq(initial_mem)
+      end
+    end
+
+    context "when the app uses more than the staging memory" do
+      let(:memory_limit) { 1536 }
+      it "decreases the DEA's available memory by the app amount" do
+        initial_mem = dea_memory
+
+        expect(available_memory_while_staging).to eq(initial_mem - 1536)
+        expect(dea_memory).to eq(initial_mem)
+      end
     end
 
     context "when the shutdown started" do
