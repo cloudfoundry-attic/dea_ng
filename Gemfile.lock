@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/cloudfoundry/container_tools.git
-  revision: 4cf1b80a98754ea3888cc6436e741ff022c0964f
+  revision: 40f91bc0081ee58a505466225d69e113da0f6f61
   specs:
     container_tools (0.1)
       em-warden-client
