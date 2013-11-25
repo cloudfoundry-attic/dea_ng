@@ -5,6 +5,9 @@ module Buildpacks
     def detect
       @detect_output, status = Open3.capture2 command('detect')
       status == 0
+    rescue => e
+      puts "Failed to run buildpack detection script with error: #{e}"
+      false
     end
 
     def name
