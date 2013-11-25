@@ -133,6 +133,10 @@ module Dea
       []
     end
 
+    def data_paths_to_bind
+      []
+    end
+
     def promise_create_container
       Promise.new do |p|
         bind_mounts = paths_to_bind.map do |path|
@@ -144,9 +148,11 @@ module Dea
         end
 
         # extra mounts (currently just used for the buildpack cache)
-        config["bind_mounts"].each do |bm|
+        ( config["bind_mounts"] + data_paths_to_bind ).each do |bm|
           bind_mount = ::Warden::Protocol::CreateRequest::BindMount.new
 
+          FileUtils.mkdir_p bm["src_path"], :mode => 0755
+          FileUtils.chown 'work','work',bm["src_path"]
           bind_mount.src_path = bm["src_path"]
           bind_mount.dst_path = bm["dst_path"] || bm["src_path"]
 

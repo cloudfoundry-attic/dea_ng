@@ -78,6 +78,15 @@ module Dea
             optional("mode")     => enum("ro", "rw"),
           }],
 
+          optional("org_data") => {
+            "src_prefix" => String,
+            optional("bind_mounts") => [{
+              "name" => String,
+              optional("dst_path") => String,
+              optional("mode")     => enum("ro", "rw"),
+            }],
+          },
+
           optional('hooks') => {
             optional('before_start') => String,
             optional('after_start')  => String,

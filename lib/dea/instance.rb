@@ -333,6 +333,23 @@ module Dea
       [droplet.droplet_dirname]
     end
 
+    def data_paths_to_bind
+      return [] if ! config["org_data"]
+      prefix = config["org_data"]["src_prefix"]
+      org = attributes["tags"]["org_name"] || "default"
+      bind_mounts = []
+      bind_mount = {}
+      config["org_data"]["bind_mounts"].each do |bm|
+        bind_mount["src_path"] = File.join(prefix,bm["name"],org)
+        bind_mount["dst_path"] = bm["dst_path"] || File.join(prefix,bm["name"])
+        bind_mount["mode"] = bm["mode"] || "ro"
+        p bind_mount
+        bind_mounts << bind_mount.dup
+      end
+      p bind_mounts
+      bind_mounts
+    end
+
     def validate
       self.class.schema.validate(@attributes)
     end
