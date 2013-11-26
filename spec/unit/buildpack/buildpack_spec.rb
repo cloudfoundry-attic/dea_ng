@@ -217,11 +217,43 @@ describe Buildpacks::Buildpack, :type => :buildpack do
       subject { build_pack.build_pack }
 
       it "clones the buildpack URL" do
-        build_pack.should_receive(:system).with(anything) do |cmd|
-          expect(cmd).to match /git clone --recursive #{buildpack_url} \/tmp\/buildpacks/
+        build_pack.should_receive(:system) do |cmd|
+          expect(cmd).to match /git clone --depth 1  --recursive #{buildpack_url} \/tmp\/buildpacks/
           true
         end
 
+        subject
+      end
+
+      it "clones the buildpack URL with a branch" do
+        buildpack_url = "git://github.com/heroku/heroku-buildpack-java.git#branch"
+        config["environment"]["buildpack"] = buildpack_url
+        git_url, branch = buildpack_url.split('#')
+        build_pack.should_receive(:system) do |cmd|
+          expect(cmd).to match /git clone --depth 1 -b #{branch} --recursive #{git_url} \/tmp\/buildpacks/
+          true
+        end
+
+        subject
+      end
+
+      it "clones the buildpack URL and does a checkout with a branch" do
+        buildpack_url = "git://github.com/heroku/heroku-buildpack-java.git#49f320c5f8178279dd58af6de5ad525b72cc79d2"
+        config["environment"]["buildpack"] = buildpack_url
+        git_url, branch = buildpack_url.split('#')
+        build_pack.should_receive(:system) do |cmd|
+          expect(cmd).to eq("git clone --depth 1 -b #{branch} --recursive #{git_url} /tmp/buildpacks/heroku-buildpack-java.git")
+          false
+        end
+        build_pack.should_receive(:system) do |cmd|
+          expect(cmd).to eq("git clone --recursive #{git_url} /tmp/buildpacks/heroku-buildpack-java.git")
+          true
+        end
+        build_pack.should_receive(:system) do |cmd|
+          expect(cmd).to eq("git --git-dir=/tmp/buildpacks/heroku-buildpack-java.git/.git --work-tree=/tmp/buildpacks/heroku-buildpack-java.git checkout 49f320c5f8178279dd58af6de5ad525b72cc79d2")
+          true
+        end
+        
         subject
       end
 
