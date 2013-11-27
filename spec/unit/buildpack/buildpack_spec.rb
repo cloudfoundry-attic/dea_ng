@@ -44,8 +44,8 @@ describe Buildpacks::Buildpack, :type => :buildpack do
         start_script.should be_executable_file
         script_body = File.read(start_script)
         script_body.should include(<<-EXPECTED)
-if [ -d app/.profile.d ]; then
-  for i in app/.profile.d/*.sh; do
+if [ -d .profile.d ]; then
+  for i in .profile.d/*.sh; do
     if [ -r $i ]; then
       . $i
     fi
