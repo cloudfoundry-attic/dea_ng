@@ -79,7 +79,6 @@ module Buildpacks
         #{environment_statements_for(env_vars)}
       #{after_env_before_script}
         DROPLET_BASE_DIR=$PWD
-        cd app
         (#{start_command}) > $DROPLET_BASE_DIR/logs/stdout.log 2> $DROPLET_BASE_DIR/logs/stderr.log &
         STARTED=$!
         echo "$STARTED" >> $DROPLET_BASE_DIR/run.pid
@@ -182,8 +181,8 @@ module Buildpacks
       generate_startup_script(running_environment_variables) do
         script_content = <<-BASH
 unset GEM_PATH
-if [ -d app/.profile.d ]; then
-  for i in app/.profile.d/*.sh; do
+if [ -d .profile.d ]; then
+  for i in .profile.d/*.sh; do
     if [ -r $i ]; then
       . $i
     fi
@@ -212,7 +211,7 @@ BASH
     def running_environment_variables
       vars = release_info['config_vars'] || {}
       vars.each { |k, v| vars[k] = "${#{k}:-#{v}}" }
-      vars["HOME"] = "$PWD/app"
+      vars["HOME"] = "$PWD"
       vars["PORT"] = "$VCAP_APP_PORT"
       vars["DATABASE_URL"] = @services.database_uri if rails_buildpack?(build_pack) && @services.database_uri
       vars["MEMORY_LIMIT"] = "#{application_memory}m"

@@ -28,7 +28,7 @@ describe Dea::Directory do
   before :each do
     @tmpdir = Dir.mktmpdir
 
-    @home_dir = File.join(@tmpdir, "rootfs", "home", "vcap")
+    @home_dir = File.join(@tmpdir, "rootfs", "home", "work")
     FileUtils.mkdir_p(@home_dir)
 
     @app_dir = File.join(@home_dir, "app")

@@ -450,7 +450,7 @@ module Dea
 
     def promise_setup_environment
       Promise.new do |p|
-        script = "cd / && mkdir -p home/vcap/app && chown vcap:vcap home/vcap/app && ln -s home/vcap/app /app"
+        script = "cd / && mkdir -p home/work/app && chown work:work home/work/app && chown work:work home/work && ln -s home/work /app"
         promise_warden_run(:app, script, true).resolve
 
         p.deliver
@@ -468,7 +468,7 @@ module Dea
 
     def promise_extract_droplet
       Promise.new do |p|
-        script = "cd /home/vcap/ && tar zxf #{droplet.droplet_path}"
+        script = "cd /home/work/ && tar zxf #{droplet.droplet_path} && mv app/* /home/work/"
 
         promise_warden_run(:app, script).resolve
 
@@ -669,7 +669,7 @@ module Dea
       Promise.new do |p|
         new_instance_path = File.join(config.crashes_path, instance_id)
         new_instance_path = File.expand_path(new_instance_path)
-        copy_out_request("/home/vcap/", new_instance_path)
+        copy_out_request("/home/work/", new_instance_path)
 
         attributes["instance_path"] = new_instance_path
 
@@ -912,11 +912,11 @@ module Dea
     def container_relative_path(root, *parts)
       # This can be removed once warden's wsh branch is merged to master
       if File.directory?(File.join(root, "rootfs"))
-        return File.join(root, "rootfs", "home", "vcap", *parts)
+        return File.join(root, "rootfs", "home", "work", *parts)
       end
 
       # New path
-      File.join(root, "tmp", "rootfs", "home", "vcap", *parts)
+      File.join(root, "tmp", "rootfs", "home", "work", *parts)
     end
 
     def logger
