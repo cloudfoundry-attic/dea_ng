@@ -30,7 +30,7 @@ describe Buildpacks::Buildpack, :type => :buildpack do
     it "ensures all files have executable permissions" do
       stage :environment => staging_env do |staged_dir|
         Dir.glob("#{staged_dir}/app/*").each do |file|
-          expect(File.stat(file).mode.to_s(8)[3..5]).to eq("744") unless File.directory? file
+          expect(File.stat(file).mode.to_s(8)[3..5]).to eq("755") unless File.directory? file
         end
         start_script = File.join(staged_dir, 'startup')
         script_body = File.read(start_script)

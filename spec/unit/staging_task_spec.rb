@@ -745,7 +745,7 @@ YAML
 
       it "should rename the file" do
         File.should_receive(:rename).with("/path/to/file", "#{workspace_dir}/app.zip")
-        File.should_receive(:chmod).with(0744, "#{workspace_dir}/app.zip")
+        File.should_receive(:chmod).with(0755, "#{workspace_dir}/app.zip")
         subject
       end
     end
@@ -773,7 +773,7 @@ YAML
 
       it "should rename the file" do
         File.should_receive(:rename).with("/path/to/file", "#{workspace_dir}/buildpack_cache.tgz")
-        File.should_receive(:chmod).with(0744, "#{workspace_dir}/buildpack_cache.tgz")
+        File.should_receive(:chmod).with(0755, "#{workspace_dir}/buildpack_cache.tgz")
         subject
       end
     end
