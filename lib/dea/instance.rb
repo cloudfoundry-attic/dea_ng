@@ -468,7 +468,7 @@ module Dea
 
     def promise_extract_droplet
       Promise.new do |p|
-        script = "cd /home/work/ && tar zxf #{droplet.droplet_path} && mv app/* /home/work/"
+        script = "cd /home/work/ && tar zxf #{droplet.droplet_path} && mv app/* /home/work/ && find . -type f -maxdepth 1 | xargs chmod og-x"
 
         promise_warden_run(:app, script).resolve
 
