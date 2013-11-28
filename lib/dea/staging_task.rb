@@ -256,7 +256,7 @@ module Dea
             p.fail(error)
           else
             File.rename(path, workspace.downloaded_droplet_path)
-            File.chmod(0744, workspace.downloaded_droplet_path)
+            File.chmod(0755, workspace.downloaded_droplet_path)
 
             logger.debug("Moved droplet to #{workspace.downloaded_droplet_path}")
             p.deliver
@@ -310,7 +310,7 @@ module Dea
             logger.error("Failed to download buildpack cache from #{attributes["buildpack_cache_download_uri"]}")
           else
             File.rename(path, workspace.downloaded_buildpack_cache_path)
-            File.chmod(0744, workspace.downloaded_buildpack_cache_path)
+            File.chmod(0755, workspace.downloaded_buildpack_cache_path)
 
             logger.debug("Moved droplet to #{workspace.downloaded_buildpack_cache_path}")
           end
