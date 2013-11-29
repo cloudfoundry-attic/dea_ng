@@ -468,7 +468,7 @@ module Dea
 
     def promise_extract_droplet
       Promise.new do |p|
-        script = "cd /home/work/ && tar zxf #{droplet.droplet_path} && mv app/* /home/work/"
+        script = "cd /home/work/ && tar zxf #{droplet.droplet_path} && mv app/* /home/work/ && find . -type f -maxdepth 1 | xargs chmod og-x"
 
         promise_warden_run(:app, script).resolve
 
@@ -510,7 +510,7 @@ module Dea
       Promise.new do |p|
         script = []
 
-        script << "umask 077"
+        script << "umask 022"
 
         env = Env.new(self)
         env.env.each do |(key, value)|
@@ -549,7 +549,7 @@ module Dea
           script_path = bootstrap.config['hooks'][key]
           if File.exist?(script_path)
             script = []
-            script << "umask 077"
+            script << "umask 022"
             env = Env.new(self)
             env.env.each do |k, v|
               script << "export %s=%s" % [k, v]

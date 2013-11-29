@@ -114,12 +114,12 @@ module Buildpacks
       File.open(path, 'wb') do |f|
         f.puts startup_script
       end
-      FileUtils.chmod(0500, path)
+      FileUtils.chmod(0544, path)
     end
 
     def copy_source_files(dest=nil)
       system "cp -a #{File.join(source_directory, ".")} #{dest || app_dir}"
-      FileUtils.chmod_R(0744, app_dir)
+      FileUtils.chmod_R(0755, app_dir)
     end
 
     def stage_application

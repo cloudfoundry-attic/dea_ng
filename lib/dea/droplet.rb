@@ -48,7 +48,7 @@ module Dea
         Download.new(uri, droplet_dirname, sha1).download! do |err, path|
           if !err
             File.rename(path, droplet_path)
-            File.chmod(0744, droplet_path)
+            File.chmod(0755, droplet_path)
 
             logger.debug "Moved droplet to #{droplet_path}"
           end
