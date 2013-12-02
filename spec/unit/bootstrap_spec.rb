@@ -94,7 +94,7 @@ describe Dea::Bootstrap do
 
       expect {
         bootstrap.setup_loggregator
-      }.to raise_exception(Resolv::ResolvError)
+      }.to raise_exception(ArgumentError)
     end
 
   end

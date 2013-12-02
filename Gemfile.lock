@@ -132,7 +132,7 @@ GEM
       chef (>= 0.10)
       highline
       thor (~> 0.15)
-    loggregator_emitter (2.0.1)
+    loggregator_emitter (2.0.2)
       beefcake (~> 0.3.7)
     membrane (0.0.2)
     mime-types (1.23)
