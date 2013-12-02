@@ -79,6 +79,26 @@ describe Dea::Bootstrap do
     end
   end
 
+  describe "loggregator setup" do
+
+    it "should configure when router is valid" do
+      @config = { "index" => 0, "loggregator" => { "router" => "localhost:5432", "shared_secret" => "secret" } }
+
+      LoggregatorEmitter::Emitter.should_receive(:new).with("localhost:5432", "DEA", 0, "secret")
+      LoggregatorEmitter::Emitter.should_receive(:new).with("localhost:5432", "STG", 0, "secret")
+      bootstrap.setup_loggregator
+    end
+
+    it "should validate host" do
+      @config = { "index" => 0, "loggregator" => { "router" => ":5432", "shared_secret" => "secret" } }
+
+      expect {
+        bootstrap.setup_loggregator
+      }.to raise_exception(Resolv::ResolvError)
+    end
+
+  end
+
   describe "droplet registry setup" do
     before { bootstrap.setup_droplet_registry }
 
