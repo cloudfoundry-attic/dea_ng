@@ -28,11 +28,11 @@ module Dea
     end
 
     def could_reserve_memory?(memory)
-      remaining_memory > memory
+      remaining_memory >= memory
     end
 
     def could_reserve_disk?(disk)
-      remaining_disk > disk
+      remaining_disk >= disk
     end
 
     def get_constrained_resource(memory, disk)

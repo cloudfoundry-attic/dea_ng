@@ -191,13 +191,13 @@ describe Dea::ResourceManager do
 
       context "when too much memory is being used" do
         it "can't reserve" do
-          manager.could_reserve?(@remaining_memory, 1).should be_false
+          manager.could_reserve?(@remaining_memory + 1, 1).should be_false
         end
       end
 
       context "when too much disk is being used" do
         it "can't reserve" do
-          manager.could_reserve?(1, @remaining_disk).should be_false
+          manager.could_reserve?(1, @remaining_disk + 1).should be_false
         end
       end
     end
@@ -205,7 +205,7 @@ describe Dea::ResourceManager do
     describe "could_reserve_memory?" do
       context "with enough memory" do
         it "can reserve memory" do
-          manager.could_reserve_memory?(@remaining_memory - 1).should be_true
+          manager.could_reserve_memory?(@remaining_memory).should be_true
         end
       end
 
@@ -219,7 +219,7 @@ describe Dea::ResourceManager do
     describe "could_reserve_disk?" do
       context "with enough disk" do
         it "can reserve disk" do
-          manager.could_reserve_disk?(@remaining_disk - 1).should be_true
+          manager.could_reserve_disk?(@remaining_disk).should be_true
         end
       end
 
