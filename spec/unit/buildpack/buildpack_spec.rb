@@ -1,6 +1,6 @@
 require "spec_helper"
 
-describe Buildpacks::Buildpack, :type => :buildpack do
+describe Buildpacks::Buildpack, type: :buildpack do
   let(:fake_buildpacks_dir) { fixture("fake_buildpacks") }
   let(:buildpack_dirs) { Pathname(fake_buildpacks_dir).children.map(&:to_s) }
   let(:config) do
@@ -251,6 +251,17 @@ describe Buildpacks::Buildpack, :type => :buildpack do
 
     context "the new, more clear, buildpack_git_url key" do
       include_examples "when a buildpack URL is passed", "buildpack_git_url"
+    end
+
+    context "with a buildpack url including shell characters" do
+      let(:buildpack_url) { "http://user@pass;2wo#rd@github.com/cf/buildpack-java.git?a=b&c=d" }
+      it "escapes the url" do
+        config["environment"]["buildpack_git_url"] = buildpack_url
+        build_pack.should_receive(:system).with(
+          "git clone --recursive http://user@pass\\;2wo\\#rd@github.com/cf/buildpack-java.git\\?a\\=b\\&c\\=d /tmp/buildpacks/buildpack-java"
+        ) { true }
+        build_pack.build_pack
+      end
     end
   end
 end
