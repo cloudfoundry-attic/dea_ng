@@ -240,22 +240,6 @@ YAML
     end
   end
 
-  describe "#prepare_workspace" do
-    it "should delegate to workspace" do
-      staging.workspace.should_receive(:prepare)
-      staging.prepare_workspace
-    end
-
-    it "should pass the list of buildpacks in use to the workspace" do
-      staging_message = StagingMessage.new(attributes)
-
-      Dea::StagingTaskWorkspace.should_receive(:new).with(base_dir, staging_message, buildpacks_in_use).and_return(Struct.new(:prepare).new(nil))
-
-      new_staging = Dea::StagingTask.new(bootstrap, dir_server, staging_message, buildpacks_in_use)
-      new_staging.prepare_workspace
-    end
-  end
-
   describe "#path_in_container" do
     context "when given path is not nil" do
       context "when container path is set" do
@@ -300,7 +284,6 @@ YAML
 
   describe "#start" do
     def stub_staging_setup
-      staging.stub(:prepare_workspace)
       %w(
          app_download
          buildpack_cache_download

@@ -159,11 +159,8 @@ module Dea
     def trigger_after_stop(error)
       @after_stop_callback.call(error) if @after_stop_callback
     end
-    private :trigger_after_stop
 
-    def prepare_workspace
-      workspace.prepare
-    end
+    private :trigger_after_stop
 
     def promise_prepare_staging_log
       Promise.new do |p|
