@@ -14,12 +14,22 @@ describe Dea::DirectoryServerV2 do
   end
   let(:staging_task_registry) { Dea::StagingTaskRegistry.new }
 
+  let(:router_client) { double(:router_client, unregister_directory_server: nil) }
+  let(:port) { 1234 }
+
   let(:config) { {"directory_server" => {"file_api_port" => 3456, "protocol" => "http"}} }
-  subject { Dea::DirectoryServerV2.new("domain", 1234, config) }
+  subject { Dea::DirectoryServerV2.new("domain", port, router_client, config) }
 
   describe "#initialize" do
     it "sets up hmac helper with correct key" do
       subject.hmac_helper.key.should be_a(String)
+    end
+  end
+
+  describe "#unregister" do
+    it "unregisters from the router client" do
+      expect(router_client).to receive(:unregister_directory_server).with(port, subject.external_hostname)
+      subject.unregister
     end
   end
 

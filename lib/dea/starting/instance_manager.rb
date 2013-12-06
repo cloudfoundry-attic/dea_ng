@@ -5,8 +5,9 @@ module Dea
 
     EXIT_REASON_CRASHED = "CRASHED"
 
-    def initialize(bootstrap)
+    def initialize(bootstrap, message_bus)
       @bootstrap = bootstrap
+      @message_bus = message_bus
     end
 
     def create_instance(attributes)
@@ -20,7 +21,7 @@ module Dea
       end
 
       instance.on(Instance::Transition.new(:born, :crashed)) do
-        bootstrap.send_exited_message(instance, EXIT_REASON_CRASHED)
+        send_crashed_message(instance)
       end
 
       resource_manager = bootstrap.resource_manager
@@ -40,40 +41,28 @@ module Dea
       instance.setup
 
       instance.on(Instance::Transition.new(:starting, :crashed)) do
-        bootstrap.send_exited_message(instance, EXIT_REASON_CRASHED)
+        send_crashed_message(instance)
       end
 
       instance.on(Instance::Transition.new(:starting, :running)) do
-        # Notify others immediately
         bootstrap.send_heartbeat()
-
-        # Register with router
         bootstrap.router_client.register_instance(instance)
-      end
-
-      instance.on(Instance::Transition.new(:running, :crashed)) do
-        bootstrap.router_client.unregister_instance(instance)
-        bootstrap.send_exited_message(instance, EXIT_REASON_CRASHED)
-      end
-
-      instance.on(Instance::Transition.new(:running, :stopping)) do
-        bootstrap.router_client.unregister_instance(instance)
-        bootstrap.send_instance_stop_message(instance)
-      end
-
-      instance.on(Instance::Transition.new(:starting, :stopping)) do
-        bootstrap.send_instance_stop_message(instance)
-      end
-
-      instance.on(Instance::Transition.new(:starting, :running)) do
-        bootstrap.snapshot.save
-      end
-
-      instance.on(Instance::Transition.new(:running, :stopping)) do
         bootstrap.snapshot.save
       end
 
       instance.on(Instance::Transition.new(:running, :crashed)) do
+        bootstrap.router_client.unregister_instance(instance)
+        send_crashed_message(instance)
+        bootstrap.snapshot.save
+      end
+
+      instance.on(Instance::Transition.new(:running, :stopping)) do
+        bootstrap.router_client.unregister_instance(instance)
+        bootstrap.snapshot.save
+      end
+
+      instance.on(Instance::Transition.new(:evacuating, :stopping)) do
+        bootstrap.router_client.unregister_instance(instance)
         bootstrap.snapshot.save
       end
 
@@ -90,5 +79,9 @@ module Dea
 
     attr_reader :bootstrap
 
+    def send_crashed_message(instance)
+      msg = Dea::Protocol::V1::ExitMessage.generate(instance, EXIT_REASON_CRASHED)
+      @message_bus.publish("droplet.exited", msg)
+    end
   end
 end

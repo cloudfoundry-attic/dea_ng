@@ -71,20 +71,6 @@ describe "Dea::Bootstrap#handle_dea_stop" do
       end
     end
 
-    def self.it_sends_exited_notification
-      it "sends exited notification" do
-        sent_exited_notification = false
-        nats_mock.subscribe("droplet.exited") do
-          sent_exited_notification = true
-          EM.stop
-        end
-
-        publish
-
-        sent_exited_notification.should be_true
-      end
-    end
-
     def self.it_unregisters_with_the_router
       it "unregisters with the router" do
         sent_router_unregister = false
@@ -103,14 +89,19 @@ describe "Dea::Bootstrap#handle_dea_stop" do
       before { instance_mock.state = Dea::Instance::State::STARTING }
 
       it_stops_the_instance
-      it_sends_exited_notification
     end
 
     context "when the app is running" do
       before { instance_mock.state = Dea::Instance::State::RUNNING }
 
       it_stops_the_instance
-      it_sends_exited_notification
+      it_unregisters_with_the_router
+    end
+
+    context "when the app is evacuating" do
+      before { instance_mock.state = Dea::Instance::State::EVACUATING }
+
+      it_stops_the_instance
       it_unregisters_with_the_router
     end
   end

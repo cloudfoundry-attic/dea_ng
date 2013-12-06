@@ -55,15 +55,6 @@ module DeaHelpers
     dea_server.pid
   end
 
-  def evacuate_dea
-    dea_server.evacuate_dea
-    sleep evacuation_delay
-  end
-
-  def evacuation_delay
-    dea_config["evacuation_delay_secs"]
-  end
-
   def start_file_server
     @file_server_pid = run_cmd("bundle exec ruby spec/bin/file_server.rb", :debug => true)
 
@@ -71,7 +62,7 @@ module DeaHelpers
   end
 
   def stop_file_server
-    graceful_kill(@file_server_pid) if @file_server_pid
+    merciless_kill(@file_server_pid) if @file_server_pid
   end
 
   def file_server_address
@@ -194,10 +185,6 @@ module DeaHelpers
     def instance_file_path
       File.join(config["base_dir"], "db", "instances.json")
     end
-
-    def evacuate_dea
-      stop
-    end
   end
 
   class RemoteDea
@@ -218,10 +205,6 @@ module DeaHelpers
 
     def pid
       remote_exec("cat #{config["pid_filename"]}").to_i
-    end
-
-    def evacuate_dea
-      remote_exec("kill -USR2 #{pid}")
     end
 
     def instance_file

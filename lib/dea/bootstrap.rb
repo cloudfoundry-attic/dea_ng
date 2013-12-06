@@ -21,6 +21,8 @@ require "dea/resource_manager"
 require "dea/router_client"
 require "dea/loggregator"
 
+require "dea/lifecycle/signal_handler"
+
 require "dea/directory_server/directory_server"
 require "dea/directory_server/directory_server_v2"
 
@@ -46,12 +48,6 @@ module Dea
     DISCOVER_DELAY_MS_MEM = 100
     DISCOVER_DELAY_MS_MAX = 250
 
-    EXIT_REASON_STOPPED = "STOPPED"
-    EXIT_REASON_SHUTDOWN = "DEA_SHUTDOWN"
-    EXIT_REASON_EVACUATION = "DEA_EVACUATION"
-
-    SIGNALS_OF_INTEREST = %W(TERM INT QUIT USR1 USR2)
-
     attr_reader :config
     attr_reader :nats, :responders
     attr_reader :directory_server
@@ -75,6 +71,7 @@ module Dea
     def setup
       validate_config
 
+      setup_nats
       setup_logging
       setup_loggregator
       setup_droplet_registry
@@ -83,14 +80,12 @@ module Dea
       setup_instance_manager
       setup_snapshot
       setup_resource_manager
+      setup_router_client
       setup_directory_server
       setup_directory_server_v2
-      setup_signal_handlers
       setup_directories
       setup_pid_file
       setup_sweepers
-      setup_nats
-      setup_router_client
     end
 
     def setup_varz
@@ -148,7 +143,7 @@ module Dea
     attr_reader :instance_manager
 
     def setup_instance_manager
-      @instance_manager = Dea::InstanceManager.new(self)
+      @instance_manager = Dea::InstanceManager.new(self, nats)
     end
 
     attr_reader :resource_manager
@@ -184,69 +179,17 @@ module Dea
       end
     end
 
+### SIG_Handlers
+
     def setup_signal_handlers
-      @old_signal_handlers = {}
-
-      SIGNALS_OF_INTEREST.each do |signal|
-        @old_signal_handlers[signal] = ::Kernel.trap(signal) do
-          logger.warn "caught SIG#{signal}"
-          send("trap_#{signal.downcase}")
-        end
+      @sig_handler ||= SignalHandler.new(uuid, local_ip, nats, locator_responders, instance_registry, @staging_task_registry, droplet_registry, @directory_server_v2, logger, config)
+      @sig_handler.setup do |signal, &handler|
+        ::Kernel.trap(signal, &handler)
       end
     end
 
-    def teardown_signal_handlers
-      @old_signal_handlers.each do |signal, handler|
-        if handler.respond_to?(:call)
-          # Block handler
-          ::Kernel::trap(signal, &handler)
-        else
-          # String handler
-          ::Kernel::trap(signal, handler)
-        end
-      end
-
-      @old_signal_handlers = {}
-    end
-
-    def with_signal_handlers
-      begin
-        setup_signal_handlers
-        yield
-      ensure
-        teardown_signal_handlers
-      end
-    end
-
-    def ignore_signals
-      SIGNALS_OF_INTEREST.each do |signal|
-        ::Kernel.trap(signal) do
-          logger.warn("Caught SIG#{signal}, ignoring.")
-        end
-      end
-    end
-
-    def trap_term
-      shutdown
-    end
-
-    def trap_int
-      shutdown
-    end
-
-    def trap_quit
-      shutdown
-    end
-
-    def trap_usr1
-      send_shutdown_message
-      locator_responders.each(&:stop)
-      ignore_signals
-    end
-
-    def trap_usr2
-      evacuate
-    end
+### /SIG_Handlers
+### Setup_Stuff
 
     def setup_directories
       %W(db droplets instances tmp staging).each do |dir|
@@ -271,7 +214,7 @@ module Dea
     def setup_sweepers
       # Heartbeats of instances we're managing
       hb_interval = config["intervals"]["heartbeat"] || DEFAULT_HEARTBEAT_INTERVAL
-      @heartbeat_timer = EM.add_periodic_timer(hb_interval) { send_heartbeat() }
+      @heartbeat_timer = EM.add_periodic_timer(hb_interval) { send_heartbeat }
 
       # Ensure we keep around only the most recent crash for short amount of time
       instance_registry.start_reaper
@@ -282,14 +225,9 @@ module Dea
       end
     end
 
-    def stop_sweepers
-      # Only need to stop nats-talking sweepers
-      EM.cancel_timer(@heartbeat_timer) if @heartbeat_timer
-    end
-
     def setup_directory_server_v2
       v2_port = config["directory_server"]["v2_port"]
-      @directory_server_v2 = Dea::DirectoryServerV2.new(config["domain"], v2_port, config)
+      @directory_server_v2 = Dea::DirectoryServerV2.new(config["domain"], v2_port, router_client, config)
       @directory_server_v2.configure_endpoints(instance_registry, staging_task_registry)
     end
 
@@ -315,6 +253,8 @@ module Dea
         Dea::Responders::Staging.new(nats, uuid, self, staging_task_registry, directory_server_v2, resource_manager, config),
       ].each(&:start)
     end
+
+### /Setup_Stuff
 
     def locator_responders
       return [] unless @responders
@@ -352,15 +292,6 @@ module Dea
 
     def register_directory_server_v2
       @router_client.register_directory_server(
-        local_ip,
-        directory_server_v2.port,
-        directory_server_v2.external_hostname
-      )
-    end
-
-    def unregister_directory_server_v2
-      @router_client.unregister_directory_server(
-        local_ip,
         directory_server_v2.port,
         directory_server_v2.external_hostname
       )
@@ -377,6 +308,7 @@ module Dea
       directory_server_v2.start
       setup_varz
 
+      setup_signal_handlers
       start_finish
     end
 
@@ -398,6 +330,8 @@ module Dea
         droplet.destroy
       end
     end
+
+### Handle_Nats_Messages
 
     def handle_health_manager_start(message)
       send_heartbeat()
@@ -442,7 +376,7 @@ module Dea
 
     def handle_dea_stop(message)
       instance_registry.instances_filtered_by_message(message) do |instance|
-        next unless instance.running? || instance.starting?
+        next unless instance.running? || instance.starting? || instance.evacuating?
 
         instance.stop do |error|
           logger.warn("Failed stopping #{instance}: #{error}") if error
@@ -491,40 +425,7 @@ module Dea
       nil
     end
 
-    def evacuating?
-      @evacuation_processed == true
-    end
-
-    def evacuate
-      if @evacuation_processed
-        logger.info("Evacuation already processed, doing nothing.")
-        return
-      else
-        logger.info("Evacuating apps")
-        @evacuation_processed = true
-      end
-
-      send_shutdown_message
-
-      ignore_signals
-      stop_sweepers
-
-      locator_responders.map(&:stop)
-
-      if instance_registry
-        instance_registry.each do |instance|
-          if instance.running? || instance.starting?
-            send_exited_message(instance, EXIT_REASON_EVACUATION)
-          end
-        end
-      end
-
-      EM.add_timer(config["evacuation_delay_secs"]) { shutdown }
-    end
-
-    def shutting_down?
-      @shutdown_processed == true
-    end
+### /Handle_Nats_Messages
 
     def send_staging_stop
       staging_task_registry.tasks.each do |task|
@@ -533,87 +434,9 @@ module Dea
       end
     end
 
-    def shutdown
-      if @shutdown_processed
-        logger.info("Shutdown already processed, doing nothing.")
-        return
-      else
-        logger.info("Shutting down")
-        @shutdown_processed = true
-      end
-
-      send_shutdown_message unless evacuating?
-
-      ignore_signals
-
-      @responders.map(&:stop) if @responders
-      nats.stop
-
-      unregister_directory_server_v2
-
-      on_pending_empty = proc do
-        logger.info("All instances and staging tasks stopped, exiting.")
-        # Terminate after nats sends all queued messages
-        nats.client.flush { terminate }
-      end
-
-      pending_stops = Set.new([])
-      pending_stops.merge(instance_registry.instances)
-      pending_stops.merge(staging_task_registry.tasks)
-
-      pending_stops.each do |to_be_stopped|
-        to_be_stopped.stop do |error|
-          pending_stops.delete(to_be_stopped)
-
-          if error
-            logger.warn("#{to_be_stopped} failed to stop: #{error}")
-          else
-            logger.debug("#{to_be_stopped} exited")
-          end
-
-          on_pending_empty.call if pending_stops.empty?
-        end
-      end
-
-      on_pending_empty.call if pending_stops.empty?
-    end
-
-    # So we can test shutdown()
-    def terminate
-      exit
-    end
-
-    def send_shutdown_message
-      msg = Dea::Protocol::V1::GoodbyeMessage.generate(self)
-      nats.publish("dea.shutdown", msg)
-
-      nil
-    end
-
-    def send_instance_stop_message(instance)
-      # This is a little wonky but ensures that we don't send an exited
-      # message twice. During evacuation, an exit message is sent for each
-      # running app, the evacuation interval is allowed to pass, and the app
-      # is finally stopped.  This allows the app to be started on another DEA
-      # and begin serving traffic before we stop it here.
-      return if evacuating?
-
-      send_exited_message(
-        instance,
-        shutting_down? ? EXIT_REASON_SHUTDOWN : EXIT_REASON_STOPPED
-      )
-    end
-
-    def send_exited_message(instance, reason)
-      msg = Dea::Protocol::V1::ExitMessage.generate(instance, reason)
-      nats.publish("droplet.exited", msg)
-
-      nil
-    end
-
-    def send_heartbeat()
+    def send_heartbeat
       instances = instance_registry.to_a.select do |instance|
-        instance.starting? || instance.running? || instance.crashed?
+        instance.starting? || instance.running? || instance.crashed? || instance.evacuating?
       end
 
       return if instances.empty?

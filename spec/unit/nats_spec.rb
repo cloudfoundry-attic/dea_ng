@@ -36,6 +36,17 @@ describe Dea::Nats do
     end
   end
 
+  describe "flush" do
+    it "delegates to the client" do
+      expected_block = -> {}
+      expect(nats_mock).to receive(:flush) do |&block|
+        expect(block).to eq(expected_block)
+      end
+
+      nats.flush(&expected_block)
+    end
+  end
+
   describe "subscription teardown" do
     it "should unsubscribe from everything when stop is called" do
       nats.sids.each { |_, sid| nats_mock.should_receive(:unsubscribe).with(sid) }

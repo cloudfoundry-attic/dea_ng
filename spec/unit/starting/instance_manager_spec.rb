@@ -1,5 +1,5 @@
 require "spec_helper"
-require "dea/starting/instance_manager"
+require "dea/bootstrap"
 
 describe Dea::InstanceManager do
   describe "#create_instance" do
@@ -34,14 +34,24 @@ describe Dea::InstanceManager do
              :send_instance_stop_message => nil,
              :instance_registry => instance_registry,
              :snapshot => snapshot,
-             :router_client => router_client
+             :router_client => router_client,
       )
     end
 
-    subject(:instance_manager) { Dea::InstanceManager.new(bootstrap) }
+    let(:message_bus) do
+      bus = double(:message_bus)
+      @published_messages = {}
+      allow(bus).to receive(:publish) do |subject, message|
+        @published_messages[subject] ||= []
+        @published_messages[subject] << message
+      end
+      bus
+    end
+
+    subject(:instance_manager) { Dea::InstanceManager.new(bootstrap, message_bus) }
 
     context "when it successfully validates" do
-      context "when there is not enough resources available" do
+      context "when there are not enough resources available" do
         let(:could_reserve) { false }
 
         let(:constrained_resource) { "memory" }
@@ -60,8 +70,10 @@ describe Dea::InstanceManager do
         end
 
         it "sends exited message" do
-          bootstrap.should_receive(:send_exited_message).with(instance, Dea::InstanceManager::EXIT_REASON_CRASHED)
           instance_manager.create_instance(attributes)
+          expect(@published_messages["droplet.exited"]).to have(1).item
+          expect(@published_messages["droplet.exited"].first["reason"]).to eq "CRASHED"
+          expect(@published_messages["droplet.exited"].first["instance"]).to eq instance.instance_id
         end
 
         it "returns nil" do
@@ -94,8 +106,10 @@ describe Dea::InstanceManager do
               subject { instance.state = Dea::Instance::State::CRASHED }
 
               it "sends exited message with reason: crashed" do
-                bootstrap.should_receive(:send_exited_message).with(instance, Dea::InstanceManager::EXIT_REASON_CRASHED)
                 subject
+                expect(@published_messages["droplet.exited"]).to have(1).item
+                expect(@published_messages["droplet.exited"].first["reason"]).to eq "CRASHED"
+                expect(@published_messages["droplet.exited"].first["instance"]).to eq instance.instance_id
               end
             end
           end
@@ -128,17 +142,10 @@ describe Dea::InstanceManager do
               subject { instance.state = Dea::Instance::State::CRASHED }
 
               it "sends exited message with reason: crashed" do
-                bootstrap.should_receive(:send_exited_message).with(instance, Dea::InstanceManager::EXIT_REASON_CRASHED)
                 subject
-              end
-            end
-
-            context "and it transitions to stopping" do
-              subject { instance.state = Dea::Instance::State::STOPPING }
-
-              it "sends instance stop message" do
-                bootstrap.should_receive(:send_instance_stop_message).with(instance)
-                subject
+                expect(@published_messages["droplet.exited"]).to have(1).item
+                expect(@published_messages["droplet.exited"].first["reason"]).to eq "CRASHED"
+                expect(@published_messages["droplet.exited"].first["instance"]).to eq instance.instance_id
               end
             end
           end
@@ -157,8 +164,10 @@ describe Dea::InstanceManager do
               end
 
               it "sends exited message with reason: crashed" do
-                bootstrap.should_receive(:send_exited_message).with(instance, Dea::InstanceManager::EXIT_REASON_CRASHED)
                 subject
+                expect(@published_messages["droplet.exited"]).to have(1).item
+                expect(@published_messages["droplet.exited"].first["reason"]).to eq "CRASHED"
+                expect(@published_messages["droplet.exited"].first["instance"]).to eq instance.instance_id
               end
 
               it "saves the snapshot" do
@@ -172,11 +181,6 @@ describe Dea::InstanceManager do
 
               it "unregisters with the router" do
                 bootstrap.router_client.should_receive(:unregister_instance).with(instance)
-                subject
-              end
-
-              it "send instance stop message" do
-                bootstrap.should_receive(:send_instance_stop_message).with(instance)
                 subject
               end
 
@@ -203,6 +207,26 @@ describe Dea::InstanceManager do
 
               it "destroys the instance" do
                 instance.should_receive(:destroy)
+                subject
+              end
+            end
+          end
+
+          context "when the app is evacuating" do
+            before do
+              instance.state = Dea::Instance::State::EVACUATING
+            end
+
+            context "and it transitions to stopping" do
+              subject { instance.state = Dea::Instance::State::STOPPING }
+
+              it "unregisters with the router" do
+                bootstrap.router_client.should_receive(:unregister_instance).with(instance)
+                subject
+              end
+
+              it "saves the snapshot" do
+                bootstrap.snapshot.should_receive(:save)
                 subject
               end
             end

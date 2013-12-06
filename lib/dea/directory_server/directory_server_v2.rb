@@ -9,12 +9,13 @@ module Dea
     attr_reader :hmac_helper
     attr_reader :file_api_server
 
-    def initialize(domain, port, config={})
+    def initialize(domain, port, router_client, config={})
       @uuid   = VCAP.secure_uuid
       @domain = domain
       @port   = port
       @config = config
       @hmac_helper = HMACHelper.new(VCAP.secure_uuid)
+      @router_client = router_client
     end
 
     def external_hostname
@@ -87,6 +88,10 @@ module Dea
 
     def verify_staging_task_file_url(url)
       verify_hmaced_url(url, VERIFIABLE_FILE_PARAMS)
+    end
+
+    def unregister
+      @router_client.unregister_directory_server(port, external_hostname)
     end
 
     private

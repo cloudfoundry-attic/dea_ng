@@ -94,11 +94,11 @@ module Dea::Protocol::V1
   end
 
   class GoodbyeMessage
-    def self.generate(bootstrap)
-      { "id"   => bootstrap.uuid,
-        "ip"   => bootstrap.local_ip,
+    def self.generate(uuid, local_ip, instance_registry)
+      { "id"   => uuid,
+        "ip"   => local_ip,
         "version" => Dea::VERSION,
-        "app_id_to_count" => bootstrap.instance_registry.app_id_to_count
+        "app_id_to_count" => instance_registry.app_id_to_count
       }
     end
   end

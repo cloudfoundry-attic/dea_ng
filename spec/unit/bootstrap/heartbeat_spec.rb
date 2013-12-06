@@ -104,6 +104,7 @@ describe Dea do
       Dea::Instance::State::STARTING,
       Dea::Instance::State::RUNNING,
       Dea::Instance::State::CRASHED,
+      Dea::Instance::State::EVACUATING,
     ]
 
     Dea::Instance::State.constants.map do |constant|
@@ -116,7 +117,7 @@ describe Dea do
             instance.state = state
           end
 
-          heartbeat.should_not be_nil
+          expect(heartbeat).to_not be_nil, "expected #{state} to be included in heartbeat"
         end
       else
         it "should exclude #{state.inspect}" do
@@ -125,7 +126,7 @@ describe Dea do
             instance.state = state
           end
 
-          heartbeat.should be_nil
+          expect(heartbeat).to be_nil, "expected #{state} not to be included in heartbeat"
         end
       end
     end

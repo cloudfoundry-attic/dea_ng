@@ -8,13 +8,13 @@ module Dea
       @bootstrap = bootstrap
     end
 
-    def register_directory_server(host, port, uri)
-      req = generate_directory_server_request(host, port, uri)
+    def register_directory_server(port, uri)
+      req = generate_directory_server_request(port, uri)
       bootstrap.nats.publish("router.register", req)
     end
 
-    def unregister_directory_server(host, port, uri)
-      req = generate_directory_server_request(host, port, uri)
+    def unregister_directory_server(port, uri)
+      req = generate_directory_server_request(port, uri)
       bootstrap.nats.publish("router.unregister", req)
     end
 
@@ -47,8 +47,8 @@ module Dea
     end
 
     # Same format is used for both registration and unregistration
-    def generate_directory_server_request(host, port, uri)
-      { "host" => host,
+    def generate_directory_server_request(port, uri)
+      { "host" => bootstrap.local_ip,
         "port" => port,
         "uris" => [uri],
         "tags" => { "component" => "directory-server-#{bootstrap.config["index"]}" },

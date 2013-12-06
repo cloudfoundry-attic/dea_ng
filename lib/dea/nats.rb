@@ -52,6 +52,10 @@ module Dea
       @sids = {}
     end
 
+    def flush(&block)
+      client.flush(&block)
+    end
+
     def publish(subject, data)
       client.publish(subject, Yajl::Encoder.encode(data))
     end

@@ -32,6 +32,7 @@ module Dea
       CRASHED  = "CRASHED"
       DELETED  = "DELETED"
       RESUMING = "RESUMING"
+      EVACUATING = "EVACUATING"
 
       def self.from_external(state)
         case state.upcase
@@ -51,6 +52,8 @@ module Dea
           DELETED
         when "RESUMING"
           RESUMING
+        when "EVACUATING"
+          EVACUATING
         else
           raise "Unknown state: #{state}"
         end
@@ -74,6 +77,8 @@ module Dea
           "DELETED"
         when Dea::Instance::State::RESUMING
           "RESUMING"
+        when Dea::Instance::State::EVACUATING
+          "EVACUATING"
         else
           raise "Unknown state: #{state}"
         end
@@ -536,7 +541,7 @@ module Dea
 
         promise_exec_hook_script('before_stop').resolve
 
-        promise_state([State::RUNNING, State::STARTING], State::STOPPING).resolve
+        promise_state([State::RUNNING, State::STARTING, State::EVACUATING], State::STOPPING).resolve
 
         promise_exec_hook_script('after_stop').resolve
 

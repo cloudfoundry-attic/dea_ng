@@ -942,7 +942,7 @@ describe Dea::Instance do
         instance.unstub(:promise_state)
       end
 
-      passing_states = [Dea::Instance::State::RUNNING, Dea::Instance::State::STARTING]
+      passing_states = [Dea::Instance::State::RUNNING, Dea::Instance::State::STARTING, Dea::Instance::State::EVACUATING]
 
       passing_states.each do |state|
         it "passes when #{state.inspect}" do

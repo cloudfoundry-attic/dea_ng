@@ -23,7 +23,7 @@ pid_filename: /tmp/dea_ng.pid
 
 warden_socket: /tmp/warden.sock
 
-evacuation_delay_secs: 10
+evacuation_bail_out_time_in_seconds: 900
 
 maximum_health_check_timeout: 60 # 1 minute
 

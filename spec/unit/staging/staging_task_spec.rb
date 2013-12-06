@@ -39,7 +39,7 @@ describe Dea::StagingTask do
 
   let(:base_dir) { Dir.mktmpdir("base_dir") }
   let(:bootstrap) { double(:bootstrap, :config => Dea::Config.new(config)) }
-  let(:dir_server) { Dea::DirectoryServerV2.new("domain", 1234, config) }
+  let(:dir_server) { Dea::DirectoryServerV2.new("domain", 1234, nil, config) }
 
   let(:logger) do
     double("logger").tap do |l|

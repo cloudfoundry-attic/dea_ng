@@ -32,7 +32,6 @@ describe Dea::RouterClient do
   end
   let(:client) { described_class.new(bootstrap) }
 
-  let(:host) { "127.5.5.8" }
   let(:port) { 1234 }
   let(:uri) { "guid234.cf-apps.io" }
   let(:application_id) { "5678" }
@@ -50,12 +49,12 @@ describe Dea::RouterClient do
 
   describe "#register_directory_server" do
     it "sends a correct nats message" do
-      client.register_directory_server(host, port, uri)
+      client.register_directory_server(port, uri)
 
       expect(nats.last_topic).to eq("router.register")
       message = nats.last_message
 
-      expect(message["host"]).to eq(host)
+      expect(message["host"]).to eq(local_ip)
       expect(message["port"]).to eq(port)
       expect(message["uris"]).to eq([uri])
       expect(message["tags"]).to eq({ "component" => "directory-server-5" })
@@ -64,12 +63,12 @@ describe Dea::RouterClient do
 
   describe "#unregister_directory_server" do
     it "sends a correct nats message" do
-      client.unregister_directory_server(host, port, uri)
+      client.unregister_directory_server(port, uri)
 
       expect(nats.last_topic).to eq("router.unregister")
       message = nats.last_message
 
-      expect(message["host"]).to eq(host)
+      expect(message["host"]).to eq(local_ip)
       expect(message["port"]).to eq(port)
       expect(message["uris"]).to eq([uri])
       expect(message["tags"]).to eq({ "component" => "directory-server-5" })

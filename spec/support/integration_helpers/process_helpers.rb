@@ -27,6 +27,10 @@ module ProcessHelpers
     Process.kill("KILL", pid)
   end
 
+  def merciless_kill(pid)
+    Process.kill("KILL", pid)
+  end
+
   def process_alive?(pid)
     Process.kill(0, pid)
     true
