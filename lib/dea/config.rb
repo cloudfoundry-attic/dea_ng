@@ -33,7 +33,6 @@ module Dea
 
           "directory_server" => {
             "protocol" => String,
-            "v1_port" => Integer,
             "v2_port" => Integer,
             "file_api_port" => Integer,
           },

@@ -211,6 +211,10 @@ module DeaHelpers
       remote_file(File.join(config["base_dir"], "db", "instances.json"))
     end
 
+    def remove_instance_file
+      remote_exec("rm -f #{File.join(config["base_dir"], "db", "instances.json")}")
+    end
+
     def config
       @config ||= begin
         config_yaml = YAML.load(remote_file("/var/vcap/jobs/dea_next/config/dea.yml"))

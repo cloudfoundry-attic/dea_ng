@@ -14,7 +14,6 @@ shared_context "bootstrap_setup" do
       },
       "runtimes" => %w[test1 test2],
       "directory_server" => {
-        "v1_port" => 12345,
         "v2_port" => 23456,
       },
       "domain" => "default",

@@ -23,7 +23,6 @@ require "dea/loggregator"
 
 require "dea/lifecycle/signal_handler"
 
-require "dea/directory_server/directory_server"
 require "dea/directory_server/directory_server_v2"
 
 require "dea/utils/download"
@@ -50,7 +49,6 @@ module Dea
 
     attr_reader :config
     attr_reader :nats, :responders
-    attr_reader :directory_server
     attr_reader :directory_server_v2
     attr_reader :staging_task_registry
     attr_reader :uuid
@@ -81,7 +79,6 @@ module Dea
       setup_snapshot
       setup_resource_manager
       setup_router_client
-      setup_directory_server
       setup_directory_server_v2
       setup_directories
       setup_pid_file
@@ -231,15 +228,6 @@ module Dea
       @directory_server_v2.configure_endpoints(instance_registry, staging_task_registry)
     end
 
-    def setup_directory_server
-      v1_port = config["directory_server"]["v1_port"]
-      @directory_server = Dea::DirectoryServer.new(local_ip, v1_port, instance_registry)
-    end
-
-    def start_directory_server
-      @directory_server.start
-    end
-
     def setup_nats
       @nats = Dea::Nats.new(self, config)
     end
@@ -302,7 +290,6 @@ module Dea
 
       start_component
       start_nats
-      start_directory_server
       greet_router
       register_directory_server_v2
       directory_server_v2.start

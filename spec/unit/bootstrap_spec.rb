@@ -12,9 +12,7 @@ describe Dea::Bootstrap do
   before do
     @config = {
       "base_dir" => tmpdir,
-      "directory_server" => {
-        "v1_port" => 12345,
-      },
+      "directory_server" => {},
       "domain" => "default",
       "logging" => {}
     }
@@ -425,7 +423,6 @@ describe Dea::Bootstrap do
     before do
       bootstrap.stub(:uuid => "unique-dea-id")
       bootstrap.setup_nats
-      bootstrap.setup_directory_server
       bootstrap.setup_instance_registry
       bootstrap.setup_staging_task_registry
       bootstrap.setup_resource_manager

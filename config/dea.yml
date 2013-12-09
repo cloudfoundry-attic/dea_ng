@@ -44,7 +44,6 @@ dea_ruby: /usr/bin/ruby
 # For Go-based directory server
 directory_server:
   protocol: 'http'
-  v1_port: 4385
   v2_port: 80
   file_api_port: 1234
   streaming_timeout: 10

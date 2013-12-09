@@ -37,8 +37,6 @@ module Dea::Protocol::V1
         "index"           => instance.instance_index,
         "state"           => Dea::Instance::State.to_external(instance.state),
         "state_timestamp" => instance.state_timestamp,
-        "file_uri"        => bootstrap.directory_server.uri,
-        "credentials"     => bootstrap.directory_server.credentials,
         "staged"          => "/#{instance.instance_id}",
       }
 
@@ -87,7 +85,6 @@ module Dea::Protocol::V1
     def self.generate(bootstrap)
       { "id"   => bootstrap.uuid,
         "ip"   => bootstrap.local_ip,
-        "port" => bootstrap.directory_server.port,
         "version" => Dea::VERSION,
       }
     end
