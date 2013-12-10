@@ -9,7 +9,7 @@ module Dea
       "status"    => {},
       "resources" => {},
       "crash_lifetime_secs" => 60 * 60,
-      "evacuation_bail_out_time_in_seconds" => 60*6,
+      "evacuation_bail_out_time_in_seconds" => 10 * 60,
       "bind_mounts" => [],
       "crash_block_usage_ratio_threshold" => 0.8,
       "crash_inode_usage_ratio_threshold" => 0.8,
