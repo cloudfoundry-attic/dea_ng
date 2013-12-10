@@ -339,7 +339,7 @@ module Dea
 
     def register_routes
       instance_registry.each do |instance|
-        next if !instance.running? || instance.application_uris.empty?
+        next if !(instance.running? || instance.evacuating?) || instance.application_uris.empty?
         router_client.register_instance(instance)
       end
 

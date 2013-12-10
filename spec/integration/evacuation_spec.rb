@@ -9,7 +9,7 @@ describe "Deterministic Evacuation", :type => :integration, :requires_warden => 
 
   let(:valid_provided_service) do
     {
-      "credentials" => { "user" => "Jerry", "password" => "Jellison" },
+      "credentials" => {"user" => "Jerry", "password" => "Jellison"},
       "options" => {},
       "label" => "Unmanaged Service abcdefg",
       "name" => "monacle"
@@ -22,7 +22,7 @@ describe "Deterministic Evacuation", :type => :integration, :requires_warden => 
       "droplet" => app_id,
       "version" => "some-version",
       "name" => "some-app-name",
-      "uris" => [],
+      "uris" => ["abc.example.com"],
       "sha1" => sha1_url(staged_url),
       "executableUri" => staged_url,
       "cc_partition" => "foo",
@@ -38,7 +38,7 @@ describe "Deterministic Evacuation", :type => :integration, :requires_warden => 
   let(:staging_message) do
     {
       "app_id" => app_id,
-      "properties" => { "buildpack" => fake_buildpack_url("start_command"), },
+      "properties" => {"buildpack" => fake_buildpack_url("start_command"), },
       "download_uri" => unstaged_url,
       "upload_uri" => staged_url,
       "buildpack_cache_upload_uri" => buildpack_cache_upload_uri,
@@ -47,9 +47,26 @@ describe "Deterministic Evacuation", :type => :integration, :requires_warden => 
     }
   end
 
+  def ensure_instance_registers_with_router(app_id)
+    wait_until do
+      success = false
+      nats.with_nats do
+        NATS.subscribe('router.register') do |resp|
+          registration = Yajl::Parser.parse(resp)
+          if registration["app"]
+            expect(registration["app"]).to eq(app_id)
+            success = true
+            NATS.stop
+          end
+        end
+      end
+      success == true
+    end
+  end
 
   it "starts heartbeating in the EVACUATING state and, when all EVACUATING instances are stopped, it dies" do
     expect(dea_server).to_not be_terminated
+    nats.publish("router.start", {:minimumRegisterIntervalInSeconds => 1})
 
     setup_fake_buildpack("start_command")
     nats.make_blocking_request("staging", staging_message, 2)
@@ -60,13 +77,14 @@ describe "Deterministic Evacuation", :type => :integration, :requires_warden => 
 
     wait_until_instance_evacuating(app_id)
 
+    ensure_instance_registers_with_router(app_id)
+
     nats.publish("dea.stop", {"droplet" => app_id})
     wait_until_instance_gone(app_id)
 
     dea_server.evacuate
 
     wait_until(5) do
-      sleep(0.5)
       dea_server.terminated?
     end
   end
