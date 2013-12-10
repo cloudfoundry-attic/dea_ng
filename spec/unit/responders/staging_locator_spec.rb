@@ -99,16 +99,32 @@ describe Dea::Responders::StagingLocator do
   describe "#advertise" do
     it "publishes 'staging.advertise' message" do
       config["stacks"] = ["lucid64"]
-      resource_manager.stub(:remaining_memory => 45678)
-      resource_manager.stub(:remaining_disk => 12345)
+      resource_manager.stub(
+        :remaining_memory => 45678,
+        :remaining_disk => 12345,
+        :app_id_to_count => {
+          "app_id_1" => 3,
+          "app_id_2" => 5
+      })
 
       nats_mock.should_receive(:publish).with("staging.advertise", JSON.dump(
         "id" => dea_id,
         "stacks" => ["lucid64"],
         "available_memory" => 45678,
         "available_disk" => 12345,
+        "app_id_to_count" => {
+          "app_id_1" => 3,
+          "app_id_2" => 5
+        },
+        "placement_properties" => {"zone" => "default"},
       ))
       subject.advertise
+    end
+
+    RSpec::Matchers.define :json_containing_entry do |key, value|
+      match do |actual|
+        JSON.parse(actual).fetch(key) == value
+      end
     end
 
     context "when a failure happens" do
@@ -118,6 +134,33 @@ describe Dea::Responders::StagingLocator do
 
         nats_mock.stub(:publish).and_raise(RuntimeError, "somethingTerrible")
         expect{subject.advertise}.not_to raise_error
+      end
+    end
+
+    context "when config placement properties" do
+      let(:placement_properties_exists){ {"zone" => "zone1"} }
+      before { config["placement_properties"] = { "zone" => "zone1" } }
+
+      it "publishes 'staging.advertise' message with placement properties including zone" do
+        nats_mock.should_receive(:publish).with("staging.advertise", json_containing_entry("placement_properties", placement_properties_exists))
+        subject.advertise
+      end
+    end
+
+    context "when config empty placement properties" do
+      before { config["placement_properties"] = {} }
+
+      it "publishes 'staging.advertise' message with placement properties without zone" do
+        nats_mock.should_receive(:publish).with("staging.advertise", json_containing_entry("placement_properties", {}))
+        subject.advertise
+      end
+    end
+
+    context "when does not config placement properties" do
+      let(:placement_properties_exists){ {"zone" => "default"} }
+      it "publishes 'staging.advertise' message with default placement properties" do
+        nats_mock.should_receive(:publish).with("staging.advertise", json_containing_entry("placement_properties", placement_properties_exists))
+        subject.advertise
       end
     end
   end

@@ -106,56 +106,89 @@ describe Dea do
       responses[0]["file_uri_v2"].should_not be_nil
     end
 
-    it "should include 'stats' if requested" do
-      responses = []
 
-      expected = nil
-      run do
-        first_instance = @instances[0]
+    shared_examples_for 'a find_droplet response' do |subject|
 
-        # Stub time for uptime and usage calculations
-        frozen_time = Time.now
-        Time.stub(:now).and_return(frozen_time)
+      it "#{subject}" do
+        responses = []
 
-        expected = {
-          "name"       => first_instance.application_name,
-          "uris"       => first_instance.application_uris,
-          "host"       => bootstrap.local_ip,
-          "port"       => 5,
-          "uptime"     => 1,
-          "mem_quota"  => 5,
-          "disk_quota" => 10,
-          "fds_quota"  => 15,
-          "usage"      => {
-            "cpu"  => 0,
-            "mem"  => 0,
-            "disk" => 0,
-            "time" => frozen_time.to_s,
+        expected = nil
+        run do
+          first_instance = @instances[0]
+
+          # Stub time for uptime and usage calculations
+          frozen_time = Time.now
+          Time.stub(:now).and_return(frozen_time)
+
+          expected = {
+            "name"       => first_instance.application_name,
+            "uris"       => first_instance.application_uris,
+            "host"       => bootstrap.local_ip,
+            "port"       => 5,
+            "uptime"     => 1,
+            "mem_quota"  => 5,
+            "disk_quota" => 10,
+            "fds_quota"  => 15,
+            "zone" => zone,
+            "usage"      => {
+              "cpu"  => 0,
+              "mem"  => 0,
+              "disk" => 0,
+              "time" => frozen_time.to_s,
+            }
           }
-        }
 
-        # Port
-        first_instance.stub(:instance_host_port).and_return(expected["port"])
+          # Port
+          first_instance.stub(:instance_host_port).and_return(expected["port"])
 
-        # Limits
-        first_instance.stub(:memory_limit_in_bytes).and_return(expected["mem_quota"])
-        first_instance.stub(:disk_limit_in_bytes).and_return(expected["disk_quota"])
-        first_instance.stub(:file_descriptor_limit).and_return(expected["fds_quota"])
+          # Limits
+          first_instance.stub(:memory_limit_in_bytes).and_return(expected["mem_quota"])
+          first_instance.stub(:disk_limit_in_bytes).and_return(expected["disk_quota"])
+          first_instance.stub(:file_descriptor_limit).and_return(expected["fds_quota"])
 
-        # Uptime
-        first_instance.stub(:state_starting_timestamp).and_return(frozen_time - 1)
+          # Uptime
+          first_instance.stub(:state_starting_timestamp).and_return(frozen_time - 1)
 
-        responses = find_droplet(:count => 1) do
-          {
-            "droplet" => first_instance.application_id,
-            "include_stats" => true,
-          }
+          responses = find_droplet(:count => 1) do
+            {
+              "droplet" => first_instance.application_id,
+              "include_stats" => true,
+            }
+          end
         end
+
+        responses.size.should == 1
+        responses[0]["stats"].should_not be_nil
+        responses[0]["stats"].should == expected
       end
 
-      responses.size.should == 1
-      responses[0]["stats"].should_not be_nil
-      responses[0]["stats"].should == expected
+    end
+
+    context "when config['placement_properties']['zone'] = zoneX" do
+      it_should_behave_like 'a find_droplet response', "should zone = zoneX" do
+        let(:zone) { 'zoneX' }
+        before { bootstrap.config["placement_properties"] = {"zone" => zone} }
+      end
+    end
+
+    context "when config['placement_properties']= {}" do
+      it_should_behave_like 'a find_droplet response', "should zone = nil" do
+        let(:zone) { nil }
+        before { bootstrap.config["placement_properties"] = {} }
+      end
+    end
+
+    context "when config['placement_properties']= {'zone' => nil}" do
+      it_should_behave_like 'a find_droplet response', "should zone = nil" do
+        let(:zone) { nil }
+        before { bootstrap.config["placement_properties"] = {"zone" => nil} }
+      end
+    end
+
+    context "when does not config placement properties" do
+      it_should_behave_like 'a find_droplet response', "should zone = default" do
+        let(:zone) { 'default' }
+      end
     end
 
     it "should support filtering by application version" do

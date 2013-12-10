@@ -225,6 +225,34 @@ describe Dea::Bootstrap do
 
       VCAP::Component.varz[:stacks].should == ["Linux"]
     end
+
+    describe "add zone to varz" do
+      shared_examples_for 'a varz response' do |subject|
+        it "#{subject}" do
+          bootstrap.stub(:nats).and_return(nats_client_mock)
+
+          # stubbing this to avoid a runtime exception
+          EM.stub(:add_periodic_timer)
+
+          bootstrap.setup_varz
+
+          VCAP::Component.varz[:zone].should == expected
+        end
+      end
+
+      context "when config ['placement_properties']['zone'] = zoneX" do
+        it_should_behave_like "a varz response", "should zone = zoneX" do
+          let(:expected) { "zoneX" }
+          before { @config["placement_properties"] = { "zone" => "zoneX" } }
+        end
+      end
+
+      context "when does not config placement properties" do
+        it_should_behave_like "a varz response", "should zone = default" do
+          let(:expected) { "default" }
+        end
+      end
+    end
   end
 
   describe "#periodic_varz_update" do
