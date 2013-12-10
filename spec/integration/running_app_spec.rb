@@ -48,6 +48,22 @@ describe "Running an app", :type => :integration, :requires_warden => true do
     }
   end
 
+  def stage
+    nats.make_blocking_request("staging", staging_message, 2)
+  end
+
+  def stop
+    nats.publish("dea.stop", {"droplet" => app_id})
+  end
+
+  def wait_until_started
+    wait_until_instance_started(app_id)
+  end
+
+  def wait_until_stopped
+    wait_until_instance_gone(app_id)
+  end
+
   describe "setting up an invalid application" do
     let(:start_message) do
       {
@@ -95,22 +111,6 @@ describe "Running an app", :type => :integration, :requires_warden => true do
 
     after do
       nats.publish("dea.stop", {"droplet" => app_id})
-      wait_until_instance_gone(app_id)
-    end
-
-    def stage
-      nats.make_blocking_request("staging", staging_message, 2)
-    end
-
-    def stop
-      nats.publish("dea.stop", {"droplet" => app_id})
-    end
-
-    def wait_until_started
-      wait_until_instance_started(app_id)
-    end
-
-    def wait_until_stopped
       wait_until_instance_gone(app_id)
     end
 

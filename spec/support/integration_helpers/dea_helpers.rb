@@ -117,6 +117,11 @@ module DeaHelpers
     end
   end
 
+  def wait_until_instance_evacuating(app_id)
+    heartbeat = nats.with_subscription("dea.heartbeat") {}
+    heartbeat["droplets"].detect  { |instance| instance.fetch("state") == "EVACUATING" && instance.fetch("droplet") == app_id }
+  end
+
   def wait_until(timeout = 5, &block)
     Timeout.timeout(timeout) do
       loop { return if block.call }
@@ -159,7 +164,7 @@ module DeaHelpers
     end
 
     def pid
-      File.read(config["pid_filename"]).to_i
+      File.read(config["pid_filename"]).to_i if !terminated?
     end
 
     def directory_entries(path)
@@ -172,6 +177,14 @@ module DeaHelpers
         config["domain"] = LocalIPFinder.new.find.ip_address+".xip.io"
         config
       end
+    end
+
+    def evacuate
+      Process.kill("USR2", pid)
+    end
+
+    def terminated?
+      !File.exist?(config["pid_filename"])
     end
 
     def remove_instance_file
@@ -203,8 +216,19 @@ module DeaHelpers
       remote_exec("monit stop dea_next")
     end
 
+    def evacuate
+      remote_exec("kill USR2 #{pid}")
+    end
+
+    def terminated?
+    test_cmd = <<-BASH
+      if [ -e #{config["pid_filename"]} ]; then echo "exist"; fi
+    BASH
+      remote_exec(test_cmd).match("exist").nil?
+    end
+
     def pid
-      remote_exec("cat #{config["pid_filename"]}").to_i
+      remote_exec("cat #{config["pid_filename"]}").to_i if !terminated?
     end
 
     def instance_file
