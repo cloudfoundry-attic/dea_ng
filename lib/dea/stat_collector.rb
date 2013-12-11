@@ -29,7 +29,7 @@ module Dea
         :handle => @container.handle,
         :error => e, :backtrace => e.backtrace
     else
-      @used_memory_in_bytes = info.memory_stat.rss
+      @used_memory_in_bytes = compute_memory_usage(info.memory_stat)
       @used_disk_in_bytes = info.disk_stat.bytes_used if info.disk_stat
       compute_cpu_usage(info.cpu_stat.usage, now)
     end
@@ -89,6 +89,10 @@ module Dea
           @computed_pcpu = used.to_f / elapsed
         end
       end
+    end
+
+    def compute_memory_usage(memory_stat)
+      return memory_stat.total_rss + memory_stat.total_cache
     end
   end
 end

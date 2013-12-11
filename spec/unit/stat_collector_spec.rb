@@ -10,6 +10,8 @@ describe Dea::StatCollector do
     Warden::Protocol::InfoResponse::MemoryStat.new(
       :cache => 1,
       :rss => 2,
+      :total_cache => 100,
+      :total_rss => 200
     )
   end
 
@@ -116,7 +118,7 @@ describe Dea::StatCollector do
 
       before { collector.retrieve_stats(Time.now) }
 
-      its(:used_memory_in_bytes) { should eq(2) }
+      its(:used_memory_in_bytes) { should eq(300) }
       its(:used_disk_in_bytes) { should eq(42) }
       its(:computed_pcpu) { should eq(0) }
     end
