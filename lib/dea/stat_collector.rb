@@ -30,7 +30,7 @@ module Dea
         :error => e, :backtrace => e.backtrace
     else
       @used_memory_in_bytes = info.memory_stat.rss * 1024
-      @used_disk_in_bytes = info.disk_stat.bytes_used
+      @used_disk_in_bytes = info.disk_stat.bytes_used if info.disk_stat
       compute_cpu_usage(info.cpu_stat.usage, now)
     end
 

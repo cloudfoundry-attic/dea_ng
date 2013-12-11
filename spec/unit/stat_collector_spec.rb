@@ -2,21 +2,35 @@ require "spec_helper"
 require "dea/stat_collector"
 
 describe Dea::StatCollector do
+  NANOSECONDS_PER_SECOND = 1e9
+
   let(:container) { Container.new("some-socket") }
+
+  let(:memory_stat_response) do
+    Warden::Protocol::InfoResponse::MemoryStat.new(
+      :cache => 1,
+      :rss => 2,
+    )
+  end
+
+  let(:disk_stat_response) do
+    Warden::Protocol::InfoResponse::DiskStat.new(
+      :bytes_used => 42,
+    )
+  end
+
+  let(:cpu_stat_response) do
+    Warden::Protocol::InfoResponse::CpuStat.new(
+      :usage => 5_000_000
+    )
+  end
 
   let(:info_response) do
     Warden::Protocol::InfoResponse.new(
       :state => "state",
-      :memory_stat => Warden::Protocol::InfoResponse::MemoryStat.new(
-        :cache => 1,
-        :rss => 2,
-      ),
-      :disk_stat => Warden::Protocol::InfoResponse::DiskStat.new(
-        :bytes_used => 42,
-      ),
-      :cpu_stat => Warden::Protocol::InfoResponse::CpuStat.new(
-        :usage => 5_000_000
-      )
+      :memory_stat => memory_stat_response,
+      :disk_stat => disk_stat_response,
+      :cpu_stat => cpu_stat_response
     )
   end
 
@@ -128,13 +142,8 @@ describe Dea::StatCollector do
       let(:second_info_response) do
         Warden::Protocol::InfoResponse.new(
           :state => "state",
-          :memory_stat => Warden::Protocol::InfoResponse::MemoryStat.new(
-            :cache => 1,
-            :rss => 2,
-          ),
-          :disk_stat => Warden::Protocol::InfoResponse::DiskStat.new(
-            :bytes_used => 42,
-          ),
+          :memory_stat => memory_stat_response,
+          :disk_stat => disk_stat_response,
           :cpu_stat => Warden::Protocol::InfoResponse::CpuStat.new(
             :usage => 100_000_000_00
           )
@@ -148,9 +157,29 @@ describe Dea::StatCollector do
         collector.retrieve_stats(time)
         collector.retrieve_stats(time + Dea::StatCollector::INTERVAL)
 
-        nanoseconds_in_seconds = 1e9
-        time_between_stats = (Dea::StatCollector::INTERVAL * nanoseconds_in_seconds)
+        time_between_stats = (Dea::StatCollector::INTERVAL * NANOSECONDS_PER_SECOND)
         expect(collector.computed_pcpu).to eq((10_000_000_000 - 5_000_000) / time_between_stats)
+      end
+
+      context "when disk stats are unavailable (quotas are disabled)" do
+        let(:disk_stat_response) { nil }
+        before { container.stub(:info) { info_response } }
+
+        it "should report 0 bytes used" do
+          collector.retrieve_stats(Time.now)
+          expect(collector.used_disk_in_bytes).to eq(0)
+        end
+
+        it "should still report valid cpu statistics" do
+          container.stub(:info).and_return(info_response, second_info_response)
+
+          time = Time.now
+          collector.retrieve_stats(time)
+          collector.retrieve_stats(time + Dea::StatCollector::INTERVAL)
+
+          time_between_stats = (Dea::StatCollector::INTERVAL * NANOSECONDS_PER_SECOND)
+          expect(collector.computed_pcpu).to eq((10_000_000_000 - 5_000_000) / time_between_stats)
+        end
       end
     end
   end
