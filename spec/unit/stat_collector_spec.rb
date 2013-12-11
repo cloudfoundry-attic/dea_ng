@@ -116,7 +116,7 @@ describe Dea::StatCollector do
 
       before { collector.retrieve_stats(Time.now) }
 
-      its(:used_memory_in_bytes) { should eq(2 * 1024) }
+      its(:used_memory_in_bytes) { should eq(2) }
       its(:used_disk_in_bytes) { should eq(42) }
       its(:computed_pcpu) { should eq(0) }
     end
