@@ -29,14 +29,14 @@ module Dea::Responders
     def advertise
       nats.publish(
         "dea.advertise",
-        Dea::Protocol::V1::AdvertiseMessage.generate({
-          :id => dea_id,
-          :stacks => config["stacks"] || [],
-          :available_memory => resource_manager.remaining_memory,
-          :available_disk => resource_manager.remaining_disk,
-          :app_id_to_count => resource_manager.app_id_to_count,
-          :placement_properties => config.placement_properties
-        }),
+        Dea::Protocol::V1::AdvertiseMessage.generate(
+          id: dea_id,
+          stacks: config["stacks"] || [],
+          available_memory: resource_manager.remaining_memory,
+          available_disk: resource_manager.remaining_disk,
+          app_id_to_count: resource_manager.app_id_to_count,
+          placement_zone: config["placement_properties"]["zone"]
+        ),
       )
     rescue => e
       logger.error "dea_locator.advertise", error: e, backtrace: e.backtrace
@@ -45,7 +45,7 @@ module Dea::Responders
     private
 
     def subscribe_to_dea_locate
-      options = {:do_not_track_subscription => true}
+      options = { :do_not_track_subscription => true }
       @dea_locate_sid = nats.subscribe("dea.locate", options) { |_| advertise }
     end
 

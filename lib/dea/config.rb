@@ -6,13 +6,14 @@ module Dea
   class Config
     EMPTY_CONFIG = {
       "intervals" => {},
-      "status"    => {},
+      "status" => {},
       "resources" => {},
       "crash_lifetime_secs" => 60 * 60,
       "evacuation_bail_out_time_in_seconds" => 10 * 60,
       "bind_mounts" => [],
       "crash_block_usage_ratio_threshold" => 0.8,
       "crash_inode_usage_ratio_threshold" => 0.8,
+      "placement_properties" => { "zone" => "default" },
     }
 
     def self.schema
@@ -21,8 +22,8 @@ module Dea
           "base_dir" => String,
 
           "logging" => {
-            "level"            => String,
-            optional("file")   => String,
+            "level" => String,
+            optional("file") => String,
             optional("syslog") => String,
           },
 
@@ -38,6 +39,9 @@ module Dea
           },
 
           "stacks" => [String],
+          "placement_properties" => {
+            "zone" => String
+          },
 
           optional("crash_lifetime_secs") => Integer,
           optional("crash_block_usage_ratio_threshold") => Float,
@@ -48,8 +52,8 @@ module Dea
           optional("maximum_health_check_timeout") => Integer,
 
           optional("status") => {
-            optional("user")     => String,
-            optional("port")     => Integer,
+            optional("user") => String,
+            optional("port") => Integer,
             optional("password") => String,
           },
 
@@ -67,19 +71,17 @@ module Dea
           },
 
           optional("bind_mounts") => [{
-            "src_path" => String,
-            optional("dst_path") => String,
-            optional("mode")     => enum("ro", "rw"),
-          }],
+                                        "src_path" => String,
+                                        optional("dst_path") => String,
+                                        optional("mode") => enum("ro", "rw"),
+                                      }],
 
-          optional('hooks') => {
-            optional('before_start') => String,
-            optional('after_start')  => String,
-            optional('before_stop')  => String,
-            optional('after_stop')   => String
+          optional("hooks") => {
+            optional("before_start") => String,
+            optional("after_start") => String,
+            optional("before_stop") => String,
+            optional("after_stop") => String
           },
-
-          optional('placement_properties') => Hash,
         }
       end
     end
@@ -128,10 +130,6 @@ module Dea
 
     def minimum_staging_disk_mb
       @config.fetch("staging", {}).fetch("disk_limit_mb", 2*1024)
-    end
-
-    def placement_properties
-      @config.fetch("placement_properties", {})
     end
   end
 end

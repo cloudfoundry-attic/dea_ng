@@ -61,4 +61,4 @@ stacks:
 #   after_stop: path/to/script
 
 placement_properties:
- zone: zone1
+  zone: "CRAZY_TOWN"
