@@ -304,8 +304,8 @@ describe Dea::Instance do
 
   describe "attributes_and_stats from stat collector" do
     it "returns the used_memory_in_bytes stat in the attributes_and_stats hash" do
-      instance.stat_collector.stub(:used_memory_in_bytes).and_return(28 * 1024)
-      instance.attributes_and_stats.should include("used_memory_in_bytes" => 28)
+      instance.stat_collector.stub(:used_memory_in_bytes).and_return(999)
+      instance.attributes_and_stats.should include("used_memory_in_bytes" => 999)
     end
 
     it "returns the used_disk_in_bytes stat in the attributes_and_stats hash" do
