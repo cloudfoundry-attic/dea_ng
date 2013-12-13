@@ -290,7 +290,7 @@ describe Buildpacks::Buildpack, type: :buildpack do
       it "escapes the url" do
         config["environment"]["buildpack_git_url"] = buildpack_url
         build_pack.should_receive(:system).with(
-          "git clone --depth 1  --recursive http://user:pass;2wo!rd@github.com/cf/buildpack-java.git?a=b&c=d /tmp/buildpacks/buildpack-java"
+          "git clone --depth 1  --recursive http://user:pass\\;2wo\\!rd@github.com/cf/buildpack-java.git\\?a\\=b\\&c\\=d /tmp/buildpacks/buildpack-java"
         ) { true }
         build_pack.build_pack
       end
