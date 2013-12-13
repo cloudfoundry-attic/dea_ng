@@ -4,7 +4,7 @@ require "timeout"
 require "pathname"
 require "installer"
 require "procfile"
-require "shellwords"
+require "git"
 
 module Buildpacks
   class Buildpack
@@ -120,9 +120,7 @@ module Buildpacks
     end
 
     def clone_buildpack(buildpack_url)
-      buildpack_path = "/tmp/buildpacks/#{File.basename(buildpack_url, File.extname(buildpack_url))}"
-      ok = system("git clone --recursive #{Shellwords.escape(buildpack_url)} #{Shellwords.escape(buildpack_path)}")
-      raise "Failed to git clone buildpack" unless ok
+      buildpack_path = Git.clone(buildpack_url, '/tmp/buildpacks')
       Buildpacks::Installer.new(Pathname.new(buildpack_path), app_dir, cache_dir)
     end
 

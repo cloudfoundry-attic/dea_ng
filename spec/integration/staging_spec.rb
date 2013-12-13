@@ -170,59 +170,79 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
     end
   end
 
-  context "when a buildpack url is specified" do
-    let(:buildpack_url) do
-      setup_fake_buildpack("start_command")
-      fake_buildpack_url("start_command")
+  describe "when a buildpack url is specified" do
+    before { setup_fake_buildpack("start_command") }
+
+    shared_examples "with a valid url" do |branch|
+      let(:buildpack_url) { fake_buildpack_url("start_command") + (branch ? "##{branch}" : '')}
+      let(:properties) { {"buildpack" => buildpack_url, "environment" => env, "resources" => limits} }
+
+      it "works" do
+        buildpack_cache_file = File.join(FILE_SERVER_DIR, "buildpack_cache.tgz")
+        FileUtils.rm_rf(buildpack_cache_file)
+
+        response, staging_log = perform_stage_request(staging_message)
+
+        by "downloading the buildpack and running it" do
+          expect(response["error"]).to be_nil
+          expect(staging_log).to include("-----> Downloaded app package")
+          expect(staging_log).to include("-----> Uploading droplet")
+        end
+
+        and_by "uploading buildpack cache after staging" do
+          expect(File.exist?(buildpack_cache_file)).to be_true
+        end
+
+        and_by "downloading buildpack cache before staging" do
+          Dir.mktmpdir do |tmp|
+            Dir.chdir(tmp) do
+              `curl -s #{staged_url} | tar xfz -`
+              expect(File.exist?(File.join("app", "cached_file"))).to be_true
+            end
+          end
+        end
+
+        and_by "cleaning the buildpack cache between staging" do
+          Dir.mktmpdir do |tmp|
+            Dir.chdir(tmp) do
+              buildpack_cache_file = File.join(FILE_SERVER_DIR, "buildpack_cache.tgz")
+              `tar -zxf #{buildpack_cache_file}`
+              expect(File.exist?("new_cached_file")).to be_true
+              expect(File.exist?("cached_file")).to_not be_true
+            end
+          end
+        end
+
+        and_by "setting the correct user environment variables" do
+          expect(staging_log).to include("FOO=bar baz")
+          expect(staging_log).to include("BLAH=WHATEVER")
+          expect(staging_log).to include("HTTP_PROXY=myproxy.com")
+        end
+
+        and_by "setting the correct system environment variables" do
+          expect(staging_log).to include("VCAP_APPLICATION=")
+          expect(staging_log).to include("MEMORY_LIMIT=#{memory_limit}m")
+        end
+      end
     end
 
-    let(:properties) { {"buildpack" => buildpack_url, "environment" => env, "resources" => limits} }
+    context "valid git urls" do
+      include_examples "with a valid url"
+      include_examples "with a valid url", "a_branch"
+      include_examples "with a valid url", "a_tag"
+      include_examples "with a valid url", "a_lightweight_tag"
+    end
 
-    it "works" do
-      buildpack_cache_file = File.join(FILE_SERVER_DIR, "buildpack_cache.tgz")
-      FileUtils.rm_rf(buildpack_cache_file)
-
-      response, staging_log = perform_stage_request(staging_message)
-
-      by "downloading the buildpack and running it" do
-        expect(response["error"]).to be_nil
-        expect(staging_log).to include("-----> Downloaded app package")
-        expect(staging_log).to include("-----> Uploading droplet")
+    context "invalid git urls" do
+      it "fails with an invalid url" do
+        properties = {"buildpack" => "#{fake_buildpack_url("start_command")}1", "environment" => env, "resources" => limits}
+        response, staging_log = perform_stage_request(staging_message)
+        expect(response["error"]).to match /Script exited with status 1/
       end
-
-      and_by "uploading buildpack cache after staging" do
-        expect(File.exist?(buildpack_cache_file)).to be_true
-      end
-
-      and_by "downloading buildpack cache before staging" do
-        Dir.mktmpdir do |tmp|
-          Dir.chdir(tmp) do
-            `curl -s #{staged_url} | tar xfz -`
-            expect(File.exist?(File.join("app", "cached_file"))).to be_true
-          end
-        end
-      end
-
-      and_by "cleaning the buildpack cache between staging" do
-        Dir.mktmpdir do |tmp|
-          Dir.chdir(tmp) do
-            buildpack_cache_file = File.join(FILE_SERVER_DIR, "buildpack_cache.tgz")
-            `tar -zxf #{buildpack_cache_file}`
-            expect(File.exist?("new_cached_file")).to be_true
-            expect(File.exist?("cached_file")).to_not be_true
-          end
-        end
-      end
-
-      and_by "setting the correct user environment variables" do
-        expect(staging_log).to include("FOO=bar baz")
-        expect(staging_log).to include("BLAH=WHATEVER")
-        expect(staging_log).to include("HTTP_PROXY=myproxy.com")
-      end
-
-      and_by "setting the correct system environment variables" do
-        expect(staging_log).to include("VCAP_APPLICATION=")
-        expect(staging_log).to include("MEMORY_LIMIT=#{memory_limit}m")
+      it "fails with an invalid branch" do
+        properties = {"buildpack" => "#{fake_buildpack_url("start_command")}#badbranch", "environment" => env, "resources" => limits}
+        response, staging_log = perform_stage_request(staging_message)
+        expect(response["error"]).to match /Script exited with status 1/
       end
     end
   end
