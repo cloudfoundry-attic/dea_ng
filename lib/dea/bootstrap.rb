@@ -400,7 +400,7 @@ module Dea
         return nil
       end
 
-      instance = Instance.new(self, attributes)
+      instance = Instance.new(self, attributes, app_user)
       instance.setup
 
       instance.on(Instance::Transition.new(:starting, :crashed)) do

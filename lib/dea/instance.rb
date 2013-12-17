@@ -246,7 +246,7 @@ module Dea
     attr_accessor :exit_status
     attr_accessor :exit_description
 
-    def initialize(bootstrap, attributes)
+    def initialize(bootstrap, attributes, app_user = nil)
       super(bootstrap.config)
       @bootstrap = bootstrap
 
@@ -264,7 +264,7 @@ module Dea
       # Assume non-production app when not specified
       @attributes["application_prod"] ||= false
 
-      @app_user = bootstrap.app_user
+      @app_user = app_user
 
       @exit_status           = -1
       @exit_description      = ""
@@ -452,7 +452,7 @@ module Dea
 
     def promise_setup_environment
       Promise.new do |p|
-        script = "cd / && mkdir -p home/#{bootstrap.app_user}/app && chown -R #{bootstrap.app_user}:#{bootstrap.app_user} home/#{bootstrap.app_user} && chmod -R 755 home/#{bootstrap.app_user} && ln -s home/#{bootstrap.app_user} /app"
+        script = "cd / && mkdir -p home/#{@app_user}/app && chown -R #{@app_user}:#{@app_user} home/#{@app_user} && chmod -R 755 home/#{@app_user} && ln -s home/#{@app_user} /app"
         promise_warden_run(:app, script, true).resolve
 
         p.deliver
@@ -470,7 +470,7 @@ module Dea
 
     def promise_extract_droplet
       Promise.new do |p|
-        script = "cd /home/#{bootstrap.app_user}/ && tar zxf #{droplet.droplet_path} && mv app/* /home/#{bootstrap.app_user}/ && find . -type f -maxdepth 1 | xargs chmod og-x"
+        script = "cd /home/#{@app_user}/ && tar zxf #{droplet.droplet_path} && mv app/* /home/#{@app_user}/ && find . -type f -maxdepth 1 | xargs chmod og-x"
 
         promise_warden_run(:app, script).resolve
 
@@ -914,11 +914,11 @@ module Dea
     def container_relative_path(root, *parts)
       # This can be removed once warden's wsh branch is merged to master
       if File.directory?(File.join(root, "rootfs"))
-        return File.join(root, "rootfs", "home", bootstrap.app_user, *parts)
+        return File.join(root, "rootfs", "home", @app_user, *parts)
       end
 
       # New path
-      File.join(root, "tmp", "rootfs", "home", bootstrap.app_user, *parts)
+      File.join(root, "tmp", "rootfs", "home", @app_user, *parts)
     end
 
     def logger
