@@ -51,6 +51,9 @@ directory_server:
 stacks:
   - lucid64
 
+app_workspace:
+  user: vcap
+
 # Hook scripts for droplet start/stop
 # hooks:
 #   before_start: path/to/script

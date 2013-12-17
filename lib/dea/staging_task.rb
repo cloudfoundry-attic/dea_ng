@@ -169,9 +169,9 @@ module Dea
 
     def promise_prepare_staging_log
       Promise.new do |p|
-        script = "mkdir -p #{workspace.warden_staged_dir}/logs && touch #{workspace.warden_staging_log}"
+        script = "chown -R #{bootstrap.app_user}:#{bootstrap.app_user} /home/#{bootstrap.app_user} && su -c 'mkdir -p #{workspace.warden_staged_dir}/logs && touch #{workspace.warden_staging_log}' #{bootstrap.app_user}"
         logger.info("Preparing staging log: #{script}")
-        promise_warden_run(:app, script).resolve
+        promise_warden_run(:app, script, true).resolve
         p.deliver
       end
     end
@@ -181,7 +181,7 @@ module Dea
         # Some buildpacks seem to make assumption that /app is a non-empty directory
         # See: https://github.com/heroku/heroku-buildpack-python/blob/master/bin/compile#L46
         # TODO possibly remove this if pull request is accepted
-        script = "mkdir -p /app && touch /app/support_heroku_buildpacks && chown -R work:work /app"
+        script = "mkdir -p /app && touch /app/support_heroku_buildpacks && chown -R #{bootstrap.app_user}:#{bootstrap.app_user} /app"
         promise_warden_run(:app, script, true).resolve
         p.deliver
       end

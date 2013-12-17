@@ -80,6 +80,10 @@ module Dea
       setup_router_client
     end
 
+    def app_user
+      config["app_workspace"]["user"]
+    end
+
     def setup_varz
       VCAP::Component.varz.synchronize do
         VCAP::Component.varz[:stacks] = config["stacks"]
