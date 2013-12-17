@@ -747,7 +747,7 @@ describe Dea::Instance do
 
       it "should create the app dir" do
        instance.stub(:promise_warden_run) do |_, script|
-          script.should =~ %r{mkdir -p home/work/app}
+          script.should =~ %r{mkdir -p home/#{bootstrap.app_user}/app}
 
           delivering_promise
         end
@@ -758,7 +758,7 @@ describe Dea::Instance do
 
       it "should chown the app dir" do
         instance.stub(:promise_warden_run) do |_, script|
-          script.should =~ %r{chown work:work home/work/app}
+          script.should =~ %r{chown #{bootstrap.app_user}:#{bootstrap.app_user} home/#{bootstrap.app_user}/app}
 
           delivering_promise
         end
@@ -769,7 +769,7 @@ describe Dea::Instance do
 
       it "should symlink the app dir" do
         instance.stub(:promise_warden_run) do |_, script|
-          script.should =~ %r{ln -s home/work /app}
+          script.should =~ %r{ln -s home/#{bootstrap.app_user} /app}
 
           delivering_promise
         end
@@ -1260,7 +1260,7 @@ describe Dea::Instance do
     end
 
     let(:manifest_path) do
-      File.join(tmpdir, "rootfs", "home", "work", "droplet.yaml")
+      File.join(tmpdir, "rootfs", "home", bootstrap.app_user, "droplet.yaml")
     end
 
     before :each do
