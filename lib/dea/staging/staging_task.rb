@@ -203,11 +203,17 @@ module Dea
 
         logger.debug "staging.task.execute-staging", script: script
 
-        Timeout.timeout(staging_timeout + staging_timeout_grace_period) do
-          loggregator_emit_result container.run_script(:app, script)
+        begin
+          Timeout.timeout(staging_timeout + staging_timeout_grace_period) do
+            loggregator_emit_result container.run_script(:app, script)
+          end
+          p.deliver
+        rescue Container::WardenError => staging_error
+          loggregator_emit_result(staging_error.result)
+          p.fail(staging_error)
+        rescue Timeout::Error => timeout_error
+          p.fail(timeout_error)
         end
-
-        p.deliver
       end
     end
 
