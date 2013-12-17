@@ -89,15 +89,36 @@ describe Dea::StagingTask do
       staging.promise_stage.resolve
     end
 
-    it "logs to the loggregator" do
-      @emitter.reset
-      staging.container.should_receive(:run_script).and_return(double(:stdout => "stdout message", :stderr => "stderr message"))
-      staging.promise_stage.resolve
-      app_id = staging.staging_message.app_id
-      expect(@emitter.messages.size).to eql(1)
-      expect(@emitter.error_messages.size).to eql(1)
-      expect(@emitter.messages[app_id][0]).to eql("stdout message")
-      expect(@emitter.error_messages[app_id][0]).to eql("stderr message")
+    let (:staging_result) { double(:stdout => "stdout message", :stderr => "stderr message") }
+
+    describe "loggregator" do
+      it "logs to the loggregator" do
+        @emitter.reset
+        staging.container.should_receive(:run_script).and_return(staging_result)
+        staging.promise_stage.resolve
+        app_id = staging.staging_message.app_id
+        expect(@emitter.messages.size).to eql(1)
+        expect(@emitter.error_messages.size).to eql(1)
+        expect(@emitter.messages[app_id][0]).to eql("stdout message")
+        expect(@emitter.error_messages[app_id][0]).to eql("stderr message")
+      end
+
+      context "when staging fails" do
+        let (:staging_error) { Container::WardenError.new("Failed to stage") }
+
+        it "still emits staging logs when a WardenError is raised" do
+          @emitter.reset
+          staging.container.should_receive(:run_script).and_raise(staging_error)
+          staging_error.should_receive(:result).and_return(staging_result)
+
+          expect { staging.promise_stage.resolve }.to raise_error(Container::WardenError)
+          app_id = staging.staging_message.app_id
+          expect(@emitter.messages.size).to eql(1)
+          expect(@emitter.error_messages.size).to eql(1)
+          expect(@emitter.messages[app_id][0]).to eql("stdout message")
+          expect(@emitter.error_messages[app_id][0]).to eql("stderr message")
+        end
+      end
     end
 
     context "when env variables need to be escaped" do
