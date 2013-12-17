@@ -497,6 +497,7 @@ module Dea
       workspace.prepare
       with_network = false
       container.create_container(bind_mounts,
+        staging_config["cpu_limit_shares"],
         disk_limit_in_bytes,
         memory_limit_in_bytes,
         with_network)

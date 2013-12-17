@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/cloudfoundry/container_tools.git
-  revision: 40f91bc0081ee58a505466225d69e113da0f6f61
+  revision: 2d7221ba9c08fcff3137c465d9c20ce27c4525f4
   specs:
     container_tools (0.1)
       em-warden-client
@@ -37,7 +37,7 @@ GIT
 
 GIT
   remote: https://github.com/cloudfoundry/warden.git
-  revision: 30d3df1d9709ea254f5cc005e7c8b7b9825d293b
+  revision: fe9ec4865821d1574905dbdcb4848a27fcd963f6
   specs:
     em-warden-client (0.1.1)
       eventmachine
@@ -46,7 +46,7 @@ GIT
     warden-client (0.1.0)
       warden-protocol (~> 0.1.0)
     warden-protocol (0.1.3)
-      beefcake
+      beefcake (~> 0.3.0)
 
 GIT
   remote: https://github.com/intridea/grape.git

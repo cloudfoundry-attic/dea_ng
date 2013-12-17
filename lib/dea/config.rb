@@ -14,6 +14,8 @@ module Dea
       "crash_block_usage_ratio_threshold" => 0.8,
       "crash_inode_usage_ratio_threshold" => 0.8,
       "placement_properties" => { "zone" => "default" },
+      "instance" => { "cpu_limit_shares" => 256 },
+      "staging" => { "cpu_limit_shares" => 512 }
     }
 
     def self.schema
@@ -82,6 +84,16 @@ module Dea
             optional("before_stop") => String,
             optional("after_stop") => String
           },
+
+          optional("instance") => {
+            optional("cpu_limit_shares") => Integer,
+          },
+
+          optional("staging") => {
+            optional("enabled") => bool,
+            optional("max_staging_duration") => Integer,
+            optional("environment") => Hash
+          }
         }
       end
     end

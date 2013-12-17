@@ -495,6 +495,7 @@ module Dea
         with_network = true
         container.create_container(
           bind_mounts + config["bind_mounts"],
+          config["instance"]["cpu_limit_shares"],
           disk_limit_in_bytes,
           memory_limit_in_bytes,
           with_network)

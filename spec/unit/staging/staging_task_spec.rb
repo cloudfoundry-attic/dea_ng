@@ -30,6 +30,7 @@ describe Dea::StagingTask do
       },
       "staging" => {
         "environment" => { "BUILDPACK_CACHE" => "buildpack_cache_url" },
+        "cpu_limit_shares" => 512,
         "memory_limit_mb" => memory_limit_mb,
         "disk_limit_mb" => disk_limit_mb,
         "max_staging_duration" => max_staging_duration
@@ -287,8 +288,6 @@ YAML
       %w(
          app_download
          buildpack_cache_download
-         limit_disk
-         limit_memory
          prepare_staging_log
          app_dir
       ).each do |step|
@@ -485,7 +484,7 @@ YAML
       staging.workspace.should_receive(:prepare).ordered
       staging.workspace.workspace_dir
       staging.container.should_receive(:create_container).
-        with(staging.bind_mounts, staging.disk_limit_in_bytes, staging.memory_limit_in_bytes, with_network).ordered
+        with(staging.bind_mounts, staging.staging_config["cpu_limit_shares"], staging.disk_limit_in_bytes, staging.memory_limit_in_bytes, with_network).ordered
       %w(
         promise_app_download
         promise_prepare_staging_log

@@ -506,13 +506,10 @@ describe Dea::Instance do
     let(:warden_connection) { double("warden_connection") }
 
     before do
-      bootstrap.stub(:config).and_return({ "bind_mounts" => [] })
+      bootstrap.stub(:config).and_return({ "bind_mounts" => [], "instance" => { "cpu_limit_shares" => 256 } })
       instance.stub(:promise_droplet).and_return(delivering_promise)
       instance.container.stub(:get_connection).and_raise("bad connection bad")
       instance.container.stub(:create_container)
-      instance.stub(:promise_setup_network).and_return(delivering_promise)
-      instance.stub(:promise_limit_disk).and_return(delivering_promise)
-      instance.stub(:promise_limit_memory).and_return(delivering_promise)
       instance.stub(:promise_setup_environment).and_return(delivering_promise)
       instance.stub(:promise_extract_droplet).and_return(delivering_promise)
       instance.stub(:promise_prepare_start_script).and_return(delivering_promise)
@@ -592,7 +589,7 @@ describe Dea::Instance do
         ]
         with_network = true
         instance.container.should_receive(:create_container).
-          with(expected_bind_mounts, instance.disk_limit_in_bytes, instance.memory_limit_in_bytes, with_network)
+          with(expected_bind_mounts, instance.config["instance"]["cpu_limit_shares"], instance.disk_limit_in_bytes, instance.memory_limit_in_bytes, with_network)
         expect_start.to_not raise_error
         instance.exit_description.should be_empty
       end
