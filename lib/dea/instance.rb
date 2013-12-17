@@ -264,6 +264,8 @@ module Dea
       # Assume non-production app when not specified
       @attributes["application_prod"] ||= false
 
+      @app_user = bootstrap.app_user
+
       @exit_status           = -1
       @exit_description      = ""
     end
