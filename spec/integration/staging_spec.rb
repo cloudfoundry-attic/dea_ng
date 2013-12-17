@@ -246,7 +246,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
       {"buildpack" => fake_buildpack_url("start_command")}
     end
 
-    before { FileUtils.rm_f(dea_server.instance_file) if File.exists?(dea_server.instance_file) }
+    before { FileUtils.rm_f(dea_server.instance_file_path) if File.exists?(dea_server.instance_file_path) }
 
     it "does not crash" do
       response, _ = perform_stage_request(staging_message)
