@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+echo "-----> Some compilation output"
+if [ -d $2 ]; then
+  echo "-----> Copying files from cache"
+  mv $2/* $1
+
+  echo "-----> Saving files to cache"
+  touch $2/new_cached_file
+fi
+
+if [ "$FOO" = "bar baz" ] && [ "$BLAH" = "WHATEVER" ]; then
+  echo "-----> Env variables are: $FOO, $BLAH;"
+fi
+exit 0
