@@ -15,6 +15,9 @@ describe Dea::Bootstrap do
       "directory_server" => {
         "v1_port" => 12345,
       },
+      "app_workspace" => {
+        "user" => DEFAULT_APPWORKSPACE_USER
+      },
       "domain" => "default",
       "logging" => {}
     }

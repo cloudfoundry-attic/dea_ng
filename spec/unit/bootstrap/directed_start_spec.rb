@@ -27,7 +27,7 @@ describe Dea do
     before do
       bootstrap.stub(:resource_manager).and_return(resource_manager)
 
-      @instance_mock = Dea::Instance.new(bootstrap, valid_instance_attributes)
+      @instance_mock = Dea::Instance.new(bootstrap, valid_instance_attributes, DEFAULT_APPWORKSPACE_USER)
       @instance_mock.stub(:validate)
       @instance_mock.stub(:start) do
         @instance_mock.state = Dea::Instance::State::STARTING

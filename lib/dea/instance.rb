@@ -20,6 +20,8 @@ module Dea
 
     STAT_COLLECTION_INTERVAL_SECS = 10
 
+    DEFAULT_APPWORKSPACE_USER = "default"
+
     BIND_MOUNT_MODE_MAP = {
       "ro" =>  ::Warden::Protocol::CreateRequest::BindMount::Mode::RO,
       "rw" =>  ::Warden::Protocol::CreateRequest::BindMount::Mode::RW,
@@ -281,6 +283,10 @@ module Dea
       false
     end
 
+    def app_workspace_user
+      @app_user ? @app_user : DEFAULT_APPWORKSPACE_USER
+    end
+
     def memory_limit_in_bytes
       limits["mem"].to_i * 1024 * 1024
     end
@@ -452,7 +458,7 @@ module Dea
 
     def promise_setup_environment
       Promise.new do |p|
-        script = "cd / && mkdir -p home/#{@app_user}/app && chown -R #{@app_user}:#{@app_user} home/#{@app_user} && chmod -R 755 home/#{@app_user} && ln -s home/#{@app_user} /app"
+        script = "cd / && mkdir -p home/#{app_workspace_user}/app && chown -R #{app_workspace_user}:#{app_workspace_user} home/#{app_workspace_user} && chmod -R 755 home/#{app_workspace_user} && ln -s home/#{app_workspace_user} /app"
         promise_warden_run(:app, script, true).resolve
 
         p.deliver
@@ -470,7 +476,7 @@ module Dea
 
     def promise_extract_droplet
       Promise.new do |p|
-        script = "cd /home/#{@app_user}/ && tar zxf #{droplet.droplet_path} && mv app/* /home/#{@app_user}/ && find . -type f -maxdepth 1 | xargs chmod og-x"
+        script = "cd /home/#{app_workspace_user}/ && tar zxf #{droplet.droplet_path} && mv app/* /home/#{app_workspace_user}/ && find . -type f -maxdepth 1 | xargs chmod og-x"
 
         promise_warden_run(:app, script).resolve
 
@@ -914,11 +920,11 @@ module Dea
     def container_relative_path(root, *parts)
       # This can be removed once warden's wsh branch is merged to master
       if File.directory?(File.join(root, "rootfs"))
-        return File.join(root, "rootfs", "home", @app_user, *parts)
+        return File.join(root, "rootfs", "home", app_workspace_user, *parts)
       end
 
       # New path
-      File.join(root, "tmp", "rootfs", "home", @app_user, *parts)
+      File.join(root, "tmp", "rootfs", "home", app_workspace_user, *parts)
     end
 
     def logger
