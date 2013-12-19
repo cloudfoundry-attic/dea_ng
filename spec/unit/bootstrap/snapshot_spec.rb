@@ -9,6 +9,7 @@ describe Dea::Snapshot do
   let(:base_dir) { Dir.mktmpdir }
   let(:instance_manager) { double(:instance_manager, :create_instance => nil) }
   let(:bootstrap) { double(:bootstrap, :config => {}) }
+  let(:instance_attributes) { {} }
 
   let(:snapshot) { described_class.new(staging_task_registry, instance_registry, base_dir, instance_manager) }
 
@@ -35,7 +36,7 @@ describe Dea::Snapshot do
       Dea::Instance::State.constants.each do |name|
         state = Dea::Instance::State.const_get(name)
 
-        instance = Dea::Instance.new(bootstrap, valid_instance_attributes(true))
+        instance = Dea::Instance.new(bootstrap, valid_instance_attributes(true).merge(instance_attributes))
         instance.stub(:validate)
         instance.state = state
         instances << instance
@@ -81,6 +82,8 @@ describe Dea::Snapshot do
     end
 
     context "instances fields" do
+      let(:instance_attributes) { {"health_check_timeout" => 256} }
+
       before do
         snapshot.save
         saved_snapshot = ::Yajl::Parser.parse(File.read(snapshot.path))
@@ -117,6 +120,10 @@ describe Dea::Snapshot do
 
       it "has the instance's start timestamp so we can report its uptime" do
         @instance.should have_key("state_starting_timestamp")
+      end
+
+      it "has the instance health_check_timeout" do
+        @instance["health_check_timeout"].should eq(256)
       end
     end
   end

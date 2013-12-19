@@ -814,6 +814,7 @@ module Dea
 
         "warden_handle"         => attributes["warden_handle"],
         "limits"                => attributes["limits"],
+        "health_check_timeout"  => attributes["health_check_timeout"],
 
         "environment"           => attributes["environment"],
         "services"              => attributes["services"],
