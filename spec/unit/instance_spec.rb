@@ -758,7 +758,7 @@ describe Dea::Instance do
 
       it "should chown the app dir" do
         instance.stub(:promise_warden_run) do |_, script|
-          script.should =~ %r{cd / && mkdir -p home/#{DEFAULT_APPWORKSPACE_USER}/app && chown -R #{DEFAULT_APPWORKSPACE_USER}:#{DEFAULT_APPWORKSPACE_USER} home/#{DEFAULT_APPWORKSPACE_USER} && chmod -R 755 home/#{DEFAULT_APPWORKSPACE_USER} && ln -s home/#{DEFAULT_APPWORKSPACE_USER} /app}
+          script.should =~ %r{cd / && mkdir -p home/#{DEFAULT_APPWORKSPACE_USER}/app && chown #{DEFAULT_APPWORKSPACE_USER}:#{DEFAULT_APPWORKSPACE_USER} home/#{DEFAULT_APPWORKSPACE_USER} && chown  #{DEFAULT_APPWORKSPACE_USER}:#{DEFAULT_APPWORKSPACE_USER} home/#{DEFAULT_APPWORKSPACE_USER}/app && ln -s home/#{DEFAULT_APPWORKSPACE_USER} /app}
 
           delivering_promise
         end
