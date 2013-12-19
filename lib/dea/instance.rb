@@ -458,7 +458,7 @@ module Dea
 
     def promise_setup_environment
       Promise.new do |p|
-        script = "cd / && mkdir -p home/#{app_workspace_user}/app && chown -R #{app_workspace_user}:#{app_workspace_user} home/#{app_workspace_user} && chmod -R 755 home/#{app_workspace_user} && ln -s home/#{app_workspace_user} /app"
+        script = "cd / && mkdir -p home/#{app_workspace_user}/app && chown #{app_workspace_user}:#{app_workspace_user} home/#{app_workspace_user} && chown #{app_workspace_user}:#{app_workspace_user} home/#{app_workspace_user}/app && ln -s home/#{app_workspace_user} /app"
         promise_warden_run(:app, script, true).resolve
 
         p.deliver
