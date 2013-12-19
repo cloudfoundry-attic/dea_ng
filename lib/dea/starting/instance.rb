@@ -879,15 +879,15 @@ module Dea
     end
 
     def health_check_timeout
-      app_specific_health_check_timeout || global_default_health_check_timeout || 60
+      app_specific_health_check_timeout || default_health_check_timeout
     end
 
     def app_specific_health_check_timeout
       attributes["health_check_timeout"]
     end
 
-    def global_default_health_check_timeout
-      config["maximum_health_check_timeout"]
+    def default_health_check_timeout
+      config["default_health_check_timeout"]
     end
 
     def logger

@@ -361,7 +361,6 @@ describe Dea::Instance do
 
     before do
       bootstrap.stub(:local_ip).and_return("127.0.0.1")
-      #instance.container.stub(:info).and_return(info_response)
       instance.container.stub(:update_path_and_ip)
       instance.container.stub(:host_ip).and_return(info_response.host_ip)
       instance.container.stub(:path).and_return(info_response.container_path)
@@ -433,30 +432,6 @@ describe Dea::Instance do
         Dea::HealthCheck::PortOpen.stub(:new).and_yield(deferrable)
       end
 
-      it "defaults to 60 seconds timeout" do
-        deferrable.should_receive(:timeout).with(60)
-        execute_health_check do
-          deferrable.succeed
-        end
-      end
-
-      it "has a configurable timeout" do
-        bootstrap.config["maximum_health_check_timeout"] = 100
-        deferrable.should_receive(:timeout).with(100)
-        execute_health_check do
-          deferrable.succeed
-        end
-      end
-
-      it "can override yml global timeout value with value from app attribute" do
-        bootstrap.config["maximum_health_check_timeout"] = 100
-        instance.attributes["health_check_timeout"] = 200
-        deferrable.should_receive(:timeout).with(200)
-        execute_health_check do
-          deferrable.succeed
-        end
-      end
-
       it "succeeds when the port is open" do
         result = execute_health_check do
           deferrable.succeed
@@ -499,6 +474,31 @@ describe Dea::Instance do
       it "should log the failure" do
         instance.instance_variable_get(:@logger).should_receive(:error)
         subject
+      end
+    end
+
+    context "when health_check_timeout is specified in start request" do
+      before { Dea::HealthCheck::PortOpen.stub(:new).and_yield(deferrable) }
+
+      it "should wait for specified timeout" do
+        bootstrap.config["default_health_check_timeout"] = 100
+        instance.attributes["health_check_timeout"] = 200
+        deferrable.should_receive(:timeout).with(200)
+        execute_health_check do
+          deferrable.succeed
+        end
+      end
+    end
+
+    context "when health_check_timeout is not specified" do
+      before { Dea::HealthCheck::PortOpen.stub(:new).and_yield(deferrable) }
+
+      it "should use default" do
+        bootstrap.config["default_health_check_timeout"] = 100
+        deferrable.should_receive(:timeout).with(100)
+        execute_health_check do
+          deferrable.succeed
+        end
       end
     end
   end

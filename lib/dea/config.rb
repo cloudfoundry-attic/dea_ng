@@ -15,7 +15,8 @@ module Dea
       "crash_inode_usage_ratio_threshold" => 0.8,
       "placement_properties" => { "zone" => "default" },
       "instance" => { "cpu_limit_shares" => 256 },
-      "staging" => { "cpu_limit_shares" => 512 }
+      "staging" => { "cpu_limit_shares" => 512 },
+      "default_health_check_timeout" => 60
     }
 
     def self.schema
@@ -51,7 +52,7 @@ module Dea
 
           optional("evacuation_bail_out_time_in_seconds") => Integer,
 
-          optional("maximum_health_check_timeout") => Integer,
+          optional("default_health_check_timeout") => Integer,
 
           optional("status") => {
             optional("user") => String,
