@@ -709,7 +709,7 @@ module Dea
 
           hc.errback  { p.deliver(false) }
 
-          hc.timeout(health_check_timeout)
+          hc.timeout(health_check_timeout_seconds)
         end
       end
     end
@@ -872,16 +872,16 @@ module Dea
       File.join(root, "tmp", "rootfs", "home", "vcap", *parts)
     end
 
-    def health_check_timeout
-      app_specific_health_check_timeout || global_default_health_check_timeout || 60
+    def health_check_timeout_seconds
+      app_specific_health_check_timeout_seconds || global_default_health_check_timeout_seconds || 60
     end
 
-    def app_specific_health_check_timeout
-      attributes["health_check_timeout"]
+    def app_specific_health_check_timeout_seconds
+      attributes["health_check_timeout_seconds"]
     end
 
-    def global_default_health_check_timeout
-      config["maximum_health_check_timeout"]
+    def global_default_health_check_timeout_seconds
+      config["health_check_timeout_seconds"]
     end
 
     def logger

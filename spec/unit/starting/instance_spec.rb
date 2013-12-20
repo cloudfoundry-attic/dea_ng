@@ -441,7 +441,7 @@ describe Dea::Instance do
       end
 
       it "has a configurable timeout" do
-        bootstrap.config["maximum_health_check_timeout"] = 100
+        bootstrap.config["health_check_timeout_seconds"] = 100
         deferrable.should_receive(:timeout).with(100)
         execute_health_check do
           deferrable.succeed
@@ -449,8 +449,8 @@ describe Dea::Instance do
       end
 
       it "can override yml global timeout value with value from app attribute" do
-        bootstrap.config["maximum_health_check_timeout"] = 100
-        instance.attributes["health_check_timeout"] = 200
+        bootstrap.config["health_check_timeout_seconds"] = 100
+        instance.attributes["health_check_timeout_seconds"] = 200
         deferrable.should_receive(:timeout).with(200)
         execute_health_check do
           deferrable.succeed
