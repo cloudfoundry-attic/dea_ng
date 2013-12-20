@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+echo "-----> Some compilation output"
+exit 0

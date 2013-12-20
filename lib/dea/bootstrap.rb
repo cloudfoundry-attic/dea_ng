@@ -80,6 +80,10 @@ module Dea
       setup_router_client
     end
 
+    def app_user
+      config["app_workspace"]["user"]
+    end
+
     def setup_varz
       VCAP::Component.varz.synchronize do
         VCAP::Component.varz[:stacks] = config["stacks"]
@@ -396,7 +400,7 @@ module Dea
         return nil
       end
 
-      instance = Instance.new(self, attributes)
+      instance = Instance.new(self, attributes, app_user)
       instance.setup
 
       instance.on(Instance::Transition.new(:starting, :crashed)) do

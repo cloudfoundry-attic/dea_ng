@@ -7,11 +7,11 @@ describe Dea::Instance do
   include_context "tmpdir"
 
   let(:bootstrap) do
-    mock("bootstrap", :config => {})
+    mock("bootstrap", :config => { "app_workspace" => {"user" => DEFAULT_APPWORKSPACE_USER }})
   end
 
   subject(:instance) do
-    Dea::Instance.new(bootstrap, valid_instance_attributes)
+    Dea::Instance.new(bootstrap, valid_instance_attributes, DEFAULT_APPWORKSPACE_USER)
   end
 
   describe "default attributes" do
@@ -747,7 +747,7 @@ describe Dea::Instance do
 
       it "should create the app dir" do
        instance.stub(:promise_warden_run) do |_, script|
-          script.should =~ %r{mkdir -p home/work/app}
+          script.should =~ %r{mkdir -p home/#{DEFAULT_APPWORKSPACE_USER}/app}
 
           delivering_promise
         end
@@ -758,7 +758,7 @@ describe Dea::Instance do
 
       it "should chown the app dir" do
         instance.stub(:promise_warden_run) do |_, script|
-          script.should =~ %r{chown work:work home/work/app}
+          script.should =~ %r{cd / && mkdir -p home/#{DEFAULT_APPWORKSPACE_USER}/app && chown #{DEFAULT_APPWORKSPACE_USER}:#{DEFAULT_APPWORKSPACE_USER} home/#{DEFAULT_APPWORKSPACE_USER} && chown #{DEFAULT_APPWORKSPACE_USER}:#{DEFAULT_APPWORKSPACE_USER} home/#{DEFAULT_APPWORKSPACE_USER}/app && ln -s home/#{DEFAULT_APPWORKSPACE_USER} /app}
 
           delivering_promise
         end
@@ -769,7 +769,7 @@ describe Dea::Instance do
 
       it "should symlink the app dir" do
         instance.stub(:promise_warden_run) do |_, script|
-          script.should =~ %r{ln -s home/work /app}
+          script.should =~ %r{ln -s home/#{DEFAULT_APPWORKSPACE_USER} /app}
 
           delivering_promise
         end
@@ -1260,7 +1260,7 @@ describe Dea::Instance do
     end
 
     let(:manifest_path) do
-      File.join(tmpdir, "rootfs", "home", "work", "droplet.yaml")
+      File.join(tmpdir, "rootfs", "home", DEFAULT_APPWORKSPACE_USER, "droplet.yaml")
     end
 
     before :each do

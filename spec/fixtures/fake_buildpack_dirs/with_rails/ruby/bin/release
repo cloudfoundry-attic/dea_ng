@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+cat <<EOF
+---
+config_vars:
+  PATH: bin:/usr/local/bin:/usr/bin:/bin
+  FROM_BUILD_PACK: "yes"
+default_process_types:
+  web: bundle exec rails server --from-buildpack=true
+EOF

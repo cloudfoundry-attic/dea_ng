@@ -19,6 +19,7 @@ module Dea
     include EventEmitter
 
     STAT_COLLECTION_INTERVAL_SECS = 10
+    DEFAULT_APPWORKSPACE_USER = "default"
 
     BIND_MOUNT_MODE_MAP = {
       "ro" =>  ::Warden::Protocol::CreateRequest::BindMount::Mode::RO,
@@ -246,7 +247,7 @@ module Dea
     attr_accessor :exit_status
     attr_accessor :exit_description
 
-    def initialize(bootstrap, attributes)
+    def initialize(bootstrap, attributes, app_user = nil)
       super(bootstrap.config)
       @bootstrap = bootstrap
 
@@ -264,6 +265,8 @@ module Dea
       # Assume non-production app when not specified
       @attributes["application_prod"] ||= false
 
+      @app_user = app_user
+
       @exit_status           = -1
       @exit_description      = ""
     end
@@ -277,6 +280,10 @@ module Dea
     # TODO: Fill in once start is hooked up
     def flapping?
       false
+    end
+
+    def app_workspace_user
+      @app_user ? @app_user : DEFAULT_APPWORKSPACE_USER
     end
 
     def memory_limit_in_bytes
@@ -467,7 +474,7 @@ module Dea
 
     def promise_setup_environment
       Promise.new do |p|
-        script = "cd / && mkdir -p home/work/app && chown work:work home/work/app && chown work:work home/work && ln -s home/work /app"
+        script = "cd / && mkdir -p home/#{app_workspace_user}/app && chown #{app_workspace_user}:#{app_workspace_user} home/#{app_workspace_user} && chown #{app_workspace_user}:#{app_workspace_user} home/#{app_workspace_user}/app && ln -s home/#{app_workspace_user} /app"
         promise_warden_run(:app, script, true).resolve
 
         p.deliver
@@ -485,7 +492,7 @@ module Dea
 
     def promise_extract_droplet
       Promise.new do |p|
-        script = "cd /home/work/ && tar zxf #{droplet.droplet_path} && mv app/* /home/work/ && find . -type f -maxdepth 1 | xargs chmod og-x"
+        script = "cd /home/#{app_workspace_user}/ && tar zxf #{droplet.droplet_path} && mv app/* /home/#{app_workspace_user}/ && find . -type f -maxdepth 1 | xargs chmod og-x"
 
         promise_warden_run(:app, script).resolve
 
@@ -929,11 +936,11 @@ module Dea
     def container_relative_path(root, *parts)
       # This can be removed once warden's wsh branch is merged to master
       if File.directory?(File.join(root, "rootfs"))
-        return File.join(root, "rootfs", "home", "work", *parts)
+        return File.join(root, "rootfs", "home", app_workspace_user, *parts)
       end
 
       # New path
-      File.join(root, "tmp", "rootfs", "home", "work", *parts)
+      File.join(root, "tmp", "rootfs", "home", app_workspace_user, *parts)
     end
 
     def logger

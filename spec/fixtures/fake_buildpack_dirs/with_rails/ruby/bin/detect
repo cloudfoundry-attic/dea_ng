@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+echo "Ruby/Rails"
+exit 0

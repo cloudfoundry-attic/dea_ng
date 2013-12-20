@@ -10,8 +10,8 @@ require "dea/instance_registry"
 describe Dea::Directory do
   include Rack::Test::Methods
 
-  let(:bootstrap) { mock(:bootstrap, :config => {}) }
-  let(:instance) { Dea::Instance.new(bootstrap, {}) }
+  let(:bootstrap) { mock(:bootstrap, :config => {"app_workspace" => {"user" => DEFAULT_APPWORKSPACE_USER}}) }
+  let(:instance) { Dea::Instance.new(bootstrap, {}, DEFAULT_APPWORKSPACE_USER) }
 
   let(:instance_registry) do
     instance_registry = nil
@@ -28,7 +28,7 @@ describe Dea::Directory do
   before :each do
     @tmpdir = Dir.mktmpdir
 
-    @home_dir = File.join(@tmpdir, "rootfs", "home", "work")
+    @home_dir = File.join(@tmpdir, "rootfs", "home", DEFAULT_APPWORKSPACE_USER)
     FileUtils.mkdir_p(@home_dir)
 
     @app_dir = File.join(@home_dir, "app")

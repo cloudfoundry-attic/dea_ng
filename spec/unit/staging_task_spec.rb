@@ -22,6 +22,9 @@ describe Dea::StagingTask do
       "directory_server" => {
         "file_api_port" => 1234
       },
+      "app_workspace" => {
+        "user" => DEFAULT_APPWORKSPACE_USER
+      },
       "staging" => {
         "environment" => {"BUILDPACK_CACHE" => "buildpack_cache_url"},
         "platform_config" => {},
