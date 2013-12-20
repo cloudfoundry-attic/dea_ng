@@ -19,7 +19,6 @@ module Dea
     include EventEmitter
 
     STAT_COLLECTION_INTERVAL_SECS = 10
-
     DEFAULT_APPWORKSPACE_USER = "default"
 
     BIND_MOUNT_MODE_MAP = {
