@@ -20,7 +20,7 @@ module Dea
 
     STAT_COLLECTION_INTERVAL_SECS = 10
 
-    DEFAULT_APPWORKSPACE_USER = "default_user"
+    DEFAULT_APPWORKSPACE_USER = "default"
 
     BIND_MOUNT_MODE_MAP = {
       "ro" =>  ::Warden::Protocol::CreateRequest::BindMount::Mode::RO,
