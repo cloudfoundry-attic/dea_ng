@@ -14,7 +14,6 @@ module Dea
       @environment_properties = staging_message.properties
       @buildpack_manager = Dea::BuildpackManager.new(
         admin_buildpacks_dir,
-        File.join(buildpack_dir, "vendor"),
         staging_message.admin_buildpacks,
         buildpacks_in_use
       )
