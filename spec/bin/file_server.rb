@@ -4,7 +4,7 @@ require "fileutils"
 require "thin"
 require "sinatra/base"
 require "pp"
-require "zip/zip"
+require "zip"
 
 APPS_DIR = File.expand_path("../../fixtures/apps", __FILE__)
 BUILDPACK_CACHE_DIR = File.expand_path("../../fixtures/buildpack_cache", __FILE__)
