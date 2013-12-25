@@ -178,7 +178,6 @@ module Dea
       Promise.new do |p|
         # Some buildpacks seem to make assumption that /app is a non-empty directory
         # See: https://github.com/heroku/heroku-buildpack-python/blob/master/bin/compile#L46
-        # TODO possibly remove this if pull request is accepted
         script = "mkdir -p /app && touch /app/support_heroku_buildpacks && chown -R vcap:vcap /app"
 
         logger.info "staging.task.making-app-dir", script: script
@@ -432,7 +431,6 @@ module Dea
 
     def promise_pack_buildpack_cache
       Promise.new do |p|
-        # TODO: Ignore if buildpack cache is empty or does not exist
         container.run_script(:app, <<-BASH)
           mkdir -p #{workspace.warden_cache} &&
           cd #{workspace.warden_cache} &&

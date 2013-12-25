@@ -87,7 +87,6 @@ module Dea
     end
 
     def translate_env(env)
-      # TODO: duplicated in instance.rb#translate_attributes
       env ? env.map { |e| e.split("=", 2) } : []
     end
 

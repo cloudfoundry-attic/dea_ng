@@ -846,8 +846,6 @@ describe Dea::Instance do
       end
 
       context "when there is no task info yaml in the droplet only a startup script (old DEA)" do
-        # TODO delete after two phase migration
-
         it "runs the startup script instead of generating one" do
           instance.container.should_receive(:call) do |name, request|
             expect(request.script).to include("./startup")
