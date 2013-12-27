@@ -16,11 +16,12 @@ shared_examples :handles_registry_enumerations do
   def make_instance(options = {})
     @instance_id += 1
     double(:instance, {
-      :consuming_memory? => true,
-      :consuming_disk? => true,
-      :instance_id => @instance_id,
-      :application_id => 123,
-      :task_id => @instance_id
+      consuming_memory?: true,
+      consuming_disk?: true,
+      instance_id: @instance_id,
+      application_id: 123,
+      task_id: @instance_id,
+      instance_index: 0
     }.merge(options))
   end
 

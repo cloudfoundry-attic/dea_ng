@@ -15,7 +15,8 @@ describe Dea::InstanceRegistry do
     end
     instance_registry
   end
-  let(:instance) { Dea::Instance.new(bootstrap, {"application_id" => 1, "warden_handle" => "handle1"}) }
+  let(:instance) { Dea::Instance.new(bootstrap, {"application_id" => 1, "warden_handle" => "handle1", "index" => 0}) }
+
   let(:instance1) { Dea::Instance.new(bootstrap, {"application_id" => 1, "warden_handle" => "handle2"}) }
 
   it_behaves_like :handles_registry_enumerations
@@ -62,7 +63,7 @@ describe Dea::InstanceRegistry do
 
       instance_registry.register(instance)
 
-      expect(emitter.messages[1][0]).to eql("Registering instance")
+      expect(emitter.messages[1][0]).to eql("Registering app instance (index 0) with guid 1")
     end
   end
 
@@ -87,7 +88,7 @@ describe Dea::InstanceRegistry do
 
       instance_registry.unregister(instance)
 
-      expect(emitter.messages[1][0]).to eql("Removing instance")
+      expect(emitter.messages[1][0]).to eql("Removing app instance (index 0) with guid 1")
     end
   end
 

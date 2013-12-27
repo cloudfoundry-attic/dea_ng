@@ -35,7 +35,8 @@ module Dea
 
     def register(instance)
       app_id = instance.application_id
-      Dea::Loggregator.emit(app_id, "Registering instance")
+      Dea::Loggregator.emit(app_id,
+        "Registering app instance (index #{instance.instance_index}) with guid #{instance.application_id}")
       logger.debug2("Registering instance #{instance.instance_id}")
 
       add_instance(instance)
@@ -44,7 +45,8 @@ module Dea
     def unregister(instance)
       app_id = instance.application_id
 
-      Dea::Loggregator.emit(app_id, "Removing instance")
+      Dea::Loggregator.emit(app_id,
+        "Removing app instance (index #{instance.instance_index}) with guid #{instance.application_id}")
       logger.debug2("Removing instance #{instance.instance_id}")
 
       remove_instance(instance)
