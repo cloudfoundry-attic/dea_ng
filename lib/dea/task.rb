@@ -152,7 +152,11 @@ module Dea
           bind_mount = ::Warden::Protocol::CreateRequest::BindMount.new
 
           FileUtils.mkdir_p bm["src_path"], :mode => 0755
-          FileUtils.chown 'work','work',bm["src_path"]
+          begin 
+            FileUtils.chown 'work','work',bm["src_path"]
+          rescue
+            logger.debug("fail chown work:work for #{bm[\"src_path\"]}.")
+          end
           bind_mount.src_path = bm["src_path"]
           bind_mount.dst_path = bm["dst_path"] || bm["src_path"]
 
