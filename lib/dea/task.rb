@@ -155,7 +155,7 @@ module Dea
           begin 
             FileUtils.chown 'work','work',bm["src_path"]
           rescue
-            logger.debug("fail chown work:work for #{bm[\"src_path\"]}.")
+            logger.debug("fail chown to work for #{bm["src_path"]}.")
           end
           bind_mount.src_path = bm["src_path"]
           bind_mount.dst_path = bm["dst_path"] || bm["src_path"]
