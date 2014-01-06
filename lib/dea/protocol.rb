@@ -57,7 +57,7 @@ module Dea::Protocol::V1
           "usage"      => {
             "time" => Time.now.to_s,
             "cpu"  => instance.computed_pcpu,
-            "mem"  => instance.used_memory_in_bytes / 1024,
+            "mem"  => instance.used_memory_in_bytes,
             "disk" => instance.used_disk_in_bytes,
           },
           # Purposefully omitted, as I'm not sure what purpose it serves.

@@ -318,7 +318,7 @@ describe Dea::Bootstrap do
         end
 
         it "uses the values from stat_collector" do
-          instance_1.stat_collector.stub(:used_memory_in_bytes).and_return(28 * 1024)
+          instance_1.stat_collector.stub(:used_memory_in_bytes).and_return(999)
           instance_1.stat_collector.stub(:used_disk_in_bytes).and_return(40)
           instance_1.stat_collector.stub(:computed_pcpu).and_return(0.123)
 
@@ -328,7 +328,7 @@ describe Dea::Bootstrap do
 
           varz.keys.should == ["app-1"]
           varz["app-1"][instance_1.instance_id].should include(
-            "used_memory_in_bytes" => 28,
+            "used_memory_in_bytes" => 999,
             "used_disk_in_bytes" => 40,
             "computed_pcpu" => 0.123
           )
