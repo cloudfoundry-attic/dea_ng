@@ -63,7 +63,7 @@ describe Dea::InstanceRegistry do
 
       instance_registry.register(instance)
 
-      expect(emitter.messages[1][0]).to eql("Registering app instance (index 0) with guid 1")
+      expect(emitter.messages[1][0]).to eql("Starting app instance (index 0) with guid 1")
     end
   end
 
@@ -88,7 +88,8 @@ describe Dea::InstanceRegistry do
 
       instance_registry.unregister(instance)
 
-      expect(emitter.messages[1][0]).to eql("Removing app instance (index 0) with guid 1")
+      expect(emitter.messages[1][0]).to eql("Stopping app instance (index 0) with guid 1")
+      expect(emitter.messages[1][1]).to eql("Stopped app instance (index 0) with guid 1")
     end
   end
 
