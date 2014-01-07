@@ -40,5 +40,4 @@ group :test do
   gem "net-ssh"
   gem "webmock"
   gem "rubyzip"
-  gem "debugger"
 end
