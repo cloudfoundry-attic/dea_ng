@@ -714,7 +714,7 @@ module Dea
           hc.callback { p.deliver(true) }
 
           hc.errback do
-            Dea::Loggregator.emit(application_id, "failed to start accepting connections for index #{instance_index}")
+            Dea::Loggregator.emit(application_id, "Instance (index #{instance_index}) failed to start accepting connections")
             p.deliver(false)
           end
 
