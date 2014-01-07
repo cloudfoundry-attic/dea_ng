@@ -96,8 +96,12 @@ vagrant up
 vagrant ssh
 
 # start warden
-cd /warden/warden
-bundle install
+cd /warden
+# pull the latest warden
+sudo git checkout master
+sudo git pull
+cd warden
+bundle
 rvmsudo bundle exec rake warden:start[config/test_vm.yml] 2>&1 > /tmp/warden.log &
 
 # start the DEA's dependencies
