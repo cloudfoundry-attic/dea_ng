@@ -5,13 +5,13 @@ $:.unshift(File.expand_path("../../buildpacks/lib", __FILE__))
 require 'bundler'
 Bundler.require
 
+require 'rspec/fire'
+require 'socket'
 require 'tempfile'
 require 'timecop'
 require 'timeout'
-require 'socket'
 require_relative '../buildpacks/lib/buildpack'
 require "webmock/rspec"
-require 'rspec/fire'
 
 Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].map { |f| require f }
 
