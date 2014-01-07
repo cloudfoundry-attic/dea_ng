@@ -713,7 +713,10 @@ module Dea
         @health_check = Dea::HealthCheck::PortOpen.new(host, port) do |hc|
           hc.callback { p.deliver(true) }
 
-          hc.errback  { p.deliver(false) }
+          hc.errback do
+            Dea::Loggregator.emit(application_id, "failed to start accepting connections for index #{instance_index}")
+            p.deliver(false)
+          end
 
           hc.timeout(health_check_timeout)
         end

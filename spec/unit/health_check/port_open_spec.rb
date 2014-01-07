@@ -12,7 +12,7 @@ describe Dea::HealthCheck::PortOpen do
     EM.start_server(host, port)
   end
 
-  it "should succed if someone is listening on the port" do
+  it "should succed if port check succeeds" do
     ok = run_health_check(host, port, 0.1) do
       start_server
     end
@@ -39,12 +39,11 @@ describe Dea::HealthCheck::PortOpen do
 
   def run_health_check(host, port, timeout, &blk)
     success = false
-    health_check = nil
 
     em(:timeout => 1) do
-      blk.call unless blk.nil?
+      blk.call if blk
 
-      health_check = Dea::HealthCheck::PortOpen.new(host, port, 0.02) do |hc|
+      Dea::HealthCheck::PortOpen.new(host, port, 0.02) do |hc|
         hc.callback do
           success = true
           EM.stop

@@ -7,6 +7,7 @@ class SignalHandler
   def initialize(uuid, local_ip, message_bus, locator_responders, instance_registry, staging_registry, droplet_registry, directory_server, logger, config)
     @uuid = uuid
     @local_ip = local_ip
+
     @message_bus = message_bus
     @locator_responders = locator_responders
     @instance_registry = instance_registry

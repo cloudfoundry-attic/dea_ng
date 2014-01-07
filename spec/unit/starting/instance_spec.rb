@@ -427,9 +427,16 @@ describe Dea::Instance do
     end
 
     describe "when the application has URIs" do
+      let(:application_id) { 37 }
+
       before do
+        instance.attributes["application_id"] = application_id
         instance.attributes["application_uris"] = ["some-test-app.my-cloudfoundry.com"]
+        instance.attributes["instance_index"] = 2
         Dea::HealthCheck::PortOpen.stub(:new).and_yield(deferrable)
+
+        @emitter = FakeEmitter.new
+        Dea::Loggregator.emitter = @emitter
       end
 
       it "succeeds when the port is open" do
@@ -446,6 +453,13 @@ describe Dea::Instance do
         end
 
         result.should be_false
+      end
+
+      it "logs a message to loggregator when the port is not open" do
+        execute_health_check do
+          deferrable.fail
+        end
+        expect(@emitter.messages[application_id][0]).to eql("failed to start accepting connections for index 2")
       end
     end
 

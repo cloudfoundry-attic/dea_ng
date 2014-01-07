@@ -28,7 +28,6 @@ gem "loggregator_emitter", "~> 3.0"
 gem "sys-filesystem"
 
 group :test do
-  gem "debugger"
   gem "timecop"
   gem "patron"
   gem "foreman"
