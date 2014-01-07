@@ -1,6 +1,6 @@
 # coding: UTF-8
 
-$:.unshift(File.expand_path("../../buildpacks/lib", __FILE__))
+$:.unshift(File.expand_path('../../buildpacks/lib', __FILE__))
 
 require 'bundler'
 Bundler.require
@@ -11,7 +11,7 @@ require 'tempfile'
 require 'timecop'
 require 'timeout'
 require_relative '../buildpacks/lib/buildpack'
-require "webmock/rspec"
+require 'webmock/rspec'
 
 Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].map { |f| require f }
 
@@ -33,7 +33,7 @@ RSpec.configure do |config|
       :context => Steno::Context::Null.new
     }
 
-    if ENV.has_key?("V")
+    if ENV.has_key?('V')
       steno_config[:sinks] = [Steno::Sink::IO.new(STDERR)]
     end
 
@@ -41,11 +41,11 @@ RSpec.configure do |config|
   end
 
   config.before(:all, :type => :integration, :requires_warden => true) do
-    dea_start if ENV.has_key?("LOCAL_DEA")
+    dea_start if ENV.has_key?('LOCAL_DEA')
   end
 
   config.after(:all, :type => :integration, :requires_warden => true) do
-    dea_stop if ENV.has_key?("LOCAL_DEA")
+    dea_stop if ENV.has_key?('LOCAL_DEA')
   end
 
   config.before(:all, :type => :integration) do
@@ -60,7 +60,7 @@ RSpec.configure do |config|
 end
 
 TEST_TEMP = Dir.mktmpdir
-FILE_SERVER_DIR = "/tmp/dea"
+FILE_SERVER_DIR = '/tmp/dea'
 
 at_exit do
   if File.directory?(TEST_TEMP)
