@@ -1,13 +1,6 @@
-go/pkg
-go/bin
-spec_reports
 .idea
-chef/cookbooks
 .vagrant*
-dump.rdb
-tmp/**/*
+/go/
+spec/fixtures/**/.git
 tmp/*
 !.gitkeep
-spec/fixtures/**/.git
-chef/tmp
-*.iml
