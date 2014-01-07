@@ -11,6 +11,7 @@ require 'timeout'
 require 'socket'
 require_relative '../buildpacks/lib/buildpack'
 require "webmock/rspec"
+require 'rspec/fire'
 
 Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].map { |f| require f }
 
@@ -21,6 +22,7 @@ RSpec.configure do |config|
   config.include ProcessHelpers, :type => :integration
   config.include DeaHelpers, :type => :integration
   config.include StagingHelpers, :type => :integration
+  config.include(RSpec::Fire)
 
   config.before do
     WebMock.allow_net_connect!
