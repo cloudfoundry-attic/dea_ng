@@ -246,7 +246,7 @@ DEPENDENCIES
   sys-filesystem
   thin
   timecop
-  uuidtools (~> 2.1.2)
+  uuidtools
   vcap_common!
   vmstat
   warden-client!
