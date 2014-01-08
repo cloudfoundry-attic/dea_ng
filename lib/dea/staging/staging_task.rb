@@ -3,6 +3,8 @@ require 'tmpdir'
 require 'yaml'
 require 'shellwords'
 
+require 'container/container'
+
 require 'dea/utils/download'
 require 'dea/utils/upload'
 require 'dea/promise'

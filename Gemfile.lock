@@ -1,11 +1,4 @@
 GIT
-  remote: https://github.com/cloudfoundry/container_tools.git
-  revision: 2583da7b1984f8a6ff4e76eba0572a436ec5a0f4
-  specs:
-    container_tools (0.1)
-      em-warden-client
-
-GIT
   remote: https://github.com/cloudfoundry/steno.git
   revision: d88c70767c43a5eff32ccb47e3bb561b981e62e8
   specs:
@@ -224,7 +217,6 @@ PLATFORMS
 
 DEPENDENCIES
   ci_reporter
-  container_tools!
   debugger
   em-http-request
   em-warden-client!
