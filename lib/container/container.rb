@@ -1,4 +1,3 @@
-require 'logger'
 require 'em/warden/client'
 
 class Container
@@ -223,9 +222,5 @@ class Container
   def limit_memory(bytes)
     request = ::Warden::Protocol::LimitMemoryRequest.new(handle: self.handle, limit_in_bytes: bytes)
     call(:app, request)
-  end
-
-  def logger
-    Logger.new(STDERR)
   end
 end
