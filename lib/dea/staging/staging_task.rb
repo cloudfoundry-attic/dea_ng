@@ -211,9 +211,11 @@ module Dea
           end
           p.deliver
         rescue Container::WardenError => staging_error
+          logger.error('staging.task.execute-staging.failed', error: staging_error)
           loggregator_emit_result(staging_error.result)
           p.fail(staging_error)
         rescue Timeout::Error => timeout_error
+          logger.error('staging.task.execute-staging.timed-out', error: timeout_error)
           p.fail(timeout_error)
         end
       end
