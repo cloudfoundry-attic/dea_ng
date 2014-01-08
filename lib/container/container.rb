@@ -1,13 +1,7 @@
 require 'em/warden/client'
 
 class Container
-  class ConnectionError < StandardError;
-  end
-
-  class BaseError < StandardError;
-  end
-
-  class WardenError < BaseError;
+  class WardenError < StandardError
     attr_reader :result
 
     def initialize(message, response=nil)
