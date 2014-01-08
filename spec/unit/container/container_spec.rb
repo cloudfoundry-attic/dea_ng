@@ -369,4 +369,14 @@ describe Container do
       container.stream(request, &callback)
     end
   end
+
+  describe Container::WardenError do
+    subject(:warden_error) { Container::WardenError.new('foo', 'FAKE_RESPONSE')}
+
+    describe '#inspect' do
+      it 'does not include response for security reason (not allowed to look into customer code / output)' do
+        expect(warden_error.inspect).not_to include('FAKE_RESPONSE')
+      end
+    end
+  end
 end
