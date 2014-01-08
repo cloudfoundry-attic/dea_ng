@@ -105,12 +105,11 @@ describe Dea::StagingTask do
       end
 
       context "when staging fails" do
-        let (:staging_error) { Container::WardenError.new("Failed to stage") }
+        let (:staging_error) { Container::WardenError.new("Failed to stage", staging_result) }
 
         it "still emits staging logs when a WardenError is raised" do
           @emitter.reset
           staging.container.should_receive(:run_script).and_raise(staging_error)
-          staging_error.should_receive(:result).and_return(staging_result)
 
           expect { staging.promise_stage.resolve }.to raise_error(Container::WardenError)
           app_id = staging.staging_message.app_id
