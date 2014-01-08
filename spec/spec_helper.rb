@@ -18,21 +18,21 @@ require 'webmock/rspec'
 Dir[File.join(SPEC_ROOT, 'support/**/*.rb')].map { |f| require f }
 
 RSpec.configure do |config|
-  config.include Helpers
-  config.include StagingSpecHelpers, :type => :buildpack
-  config.include BuildpackHelpers, :type => :integration
-  config.include ProcessHelpers, :type => :integration
-  config.include DeaHelpers, :type => :integration
-  config.include StagingHelpers, :type => :integration
+  config.include(Helpers)
+  config.include(StagingSpecHelpers, type: :buildpack)
+  config.include(BuildpackHelpers, type: :integration)
+  config.include(ProcessHelpers, type: :integration)
+  config.include(DeaHelpers, type: :integration)
+  config.include(StagingHelpers, type: :integration)
   config.include(RSpec::Fire)
 
   config.before do
     WebMock.allow_net_connect!
 
     steno_config = {
-      :default_log_level => :all,
-      :codec => Steno::Codec::Json.new,
-      :context => Steno::Context::Null.new
+      default_log_level: :all,
+      codec: Steno::Codec::Json.new,
+      context: Steno::Context::Null.new
     }
 
     if ENV.has_key?('V')
@@ -42,21 +42,21 @@ RSpec.configure do |config|
     Steno.init(Steno::Config.new(steno_config))
   end
 
-  config.before(:all, :type => :integration, :requires_warden => true) do
+  config.before(:all, type: :integration, requires_warden: true) do
     dea_start if ENV.has_key?('LOCAL_DEA')
   end
 
-  config.after(:all, :type => :integration, :requires_warden => true) do
+  config.after(:all, type: :integration, requires_warden: true) do
     dea_stop if ENV.has_key?('LOCAL_DEA')
   end
 
-  config.before(:all, :type => :integration) do
+  config.before(:all, type: :integration) do
     WebMock.disable!
 
     start_file_server
   end
 
-  config.after(:all, :type => :integration) do
+  config.after(:all, type: :integration) do
     stop_file_server
   end
 end
