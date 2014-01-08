@@ -1,6 +1,8 @@
 # coding: UTF-8
 
-$:.unshift(File.expand_path('../../buildpacks/lib', __FILE__))
+SPEC_ROOT = File.dirname(__FILE__)
+
+$:.unshift(File.expand_path('../buildpacks/lib', SPEC_ROOT))
 
 require 'bundler'
 Bundler.require
@@ -13,7 +15,7 @@ require 'timeout'
 require_relative '../buildpacks/lib/buildpack'
 require 'webmock/rspec'
 
-Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].map { |f| require f }
+Dir[File.join(SPEC_ROOT, 'support/**/*.rb')].map { |f| require f }
 
 RSpec.configure do |config|
   config.include Helpers
@@ -79,5 +81,5 @@ end
 alias and_by by
 
 def fixture(path)
-  File.expand_path("../fixtures/#{path}", __FILE__)
+  File.join(SPEC_ROOT, 'fixtures', path)
 end
