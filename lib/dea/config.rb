@@ -16,7 +16,8 @@ module Dea
       "placement_properties" => { "zone" => "default" },
       "instance" => { "cpu_limit_shares" => 256 },
       "staging" => { "cpu_limit_shares" => 512 },
-      "default_health_check_timeout" => 60
+      "default_health_check_timeout" => 60,
+      "disable_droplet_cache" => false
     }
 
     def self.schema
@@ -94,7 +95,9 @@ module Dea
             optional("enabled") => bool,
             optional("max_staging_duration") => Integer,
             optional("environment") => Hash
-          }
+          },
+
+          optional("disable_droplet_cache") => bool
         }
       end
     end
