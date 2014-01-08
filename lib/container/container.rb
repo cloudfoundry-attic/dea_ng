@@ -1,5 +1,5 @@
-require "logger"
-require "em/warden/client"
+require 'logger'
+require 'em/warden/client'
 
 class Container
   class ConnectionError < StandardError;
@@ -18,8 +18,8 @@ class Container
   end
 
   BIND_MOUNT_MODE_MAP = {
-    "ro" => ::Warden::Protocol::CreateRequest::BindMount::Mode::RO,
-    "rw" => ::Warden::Protocol::CreateRequest::BindMount::Mode::RW,
+    'ro' => ::Warden::Protocol::CreateRequest::BindMount::Mode::RO,
+    'rw' => ::Warden::Protocol::CreateRequest::BindMount::Mode::RW,
   }
 
   attr_reader :path, :host_ip, :network_ports
@@ -33,12 +33,12 @@ class Container
 
   #API: GETSTATE (returns the warden's state file)
   def update_path_and_ip
-    raise ArgumentError, "container handle must not be nil" unless @handle
+    raise ArgumentError, 'container handle must not be nil' unless @handle
 
     request = ::Warden::Protocol::InfoRequest.new(:handle => @handle)
     response = call(:info, request)
 
-    raise RuntimeError, "container path is not available" unless response.container_path
+    raise RuntimeError, 'container path is not available' unless response.container_path
     @path = response.container_path
     @host_ip = response.host_ip
 
@@ -108,7 +108,7 @@ class Container
         :stdout => response.stdout,
         :stderr => response.stderr,
       }
-      logger.warn("%s exited with status %d with data %s" % [script.inspect, response.exit_status, data.inspect])
+      logger.warn('%s exited with status %d with data %s' % [script.inspect, response.exit_status, data.inspect])
       raise WardenError.new("Script exited with status #{response.exit_status}", response)
     else
       response
@@ -160,10 +160,10 @@ class Container
       create_request.bind_mounts = bind_mounts.map do |bm|
 
         bind_mount = ::Warden::Protocol::CreateRequest::BindMount.new
-        bind_mount.src_path = bm["src_path"]
-        bind_mount.dst_path = bm["dst_path"] || bm["src_path"]
+        bind_mount.src_path = bm['src_path']
+        bind_mount.dst_path = bm['dst_path'] || bm['src_path']
 
-        mode = bm["mode"] || "ro"
+        mode = bm['mode'] || 'ro'
         bind_mount.mode = BIND_MOUNT_MODE_MAP[mode]
         bind_mount
       end
@@ -181,13 +181,13 @@ class Container
   def setup_network
     request = ::Warden::Protocol::NetInRequest.new(handle: handle)
     response = call(:app, request)
-    network_ports["host_port"] = response.host_port
-    network_ports["container_port"] = response.container_port
+    network_ports['host_port'] = response.host_port
+    network_ports['container_port'] = response.container_port
 
     request = ::Warden::Protocol::NetInRequest.new(handle: handle)
     response = call(:app, request)
-    network_ports["console_host_port"] = response.host_port
-    network_ports["console_container_port"] = response.container_port
+    network_ports['console_host_port'] = response.host_port
+    network_ports['console_container_port'] = response.container_port
   end
 
   # HELPER
