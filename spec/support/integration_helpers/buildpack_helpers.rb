@@ -11,6 +11,9 @@ module BuildpackHelpers
       `git init`
       `git add . && git add -A`
       `git commit -am "fake commit"`
+      `git branch a_branch`
+      `git tag -m 'annotated tag' a_tag`
+      `git tag a_lightweight_tag`
       `git update-server-info`
     end
   end

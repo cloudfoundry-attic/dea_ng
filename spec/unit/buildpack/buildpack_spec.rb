@@ -212,21 +212,31 @@ describe Buildpacks::Buildpack, type: :buildpack do
 
     shared_examples "when a buildpack URL is passed" do |buildpack_url_config_key|
       let(:buildpack_url) { "git://github.com/heroku/heroku-buildpack-java.git" }
+      let(:destination) { '/tmp/buildpacks' }
+      let(:buildpack_dir) { "#{destination}/heroku-buildpack-java"}
+
       before { config["environment"][buildpack_url_config_key] = buildpack_url }
 
       subject { build_pack.build_pack }
 
       it "clones the buildpack URL" do
-        build_pack.should_receive(:system).with(anything) do |cmd|
-          expect(cmd).to match /git clone --recursive #{buildpack_url} \/tmp\/buildpacks/
-          true
-        end
+        Buildpacks::Git.should_receive(:clone).with(buildpack_url, destination).and_return(buildpack_dir)
 
         subject
       end
 
+      context "with a branch" do
+        let(:buildpack_url) { "git://github.com/heroku/heroku-buildpack-java.git#branch" }
+
+        it "clones the buildpack" do
+          Buildpacks::Git.should_receive(:clone).with(buildpack_url, destination).and_return(buildpack_dir)
+
+          subject
+        end
+      end
+
       it "does not try to detect the buildpack" do
-        build_pack.stub(:system).with(anything) { true }
+        Buildpacks::Git.stub(:clone) { buildpack_dir }
 
         build_pack.send(:installers).each do |i|
           i.should_not_receive(:detect)
@@ -235,10 +245,11 @@ describe Buildpacks::Buildpack, type: :buildpack do
         subject
       end
 
-      context "when the cloning fails" do
-        it "gives up and raises an error" do
-          build_pack.stub(:system).with(anything) { false }
-          expect { subject }.to raise_error("Failed to git clone buildpack")
+      context "when an invalid uri is provided" do
+        let(:buildpack_url) { "http://user:passw#ord@github.com/heroku/heroku-buildpack-java.git#branch" }
+
+        it "raises an error" do
+          expect { subject }.to raise_error(URI::InvalidURIError)
         end
       end
     end
@@ -251,17 +262,6 @@ describe Buildpacks::Buildpack, type: :buildpack do
 
     context "the new, more clear, buildpack_git_url key" do
       include_examples "when a buildpack URL is passed", "buildpack_git_url"
-    end
-
-    context "with a buildpack url including shell characters" do
-      let(:buildpack_url) { "http://user@pass;2wo#rd@github.com/cf/buildpack-java.git?a=b&c=d" }
-      it "escapes the url" do
-        config["environment"]["buildpack_git_url"] = buildpack_url
-        build_pack.should_receive(:system).with(
-          "git clone --recursive http://user@pass\\;2wo\\#rd@github.com/cf/buildpack-java.git\\?a\\=b\\&c\\=d /tmp/buildpacks/buildpack-java"
-        ) { true }
-        build_pack.build_pack
-      end
     end
   end
 end
