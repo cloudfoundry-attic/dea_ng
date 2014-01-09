@@ -4,8 +4,7 @@ require "timeout"
 require "pathname"
 require "installer"
 require "procfile"
-require "shellwords"
-require "uri"
+require "git"
 
 module Buildpacks
   class Buildpack
@@ -121,21 +120,7 @@ module Buildpacks
     end
 
     def clone_buildpack(buildpack_url)
-      buildpack_uri = URI.parse(buildpack_url)
-      git_branch_tag = buildpack_uri.fragment
-      git_branch_tag = Shellwords.escape(git_branch_tag) unless git_branch_tag.to_s.empty?
-      buildpack_uri.fragment = nil
-      buildpack_url = Shellwords.escape(buildpack_uri.to_s)
-      buildpack_path = Shellwords.escape("/tmp/buildpacks/#{File.basename(buildpack_uri.path, File.extname(buildpack_uri.path))}")
-      git_branch_option = git_branch_tag.to_s.empty? ? "" : "-b #{git_branch_tag}"
-
-      ok = system("git clone --depth 1 #{git_branch_option} --recursive #{buildpack_url} #{buildpack_path}")
-      if !ok
-        ok = system("git clone --recursive #{buildpack_url} #{buildpack_path}")
-        raise "Failed to git clone buildpack" unless ok
-        ok = system("git --git-dir=#{buildpack_path}/.git --work-tree=#{buildpack_path} checkout #{git_branch_tag}")
-        raise "Failed to git checkout buildpack" unless ok
-      end
+      buildpack_path = Git.clone(buildpack_url, '/tmp/buildpacks')
       Buildpacks::Installer.new(Pathname.new(buildpack_path), app_dir, cache_dir)
     end
 
