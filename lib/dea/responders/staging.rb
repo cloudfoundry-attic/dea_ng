@@ -1,6 +1,5 @@
-require "dea/staging/staging_task"
-
-require "dea/loggregator"
+require 'dea/staging/staging_task'
+require 'dea/loggregator'
 
 module Dea::Responders
   class Staging
@@ -41,18 +40,17 @@ module Dea::Responders
       logger = logger_for_app(app_id)
 
       Dea::Loggregator.emit(app_id, "Got staging request for app with id #{app_id}")
-      logger.info("staging.handle.start", request: message)
+      logger.info('staging.handle.start', request: message)
 
       task = Dea::StagingTask.new(bootstrap, dir_server, message, buildpacks_in_use, logger)
       unless resource_manager.could_reserve?(task.memory_limit_mb, task.disk_limit_mb)
         constrained_resource = resource_manager.get_constrained_resource(task.memory_limit_mb, task.disk_limit_mb)
-        respond_to_response(response, {
-          :task_id => task.task_id,
-          :error => "Not enough #{constrained_resource} resources available"
-        })
-        logger.error "staging.start.insufficient-resource",
-                     :app => app_id,
-                     :constrained_resource => constrained_resource
+        respond_to_response(response,
+                            task_id: task.task_id,
+                            error: "Not enough #{constrained_resource} resources available")
+        logger.error('staging.start.insufficient-resource',
+                     app: app_id,
+                     constrained_resource: constrained_resource)
         return
       end
 
@@ -66,28 +64,28 @@ module Dea::Responders
 
       task.start
     rescue => e
-      logger.error "staging.handle.failed", error: e, backtrace: e.backtrace
+      logger.error('staging.handle.failed', error: e, backtrace: e.backtrace)
     end
 
     def handle_stop(message)
       staging_task_registry.each do |task|
-        if message.data["app_id"] == task.staging_message.app_id
+        if message.data['app_id'] == task.staging_message.app_id
           task.stop
         end
       end
     rescue => e
-      logger.error "staging.handle_stop.failed", :error => e, :backtrace => e.backtrace
+      logger.error('staging.handle_stop.failed', error: e, backtrace: e.backtrace)
     end
 
     private
 
     def configured_to_stage?
-      config["staging"] && config["staging"]["enabled"]
+      config['staging'] && config['staging']['enabled']
     end
 
     def subscribe_to_staging # Can we delete this??
-      options = {:do_not_track_subscription => true, :queue => "staging"}
-      @staging_sid = nats.subscribe("staging", options) { |response| handle(response) }
+      @staging_sid =
+        nats.subscribe('staging', do_not_track_subscription: true, queue: 'staging') { |response| handle(response) }
     end
 
     def unsubscribe_from_staging
@@ -95,8 +93,8 @@ module Dea::Responders
     end
 
     def subscribe_to_dea_specific_staging
-      options = {:do_not_track_subscription => true}
-      @dea_specified_staging_sid = nats.subscribe("staging.#{@dea_id}.start", options) { |response| handle(response) }
+      @dea_specified_staging_sid =
+        nats.subscribe("staging.#{@dea_id}.start", {do_not_track_subscription: true}) { |response| handle(response) }
     end
 
     def unsubscribe_from_dea_specific_staging
@@ -104,8 +102,8 @@ module Dea::Responders
     end
 
     def subscribe_to_staging_stop
-      options = {:do_not_track_subscription => true}
-      @staging_stop_sid = nats.subscribe("staging.stop", options) { |response| handle_stop(response) }
+      @staging_stop_sid =
+        nats.subscribe('staging.stop', {do_not_track_subscription: true}) { |response| handle_stop(response) }
     end
 
     def unsubscribe_from_staging_stop
@@ -115,9 +113,9 @@ module Dea::Responders
     def notify_setup_completion(response, task)
       task.after_setup_callback do |error|
         respond_to_response(response, {
-          :task_id => task.task_id,
-          :streaming_log_url => task.streaming_log_url,
-          :error => (error.to_s if error)
+          task_id: task.task_id,
+          streaming_log_url: task.streaming_log_url,
+          error: (error.to_s if error)
         })
       end
     end
@@ -125,10 +123,10 @@ module Dea::Responders
     def notify_completion(response, task)
       task.after_complete_callback do |error|
         respond_to_response(response, {
-          :task_id => task.task_id,
-          :error => (error.to_s if error),
-          :detected_buildpack => task.detected_buildpack,
-          :droplet_sha1 => task.droplet_sha1
+          task_id: task.task_id,
+          error: (error.to_s if error),
+          detected_buildpack: task.detected_buildpack,
+          droplet_sha1: task.droplet_sha1
         })
 
         # Unregistering the staging task will release the reservation of excess memory reserved for the app,
@@ -139,7 +137,7 @@ module Dea::Responders
 
         if task.staging_message.start_message && !error
           start_message = task.staging_message.start_message.to_hash
-          start_message["sha1"] = task.droplet_sha1
+          start_message['sha1'] = task.droplet_sha1
           # Now re-reserve the app's memory.  There may be a window between staging task unregistration and here
           # where the DEA could no longer have enough memory to start the app.  In that case, the health manager
           # should cause the app to be relocated on another DEA.
@@ -151,8 +149,8 @@ module Dea::Responders
     def notify_stop(response, task)
       task.after_stop_callback do |error|
         respond_to_response(response, {
-          :task_id => task.task_id,
-          :error => (error.to_s if error),
+          task_id: task.task_id,
+          error: (error.to_s if error),
         })
 
         staging_task_registry.unregister(task)
@@ -163,23 +161,21 @@ module Dea::Responders
 
     def respond_to_response(response, params)
       response.respond(
-        "task_id" => params[:task_id],
-        "task_streaming_log_url" => params[:streaming_log_url],
-        "detected_buildpack" => params[:detected_buildpack],
-        "error" => params[:error],
-        "droplet_sha1" => params[:droplet_sha1]
+        'task_id' => params[:task_id],
+        'task_streaming_log_url' => params[:streaming_log_url],
+        'detected_buildpack' => params[:detected_buildpack],
+        'error' => params[:error],
+        'droplet_sha1' => params[:droplet_sha1]
       )
     end
 
     def logger_for_app(app_id)
-      logger = Steno::Logger.new("Staging", Steno.config.sinks, :level => Steno.config.default_log_level)
-      logger.tag(:app_guid => app_id)
+      logger = Steno::Logger.new('Staging', Steno.config.sinks, level: Steno.config.default_log_level)
+      logger.tag(app_guid: app_id)
     end
 
     def buildpacks_in_use
-      staging_task_registry.flat_map do |task|
-        task.staging_message.admin_buildpacks
-      end.uniq
+      staging_task_registry.flat_map { |task| task.staging_message.admin_buildpacks }.uniq
     end
   end
 end
