@@ -171,7 +171,6 @@ GEM
     rack-test (0.6.1)
       rack (>= 1.0)
     rake (10.0.3)
-    rcov (0.9.11)
     rest-client (1.6.7)
       mime-types (>= 1.16)
     rspec (2.14.1)
@@ -232,7 +231,6 @@ DEPENDENCIES
   rack
   rack-test
   rake
-  rcov
   rspec
   rspec-fire
   rubyzip

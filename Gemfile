@@ -33,7 +33,6 @@ group :test do
   gem 'net-ssh'
   gem 'patron'
   gem 'rack-test'
-  gem 'rcov'
   gem 'rspec'
   gem 'rspec-fire', require: false
   gem 'rubyzip'
