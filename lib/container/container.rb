@@ -108,17 +108,18 @@ class Container
     end
   end
 
-  #API: SPAWN
-  def spawn(script, file_descriptor_limit, nproc_limit, discard_output=false, log_tag=nil)
-    request = ::Warden::Protocol::SpawnRequest.new
-    request.handle = handle
-    request.rlimits = ::Warden::Protocol::ResourceLimits.new
-    request.rlimits.nproc = nproc_limit
-    request.rlimits.nofile = file_descriptor_limit
-    request.script = script
-    request.discard_output = discard_output
-    request.log_tag = log_tag
+  def spawn(script, file_descriptor_limit, process_limit)
+    request =
+      ::Warden::Protocol::SpawnRequest.new(handle: handle,
+                                           script: script,
+                                           discard_output: true)
+
+    request.rlimits =
+      ::Warden::Protocol::ResourceLimits.new(nofile: file_descriptor_limit,
+                                             nproc: process_limit)
+
     response = call(:app, request)
+
     response
   end
 

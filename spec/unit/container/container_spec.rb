@@ -195,8 +195,6 @@ describe Container do
     let(:nproc_limit) { 123 }
     let(:file_descriptor_limit) { 456 }
     let(:script) { './dostuffscript' }
-    let(:discard_output) { true }
-    let(:log_tag) { 'some-log-tag' }
 
     it 'executes a SpawnRequest' do
       container.should_receive(:call) do |name, request|
@@ -207,12 +205,11 @@ describe Container do
         expect(request.rlimits.nofile).to eq(file_descriptor_limit)
         expect(request.script).to eq(script)
         expect(request.discard_output).to be_true
-        expect(request.log_tag).to eq(log_tag)
 
         response
       end
 
-      result = container.spawn(script, file_descriptor_limit, nproc_limit, discard_output, log_tag)
+      result = container.spawn(script, file_descriptor_limit, nproc_limit)
 
       expect(result).to eq(response)
     end
