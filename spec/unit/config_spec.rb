@@ -57,5 +57,25 @@ module Dea
         end
       end
     end
+
+    describe "#disable_droplet_cache" do
+      subject(:config) { described_class.new(config_hash) }
+
+      context "when the config hash has no key for disable_droplet_cache:" do
+        let(:config_hash) { { } }
+
+        it "has a default value false" do
+          config["disable_droplet_cache"].should == false
+        end
+      end
+
+      context "when the config hash has a key for disable_droplet_cache:" do
+        let(:config_hash) { { "disable_droplet_cache" => true } }
+
+        it "uses the value provided by the hash" do
+          config["disable_droplet_cache"].should == true
+        end
+      end
+    end
   end
 end

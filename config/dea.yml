@@ -66,3 +66,5 @@ stacks:
 
 placement_properties:
   zone: "CRAZY_TOWN"
+
+disable_droplet_cache: false

@@ -421,6 +421,12 @@ module Dea
       end
     end
 
+    def promise_remove_droplet
+      Promise.new do |p|
+        droplet.destroy { p.deliver }
+      end
+    end
+
     def promise_exec_hook_script(key)
       Promise.new do |p|
         if bootstrap.config['hooks'] && bootstrap.config['hooks'][key]
@@ -447,16 +453,12 @@ module Dea
         promise_state(State::BORN, State::STARTING).resolve
 
         # Concurrently download droplet and setup container
-        [
-          promise_droplet,
-          promise_container
-        ].each(&:run).each(&:resolve)
+        preparation_promises = [promise_droplet, promise_container]
+        preparation_promises.each(&:run).each(&:resolve)
 
-        [
-          promise_extract_droplet,
-          promise_exec_hook_script('before_start'),
-          promise_start
-        ].each(&:resolve)
+        start_promises = [promise_extract_droplet, promise_exec_hook_script('before_start'), promise_start]
+        start_promises << promise_remove_droplet if config["disable_droplet_cache"]
+        start_promises.each(&:resolve)
 
         on(Transition.new(:starting, :crashed)) do
           cancel_health_check

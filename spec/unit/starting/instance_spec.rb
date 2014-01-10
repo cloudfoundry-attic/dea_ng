@@ -538,6 +538,7 @@ describe Dea::Instance do
       instance.stub(:promise_prepare_start_script).and_return(delivering_promise)
       instance.stub(:promise_exec_hook_script).with('before_start').and_return(delivering_promise)
       instance.stub(:promise_start).and_return(delivering_promise)
+      instance.stub(:promise_remove_droplet).and_return(delivering_promise)
       instance.stub(:promise_exec_hook_script).with('after_start').and_return(delivering_promise)
       instance.stub(:promise_health_check).and_return(delivering_promise(true))
       instance.stub(:droplet).and_return(droplet)
@@ -867,6 +868,35 @@ describe Dea::Instance do
           end
 
           instance.promise_start.resolve
+        end
+      end
+    end
+
+    describe "#promise_remove_droplet" do
+      before do
+        instance.unstub(:promise_remove_droplet)
+        droplet.stub(:destroy).and_yield
+      end
+
+      context "when config option disable_droplet_cache is set false" do
+        before do
+          bootstrap.config["disable_droplet_cache"] = false
+        end
+
+        it "should not remove the droplet cache" do
+          droplet.should_not_receive(:destroy)
+          expect_start.to_not raise_error
+        end
+      end
+
+      context "when config option disable_droplet_cache is set true" do
+        before do
+          bootstrap.config["disable_droplet_cache"] = true
+        end
+
+        it "should remove the droplet cache" do
+          droplet.should_receive(:destroy)
+          expect_start.to_not raise_error
         end
       end
     end
