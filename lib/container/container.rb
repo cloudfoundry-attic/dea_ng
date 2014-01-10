@@ -114,13 +114,16 @@ class Container
                                            script: script,
                                            discard_output: true)
 
-    request.rlimits =
-      ::Warden::Protocol::ResourceLimits.new(nofile: file_descriptor_limit,
-                                             nproc: process_limit)
+    request.rlimits = resource_limits(file_descriptor_limit, process_limit)
 
     response = call(:app, request)
 
     response
+  end
+
+  def resource_limits(file_descriptor_limit, process_limit)
+    ::Warden::Protocol::ResourceLimits.new(nofile: file_descriptor_limit,
+                                           nproc: process_limit)
   end
 
   #API: DESTROY

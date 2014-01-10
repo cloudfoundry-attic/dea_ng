@@ -332,6 +332,22 @@ describe Container do
     end
   end
 
+  describe '#resource_limits' do
+    it 'returns a ::Warden::Protocol::ResourceLimits' do
+      expect(container.resource_limits(nil, nil)).to be_a_kind_of(::Warden::Protocol::ResourceLimits)
+    end
+
+    it 'sets nofile resource limit' do
+      file_descriptor_limit = 1999
+      expect(container.resource_limits(file_descriptor_limit, nil).nofile).to eq(1999)
+    end
+
+    it 'sets nproc resource limit'do
+      process_limit = 2001
+      expect(container.resource_limits(nil, process_limit).nproc).to eq(2001)
+    end
+  end
+
   describe 'memory limiting' do
     it 'sets the memory limit' do
       limit_in_bytes = 100
