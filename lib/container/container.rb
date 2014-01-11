@@ -108,7 +108,7 @@ class Container
     end
   end
 
-  def spawn(script, resource_limits)
+  def spawn(script, resource_limits = nil)
     request =
       ::Warden::Protocol::SpawnRequest.new(handle: handle,
                                            script: script,

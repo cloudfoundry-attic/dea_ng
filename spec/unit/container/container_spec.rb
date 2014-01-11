@@ -192,8 +192,6 @@ describe Container do
   end
 
   describe '#spawn' do
-    let(:nproc_limit) { 123 }
-    let(:file_descriptor_limit) { 456 }
     let(:script) { './dostuffscript' }
 
     it 'executes a SpawnRequest' do
@@ -202,15 +200,31 @@ describe Container do
       container.should_receive(:call) do |name, request|
         expect(name).to eq(:app)
         expect(request).to be_kind_of(::Warden::Protocol::SpawnRequest)
+        expect(request.script).to eq(script)
         expect(request.handle).to eq(container.handle)
         expect(request.rlimits).to eq(resource_limits)
-        expect(request.script).to eq(script)
         expect(request.discard_output).to be_true
 
         response
       end
 
       result = container.spawn(script, resource_limits)
+
+      expect(result).to eq(response)
+    end
+
+    it 'allows resource_limits to be unspecified' do
+      container.should_receive(:call) do |name, request|
+        expect(name).to eq(:app)
+        expect(request).to be_kind_of(::Warden::Protocol::SpawnRequest)
+        expect(request.script).to eq(script)
+        expect(request.handle).to eq(container.handle)
+        expect(request.discard_output).to be_true
+
+        response
+      end
+
+      result = container.spawn(script)
 
       expect(result).to eq(response)
     end
