@@ -413,7 +413,8 @@ module Dea
           start_script = env.exported_environment_variables + "./startup;\nexit"
         end
 
-        response = container.spawn(start_script, self.file_descriptor_limit, NPROC_LIMIT)
+        response = container.spawn(start_script,
+                                   container.resource_limits(self.file_descriptor_limit, NPROC_LIMIT))
 
         attributes["warden_job_id"] = response.job_id
 

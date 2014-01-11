@@ -794,8 +794,13 @@ describe Dea::Instance do
             env.exported_system_environment_variables
           ).and_return(generator)
 
+          expect(instance.container).to receive(:resource_limits).with(
+            instance.file_descriptor_limit,
+            Dea::Instance::NPROC_LIMIT
+          ).and_return('FAKE_RESOURCE_LIMIT_MESSAGE')
+
           instance.container.should_receive(:spawn)
-            .with(script, instance.file_descriptor_limit, Dea::Instance::NPROC_LIMIT)
+            .with(script, 'FAKE_RESOURCE_LIMIT_MESSAGE')
             .and_return(response)
 
           instance.promise_start.resolve
@@ -806,8 +811,7 @@ describe Dea::Instance do
         subject(:instance) do
           Dea::Instance.new(
             bootstrap,
-            valid_instance_attributes.merge(
-              'start_command' => 'my_custom_start_command.sh')
+            valid_instance_attributes.merge('start_command' => 'my_custom_start_command.sh')
           )
         end
 
@@ -822,8 +826,13 @@ describe Dea::Instance do
               env.exported_system_environment_variables
             ).and_return(generator)
 
+            expect(instance.container).to receive(:resource_limits).with(
+                                            instance.file_descriptor_limit,
+                                            Dea::Instance::NPROC_LIMIT
+                                          ).and_return('FAKE_RESOURCE_LIMIT_MESSAGE')
+
             instance.container.should_receive(:spawn)
-              .with(script, instance.file_descriptor_limit, Dea::Instance::NPROC_LIMIT)
+              .with(script, 'FAKE_RESOURCE_LIMIT_MESSAGE')
               .and_return(response)
 
             instance.promise_start.resolve

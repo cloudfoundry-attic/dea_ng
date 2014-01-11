@@ -108,13 +108,13 @@ class Container
     end
   end
 
-  def spawn(script, file_descriptor_limit, process_limit)
+  def spawn(script, resource_limits)
     request =
       ::Warden::Protocol::SpawnRequest.new(handle: handle,
                                            script: script,
                                            discard_output: true)
 
-    request.rlimits = resource_limits(file_descriptor_limit, process_limit)
+    request.rlimits = resource_limits if resource_limits
 
     response = call(:app, request)
 
