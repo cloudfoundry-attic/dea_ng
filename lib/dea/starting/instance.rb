@@ -637,12 +637,7 @@ module Dea
 
     def promise_link
       Promise.new do |p|
-        request = ::Warden::Protocol::LinkRequest.new
-        request.handle = container.handle
-        request.job_id = attributes['warden_job_id']
-        response = container.call_with_retry(:link, request)
-
-        p.deliver(response)
+        p.deliver(container.link(attributes['warden_job_id']))
       end
     end
 
