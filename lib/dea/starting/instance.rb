@@ -650,7 +650,6 @@ module Dea
       Promise.resolve(promise_link) do |error, link_response|
         if error
           logger.warn('droplet.warden.link.failed', error: error, backtrace: error.backtrace)
-          logger.warn('droplet.link.failed', error: error, backtrace: error.backtrace)
 
           self.exit_status = -1
           self.exit_description = 'unknown'
