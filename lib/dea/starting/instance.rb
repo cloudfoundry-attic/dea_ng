@@ -1,20 +1,20 @@
 # coding: UTF-8
 
-require "membrane"
-require "steno"
-require "steno/core_ext"
-require "vcap/common"
-require "yaml"
+require 'membrane'
+require 'steno'
+require 'steno/core_ext'
+require 'vcap/common'
+require 'yaml'
 
-require "dea/env"
-require "dea/health_check/port_open"
-require "dea/health_check/state_file_ready"
-require "dea/promise"
-require "dea/stat_collector"
-require "dea/task"
-require "dea/utils/event_emitter"
-require "dea/starting/startup_script_generator"
-require "dea/user_facing_errors"
+require 'dea/env'
+require 'dea/health_check/port_open'
+require 'dea/health_check/state_file_ready'
+require 'dea/promise'
+require 'dea/stat_collector'
+require 'dea/task'
+require 'dea/utils/event_emitter'
+require 'dea/starting/startup_script_generator'
+require 'dea/user_facing_errors'
 
 module Dea
   class Instance < Task
@@ -24,63 +24,63 @@ module Dea
     NPROC_LIMIT = 512
 
     class State
-      BORN     = "BORN"
-      STARTING = "STARTING"
-      RUNNING  = "RUNNING"
-      STOPPING = "STOPPING"
-      STOPPED  = "STOPPED"
-      CRASHED  = "CRASHED"
-      DELETED  = "DELETED"
-      RESUMING = "RESUMING"
-      EVACUATING = "EVACUATING"
+      BORN = 'BORN'
+      STARTING = 'STARTING'
+      RUNNING = 'RUNNING'
+      STOPPING = 'STOPPING'
+      STOPPED = 'STOPPED'
+      CRASHED = 'CRASHED'
+      DELETED = 'DELETED'
+      RESUMING = 'RESUMING'
+      EVACUATING = 'EVACUATING'
 
       def self.from_external(state)
         case state.upcase
-        when "BORN"
-          BORN
-        when "STARTING"
-          STARTING
-        when "RUNNING"
-          RUNNING
-        when "STOPPING"
-          STOPPING
-        when "STOPPED"
-          STOPPED
-        when "CRASHED"
-          CRASHED
-        when "DELETED"
-          DELETED
-        when "RESUMING"
-          RESUMING
-        when "EVACUATING"
-          EVACUATING
-        else
-          raise "Unknown state: #{state}"
+          when 'BORN'
+            BORN
+          when 'STARTING'
+            STARTING
+          when 'RUNNING'
+            RUNNING
+          when 'STOPPING'
+            STOPPING
+          when 'STOPPED'
+            STOPPED
+          when 'CRASHED'
+            CRASHED
+          when 'DELETED'
+            DELETED
+          when 'RESUMING'
+            RESUMING
+          when 'EVACUATING'
+            EVACUATING
+          else
+            raise "Unknown state: #{state}"
         end
       end
 
       def self.to_external(state)
         case state
-        when Dea::Instance::State::BORN
-          "BORN"
-        when Dea::Instance::State::STARTING
-          "STARTING"
-        when Dea::Instance::State::RUNNING
-          "RUNNING"
-        when Dea::Instance::State::STOPPING
-          "STOPPING"
-        when Dea::Instance::State::STOPPED
-          "STOPPED"
-        when Dea::Instance::State::CRASHED
-          "CRASHED"
-        when Dea::Instance::State::DELETED
-          "DELETED"
-        when Dea::Instance::State::RESUMING
-          "RESUMING"
-        when Dea::Instance::State::EVACUATING
-          "EVACUATING"
-        else
-          raise "Unknown state: #{state}"
+          when Dea::Instance::State::BORN
+            'BORN'
+          when Dea::Instance::State::STARTING
+            'STARTING'
+          when Dea::Instance::State::RUNNING
+            'RUNNING'
+          when Dea::Instance::State::STOPPING
+            'STOPPING'
+          when Dea::Instance::State::STOPPED
+            'STOPPED'
+          when Dea::Instance::State::CRASHED
+            'CRASHED'
+          when Dea::Instance::State::DELETED
+            'DELETED'
+          when Dea::Instance::State::RESUMING
+            'RESUMING'
+          when Dea::Instance::State::EVACUATING
+            'EVACUATING'
+          else
+            raise "Unknown state: #{state}"
         end
       end
     end
@@ -102,32 +102,32 @@ module Dea
 
       def to_s
         parts = []
-        parts << "Cannot transition from %s" % [from.inspect]
+        parts << 'Cannot transition from %s' % [from.inspect]
 
         if to
-          parts << "to %s" % [to.inspect]
+          parts << 'to %s' % [to.inspect]
         end
 
-        parts.join(" ")
+        parts.join(' ')
       end
     end
 
     def self.translate_attributes(attributes)
       attributes = attributes.dup
 
-      transfer_attr_with_existance_check(attributes, "instance_index", "index")
-      transfer_attr_with_existance_check(attributes, "application_version", "version")
-      transfer_attr_with_existance_check(attributes, "application_name", "name")
-      transfer_attr_with_existance_check(attributes, "application_uris", "uris")
+      transfer_attr_with_existance_check(attributes, 'instance_index', 'index')
+      transfer_attr_with_existance_check(attributes, 'application_version', 'version')
+      transfer_attr_with_existance_check(attributes, 'application_name', 'name')
+      transfer_attr_with_existance_check(attributes, 'application_uris', 'uris')
 
-      attributes["application_id"] ||= attributes.delete("droplet").to_s if attributes["droplet"]
-      attributes["droplet_sha1"] ||= attributes.delete("sha1")
-      attributes["droplet_uri"] ||= attributes.delete("executableUri")
+      attributes['application_id'] ||= attributes.delete('droplet').to_s if attributes['droplet']
+      attributes['droplet_sha1'] ||= attributes.delete('sha1')
+      attributes['droplet_uri'] ||= attributes.delete('executableUri')
 
       # Translate environment to dictionary (it is passed as Array with VAR=VAL)
-      env = attributes.delete("env") || []
-      attributes["environment"] ||= Hash[env.map do |e|
-        pair = e.split("=", 2)
+      env = attributes.delete('env') || []
+      attributes['environment'] ||= Hash[env.map do |e|
+        pair = e.split('=', 2)
         pair[0] = pair[0].to_s
         pair[1] = pair[1].to_s
         pair
@@ -143,9 +143,9 @@ module Dea
     def self.limits_schema
       Membrane::SchemaParser.parse do
         {
-          "mem"  => Fixnum,
-          "disk" => Fixnum,
-          "fds"  => Fixnum,
+          'mem' => Fixnum,
+          'disk' => Fixnum,
+          'fds' => Fixnum,
         }
       end
     end
@@ -153,16 +153,16 @@ module Dea
     def self.service_schema
       Membrane::SchemaParser.parse do
         {
-          "name"        => String,
-          "label"        => String,
-          "credentials" => any,
+          'name' => String,
+          'label' => String,
+          'credentials' => any,
 
           # Deprecated fields
-          optional("plan")        => String,
-          optional("vendor")      => String,
-          optional("version")     => String,
-          optional("type")        => String,
-          optional("plan_option") => enum(String, nil),
+          optional('plan') => String,
+          optional('vendor') => String,
+          optional('version') => String,
+          optional('type') => String,
+          optional('plan_option') => enum(String, nil),
         }
       end
     end
@@ -174,34 +174,34 @@ module Dea
       Membrane::SchemaParser.parse do
         {
           # Static attributes (coming from cloud controller):
-          "cc_partition"        => String,
+          'cc_partition' => String,
 
-          "instance_id"         => String,
-          "instance_index"      => Integer,
+          'instance_id' => String,
+          'instance_index' => Integer,
 
-          "application_id"      => String,
-          "application_version" => String,
-          "application_name"    => String,
-          "application_uris"    => [String],
+          'application_id' => String,
+          'application_version' => String,
+          'application_name' => String,
+          'application_uris' => [String],
 
-          "droplet_sha1"        => enum(nil, String),
-          "droplet_uri"         => enum(nil, String),
+          'droplet_sha1' => enum(nil, String),
+          'droplet_uri' => enum(nil, String),
 
-          optional("start_command") => enum(nil, String),
+          optional('start_command') => enum(nil, String),
 
-          optional("warden_handle")           => enum(nil, String),
-          optional("instance_host_port")      => Integer,
-          optional("instance_container_port") => Integer,
+          optional('warden_handle') => enum(nil, String),
+          optional('instance_host_port') => Integer,
+          optional('instance_container_port') => Integer,
 
-          "limits"              => limits_schema,
+          'limits' => limits_schema,
 
-          "environment"         => dict(String, String),
-          "services"            => [service_schema],
+          'environment' => dict(String, String),
+          'services' => [service_schema],
 
           # private_instance_id is internal id that represents the instance,
           # which is generated by DEA itself. Currently, we broadcast it to
           # all routers. Routers use that as sticky session of the instance.
-          "private_instance_id" => String,
+          'private_instance_id' => String,
         }
       end
     end
@@ -242,18 +242,18 @@ module Dea
       attributes = attributes.to_hash if attributes.is_a? StartMessage
       @raw_attributes = attributes.dup
       @attributes = Instance.translate_attributes(@raw_attributes)
-      @attributes["application_uris"] ||= []
+      @attributes['application_uris'] ||= []
 
       # Generate unique ID
-      @attributes["instance_id"] ||= VCAP.secure_uuid
+      @attributes['instance_id'] ||= VCAP.secure_uuid
 
       # Contatenate 2 UUIDs to genreate a 32 chars long private_instance_id
-      @attributes["private_instance_id"] ||= VCAP.secure_uuid + VCAP.secure_uuid
+      @attributes['private_instance_id'] ||= VCAP.secure_uuid + VCAP.secure_uuid
 
       self.state = State::BORN
 
-      @exit_status           = -1
-      @exit_description      = ""
+      @exit_status = -1
+      @exit_description = ''
 
       logger.user_data[:attributes] = @attributes
 
@@ -267,15 +267,15 @@ module Dea
     end
 
     def memory_limit_in_bytes
-      limits["mem"].to_i * 1024 * 1024
+      limits['mem'].to_i * 1024 * 1024
     end
 
     def disk_limit_in_bytes
-      limits["disk"].to_i * 1024 * 1024
+      limits['disk'].to_i * 1024 * 1024
     end
 
     def file_descriptor_limit
-      limits["fds"].to_i
+      limits['fds'].to_i
     end
 
     def instance_path_available?
@@ -284,28 +284,28 @@ module Dea
 
     def consuming_memory?
       case state
-      when State::BORN, State::STARTING, State::RUNNING, State::STOPPING
-        true
-      else
-        false
+        when State::BORN, State::STARTING, State::RUNNING, State::STOPPING
+          true
+        else
+          false
       end
     end
 
     def consuming_disk?
       case state
-      when State::BORN, State::STARTING, State::RUNNING, State::STOPPING,
-           State::CRASHED
-        true
-      else
-        false
+        when State::BORN, State::STARTING, State::RUNNING, State::STOPPING,
+          State::CRASHED
+          true
+        else
+          false
       end
     end
 
     def instance_path
-      attributes["instance_path"] ||=
+      attributes['instance_path'] ||=
         begin
-          raise "Instance path unavailable" unless instance_path_available?
-          raise "Warden container path not present" if container.path.nil?
+          raise 'Instance path unavailable' unless instance_path_available?
+          raise 'Warden container path not present' if container.path.nil?
 
           File.expand_path(container_relative_path(container.path))
         end
@@ -316,14 +316,14 @@ module Dea
     end
 
     def state
-      attributes["state"]
+      attributes['state']
     end
 
     def state=(state)
-      transition = Transition.new(attributes["state"], state)
+      transition = Transition.new(attributes['state'], state)
 
-      attributes["state"] = state
-      attributes["state_timestamp"] = Time.now.to_f
+      attributes['state'] = state
+      attributes['state_timestamp'] = Time.now.to_f
 
       state_time = "state_#{state.to_s.downcase}_timestamp"
       attributes[state_time] = Time.now.to_f
@@ -332,7 +332,7 @@ module Dea
     end
 
     def state_timestamp
-      attributes["state_timestamp"]
+      attributes['state_timestamp']
     end
 
     def droplet
@@ -340,22 +340,21 @@ module Dea
     end
 
     def application_uris=(uris)
-      attributes["application_uris"] = uris
+      attributes['application_uris'] = uris
       nil
     end
 
     def application_version=(version)
-      attributes["application_version"] = version
+      attributes['application_version'] = version
       nil
     end
 
     def change_instance_id!
-      attributes["instance_id"] = VCAP.secure_uuid
+      attributes['instance_id'] = VCAP.secure_uuid
     end
 
     def to_s
-      "Instance(id=%s, idx=%s, app_id=%s)" % [instance_id.slice(0, 4),
-                                              instance_index, application_id]
+      'Instance(id=%s, idx=%s, app_id=%s)' % [instance_id.slice(0, 4), instance_index, application_id]
     end
 
     def promise_state(from, to = nil)
@@ -374,7 +373,7 @@ module Dea
 
     def promise_setup_environment
       Promise.new do |p|
-        script = "cd / && mkdir -p home/vcap/app && chown vcap:vcap home/vcap/app && ln -s home/vcap/app /app"
+        script = 'cd / && mkdir -p home/vcap/app && chown vcap:vcap home/vcap/app && ln -s home/vcap/app /app'
         container.run_script(:app, script, true)
 
         p.deliver
@@ -396,7 +395,7 @@ module Dea
         env = Env.new(StartMessage.new(@raw_attributes), self)
 
         if staged_info
-          command = start_command || staged_info["start_command"]
+          command = start_command || staged_info['start_command']
 
           unless command
             p.fail(MissingStartCommand.new)
@@ -416,7 +415,7 @@ module Dea
         response = container.spawn(start_script,
                                    container.resource_limits(self.file_descriptor_limit, NPROC_LIMIT))
 
-        attributes["warden_job_id"] = response.job_id
+        attributes['warden_job_id'] = response.job_id
 
         p.deliver
       end
@@ -428,13 +427,13 @@ module Dea
           script_path = bootstrap.config['hooks'][key]
           if File.exist?(script_path)
             script = []
-            script << "umask 077"
+            script << 'umask 077'
             script << Env.new(StartMessage.new(@raw_attributes), self).exported_environment_variables
             script << File.read(script_path)
-            script << "exit"
+            script << 'exit'
             container.run_script(:app, script.join("\n"))
           else
-            logger.warn "droplet.hook-script.missing", :hook => key, :script_path => script_path
+            logger.warn('droplet.hook-script.missing', hook: key, script_path: script_path)
           end
         end
         p.deliver
@@ -443,7 +442,7 @@ module Dea
 
     def start(&callback)
       p = Promise.new do
-        logger.info "droplet.starting"
+        logger.info 'droplet.starting'
 
         promise_state(State::BORN, State::STARTING).resolve
 
@@ -469,17 +468,17 @@ module Dea
 
         if promise_health_check.resolve
           promise_state(State::STARTING, State::RUNNING).resolve
-          logger.info "droplet.healthy"
+          logger.info('droplet.healthy')
           promise_exec_hook_script('after_start').resolve
         else
-          logger.warn "droplet.unhealthy"
+          logger.warn('droplet.unhealthy')
           p.fail(HealthCheckFailed.new)
         end
 
         p.deliver
       end
 
-      resolve_and_log(p, "instance.start") do |error, _|
+      resolve_and_log(p, 'instance.start') do |error, _|
         if error
           # An error occured while starting, mark as crashed
           self.exit_description = determine_exit_description_from_error(error)
@@ -495,13 +494,13 @@ module Dea
         bind_mounts = [{'src_path' => droplet.droplet_dirname, 'dst_path' => droplet.droplet_dirname}]
         with_network = true
         container.create_container(
-          bind_mounts + config["bind_mounts"],
-          config["instance"]["cpu_limit_shares"],
+          bind_mounts + config['bind_mounts'],
+          config['instance']['cpu_limit_shares'],
           disk_limit_in_bytes,
           memory_limit_in_bytes,
           with_network)
 
-        attributes["warden_handle"] = container.handle
+        attributes['warden_handle'] = container.handle
 
         promise_setup_environment.resolve
         p.deliver
@@ -509,27 +508,27 @@ module Dea
     end
 
     def instance_host_port
-      container.network_ports["host_port"]
+      container.network_ports['host_port']
     end
 
     def instance_container_port
-      container.network_ports["container_port"]
+      container.network_ports['container_port']
     end
 
     def promise_droplet
       Promise.new do |p|
         droplet.download(droplet_uri) do |error|
           if error
-            logger.debug "droplet.download.failed",
-              duration: p.elapsed_time,
-              error: error,
-              backtrace: error.backtrace
+            logger.debug('droplet.download.failed',
+                         duration: p.elapsed_time,
+                         error: error,
+                         backtrace: error.backtrace)
 
             p.fail(error)
           else
-            logger.debug "droplet.download.succeeded",
-              duration: p.elapsed_time,
-              destination: droplet.droplet_path
+            logger.debug('droplet.download.succeeded',
+                         duration: p.elapsed_time,
+                         destination: droplet.droplet_path)
 
             p.deliver
           end
@@ -539,7 +538,7 @@ module Dea
 
     def stop(&callback)
       p = Promise.new do
-        logger.info "droplet.stopping"
+        logger.info 'droplet.stopping'
 
         promise_exec_hook_script('before_stop').resolve
 
@@ -554,7 +553,7 @@ module Dea
         p.deliver
       end
 
-      resolve_and_log(p, "instance.stop") do |error, _|
+      resolve_and_log(p, 'instance.stop') do |error, _|
         callback.call(error) unless callback.nil?
       end
     end
@@ -563,9 +562,9 @@ module Dea
       Promise.new do |p|
         new_instance_path = File.join(config.crashes_path, instance_id)
         new_instance_path = File.expand_path(new_instance_path)
-        copy_out_request("/home/vcap/", new_instance_path)
+        copy_out_request('/home/vcap/', new_instance_path)
 
-        attributes["instance_path"] = new_instance_path
+        attributes['instance_path'] = new_instance_path
 
         p.deliver
       end
@@ -604,8 +603,7 @@ module Dea
     def crash_handler(&callback)
       Promise.resolve(promise_crash_handler) do |error, _|
         if error
-          logger.warn "droplet.crash-handler.error",
-            error: error, backtrace: error.backtrace
+          logger.warn('droplet.crash-handler.error', error: error, backtrace: error.backtrace)
         end
 
         callback.call(error) unless callback.nil?
@@ -641,7 +639,7 @@ module Dea
       Promise.new do |p|
         request = ::Warden::Protocol::LinkRequest.new
         request.handle = container.handle
-        request.job_id = attributes["warden_job_id"]
+        request.job_id = attributes['warden_job_id']
         response = container.call_with_retry(:link, request)
 
         p.deliver(response)
@@ -651,37 +649,34 @@ module Dea
     def link(&callback)
       Promise.resolve(promise_link) do |error, link_response|
         if error
-          logger.warn "droplet.warden.link.failed",
-            error: error, backtrace: error.backtrace
+          logger.warn('droplet.warden.link.failed', error: error, backtrace: error.backtrace)
 
           self.exit_status = -1
-          self.exit_description = "unknown"
+          self.exit_description = 'unknown'
         else
           description = determine_exit_description_from_link_response(link_response)
 
-          logger.warn "droplet.warden.link.completed",
-            exit_status: link_response.exit_status,
-            exit_description: description
+          logger.warn('droplet.warden.link.completed', exit_status: link_response.exit_status, exit_description: description)
 
           self.exit_status = link_response.exit_status
           self.exit_description = description
         end
 
         if error
-          logger.warn "droplet.link.failed", error: error, backtrace: error.backtrace
+          logger.warn 'droplet.link.failed', error: error, backtrace: error.backtrace
         end
 
         case self.state
-        when State::STARTING
-          self.state = State::CRASHED
-        when State::RUNNING
-          uptime = Time.now - attributes["state_running_timestamp"]
+          when State::STARTING
+            self.state = State::CRASHED
+          when State::RUNNING
+            uptime = Time.now - attributes['state_running_timestamp']
 
-          logger.info "droplet.instance.crashed", :uptime => uptime
+            logger.info('droplet.instance.crashed', uptime: uptime)
 
-          self.state = State::CRASHED
-        else
-          # Linking likely completed because of stop
+            self.state = State::CRASHED
+          else
+            # Linking likely completed because of stop
         end
 
         callback.call(error) unless callback.nil?
@@ -695,7 +690,7 @@ module Dea
           next
         end
 
-        manifest_path = container_relative_path(container_path, "droplet.yaml")
+        manifest_path = container_relative_path(container_path, 'droplet.yaml')
         if File.exist?(manifest_path)
           manifest = YAML.load_file(manifest_path)
           p.deliver(manifest)
@@ -709,7 +704,7 @@ module Dea
       Promise.new do |p|
         host = bootstrap.local_ip
 
-        logger.debug "droplet.healthcheck.port", :host => host, :port => port
+        logger.debug('droplet.healthcheck.port', host: host, port: port)
 
         @health_check = Dea::HealthCheck::PortOpen.new(host, port) do |hc|
           hc.callback { p.deliver(true) }
@@ -726,7 +721,7 @@ module Dea
 
     def promise_state_file_ready(path)
       Promise.new do |p|
-        logger.debug "droplet.healthcheck.file", :path => path
+        logger.debug('droplet.healthcheck.file', path: path)
 
         @health_check = Dea::HealthCheck::StateFileReady.new(path) do |hc|
           hc.callback { p.deliver(true) }
@@ -748,19 +743,18 @@ module Dea
     def promise_health_check
       Promise.new do |p|
         begin
-          logger.debug "droplet.health-check.get-container-info"
+          logger.debug('droplet.health-check.get-container-info')
           container.update_path_and_ip
-          logger.debug "droplet.health-check.container-info-ok"
+          logger.debug('droplet.health-check.container-info-ok')
         rescue => e
-          logger.error "droplet.health-check.container-info-failed",
-            :error => e, :backtrace => e.backtrace
+          logger.error('droplet.health-check.container-info-failed', error: e, backtrace: e.backtrace)
 
           p.deliver(false)
         else
           manifest = promise_read_instance_manifest(container.path).resolve
 
-          if manifest && manifest["state_file"]
-            manifest_path = container_relative_path(container.path, manifest["state_file"])
+          if manifest && manifest['state_file']
+            manifest_path = container_relative_path(container.path, manifest['state_file'])
             p.deliver(promise_state_file_ready(manifest_path).resolve)
           elsif !application_uris.empty?
             p.deliver(promise_port_open(instance_container_port).resolve)
@@ -773,10 +767,10 @@ module Dea
 
     def attributes_and_stats
       @attributes.merge({
-          "used_memory_in_bytes" => used_memory_in_bytes,
-          "used_disk_in_bytes" => used_disk_in_bytes,
-          "computed_pcpu" => computed_pcpu
-      })
+                          'used_memory_in_bytes' => used_memory_in_bytes,
+                          'used_disk_in_bytes' => used_disk_in_bytes,
+                          'computed_pcpu' => computed_pcpu
+                        })
     end
 
     def used_memory_in_bytes
@@ -798,7 +792,7 @@ module Dea
     def staged_info
       @staged_info ||= begin
         Dir.mktmpdir do |destination_dir|
-          staging_file_name = "staging_info.yml"
+          staging_file_name = 'staging_info.yml'
           copied_file_name = "#{destination_dir}/#{staging_file_name}"
 
           copy_out_request("/home/vcap/#{staging_file_name}", destination_dir)
@@ -810,77 +804,77 @@ module Dea
 
     def snapshot_attributes
       {
-        "cc_partition"          => attributes["cc_partition"],
+        'cc_partition' => attributes['cc_partition'],
 
-        "instance_id"           => attributes["instance_id"],
-        "instance_index"        => attributes["instance_index"],
-        "private_instance_id"   => attributes["private_instance_id"],
+        'instance_id' => attributes['instance_id'],
+        'instance_index' => attributes['instance_index'],
+        'private_instance_id' => attributes['private_instance_id'],
 
-        "warden_handle"         => attributes["warden_handle"],
-        "limits"                => attributes["limits"],
-        "health_check_timeout"  => attributes["health_check_timeout"],
+        'warden_handle' => attributes['warden_handle'],
+        'limits' => attributes['limits'],
+        'health_check_timeout' => attributes['health_check_timeout'],
 
-        "environment"           => attributes["environment"],
-        "services"              => attributes["services"],
+        'environment' => attributes['environment'],
+        'services' => attributes['services'],
 
-        "application_id"        => attributes['application_id'],
-        "application_version"   => attributes['application_version'],
-        "application_name"      => attributes["application_name"],
-        "application_uris"      => attributes["application_uris"],
+        'application_id' => attributes['application_id'],
+        'application_version' => attributes['application_version'],
+        'application_name' => attributes['application_name'],
+        'application_uris' => attributes['application_uris'],
 
-        "droplet_sha1"          => attributes["droplet_sha1"],
-        "droplet_uri"           => attributes["droplet_uri"],
+        'droplet_sha1' => attributes['droplet_sha1'],
+        'droplet_uri' => attributes['droplet_uri'],
 
-        "start_command"         => attributes["start_command"],
+        'start_command' => attributes['start_command'],
 
-        "state"                 => attributes["state"],
+        'state' => attributes['state'],
 
-        "warden_job_id"         => attributes["warden_job_id"],
-        "warden_container_path" => container.path,
-        "warden_host_ip"        => container.host_ip,
-        "instance_host_port"    => container.network_ports["host_port"],
-        "instance_container_port" => container.network_ports["container_port"],
+        'warden_job_id' => attributes['warden_job_id'],
+        'warden_container_path' => container.path,
+        'warden_host_ip' => container.host_ip,
+        'instance_host_port' => container.network_ports['host_port'],
+        'instance_container_port' => container.network_ports['container_port'],
 
-        "syslog_drain_urls"     => attributes["services"].map{|svc_hash| svc_hash["syslog_drain_url"]}.compact,
+        'syslog_drain_urls' => attributes['services'].map { |svc_hash| svc_hash['syslog_drain_url'] }.compact,
 
-        "state_starting_timestamp" => attributes["state_starting_timestamp"]
+        'state_starting_timestamp' => attributes['state_starting_timestamp']
       }
     end
 
     private
 
     def setup_container_from_snapshot
-      container.handle = @attributes["warden_handle"]
-      container.network_ports["host_port"] = @attributes["instance_host_port"]
-      container.network_ports["container_port"] = @attributes["instance_container_port"]
+      container.handle = @attributes['warden_handle']
+      container.network_ports['host_port'] = @attributes['instance_host_port']
+      container.network_ports['container_port'] = @attributes['instance_container_port']
     end
 
     def determine_exit_description_from_link_response(link_response)
       info = link_response.info
-      return "cannot be determined" unless info
+      return 'cannot be determined' unless info
 
       return info.events.first if info.events && info.events.first
 
-      "app instance exited"
+      'app instance exited'
     end
 
     def determine_exit_description_from_error(error)
       case error
-      when UserFacingError
-        error.to_s
-      else
-        "failed to start"
+        when UserFacingError
+          error.to_s
+        else
+          'failed to start'
       end
     end
 
     def container_relative_path(root, *parts)
       # This can be removed once warden's wsh branch is merged to master
-      if File.directory?(File.join(root, "rootfs"))
-        return File.join(root, "rootfs", "home", "vcap", *parts)
+      if File.directory?(File.join(root, 'rootfs'))
+        return File.join(root, 'rootfs', 'home', 'vcap', *parts)
       end
 
       # New path
-      File.join(root, "tmp", "rootfs", "home", "vcap", *parts)
+      File.join(root, 'tmp', 'rootfs', 'home', 'vcap', *parts)
     end
 
     def health_check_timeout
@@ -888,20 +882,20 @@ module Dea
     end
 
     def app_specific_health_check_timeout
-      attributes["health_check_timeout"]
+      attributes['health_check_timeout']
     end
 
     def default_health_check_timeout
-      config["default_health_check_timeout"]
+      config['default_health_check_timeout']
     end
 
     def logger
       tags = {
-        "instance_id"         => instance_id,
-        "instance_index"      => instance_index,
-        "application_id"      => application_id,
-        "application_version" => application_version,
-        "application_name"    => application_name,
+        'instance_id' => instance_id,
+        'instance_index' => instance_index,
+        'application_id' => application_id,
+        'application_version' => application_version,
+        'application_name' => application_name,
       }
 
       @logger ||= self.class.logger.tag(tags)
