@@ -650,6 +650,7 @@ module Dea
       Promise.resolve(promise_link) do |error, link_response|
         if error
           logger.warn('droplet.warden.link.failed', error: error, backtrace: error.backtrace)
+          logger.warn('droplet.link.failed', error: error, backtrace: error.backtrace)
 
           self.exit_status = -1
           self.exit_description = 'unknown'
@@ -662,17 +663,11 @@ module Dea
           self.exit_description = description
         end
 
-        if error
-          logger.warn 'droplet.link.failed', error: error, backtrace: error.backtrace
-        end
-
         case self.state
           when State::STARTING
             self.state = State::CRASHED
           when State::RUNNING
-            uptime = Time.now - attributes['state_running_timestamp']
-
-            logger.info('droplet.instance.crashed', uptime: uptime)
+            logger.info('droplet.instance.crashed', uptime: (Time.now - attributes['state_running_timestamp']))
 
             self.state = State::CRASHED
           else
