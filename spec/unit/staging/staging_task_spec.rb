@@ -77,6 +77,8 @@ describe Dea::StagingTask do
   end
 
   describe '#promise_stage' do
+    let (:staging_result) { double(:stdout => 'stdout message', :stderr => 'stderr message') }
+
     it 'assembles a shell command and initiates collection of task log' do
       staging_task.container.should_receive(:run_script) do |_, cmd|
         expect(cmd).to include 'export FOO="BAR";'
@@ -91,8 +93,6 @@ describe Dea::StagingTask do
       end
       staging_task.promise_stage.resolve
     end
-
-    let (:staging_result) { double(:stdout => 'stdout message', :stderr => 'stderr message') }
 
     describe 'loggregator' do
       it 'logs to the loggregator' do
