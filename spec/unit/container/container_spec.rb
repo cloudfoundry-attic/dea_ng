@@ -363,6 +363,23 @@ describe Container do
     end
   end
 
+  describe '#link' do
+    it 'calls #call_with_retry correctly' do
+      fake_response = instance_double(::Warden::Protocol::LinkResponse)
+
+      container.should_receive(:call_with_retry) do |name, request|
+        expect(name).to eq(:link)
+        expect(request).to be_an_instance_of(::Warden::Protocol::LinkRequest)
+        expect(request.handle).to eq(container.handle)
+        expect(request.job_id).to eq('FAKE_JOB_ID')
+
+        fake_response
+      end
+
+      expect(container.link('FAKE_JOB_ID')).to eq(fake_response)
+    end
+  end
+
   describe 'memory limiting' do
     it 'sets the memory limit' do
       limit_in_bytes = 100
