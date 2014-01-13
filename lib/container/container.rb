@@ -190,6 +190,15 @@ class Container
     call_with_retry(:link, ::Warden::Protocol::LinkRequest.new(handle: handle, job_id: job_id))
   end
 
+  def link_or_raise(job_id)
+    response = link(job_id)
+    if response.exit_status > 0
+      raise WardenError.new("Script exited with status #{response.exit_status}", response)
+    else
+      response
+    end
+  end
+
   def call(name, request)
     client(name).call(request)
   end

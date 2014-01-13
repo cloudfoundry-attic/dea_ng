@@ -380,6 +380,33 @@ describe Container do
     end
   end
 
+  describe '#link_or_raise' do
+    let(:response) { double(exit_status: 0)}
+
+    it 'calls link with the job_id' do
+      expect(container).to receive(:link).with('foobar').and_return(response)
+      container.link_or_raise('foobar')
+    end
+
+    context 'when link exit status is 0' do
+      it 'returns the response' do
+        container.stub(:link).and_return(response)
+        expect(container.link_or_raise('foobar')).to eq(response)
+      end
+    end
+
+    context 'when link exit status > 0' do
+      let(:response) { double(exit_status: 127)}
+
+      it 'raises a Container::WardenError' do
+        container.stub(:link).and_return(response)
+        expect {
+          container.link_or_raise('foobar')
+        }.to raise_error(Container::WardenError)
+      end
+    end
+  end
+
   describe 'memory limiting' do
     it 'sets the memory limit' do
       limit_in_bytes = 100
