@@ -8,10 +8,7 @@ require 'dea/directory_server/directory_server_v2'
 require 'dea/staging/staging_task'
 
 describe Dea::StagingTask do
-  before(:all) do
-    @emitter = FakeEmitter.new
-    Dea::Loggregator.staging_emitter = @emitter
-  end
+  let(:loggregator_emitter) { FakeEmitter.new }
 
   let(:memory_limit_mb) { 256 }
   let(:disk_limit_mb) { 1025 }
@@ -74,6 +71,8 @@ describe Dea::StagingTask do
     staging_task.stub(:downloaded_app_package_path) { '/path/to/downloaded/droplet' }
     staging_task.stub(:logger) { logger }
     staging_task.stub(:container_exists?) { true }
+
+    Dea::Loggregator.staging_emitter = loggregator_emitter
   end
 
   describe '#promise_stage' do
@@ -96,29 +95,27 @@ describe Dea::StagingTask do
 
     describe 'loggregator' do
       it 'logs to the loggregator' do
-        @emitter.reset
         staging_task.container.should_receive(:run_script).and_return(staging_result)
         staging_task.promise_stage.resolve
         app_id = staging_task.staging_message.app_id
-        expect(@emitter.messages.size).to eql(1)
-        expect(@emitter.error_messages.size).to eql(1)
-        expect(@emitter.messages[app_id][0]).to eql('stdout message')
-        expect(@emitter.error_messages[app_id][0]).to eql('stderr message')
+        expect(loggregator_emitter.messages.size).to eql(1)
+        expect(loggregator_emitter.error_messages.size).to eql(1)
+        expect(loggregator_emitter.messages[app_id][0]).to eql('stdout message')
+        expect(loggregator_emitter.error_messages[app_id][0]).to eql('stderr message')
       end
 
       context 'when staging fails' do
         let (:staging_error) { Container::WardenError.new('Failed to stage', staging_result) }
 
         it 'still emits staging logs when a WardenError is raised' do
-          @emitter.reset
           staging_task.container.should_receive(:run_script).and_raise(staging_error)
 
           expect { staging_task.promise_stage.resolve }.to raise_error(Container::WardenError)
           app_id = staging_task.staging_message.app_id
-          expect(@emitter.messages.size).to eql(1)
-          expect(@emitter.error_messages.size).to eql(1)
-          expect(@emitter.messages[app_id][0]).to eql('stdout message')
-          expect(@emitter.error_messages[app_id][0]).to eql('stderr message')
+          expect(loggregator_emitter.messages.size).to eql(1)
+          expect(loggregator_emitter.error_messages.size).to eql(1)
+          expect(loggregator_emitter.messages[app_id][0]).to eql('stdout message')
+          expect(loggregator_emitter.error_messages[app_id][0]).to eql('stderr message')
         end
       end
     end
@@ -801,14 +798,13 @@ YAML
     end
 
     it 'logs to loggregator' do
-      @emitter.reset
       staging_task.container.should_receive(:run_script).and_return(double(:stdout => 'stdout message', :stderr => 'stderr message'))
       staging_task.promise_unpack_app.resolve
       app_id = staging_task.staging_message.app_id
-      expect(@emitter.messages.size).to eql(1)
-      expect(@emitter.error_messages.size).to eql(1)
-      expect(@emitter.messages[app_id][0]).to eql('stdout message')
-      expect(@emitter.error_messages[app_id][0]).to eql('stderr message')
+      expect(loggregator_emitter.messages.size).to eql(1)
+      expect(loggregator_emitter.error_messages.size).to eql(1)
+      expect(loggregator_emitter.messages[app_id][0]).to eql('stdout message')
+      expect(loggregator_emitter.error_messages[app_id][0]).to eql('stderr message')
     end
   end
 
@@ -835,14 +831,13 @@ YAML
       end
 
       it 'logs to loggregator' do
-        @emitter.reset
         staging_task.container.should_receive(:run_script).and_return(double(:stdout => 'stdout message', :stderr => 'stderr message'))
         staging_task.promise_unpack_buildpack_cache.resolve
         app_id = staging_task.staging_message.app_id
-        expect(@emitter.messages.size).to eql(1)
-        expect(@emitter.error_messages.size).to eql(1)
-        expect(@emitter.messages[app_id][0]).to eql('stdout message')
-        expect(@emitter.error_messages[app_id][0]).to eql('stderr message')
+        expect(loggregator_emitter.messages.size).to eql(1)
+        expect(loggregator_emitter.error_messages.size).to eql(1)
+        expect(loggregator_emitter.messages[app_id][0]).to eql('stdout message')
+        expect(loggregator_emitter.error_messages[app_id][0]).to eql('stderr message')
       end
     end
   end
