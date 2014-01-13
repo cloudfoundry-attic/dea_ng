@@ -29,7 +29,6 @@ group :test do
   gem 'ci_reporter'
   gem 'debugger'
   gem 'foreman'
-  gem 'librarian'
   gem 'net-ssh'
   gem 'patron'
   gem 'rack-test'
