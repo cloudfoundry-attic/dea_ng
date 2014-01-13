@@ -192,22 +192,13 @@ module Dea
 
     def promise_stage
       Promise.new do |p|
-        env = Env.new(staging_message, self)
-
-        script = [
-          'set -o pipefail;',
-          env.exported_environment_variables,
-          config['dea_ruby'],
-          run_plugin_path,
-          workspace.plugin_config_path,
-          "| tee -a #{workspace.warden_staging_log}"
-        ].join(' ')
-
+        script = staging_command
         logger.debug 'staging.task.execute-staging', script: script
 
+        spawn_response = container.spawn(script)
         begin
           Timeout.timeout(staging_timeout + staging_timeout_grace_period) do
-            loggregator_emit_result container.run_script(:app, script)
+            loggregator_emit_result(container.link_or_raise(spawn_response.job_id))
           end
           p.deliver
         rescue Container::WardenError => staging_error
@@ -500,6 +491,19 @@ module Dea
     end
 
     private
+
+    def staging_command
+      env = Env.new(staging_message, self)
+
+      [
+        'set -o pipefail;',
+        env.exported_environment_variables,
+        config['dea_ruby'],
+        run_plugin_path,
+        workspace.plugin_config_path,
+        "| tee -a #{workspace.warden_staging_log}"
+      ].join(' ')
+    end
 
     def resolve_staging_setup
       workspace.prepare

@@ -76,26 +76,78 @@ describe Dea::StagingTask do
   end
 
   describe '#promise_stage' do
-    let (:staging_result) { double(:stdout => 'stdout message', :stderr => 'stderr message') }
+    let(:spawn_response) { double(job_id: 25) }
 
-    it 'assembles a shell command and initiates collection of task log' do
-      staging_task.container.should_receive(:run_script) do |_, cmd|
-        expect(cmd).to include 'export FOO="BAR";'
-        expect(cmd).to include 'export BUILDPACK_CACHE="buildpack_cache_url";'
-        expect(cmd).to include 'export STAGING_TIMEOUT="900.0";'
-        expect(cmd).to include 'export MEMORY_LIMIT="512m";' # the user assiged 512 should overwrite the system 256
-        expect(cmd).to include 'export VCAP_SERVICES="'
+    before do
+      allow(staging_task.container).to receive(:spawn) { spawn_response }
+      allow(staging_task.container).to receive(:link_or_raise)
+    end
 
-        expect(cmd).to match %r{.*/bin/run .*/plugin_config | tee -a}
+    describe 'assembles staging command correctly' do
+      it 'calls the container#spawn with the staging command' do
+        expect(staging_task.container).to receive(:spawn) do |cmd|
+          expect(cmd).to include 'export FOO="BAR";'
+          expect(cmd).to include 'export BUILDPACK_CACHE="buildpack_cache_url";'
+          expect(cmd).to include 'export STAGING_TIMEOUT="900.0";'
+          expect(cmd).to include 'export MEMORY_LIMIT="512m";' # the user assiged 512 should overwrite the system 256
+          expect(cmd).to include 'export VCAP_SERVICES="'
 
-        empty_streams
+          expect(cmd).to match %r{.*/bin/run .*/plugin_config | tee -a}
+
+          spawn_response
+        end
+
+        staging_task.promise_stage.resolve
       end
+
+      context 'when env variables need to be escaped' do
+        before { attributes['start_message']['env'] = ['PATH=x y z', "FOO=z'y\"d", 'BAR=', 'BAZ=foo=baz'] }
+
+        it 'copes with spaces' do
+          staging_task.container.should_receive(:spawn) do |cmd|
+            expect(cmd).to include('export PATH="x y z";')
+
+            spawn_response
+          end
+          staging_task.promise_stage.resolve
+        end
+
+        it 'copes with quotes' do
+          staging_task.container.should_receive(:spawn) do |cmd|
+            expect(cmd).to include(%Q{export FOO="z'y\\"d";})
+          end.and_return(spawn_response)
+          staging_task.promise_stage.resolve
+        end
+
+        it 'copes with blank' do
+          staging_task.container.should_receive(:spawn) do |cmd|
+            expect(cmd).to include('export BAR="";')
+
+            spawn_response
+          end
+          staging_task.promise_stage.resolve
+        end
+
+        it 'copes with equal sign' do
+          staging_task.container.should_receive(:spawn) do |cmd|
+            expect(cmd).to include('export BAZ="foo=baz";')
+          end.and_return(spawn_response)
+          staging_task.promise_stage.resolve
+        end
+      end
+    end
+
+    it 'links to the job' do
+      expect(staging_task.container).to receive(:link_or_raise).with(25)
       staging_task.promise_stage.resolve
     end
 
-    describe 'loggregator' do
-      it 'logs to the loggregator' do
-        staging_task.container.should_receive(:run_script).and_return(staging_result)
+    context 'when the job is successful' do
+      let(:link_response) { double(:stdout => 'stdout message', :stderr => 'stderr message') }
+
+      before { staging_task.container.should_receive(:link_or_raise).and_return(link_response) }
+
+      it 'emits result to loggregator' do
         staging_task.promise_stage.resolve
         app_id = staging_task.staging_message.app_id
         expect(loggregator_emitter.messages.size).to eql(1)
@@ -103,67 +155,37 @@ describe Dea::StagingTask do
         expect(loggregator_emitter.messages[app_id][0]).to eql('stdout message')
         expect(loggregator_emitter.error_messages[app_id][0]).to eql('stderr message')
       end
+    end
 
-      context 'when staging fails' do
-        let (:staging_error) { Container::WardenError.new('Failed to stage', staging_result) }
+    context 'when job fails' do
+      let (:staging_result) { double(:stdout => 'stdout message', :stderr => 'stderr message') }
+      let (:staging_error) { Container::WardenError.new('Failed to stage', staging_result) }
 
-        it 'still emits staging logs when a WardenError is raised' do
-          staging_task.container.should_receive(:run_script).and_raise(staging_error)
+      before { staging_task.container.should_receive(:link_or_raise).and_raise(staging_error) }
 
-          expect { staging_task.promise_stage.resolve }.to raise_error(Container::WardenError)
-          app_id = staging_task.staging_message.app_id
-          expect(loggregator_emitter.messages.size).to eql(1)
-          expect(loggregator_emitter.error_messages.size).to eql(1)
-          expect(loggregator_emitter.messages[app_id][0]).to eql('stdout message')
-          expect(loggregator_emitter.error_messages[app_id][0]).to eql('stderr message')
-        end
+      it 'raises Container::WardenError' do
+        expect { staging_task.promise_stage.resolve }.to raise_error(Container::WardenError)
+      end
+
+      it 'emits result to loggregator' do
+        expect { staging_task.promise_stage.resolve }.to raise_error(Container::WardenError)
+
+        app_id = staging_task.staging_message.app_id
+        expect(loggregator_emitter.messages.size).to eql(1)
+        expect(loggregator_emitter.error_messages.size).to eql(1)
+        expect(loggregator_emitter.messages[app_id][0]).to eql('stdout message')
+        expect(loggregator_emitter.error_messages[app_id][0]).to eql('stderr message')
       end
     end
 
-    context 'when env variables need to be escaped' do
-      before { attributes['start_message']['env'] = ['PATH=x y z', "FOO=z'y\"d", 'BAR=', 'BAZ=foo=baz'] }
-
-      it 'copes with spaces' do
-        staging_task.container.should_receive(:run_script) do |_, cmd|
-          expect(cmd).to include('export PATH="x y z";')
-
-          empty_streams
-        end
-        staging_task.promise_stage.resolve
-      end
-
-      it 'copes with quotes' do
-        staging_task.container.should_receive(:run_script) do |_, cmd|
-          expect(cmd).to include(%Q{export FOO="z'y\\"d";})
-        end.and_return(empty_streams)
-        staging_task.promise_stage.resolve
-      end
-
-      it 'copes with blank' do
-        staging_task.container.should_receive(:run_script) do |_, cmd|
-          expect(cmd).to include('export BAR="";')
-
-          empty_streams
-        end
-        staging_task.promise_stage.resolve
-      end
-
-      it 'copes with equal sign' do
-        staging_task.container.should_receive(:run_script) do |_, cmd|
-          expect(cmd).to include('export BAZ="foo=baz";')
-        end.and_return(empty_streams)
-        staging_task.promise_stage.resolve
-      end
-    end
-
-    describe 'timeouts' do
+    context 'when job exceeds staging timeout and grace period' do
       let(:max_staging_duration) { 0.5 }
 
       context 'when the staging times out past the grace period' do
         it 'fails with a TimeoutError' do
           staging_task.stub(:staging_timeout_grace_period) { 0.5 }
 
-          staging_task.container.should_receive(:run_script) do
+          staging_task.container.should_receive(:link_or_raise) do
             sleep 2
           end
 
@@ -175,7 +197,7 @@ describe Dea::StagingTask do
         it 'does not time out' do
           staging_task.stub(:staging_timeout_grace_period) { 0.5 }
 
-          staging_task.container.should_receive(:run_script) do
+          staging_task.container.should_receive(:link_or_raise) do
             sleep 0.75
 
             empty_streams
