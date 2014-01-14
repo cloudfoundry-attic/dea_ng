@@ -377,28 +377,33 @@ module Dea
       app_version = message.data["version"]
 
       instance_registry.instances_for_application(app_id).dup.each do |_, instance|
-        current_uris = instance.application_uris
-
-        logger.debug("Mapping new URIs")
-        logger.debug("New: #{uris} Old: #{current_uris}")
-
-        new_uris = uris - current_uris
-        unless new_uris.empty?
-          router_client.register_instance(instance, :uris => new_uris)
-        end
-
-        obsolete_uris = current_uris - uris
-        unless obsolete_uris.empty?
-          router_client.unregister_instance(instance, :uris => obsolete_uris)
-        end
-
-        instance.application_uris = uris
+        next unless instance.running? || instance.evacuating?
+        update_app_uris(instance, uris)
 
         if app_version
           instance.application_version = app_version
           instance_registry.change_instance_id(instance)
         end
       end
+    end
+
+    def update_app_uris(instance, uris)
+      current_uris = instance.application_uris
+
+      logger.debug("Mapping new URIs")
+      logger.debug("New: #{uris} Old: #{current_uris}")
+
+      new_uris = uris - current_uris
+      unless new_uris.empty?
+        router_client.register_instance(instance, :uris => new_uris)
+      end
+
+      obsolete_uris = current_uris - uris
+      unless obsolete_uris.empty?
+        router_client.unregister_instance(instance, :uris => obsolete_uris)
+      end
+
+      instance.application_uris = uris
     end
 
     def handle_dea_find_droplet(message)

@@ -142,171 +142,232 @@ describe Dea do
   end
 
   describe "upon receipt of a message on 'dea.update'" do
-    it "should register new uris" do
-      uris = []
-      new_uris = []
+    context "when updating running instances" do
+      it "should register new uris" do
+        uris = []
+        new_uris = []
 
-      reqs = {}
-      nats_mock.subscribe("router.register") do |msg, _|
-        req = Yajl::Parser.parse(msg)
-        reqs[req["app"]] = req
-        done if reqs.size == 2
-      end
-
-      em(:timeout => 1) do
-        bootstrap.setup
-        bootstrap.start
-
-        uris = 2.times.map do |ii|
-          uri = "http://www.foo.com/#{ii}"
-          create_and_register_instance(bootstrap,
-                                       "application_id"   => ii.to_s,
-                                       "application_uris" => [uri])
-          uri
+        reqs = {}
+        nats_mock.subscribe("router.register") do |msg, _|
+          req = Yajl::Parser.parse(msg)
+          reqs[req["app"]] = req
+          done if reqs.size == 2
         end
 
-        new_uris = 2.times.map do |ii|
-          ["http://www.foo.com/#{ii + 2}"]
+        em(:timeout => 1) do
+          bootstrap.setup
+          bootstrap.start
+
+          uris = 2.times.map do |ii|
+            uri = "http://www.foo.com/#{ii}"
+            instance = create_and_register_instance(bootstrap,
+                                                    "application_id"   => ii.to_s,
+                                                    "application_uris" => [uri])
+            instance.state = Dea::Instance::State::RUNNING
+            uri
+          end
+
+          new_uris = 2.times.map do |ii|
+            ["http://www.foo.com/#{ii + 2}"]
+          end
+
+          new_uris.each_with_index do |uri, ii|
+            nats_mock.publish("dea.update",
+                              { "droplet" => ii,
+                                "uris"    => [uris[ii], new_uris[ii]].flatten })
+          end
         end
-
-        new_uris.each_with_index do |uri, ii|
-          nats_mock.publish("dea.update",
-                            { "droplet" => ii,
-                              "uris"    => [uris[ii], new_uris[ii]].flatten })
-        end
-      end
-
-      2.times do |ii|
-        reqs[ii.to_s].should_not be_nil
-        reqs[ii.to_s]["uris"].should == new_uris[ii]
-      end
-    end
-
-    it "should unregister stale uris" do
-      old_uris = {}
-      new_uris = {}
-
-      reqs = {}
-      nats_mock.subscribe("router.unregister") do |msg, _|
-        req = Yajl::Parser.parse(msg)
-        reqs[req["app"]] = req
-        done if reqs.size == 2
-      end
-
-      em(:timeout => 1) do
-        bootstrap.setup
-        bootstrap.start
 
         2.times do |ii|
-          uris = 2.times.map { |jj| "http://www.foo.com/#{ii + jj}" }
-          create_and_register_instance(bootstrap,
-                                       "application_id"   => ii.to_s,
-                                       "application_uris" => uris)
+          reqs[ii.to_s].should_not be_nil
+          reqs[ii.to_s]["uris"].should == new_uris[ii]
+        end
+      end
+
+      it "should unregister stale uris" do
+        old_uris = {}
+        new_uris = {}
+
+        reqs = {}
+        nats_mock.subscribe("router.unregister") do |msg, _|
+          req = Yajl::Parser.parse(msg)
+          reqs[req["app"]] = req
+          done if reqs.size == 2
+        end
+
+        em(:timeout => 1) do
+          bootstrap.setup
+          bootstrap.start
+
+          2.times do |ii|
+            uris = 2.times.map { |jj| "http://www.foo.com/#{ii + jj}" }
+            instance = create_and_register_instance(bootstrap,
+                                                    "application_id"   => ii.to_s,
+                                                    "application_uris" => uris)
+            instance.state = Dea::Instance::State::RUNNING
+          end
+
+          bootstrap.instance_registry.each do |instance|
+            app_id = instance.application_id
+            old_uris[app_id.to_s] = instance.application_uris
+            new_uris[app_id.to_s] = instance.application_uris.slice(1, 1)
+            nats_mock.publish("dea.update",
+                              { "droplet" => app_id,
+                                "uris"    => new_uris[app_id]})
+          end
         end
 
         bootstrap.instance_registry.each do |instance|
           app_id = instance.application_id
-          old_uris[app_id.to_s] = instance.application_uris
-          new_uris[app_id.to_s] = instance.application_uris.slice(1, 1)
-          nats_mock.publish("dea.update",
-                            { "droplet" => app_id,
-                              "uris"    => new_uris[app_id]})
+          reqs[app_id.to_s].should_not be_nil
+          reqs[app_id.to_s]["uris"].should == (old_uris[app_id] - new_uris[app_id])
         end
       end
 
-      bootstrap.instance_registry.each do |instance|
-        app_id = instance.application_id
-        reqs[app_id.to_s].should_not be_nil
-        reqs[app_id.to_s]["uris"].should == (old_uris[app_id] - new_uris[app_id])
+      describe "updating the instance registry" do
+        let(:instance) do
+          instance = create_and_register_instance(bootstrap,
+                                                  "application_id"   => 0.to_s,
+                                                  "application_uris" => ["old-uri"],
+                                                  "application_version" => "old-version")
+          instance.state = Dea::Instance::State::RUNNING
+          instance
+        end
+
+        before do
+          bootstrap.setup
+        end
+
+        context "when both the uris and app version are specified" do
+          it "updates the instance's uris and app version" do
+            expect {
+              em do
+                bootstrap.start
+
+                nats_mock.publish("dea.update",
+                                  { "droplet" => instance.application_id,
+                                    "uris"    => ["new-uri"],
+                                    "version" => "new-version"
+                                  })
+
+                EM.next_tick { done }
+              end
+            }.to change {
+              [instance.application_uris, instance.application_version]
+            }.from([["old-uri"], "old-version"]).to([["new-uri"], "new-version"])
+          end
+
+          it "changes the instance's id" do
+            bootstrap.instance_registry.lookup_instance(instance.instance_id).should == instance
+
+            expect {
+              em do
+                bootstrap.start
+
+                nats_mock.publish("dea.update",
+                                  { "droplet" => instance.application_id,
+                                    "uris"    => ["new-uri"],
+                                    "version" => "new-version"
+                                  })
+
+                EM.next_tick { done }
+              end
+            }.to change { instance.instance_id }
+
+            bootstrap.instance_registry.lookup_instance(instance.instance_id).should == instance
+          end
+        end
+
+        context "when the app version is not in the message (for backwards compatibility)" do
+          it "does not change the instance's app version" do
+            expect {
+              em do
+                bootstrap.start
+
+                nats_mock.publish("dea.update",
+                                  { "droplet" => instance.application_id,
+                                    "uris"    => ["new-uri"],
+                                  })
+
+                EM.next_tick { done }
+              end
+            }.to_not change { instance.application_version }
+          end
+
+          it "does not change the instance's id" do
+            bootstrap.instance_registry.lookup_instance(instance.instance_id).should == instance
+
+            expect {
+              em do
+                bootstrap.start
+
+                nats_mock.publish("dea.update",
+                                  { "droplet" => instance.application_id,
+                                    "uris"    => ["new-uri"],
+                                  })
+
+                EM.next_tick { done }
+              end
+            }.to_not change { instance.instance_id }
+
+            bootstrap.instance_registry.lookup_instance(instance.instance_id).should == instance
+          end
+        end
       end
     end
 
-    describe "updating the instance registry" do
+    context "when updating an instance that is not running" do
       let(:instance) do
-        create_and_register_instance(bootstrap,
-          "application_id"   => 0.to_s,
-          "application_uris" => ["old-uri"],
-          "application_version" => "old-version")
+        instance = create_and_register_instance(bootstrap,
+                                                "application_id"   => 0.to_s,
+                                                "application_uris" => ["old-uri"],
+                                                "application_version" => "old-version")
+        instance.state = Dea::Instance::State::STARTING
+        instance
       end
 
       before do
         bootstrap.setup
       end
 
-      context "when both the uris and app version are specified" do
-        it "updates the instance's uris and app version" do
-          expect {
-            em do
-              bootstrap.start
+      it "should not change uri registration or version" do
+        expect {
+          em do
+            bootstrap.start
 
-              nats_mock.publish("dea.update",
-                { "droplet" => instance.application_id,
-                  "uris"    => ["new-uri"],
-                  "version" => "new-version"
-                })
+            nats_mock.publish("dea.update",
+                              { "droplet" => instance.application_id,
+                                "uris"    => ["new-uri"],
+                                "version" => "new-version"
+                              })
 
-              EM.next_tick { done }
-            end
-          }.to change {
-            [instance.application_uris, instance.application_version]
-          }.from([["old-uri"], "old-version"]).to([["new-uri"], "new-version"])
-        end
-
-        it "changes the instance's id" do
-          bootstrap.instance_registry.lookup_instance(instance.instance_id).should == instance
-
-          expect {
-            em do
-              bootstrap.start
-
-              nats_mock.publish("dea.update",
-                                { "droplet" => instance.application_id,
-                                  "uris"    => ["new-uri"],
-                                  "version" => "new-version"
-                                })
-
-              EM.next_tick { done }
-            end
-          }.to change { instance.instance_id }
-
-          bootstrap.instance_registry.lookup_instance(instance.instance_id).should == instance
-        end
+            EM.next_tick { done }
+          end
+        }.to_not change {
+          [instance.application_uris, instance.application_version]
+        }
       end
 
-      context "when the app version is not in the message (for backwards compatibility)" do
-        it "does not change the instance's app version" do
-          expect {
-            em do
-              bootstrap.start
+      it "should not change the instance's id" do
+        bootstrap.instance_registry.lookup_instance(instance.instance_id).should == instance
 
-              nats_mock.publish("dea.update",
-                { "droplet" => instance.application_id,
-                  "uris"    => ["new-uri"],
-                })
+        expect {
+          em do
+            bootstrap.start
 
-              EM.next_tick { done }
-            end
-          }.to_not change { instance.application_version }
-        end
+            nats_mock.publish("dea.update",
+                              { "droplet" => instance.application_id,
+                                "uris"    => ["new-uri"],
+                                "version" => "new-version"
+                              })
 
-        it "does not change the instance's id" do
-          bootstrap.instance_registry.lookup_instance(instance.instance_id).should == instance
+            EM.next_tick { done }
+          end
+        }.to_not change {
+          instance.instance_id
+        }
 
-          expect {
-            em do
-              bootstrap.start
-
-              nats_mock.publish("dea.update",
-                                { "droplet" => instance.application_id,
-                                  "uris"    => ["new-uri"],
-                                })
-
-              EM.next_tick { done }
-            end
-          }.to_not change { instance.instance_id }
-
-          bootstrap.instance_registry.lookup_instance(instance.instance_id).should == instance
-        end
+        bootstrap.instance_registry.lookup_instance(instance.instance_id).should == instance
       end
     end
   end
