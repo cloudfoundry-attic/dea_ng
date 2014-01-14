@@ -526,4 +526,35 @@ describe Dea::Bootstrap do
       end
     end
   end
+
+  describe "#update_app_uris" do
+    let(:app_uris) { ["app.cfapps.io", "app.run.pivotal.io"] }
+    let(:instance) { Dea::Instance.new(bootstrap, {"application_uris" => app_uris, "application_id" => 1, "index" => 0}) }
+    let(:router_client) { double(:router_client) }
+
+    before do
+      bootstrap.stub(:router_client) { router_client }
+    end
+
+    it "adds new uris" do
+      new_uris = ["app.cfapps.io", "app.run.pivotal.io", "new.cfapps.io"]
+      expect(router_client).to receive(:register_instance).with(instance, :uris => ["new.cfapps.io"])
+      bootstrap.update_app_uris(instance, new_uris)
+    end
+
+    it "removes obsolete uris" do
+      new_uris = ["app.cfapps.io"]
+      expect(router_client).to receive(:unregister_instance).with(instance, :uris => ["app.run.pivotal.io"])
+      bootstrap.update_app_uris(instance, new_uris)
+    end
+
+    it "updates the app instance with the current uris" do
+      new_uris = ["app.cfapps.io", "app.example.com"]
+      expect(router_client).to receive(:unregister_instance).with(instance, :uris => ["app.run.pivotal.io"])
+      expect(router_client).to receive(:register_instance).with(instance, :uris => ["app.example.com"])
+      bootstrap.update_app_uris(instance, new_uris)
+
+      expect(instance.application_uris).to eq(new_uris)
+    end
+  end
 end
