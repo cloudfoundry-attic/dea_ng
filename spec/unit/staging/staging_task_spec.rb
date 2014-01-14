@@ -36,7 +36,7 @@ describe Dea::StagingTask do
   end
 
   let(:base_dir) { Dir.mktmpdir('base_dir') }
-  let(:bootstrap) { double(:bootstrap, :config => Dea::Config.new(config)) }
+  let(:bootstrap) { double(:bootstrap, config: Dea::Config.new(config), snapshot: double(:snapshot)) }
   let(:dir_server) { Dea::DirectoryServerV2.new('domain', 1234, nil, config) }
 
   let(:logger) do
@@ -81,6 +81,7 @@ describe Dea::StagingTask do
     before do
       allow(staging_task.container).to receive(:spawn) { spawn_response }
       allow(staging_task.container).to receive(:link_or_raise)
+      allow(staging_task.bootstrap.snapshot).to receive(:save)
     end
 
     describe 'assembles staging command correctly' do
@@ -135,6 +136,15 @@ describe Dea::StagingTask do
           staging_task.promise_stage.resolve
         end
       end
+    end
+
+    it 'saves warden job id to the snapshot' do
+      expect(staging_task.snapshot_attributes['warden_job_id']).to be_nil
+
+      expect(staging_task.bootstrap.snapshot).to receive(:save)
+      staging_task.promise_stage.resolve
+
+      expect(staging_task.snapshot_attributes['warden_job_id']).to eq(25)
     end
 
     it 'links to the job' do

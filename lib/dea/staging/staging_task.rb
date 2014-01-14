@@ -196,9 +196,11 @@ module Dea
         logger.debug 'staging.task.execute-staging', script: script
 
         spawn_response = container.spawn(script)
+        @warden_job_id = spawn_response.job_id
+        bootstrap.snapshot.save
         begin
           Timeout.timeout(staging_timeout + staging_timeout_grace_period) do
-            loggregator_emit_result(container.link_or_raise(spawn_response.job_id))
+            loggregator_emit_result(container.link_or_raise(@warden_job_id))
           end
           p.deliver
         rescue Container::WardenError => staging_error
