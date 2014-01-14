@@ -1044,6 +1044,36 @@ YAML
     end
   end
 
+  describe '#snapshot_attributes' do
+    let(:services) {
+      [
+        {'credentials' => {}, 'syslog_drain_url' => 'abc'},
+        {'credentials' => {}, 'syslog_drain_url' => 'def'},
+      ]
+    }
+    let(:attributes) do
+      attributes = valid_staging_attributes
+      attributes['properties']['services'] = services
+      attributes
+    end
+
+    it 'includes staging message' do
+      expect(staging_task.snapshot_attributes['staging_message']).to eq(staging_message.to_hash)
+    end
+
+    it 'includes warden_container_path' do
+      expect(staging_task.snapshot_attributes['warden_container_path']).to eq(staging_task.container.path)
+    end
+
+    it 'includes warden_job_id' do
+      expect(staging_task.snapshot_attributes).to include('warden_job_id')
+    end
+
+    it 'includes syslog drain urls' do
+      expect(staging_task.snapshot_attributes['syslog_drain_urls']).to eq(['abc', 'def'])
+    end
+  end
+
   def normalize_whitespace(script)
     script.gsub(/\s+/, ' ')
   end

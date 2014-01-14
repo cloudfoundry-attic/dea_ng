@@ -76,9 +76,9 @@ describe Dea::Snapshot do
 
       expect(saved_snapshot["staging_tasks"].size).to eq(2)
 
-      expect(saved_snapshot["staging_tasks"][0]).to include("task_id" => staging_task_registry[0].task_id)
+      expect(saved_snapshot["staging_tasks"][0]["staging_message"]).to include("task_id" => staging_task_registry[0].task_id)
 
-      expect(saved_snapshot["staging_tasks"][1]).to include("task_id" => staging_task_registry[1].task_id)
+      expect(saved_snapshot["staging_tasks"][1]["staging_message"]).to include("task_id" => staging_task_registry[1].task_id)
     end
 
     context "instances fields" do

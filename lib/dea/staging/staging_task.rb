@@ -490,6 +490,16 @@ module Dea
       end + config['bind_mounts']
     end
 
+    def snapshot_attributes
+      logger.info 'snapshot_attributes', properties: staging_message.properties
+      {
+        'staging_message' => staging_message.to_hash,
+        'warden_container_path' => container.path,
+        'warden_job_id' => @warden_job_id,
+        'syslog_drain_urls' => syslog_drain_urls,
+      }
+    end
+
     private
 
     def staging_command
@@ -503,6 +513,11 @@ module Dea
         workspace.plugin_config_path,
         "| tee -a #{workspace.warden_staging_log}"
       ].join(' ')
+    end
+
+    def syslog_drain_urls
+      services = staging_message.properties['services'] || []
+      services.map { |svc_hash| svc_hash['syslog_drain_url'] }.compact
     end
 
     def resolve_staging_setup

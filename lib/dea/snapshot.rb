@@ -27,7 +27,7 @@ module Dea
       snapshot = {
         "time" => start.to_f,
         "instances" => instances.map(&:snapshot_attributes),
-        "staging_tasks" => staging_task_registry.map { |staging_task| staging_task.staging_message.to_hash }
+        "staging_tasks" => staging_task_registry.map(&:snapshot_attributes)
       }
 
       file = Tempfile.new("instances", File.join(base_dir, "tmp"))
