@@ -17,7 +17,7 @@ describe "Running an app", :type => :integration, :requires_warden => true do
     }
   end
 
-  let(:start_message) do
+  def start_message
     {
       "index" => 1,
       "droplet" => app_id,
