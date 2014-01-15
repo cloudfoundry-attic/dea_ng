@@ -43,7 +43,7 @@ module Dea
         "buildpack_dirs" => @buildpack_manager.list
       }
 
-      logger.info plugin_config
+      logger.debug plugin_config
       File.open(plugin_config_path, 'w') { |f| YAML.dump(plugin_config, f) }
     end
 
