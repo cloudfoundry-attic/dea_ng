@@ -69,6 +69,7 @@ Follow these steps to set up DEA to run locally on your computer:
 # clone the repo
 cd ~/workspace
 git clone http://github.com/cloudfoundry/dea_ng
+cd dea_ng
 git submodule update --init
 bundle install
 
