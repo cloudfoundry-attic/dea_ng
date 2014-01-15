@@ -152,21 +152,6 @@ describe Dea::StagingTask do
       staging_task.promise_stage.resolve
     end
 
-    context 'when the job is successful' do
-      let(:link_response) { double(:stdout => 'stdout message', :stderr => 'stderr message') }
-
-      before { staging_task.container.should_receive(:link_or_raise).and_return(link_response) }
-
-      it 'emits result to loggregator' do
-        staging_task.promise_stage.resolve
-        app_id = staging_task.staging_message.app_id
-        expect(loggregator_emitter.messages.size).to eql(1)
-        expect(loggregator_emitter.error_messages.size).to eql(1)
-        expect(loggregator_emitter.messages[app_id][0]).to eql('stdout message')
-        expect(loggregator_emitter.error_messages[app_id][0]).to eql('stderr message')
-      end
-    end
-
     context 'when job fails' do
       let (:staging_result) { double(:stdout => 'stdout message', :stderr => 'stderr message') }
       let (:staging_error) { Container::WardenError.new('Failed to stage', staging_result) }
@@ -175,16 +160,6 @@ describe Dea::StagingTask do
 
       it 'raises Container::WardenError' do
         expect { staging_task.promise_stage.resolve }.to raise_error(Container::WardenError)
-      end
-
-      it 'emits result to loggregator' do
-        expect { staging_task.promise_stage.resolve }.to raise_error(Container::WardenError)
-
-        app_id = staging_task.staging_message.app_id
-        expect(loggregator_emitter.messages.size).to eql(1)
-        expect(loggregator_emitter.error_messages.size).to eql(1)
-        expect(loggregator_emitter.messages[app_id][0]).to eql('stdout message')
-        expect(loggregator_emitter.error_messages[app_id][0]).to eql('stderr message')
       end
     end
 

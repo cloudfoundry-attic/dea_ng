@@ -200,12 +200,11 @@ module Dea
         bootstrap.snapshot.save
         begin
           Timeout.timeout(staging_timeout + staging_timeout_grace_period) do
-            loggregator_emit_result(container.link_or_raise(@warden_job_id))
+            container.link_or_raise(@warden_job_id)
           end
           p.deliver
         rescue Container::WardenError => staging_error
           logger.error('staging.task.execute-staging.failed', error: staging_error)
-          loggregator_emit_result(staging_error.result)
           p.fail(staging_error)
         rescue Timeout::Error => timeout_error
           logger.error('staging.task.execute-staging.timed-out', error: timeout_error)
