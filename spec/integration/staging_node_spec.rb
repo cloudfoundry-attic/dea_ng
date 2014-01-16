@@ -39,19 +39,17 @@ describe "Staging a node app", :type => :integration, :requires_warden => true d
     }
   end
 
-  it "packages up the node dependencies and stages the app properly" do
+  it "downloads node from Heroku's S3 mirror of nodejs.org/dist and stages the app properly" do
     response, log = perform_stage_request(staging_message)
 
-    expect(log).to include("Resolving engine versions")
-    expect(response["detected_buildpack"]).to eq("Node.js")
     expect(response["error"]).to be_nil
+    expect(response["detected_buildpack"]).to eq("Node.js")
+
+    output_from_compile = "Downloading and installing node"
+    expect(log).to include(output_from_compile)
 
     download_tgz(staged_url) do |dir|
-      entries = Dir.entries(dir).join(" ")
-      expect(entries).to match(/nodejs-0\.10\.\d+\.tgz/)
-      expect(entries).to match(/scons-1\.2\.\d+\.tgz/)
-      expect(entries).to match(/npm-1\.2.\d+\.tgz/)
-      expect(entries).to match(/nodejs-0\.4\.\d+\.tgz/)
+      expect(File.readlines("#{dir}/app/vendor/node/ChangeLog").first.strip).to eq("2013.03.21, Version 0.10.1 (Stable)")
     end
   end
 
@@ -79,7 +77,12 @@ describe "Staging a node app", :type => :integration, :requires_warden => true d
       }
     end
 
-    it "runs the tests" do
+    it "passes (for the most part, but fails intermittently)" do
+      # There appears to be an existing problem with Heroku's tests for this buildpack
+      # where different tests will fail intermittently. We've seen these pass several times
+      # in a row now and are avoiding making changes to the buildpack so we're going to live
+      # with this for now.
+
       _, log = perform_stage_request(staging_message)
 
       expect(log).to include "Running bin/test"
