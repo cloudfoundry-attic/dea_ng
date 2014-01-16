@@ -562,7 +562,7 @@ module Dea
       Promise.new do |p|
         new_instance_path = File.join(config.crashes_path, instance_id)
         new_instance_path = File.expand_path(new_instance_path)
-        copy_out_request('/home/vcap/', new_instance_path)
+        copy_out_request('/home/vcap/logs', new_instance_path + '/logs')
 
         attributes['instance_path'] = new_instance_path
 
