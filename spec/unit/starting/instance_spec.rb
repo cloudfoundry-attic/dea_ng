@@ -1339,7 +1339,7 @@ describe Dea::Instance do
       it 'should copy the contents of a logs directory' do
         instance.container.should_receive(:call_with_retry) do |_, request|
           request.src_path.should =~ %r!/logs/$!
-          request.dst_path.should =~ %r!/dea_ng/crashes/path/.*/logs$!
+          request.dst_path.should =~ %r!/crashes/path/.*/logs$!
         end
 
         instance.promise_copy_out.resolve
