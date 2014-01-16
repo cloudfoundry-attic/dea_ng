@@ -1336,9 +1336,9 @@ describe Dea::Instance do
         instance.unstub(:promise_copy_out)
       end
 
-      it 'should copy the contents of a directory' do
+      it 'should copy the contents of a logs directory' do
         instance.container.should_receive(:call_with_retry) do |_, request|
-          request.src_path.should =~ %r!/$!
+          request.src_path.should =~ %r!/logs$!
         end
 
         instance.promise_copy_out.resolve
