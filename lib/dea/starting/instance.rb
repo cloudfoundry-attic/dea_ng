@@ -112,6 +112,27 @@ module Dea
       end
     end
 
+    class AttributesLoggingFilter
+      FILTER = %w[services environment droplet_uri]
+
+      def initialize(attributes)
+        @attributes = attributes
+      end
+
+      def to_hash
+        attributes = @attributes.dup
+        attributes.delete_if do |key,value|
+          FILTER.include?(key)
+        end
+
+        attributes
+      end
+
+      def to_json
+        to_hash.to_json
+      end
+    end
+
     def self.translate_attributes(attributes)
       attributes = attributes.dup
 
@@ -255,7 +276,7 @@ module Dea
       @exit_status = -1
       @exit_description = ''
 
-      logger.user_data[:attributes] = @attributes
+      logger.user_data[:attributes] = AttributesLoggingFilter.new(@attributes)
 
       setup_container_from_snapshot
     end
