@@ -756,10 +756,10 @@ module Dea
 
     def attributes_and_stats
       @attributes.merge({
-                          'used_memory_in_bytes' => used_memory_in_bytes,
-                          'used_disk_in_bytes' => used_disk_in_bytes,
-                          'computed_pcpu' => computed_pcpu
-                        })
+          'used_memory_in_bytes' => used_memory_in_bytes,
+          'used_disk_in_bytes' => used_disk_in_bytes,
+          'computed_pcpu' => computed_pcpu
+      })
     end
 
     def used_memory_in_bytes
