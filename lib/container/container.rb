@@ -135,13 +135,17 @@ class Container
     end
   end
 
-  def create_container(bind_mounts, cpu_limit_in_shares, disk_limit_in_bytes, memory_limit_in_bytes, network)
+  def create_container(params)
+    [:bind_mounts, :limit_cpu, :byte, :inode, :limit_memory, :setup_network].each do |param|
+      raise ArgumentError, "expecting #{param.to_s} parameter to create container" if params[param].nil?
+    end
+
     with_em do
-      new_container_with_bind_mounts(bind_mounts)
-      limit_cpu(cpu_limit_in_shares)
-      limit_disk(disk_limit_in_bytes)
-      limit_memory(memory_limit_in_bytes)
-      setup_network if network
+      new_container_with_bind_mounts(params[:bind_mounts])
+      limit_cpu(params[:limit_cpu])
+      limit_disk(byte: params[:byte], inode: params[:inode])
+      limit_memory(params[:limit_memory])
+      setup_network if params[:setup_network]
     end
   end
 
@@ -216,8 +220,12 @@ class Container
     call(:app, request)
   end
 
-  def limit_disk(bytes)
-    request = ::Warden::Protocol::LimitDiskRequest.new(handle: self.handle, byte: bytes)
+  def limit_disk(params)
+    request_params = { handle: self.handle }
+    request_params[:byte] = params[:byte] unless params[:byte].nil?
+    request_params[:inode] = params[:inode] unless params[:inode].nil?
+
+    request = ::Warden::Protocol::LimitDiskRequest.new(request_params)
     call(:app, request)
   end
 

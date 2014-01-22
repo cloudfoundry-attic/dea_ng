@@ -612,7 +612,12 @@ describe Dea::Instance do
         ]
         with_network = true
         instance.container.should_receive(:create_container).
-          with(expected_bind_mounts, instance.config['instance']['cpu_limit_shares'], instance.disk_limit_in_bytes, instance.memory_limit_in_bytes, with_network)
+          with(bind_mounts: expected_bind_mounts,
+               limit_cpu: instance.config['instance']['cpu_limit_shares'],
+               byte: instance.disk_limit_in_bytes,
+               inode: 0,
+               limit_memory: instance.memory_limit_in_bytes,
+               setup_network: with_network)
         expect_start.to_not raise_error
         instance.exit_description.should be_empty
       end

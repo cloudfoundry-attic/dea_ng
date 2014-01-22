@@ -524,11 +524,14 @@ module Dea
     def resolve_staging_setup
       workspace.prepare
       with_network = false
-      container.create_container(bind_mounts,
-        staging_config['cpu_limit_shares'],
-        disk_limit_in_bytes,
-        memory_limit_in_bytes,
-        with_network)
+      container.create_container(
+        bind_mounts: bind_mounts,
+        limit_cpu: staging_config['cpu_limit_shares'],
+        byte: disk_limit_in_bytes,
+        inode: 0,
+        limit_memory: memory_limit_in_bytes,
+        setup_network: with_network
+      )
       promises = [promise_app_download]
       promises << promise_buildpack_cache_download if staging_message.buildpack_cache_download_uri
 

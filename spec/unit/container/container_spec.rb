@@ -284,24 +284,45 @@ describe Container do
 
   describe '#create_container' do
     let(:bind_mounts) { double('mounts') }
+    let(:params) { {
+      bind_mounts: bind_mounts,
+      limit_cpu: 300,
+      byte: 100,
+      inode: 100,
+      limit_memory: 200,
+      setup_network: true
+    } }
 
-    it 'creates a new container with cpu, disk and memory limit' do
+    it 'requires all of its parameters' do
+      params.keys.each do |key|
+        params_copy = params.dup
+        params_copy.delete(key)
+        expect {
+          container.create_container(params_copy)
+        }.to raise_error(ArgumentError, "expecting #{key.to_s} parameter to create container")
+      end
+    end
+
+    it 'creates a new container with cpu, disk size in byte, disk inode and memory limit' do
       container.should_receive(:new_container_with_bind_mounts).with(bind_mounts)
-      container.should_receive(:limit_cpu).with(300)
-      container.should_receive(:limit_disk).with(100)
-      container.should_receive(:limit_memory).with(200)
+      container.should_receive(:limit_cpu).with(params[:limit_cpu])
+      container.should_receive(:limit_disk).with(byte: params[:byte], inode: params[:inode])
+      container.should_receive(:limit_memory).with(params[:limit_memory])
       container.should_receive(:setup_network)
-      container.create_container(bind_mounts, 300, 100, 200, true)
+
+      container.create_container(params)
     end
 
     it 'does not create the network if not required' do
+      params[:setup_network] = false
+
       container.stub(:new_container_with_bind_mounts)
       container.stub(:limit_cpu)
       container.stub(:limit_disk)
       container.stub(:limit_memory)
 
       container.should_not_receive(:setup_network)
-      container.create_container(bind_mounts, 300, 100, 200, false)
+      container.create_container(params)
     end
   end
 
@@ -421,7 +442,7 @@ describe Container do
   end
 
   describe 'disk limiting' do
-    it 'sets the disk limit' do
+    it 'sets the disk bytes limit' do
       disk_limit_in_bytes = 100
       disk_limit_response = double('disk response', resolve: nil)
       connection.should_receive(:call) do |request|
@@ -430,7 +451,19 @@ describe Container do
 
         disk_limit_response
       end
-      container.limit_disk(disk_limit_in_bytes)
+      container.limit_disk(byte: disk_limit_in_bytes)
+    end
+
+    it 'sets the disk inodes limit' do
+      disk_inodes_limit = 100
+      disk_inodes_limit_response = double('disk response', resolve: nil)
+      connection.should_receive(:call) do |request|
+        expect(request).to be_an_instance_of(::Warden::Protocol::LimitDiskRequest)
+        expect(request.inode).to eql(disk_inodes_limit)
+
+        disk_inodes_limit_response
+      end
+      container.limit_disk(inode: disk_inodes_limit)
     end
   end
 

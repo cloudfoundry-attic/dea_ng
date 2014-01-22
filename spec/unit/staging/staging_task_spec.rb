@@ -510,7 +510,12 @@ YAML
       staging_task.workspace.should_receive(:prepare).ordered
       staging_task.workspace.workspace_dir
       staging_task.container.should_receive(:create_container).
-        with(staging_task.bind_mounts, staging_task.staging_config['cpu_limit_shares'], staging_task.disk_limit_in_bytes, staging_task.memory_limit_in_bytes, with_network).ordered
+        with(bind_mounts: staging_task.bind_mounts,
+             limit_cpu: staging_task.staging_config['cpu_limit_shares'],
+             byte: staging_task.disk_limit_in_bytes,
+             inode: 0, #staging_task.disk_inode_limit,
+             limit_memory: staging_task.memory_limit_in_bytes,
+             setup_network: with_network).ordered
       %w(
         promise_app_download
         promise_prepare_staging_log
@@ -709,6 +714,22 @@ YAML
       end
     end
   end
+
+  #describe '#disk_inode_limit' do
+  #  it 'exports disk with set inode as specified in the config file' do
+  #    staging_task.disk_inode_limit.should eq(1024 * 1024 * disk_limit_mb)
+  #  end
+  #
+  #  context 'when unspecified' do
+  #    before do
+  #      config['staging'].delete('disk_limit_mb')
+  #    end
+  #
+  #    it 'uses 2GB as a default' do
+  #      staging_task.disk_limit_in_bytes.should eq(2*1024*1024*1024)
+  #    end
+  #  end
+  #end
 
   describe '#promise_prepare_staging_log' do
     it 'assembles a shell command that creates staging_task.log file for tailing it' do
