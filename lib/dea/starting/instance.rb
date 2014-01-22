@@ -497,7 +497,7 @@ module Dea
           bind_mounts: bind_mounts + config['bind_mounts'],
           limit_cpu: config['instance']['cpu_limit_shares'],
           byte: disk_limit_in_bytes,
-          inode: 0,
+          inode: config['instance']['disk_inode_limit'],
           limit_memory: memory_limit_in_bytes,
           setup_network: with_network)
 

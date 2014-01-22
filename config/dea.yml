@@ -37,11 +37,13 @@ staging:
     BUILDPACK_CACHE: /var/vcap/packages/buildpack_cache
   memory_limit_mb: 1024
   disk_limit_mb: 2048
+  disk_inode_limit: 200000
   cpu_limit_shares: 512
   max_staging_duration: 900 # 15 minutes
 
 instance:
   cpu_limit_shares: 256
+  disk_inode_limit: 200000
 
 dea_ruby: /usr/bin/ruby
 

@@ -121,6 +121,10 @@ module Dea
       disk_limit_mb * 1024 * 1024
     end
 
+    def disk_inode_limit
+      staging_config['disk_inode_limit']
+    end
+
     def stop(&callback)
       stopping_promise = Promise.new do |p|
         logger.info 'staging.task.stopped'
@@ -528,7 +532,7 @@ module Dea
         bind_mounts: bind_mounts,
         limit_cpu: staging_config['cpu_limit_shares'],
         byte: disk_limit_in_bytes,
-        inode: 0,
+        inode: disk_inode_limit,
         limit_memory: memory_limit_in_bytes,
         setup_network: with_network
       )

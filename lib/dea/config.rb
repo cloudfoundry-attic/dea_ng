@@ -14,8 +14,14 @@ module Dea
       "crash_block_usage_ratio_threshold" => 0.8,
       "crash_inode_usage_ratio_threshold" => 0.8,
       "placement_properties" => { "zone" => "default" },
-      "instance" => { "cpu_limit_shares" => 256 },
-      "staging" => { "cpu_limit_shares" => 512 },
+      "instance" => {
+        "cpu_limit_shares" => 256,
+        "disk_inode_limit" => 200_000,
+      },
+      "staging" => {
+        "cpu_limit_shares" => 512,
+        "disk_inode_limit" => 200_000,
+      },
       "default_health_check_timeout" => 60
     }
 
@@ -88,6 +94,7 @@ module Dea
 
           optional("instance") => {
             optional("cpu_limit_shares") => Integer,
+            optional("disk_inode_limit") => Integer
           },
 
           optional("staging") => {

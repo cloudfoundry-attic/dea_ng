@@ -12,6 +12,7 @@ describe Dea::StagingTask do
 
   let(:memory_limit_mb) { 256 }
   let(:disk_limit_mb) { 1025 }
+  let(:disk_inode_limit) { 12345 }
 
   let!(:workspace_dir) do
     staging_task.workspace.workspace_dir # force workspace creation
@@ -30,6 +31,7 @@ describe Dea::StagingTask do
         'cpu_limit_shares' => 512,
         'memory_limit_mb' => memory_limit_mb,
         'disk_limit_mb' => disk_limit_mb,
+        'disk_inode_limit' => disk_inode_limit,
         'max_staging_duration' => max_staging_duration
       },
     }
@@ -513,7 +515,7 @@ YAML
         with(bind_mounts: staging_task.bind_mounts,
              limit_cpu: staging_task.staging_config['cpu_limit_shares'],
              byte: staging_task.disk_limit_in_bytes,
-             inode: 0, #staging_task.disk_inode_limit,
+             inode: staging_task.disk_inode_limit,
              limit_memory: staging_task.memory_limit_in_bytes,
              setup_network: with_network).ordered
       %w(
@@ -715,21 +717,11 @@ YAML
     end
   end
 
-  #describe '#disk_inode_limit' do
-  #  it 'exports disk with set inode as specified in the config file' do
-  #    staging_task.disk_inode_limit.should eq(1024 * 1024 * disk_limit_mb)
-  #  end
-  #
-  #  context 'when unspecified' do
-  #    before do
-  #      config['staging'].delete('disk_limit_mb')
-  #    end
-  #
-  #    it 'uses 2GB as a default' do
-  #      staging_task.disk_limit_in_bytes.should eq(2*1024*1024*1024)
-  #    end
-  #  end
-  #end
+  describe '#disk_inode_limit' do
+    it 'exports disk with set inode as specified in the config file' do
+      staging_task.disk_inode_limit.should eq(disk_inode_limit)
+    end
+  end
 
   describe '#promise_prepare_staging_log' do
     it 'assembles a shell command that creates staging_task.log file for tailing it' do
