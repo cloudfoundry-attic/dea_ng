@@ -93,7 +93,10 @@ module Dea
           optional("staging") => {
             optional("enabled") => bool,
             optional("max_staging_duration") => Integer,
-            optional("environment") => Hash
+            optional("environment") => Hash,
+            optional("memory_limit_mb") => Integer,
+            optional("disk_limit_mb") => Integer,
+            optional("cpu_limit_shares") => Integer
           }
         }
       end
