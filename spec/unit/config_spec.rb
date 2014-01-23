@@ -4,6 +4,9 @@ require "dea/config"
 module Dea
   describe Config do
 
+    subject(:config) { described_class.new(config_hash) }
+    let(:disk_inode_limit) { 123456 }
+
     describe ".from_file" do
       let(:file_path) { File.expand_path("../../../config/dea.yml", __FILE__) }
       subject { described_class.from_file(file_path) }
@@ -14,7 +17,7 @@ module Dea
     end
 
     describe "#initialize" do
-      subject(:config) { described_class.new({}) }
+      let(:config_hash) { { } }
 
       it "can load" do
         should be_a(described_class)
@@ -39,8 +42,6 @@ module Dea
     end
 
     describe "#placement_properties" do
-      subject(:config) { described_class.new(config_hash) }
-
       context "when the config hash has no key for placement_properties:" do
         let(:config_hash) { { } }
 
@@ -54,6 +55,28 @@ module Dea
 
         it "uses the zone provided by the hash" do
           config["placement_properties"].should == { "zone" => "CRAZY_TOWN" }
+        end
+      end
+    end
+
+    describe "#staging_disk_inode_limit" do
+      context "when the config hash has no key for staging disk inode limit" do
+        let(:config_hash) { { "staging" => { } } }
+
+        it "is 200_000 or larger" do
+          expect(described_class::DEFAULT_STAGING_DISK_INODE_LIMIT).to be >= 200_000
+        end
+
+        it "provides a reasonable default" do
+          expect(config.staging_disk_inode_limit).to eq(described_class::DEFAULT_STAGING_DISK_INODE_LIMIT)
+        end
+      end
+
+      context "when the config hash has a key for staging disk inode limit" do
+        let(:config_hash) { { "staging" => { "disk_inode_limit" => disk_inode_limit } } }
+
+        it "provides a reasonable default" do
+          expect(config.staging_disk_inode_limit).to eq(disk_inode_limit)
         end
       end
     end
