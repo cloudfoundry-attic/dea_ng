@@ -96,3 +96,36 @@ describe Download do
     end
   end
 end
+
+describe Download::DownloadError do
+  let(:uri) { URI("http://user:password@example.com/droplet") }
+  let(:data) { {:droplet_uri => uri} }
+  let(:msg) { "Error message" }
+  let(:error) { Download::DownloadError.new(msg, data) }
+
+  it "should not contain credentials in the message" do
+    error.message.should_not match(/user/)
+    error.message.should_not match(/password/)
+  end
+
+  it "should not contain credentials when inspected" do
+    error.inspect.should_not match(/user/)
+    error.inspect.should_not match(/password/)
+  end
+
+  describe "#uri" do
+    context "when data contains droplet_uri" do
+      it "should return the uri" do
+        error.uri.should be(uri)
+      end
+    end
+
+    context "when data does not contain droplet_uri" do
+      let (:data) { {} }
+
+      it "should return '(unknown)'" do
+        error.uri.should eq("(unknown)")
+      end
+    end
+  end
+end

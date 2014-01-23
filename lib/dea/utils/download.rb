@@ -8,7 +8,7 @@ class Download
     def initialize(msg, data = {})
       @data = data
 
-      super("Error downloading: %s (%s)" % [uri, msg])
+      super("Error downloading: %s" % msg)
     end
 
     def uri
