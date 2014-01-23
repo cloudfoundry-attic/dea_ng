@@ -80,5 +80,27 @@ module Dea
         end
       end
     end
+
+    describe "#instance_disk_inode_limit" do
+      context "when the config hash has no key for instance disk inode limit" do
+        let(:config_hash) { { "instance" => { } } }
+
+        it "is 200_000 or larger" do
+          expect(described_class::DEFAULT_INSTANCE_DISK_INODE_LIMIT).to be >= 200_000
+        end
+
+        it "provides a reasonable default" do
+          expect(config.instance_disk_inode_limit).to eq(described_class::DEFAULT_INSTANCE_DISK_INODE_LIMIT)
+        end
+      end
+
+      context "when the config hash has a key for instance disk inode limit" do
+        let(:config_hash) { { "instance" => { "disk_inode_limit" => disk_inode_limit } } }
+
+        it "provides a reasonable default" do
+          expect(config.instance_disk_inode_limit).to eq(disk_inode_limit)
+        end
+      end
+    end
   end
 end

@@ -5,6 +5,7 @@ require "membrane"
 module Dea
   class Config
     DEFAULT_STAGING_DISK_INODE_LIMIT = 200_000
+    DEFAULT_INSTANCE_DISK_INODE_LIMIT = 200_000
 
     EMPTY_CONFIG = {
       "intervals" => {},
@@ -18,7 +19,7 @@ module Dea
       "placement_properties" => { "zone" => "default" },
       "instance" => {
         "cpu_limit_shares" => 256,
-        "disk_inode_limit" => 200_000,
+        "disk_inode_limit" => DEFAULT_INSTANCE_DISK_INODE_LIMIT,
       },
       "staging" => {
         "cpu_limit_shares" => 512,
@@ -159,6 +160,10 @@ module Dea
 
     def staging_disk_inode_limit
       @config.fetch("staging", {}).fetch("disk_inode_limit", DEFAULT_STAGING_DISK_INODE_LIMIT)
+    end
+
+    def instance_disk_inode_limit
+      @config.fetch("instance", {}).fetch("disk_inode_limit", DEFAULT_INSTANCE_DISK_INODE_LIMIT)
     end
   end
 end
