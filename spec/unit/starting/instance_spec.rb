@@ -158,7 +158,7 @@ describe Dea::Instance do
     end
     subject { logger.user_data[:attributes].to_hash }
     it 'does not log sensitive attributes' do
-      should_not include('services', 'request_uri', 'environment')
+      should_not include('services', 'droplet_uri', 'environment')
     end
   end
 
