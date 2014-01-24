@@ -155,6 +155,16 @@ describe Dea::Instance do
     end
   end
 
+  describe 'logging attributes' do
+    let(:logger) do
+      instance.instance_variable_get(:@logger)
+    end
+    subject { logger.user_data[:attributes].to_hash }
+    it 'does not log sensitive attributes' do
+      should_not include('services', 'droplet_uri', 'environment')
+    end
+  end
+
   describe 'resource limits' do
     it 'exports the memory limit in bytes' do
       instance.memory_limit_in_bytes.should == 512 * 1024 * 1024
@@ -1470,4 +1480,5 @@ describe Dea::Instance do
       instance.instance_container_port.should == 5678
     end
   end
+
 end
