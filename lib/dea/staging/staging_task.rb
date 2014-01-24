@@ -122,7 +122,7 @@ module Dea
     end
 
     def disk_inode_limit
-      staging_config['disk_inode_limit']
+      config.staging_disk_inode_limit
     end
 
     def stop(&callback)
