@@ -9,7 +9,7 @@ GIT
 
 GIT
   remote: https://github.com/cloudfoundry/vcap-common.git
-  revision: c731a3eed1bb7630e834f8918a5b2401f8d321ba
+  revision: 4ad156de3fcb51742f8539fd3da570da3862941e
   specs:
     vcap_common (3.0.0)
       addressable (~> 2.2)
@@ -105,7 +105,7 @@ GEM
     loggregator_emitter (3.0.0)
       beefcake (~> 0.3.7)
     membrane (0.0.2)
-    mime-types (2.0)
+    mime-types (2.1)
     msgpack (0.4.7)
     multi_json (1.7.6)
     multi_xml (0.5.4)
