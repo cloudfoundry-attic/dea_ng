@@ -90,7 +90,7 @@ describe Dea::Instance do
       end
 
       its(:droplet_sha1) { should == 'deadbeef' }
-      its(:droplet_uri)  { should == 'http://foo.com/file.ext' }
+      its(:droplet_uri) { should == 'http://foo.com/file.ext' }
     end
 
     describe 'start_command from message data' do
@@ -125,15 +125,15 @@ describe Dea::Instance do
     describe 'other attributes' do
       let(:start_message_data) do
         {
-          'limits' => { 'mem' => 1, 'disk' => 2, 'fds' => 3 },
+          'limits' => {'mem' => 1, 'disk' => 2, 'fds' => 3},
           'env' => ['FOO=BAR', 'BAR=', 'QUX'],
-          'services' => { 'name' => 'redis', 'type' => 'redis'},
+          'services' => {'name' => 'redis', 'type' => 'redis'},
         }
       end
 
-      its(:limits)      { should == { 'mem' => 1, 'disk' => 2, 'fds' => 3 } }
-      its(:environment) { should == { 'FOO' => 'BAR', 'BAR' => '', 'QUX' => ''} }
-      its(:services)    { should == { 'name' => 'redis', 'type' => 'redis'} }
+      its(:limits) { should == {'mem' => 1, 'disk' => 2, 'fds' => 3} }
+      its(:environment) { should == {'FOO' => 'BAR', 'BAR' => '', 'QUX' => ''} }
+      its(:services) { should == {'name' => 'redis', 'type' => 'redis'} }
     end
   end
 
@@ -411,7 +411,7 @@ describe Dea::Instance do
 
     describe 'via state file' do
       before do
-        instance.stub(:promise_read_instance_manifest).and_return(delivering_promise({ 'state_file' => 'state_file.yml'}))
+        instance.stub(:promise_read_instance_manifest).and_return(delivering_promise({'state_file' => 'state_file.yml'}))
         Dea::HealthCheck::StateFileReady.stub(:new).and_yield(deferrable)
       end
 
@@ -613,13 +613,13 @@ describe Dea::Instance do
     end
 
     describe 'creating warden container' do
-      let(:promise) { double(:creating_container_promise, resolve: nil)}
+      let(:promise) { double(:creating_container_promise, resolve: nil) }
 
       it 'succeeds when the call succeeds' do
         instance.config['bind_mounts'] = [{'src_path' => '/var/src/', 'dst_path' => '/var/dst'}]
 
         expected_bind_mounts = [
-          {'src_path' => droplet.droplet_dirname, 'dst_path' => droplet.droplet_dirname },
+          {'src_path' => droplet.droplet_dirname, 'dst_path' => droplet.droplet_dirname},
           {'src_path' => '/var/src/', 'dst_path' => '/var/dst'}
         ]
         with_network = true
@@ -731,7 +731,7 @@ describe Dea::Instance do
         end
 
         before do
-          bootstrap.stub(:config).and_return('hooks' => { hook => fixture("hooks/#{hook}") })
+          bootstrap.stub(:config).and_return('hooks' => {hook => fixture("hooks/#{hook}")})
           instance.stub(:runtime).and_return(runtime)
           instance.unstub(:promise_exec_hook_script)
         end
@@ -774,51 +774,64 @@ describe Dea::Instance do
                exported_system_environment_variables: 'system="sytem_value";\n'
         )
       end
+      let(:generator) { double('script generator', generate: 'dostuffscript') }
 
       before do
         instance.unstub(:promise_start)
-        instance.stub(:staged_info).and_return(nil)
+        allow(instance).to receive(:staged_info)
         instance.attributes['warden_handle'] = 'handle'
-        Dea::Env.stub(:new).and_return(env)
+        allow(Dea::Env).to receive(:new).and_return(env)
+        allow(Dea::StartupScriptGenerator).to receive(:new).and_return(generator)
       end
 
-      it 'raises errors when the request fails' do
-        msg = "can't start the application"
+      context 'when the request fails' do
+        before do
+          allow(instance.container).to receive(:call).and_raise("can't start the application")
+        end
 
-        instance.container.should_receive(:call).and_raise(RuntimeError.new(msg))
-        expect {
-          instance.promise_start.resolve
-        }.to raise_error(RuntimeError, msg)
+        it 'raises an error' do
+          expect {
+            instance.promise_start.resolve
+          }.to raise_error("can't start the application")
+        end
 
-        # Job ID should not be set
-        expect(instance.attributes['warden_job_id']).to be_nil
+        it 'does not set a job id' do
+          expect {
+            instance.promise_start.resolve rescue nil
+          }.not_to change { instance.attributes['warden_job_id'] }.from(nil)
+        end
       end
 
       context 'when there is a task info yaml in the droplet' do
-        let(:script) { './dostuffscript' }
-        let(:generator) { double('script generator', generate: script) }
-
         before do
-          instance.stub(:staged_info).and_return(
-            'start_command' => 'fake_start_command.sh'
-          )
+          allow(instance).to receive(:staged_info).and_return('start_command' => 'fake_start_command.sh')
+          allow(instance.container).to receive(:resource_limits).and_return('FAKE_RESOURCE_LIMIT_MESSAGE')
+          allow(instance.container).to receive(:spawn).and_return(response)
+        end
+
+        it 'generates a script correctly' do
+          expect(Dea::StartupScriptGenerator).to receive(:new).with(
+                                                   'fake_start_command.sh',
+                                                   env.exported_user_environment_variables,
+                                                   env.exported_system_environment_variables
+                                                 ).and_return(generator)
+
+          instance.promise_start.resolve
+        end
+
+        it 'applies the correct resource limits to the instance' do
+          expect(instance.container).to receive(:resource_limits).with(
+                                          instance.file_descriptor_limit,
+                                          Dea::Instance::NPROC_LIMIT
+                                        ).and_return('FAKE_RESOURCE_LIMIT_MESSAGE')
+
+          instance.promise_start.resolve
         end
 
         it 'generates the correct script and calls promise spawn' do
-          Dea::StartupScriptGenerator.should_receive(:new).with(
-            'fake_start_command.sh',
-            env.exported_user_environment_variables,
-            env.exported_system_environment_variables
-          ).and_return(generator)
-
-          expect(instance.container).to receive(:resource_limits).with(
-            instance.file_descriptor_limit,
-            Dea::Instance::NPROC_LIMIT
-          ).and_return('FAKE_RESOURCE_LIMIT_MESSAGE')
-
           instance.container.should_receive(:spawn)
-            .with(script, 'FAKE_RESOURCE_LIMIT_MESSAGE')
-            .and_return(response)
+          .with('dostuffscript', 'FAKE_RESOURCE_LIMIT_MESSAGE')
+          .and_return(response)
 
           instance.promise_start.resolve
         end
@@ -832,25 +845,18 @@ describe Dea::Instance do
           )
         end
 
-        let(:script) { './dostuffscript' }
-        let(:generator) { double('script generator', generate: script) }
+        shared_examples 'an instance with a custom start command' do
+          before do
+            allow(instance.container).to receive(:resource_limits).with(
+                                           instance.file_descriptor_limit,
+                                           Dea::Instance::NPROC_LIMIT
+                                         ).and_return('FAKE_RESOURCE_LIMIT_MESSAGE')
+          end
 
-        def self.it_uses_the_custom_start_command
           it 'uses the custom start command' do
-            Dea::StartupScriptGenerator.should_receive(:new).with(
-              'my_custom_start_command.sh',
-              env.exported_user_environment_variables,
-              env.exported_system_environment_variables
-            ).and_return(generator)
-
-            expect(instance.container).to receive(:resource_limits).with(
-                                            instance.file_descriptor_limit,
-                                            Dea::Instance::NPROC_LIMIT
-                                          ).and_return('FAKE_RESOURCE_LIMIT_MESSAGE')
-
-            instance.container.should_receive(:spawn)
-              .with(script, 'FAKE_RESOURCE_LIMIT_MESSAGE')
-              .and_return(response)
+            expect(instance.container).to receive(:spawn)
+                                          .with('dostuffscript', 'FAKE_RESOURCE_LIMIT_MESSAGE')
+                                          .and_return(response)
 
             instance.promise_start.resolve
           end
@@ -858,10 +864,10 @@ describe Dea::Instance do
 
         context 'and the buildpack does not provide a command' do
           before do
-            instance.stub(:staged_info).and_return('start_command' => nil)
+            allow(instance).to receive(:staged_info).and_return('start_command' => nil)
           end
 
-          it_uses_the_custom_start_command
+          it_behaves_like 'an instance with a custom start command'
         end
 
         context 'and the buildpack provides one' do
@@ -869,13 +875,13 @@ describe Dea::Instance do
             instance.stub(:staged_info).and_return('start_command' => 'foo')
           end
 
-          it_uses_the_custom_start_command
+          it_behaves_like 'an instance with a custom start command'
         end
       end
 
       context 'when there is a staged_info but it lacks a start_command and instance lacks a start command' do
         before do
-          instance.stub(:staged_info).and_return('start_command' => nil)
+          allow(instance).to receive(:staged_info).and_return('start_command' => nil)
         end
 
         it 'fails to start' do
@@ -887,7 +893,7 @@ describe Dea::Instance do
 
       context 'when there is no task info yaml in the droplet only a startup script (old DEA)' do
         it 'runs the startup script instead of generating one' do
-          instance.container.should_receive(:call) do |name, request|
+          allow(instance.container).to receive(:call) do |name, request|
             expect(request.script).to include('./startup')
             response
           end
@@ -1019,7 +1025,7 @@ describe Dea::Instance do
 
         before do
           Dea::Env.stub(:new).with(instance).and_return(env)
-          bootstrap.stub(:config).and_return('hooks' => { hook => fixture("hooks/#{hook}") })
+          bootstrap.stub(:config).and_return('hooks' => {hook => fixture("hooks/#{hook}")})
         end
 
         it "executes the #{hook} script file" do
@@ -1284,7 +1290,7 @@ describe Dea::Instance do
       end
 
       it 'delivers the parsed manifest if the path exists' do
-        manifest = { 'test' => 'manifest'}
+        manifest = {'test' => 'manifest'}
         File.open(manifest_path, 'w+') { |f| YAML.dump(manifest, f) }
 
         instance.promise_read_instance_manifest(tmpdir).resolve.should == manifest
@@ -1464,17 +1470,17 @@ describe Dea::Instance do
   describe 'recovering from a snapshot' do
     it "sets the container's warden handle" do
       instance = described_class.new(bootstrap,
-        valid_instance_attributes.merge(
-          'warden_handle' => 'abc'))
+                                     valid_instance_attributes.merge(
+                                       'warden_handle' => 'abc'))
 
       expect(instance.container.handle).to eq('abc')
     end
 
     it "sets the container's network ports" do
       instance = described_class.new(bootstrap,
-        valid_instance_attributes.merge(
-          'instance_host_port' => 1234,
-          'instance_container_port' => 5678))
+                                     valid_instance_attributes.merge(
+                                       'instance_host_port' => 1234,
+                                       'instance_container_port' => 5678))
 
       instance.instance_host_port.should == 1234
       instance.instance_container_port.should == 5678
