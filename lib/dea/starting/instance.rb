@@ -438,6 +438,9 @@ module Dea
 
         attributes['warden_job_id'] = response.job_id
 
+        container.update_path_and_ip
+        bootstrap.snapshot.save
+
         p.deliver
       end
     end

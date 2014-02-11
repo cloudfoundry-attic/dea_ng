@@ -58,6 +58,7 @@ describe Dea::Snapshot do
       saved_snapshot = ::Yajl::Parser.parse(File.read(snapshot.path))
 
       expected_states = [
+        Dea::Instance::State::STARTING,
         Dea::Instance::State::RUNNING,
         Dea::Instance::State::CRASHED,
       ].sort.uniq

@@ -5,8 +5,11 @@ describe Dea::Instance do
   include_context 'tmpdir'
 
   let(:connection) { double('connection', :promise_call => delivering_promise) }
+  let(:snapshot) do
+      double('snapshot', :save => {})
+  end
   let(:bootstrap) do
-    double('bootstrap', :config => config)
+    double('bootstrap', :config => config, :snapshot => snapshot)
   end
   let(:config) do
     Dea::Config.new({})
@@ -782,6 +785,7 @@ describe Dea::Instance do
         instance.attributes['warden_handle'] = 'handle'
         allow(Dea::Env).to receive(:new).and_return(env)
         allow(Dea::StartupScriptGenerator).to receive(:new).and_return(generator)
+        allow(instance.container).to receive(:update_path_and_ip)
       end
 
       context 'when the request fails' do
@@ -898,6 +902,18 @@ describe Dea::Instance do
             response
           end
 
+          instance.promise_start.resolve
+        end
+      end
+
+      context 'saving the snapshot' do
+        before do
+          allow(instance.container).to receive(:spawn).and_return(response)
+        end
+
+        it 'saves the snapshot' do
+          expect(instance.container).to receive(:update_path_and_ip)
+          expect(instance.bootstrap.snapshot).to receive(:save)
           instance.promise_start.resolve
         end
       end
