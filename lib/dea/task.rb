@@ -256,13 +256,24 @@ module Dea
 
     def promise_destroy
       Promise.new do |p|
-        request = ::Warden::Protocol::DestroyRequest.new
-        request.handle = container_handle
+        if config["clean_droplet"] 
+          request = ::Warden::Protocol::DestroyRequest.new
+          request.handle = container_handle
 
-        begin
-          promise_warden_call_with_retry(:app, request).resolve
-        rescue ::EM::Warden::Client::Error => error
-          logger.warn("Error destroying container: #{error.message}")
+          begin
+            promise_warden_call_with_retry(:app, request).resolve
+          rescue ::EM::Warden::Client::Error => error
+            logger.warn("Error destroying container: #{error.message}")
+          end
+        else 
+          request = ::Warden::Protocol::StopRequest.new
+          request.handle = container_handle
+
+          begin
+            promise_warden_call(:stop, request).resolve
+          rescue ::EM::Warden::Client::Error => error
+            logger.warn("Error stop container: #{error.message}")
+          end
         end
 
         # Remove container handle from attributes now that it can no longer be used
@@ -276,11 +287,7 @@ module Dea
       p = Promise.new do
         logger.info("Destroying instance")
 
-        if config["clean_droplet"] 
-          promise_destroy.resolve 
-        else 
-          promise_stop.resolve 
-        end
+        promise_destroy.resolve 
 
         p.deliver
       end
