@@ -450,6 +450,7 @@ module Dea
       end
 
       instance.on(Instance::Transition.new(:running, :crashed)) do
+        @instance_registry.unregister(instance)
         save_snapshot
       end
 
