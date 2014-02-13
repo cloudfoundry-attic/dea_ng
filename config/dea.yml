@@ -57,9 +57,7 @@ status:
   password: test
 
 clean_droplet: false
-
 enable_sshd: true
-
 org_data:
   src_prefix: appdata
   share_mode: space
