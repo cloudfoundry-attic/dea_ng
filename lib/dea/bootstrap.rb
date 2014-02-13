@@ -404,6 +404,7 @@ module Dea
       instance.setup
 
       instance.on(Instance::Transition.new(:starting, :crashed)) do
+        @instance_registry.unregister(instance)
         send_exited_message(instance, EXIT_REASON_CRASHED)
       end
 
@@ -450,6 +451,7 @@ module Dea
       end
 
       instance.on(Instance::Transition.new(:running, :crashed)) do
+        @instance_registry.unregister(instance)
         save_snapshot
       end
 
