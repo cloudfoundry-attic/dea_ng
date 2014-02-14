@@ -193,7 +193,7 @@ describe Dea::Env do
     let(:application_for_json) do
       {
         "host"        => "localhost",
-        "container_host" => "192.168.0.1"
+        "container_host" => "192.168.0.1",
         "name"        => "name",
         "instance_id" => "instance_id",
         "version"     => "version",
@@ -277,7 +277,7 @@ describe Dea::Env do
     end
 
     it "includes JPAAS_CONTAINER_CONSOLE_*" do
-      find("JPAAS_CONTAINER_CONSOLE_IP").should =~ /#{application_for_json["host"]}/
+      find("JPAAS_CONTAINER_CONSOLE_IP").should =~ /#{application_for_json["container_host"]}/
       find("JPAAS_CONTAINER_CONSOLE_PORT").should =~ /4569/
     end
 
@@ -308,7 +308,7 @@ describe Dea::Env do
       end
 
       it "does not includes JPAAS_CONTAINER_DEBUG_*" do
-        find("JPAAS_CONTAINER_DEBUG_IP").should =~ /#{application_for_json["host"]}/
+        find("JPAAS_CONTAINER_DEBUG_IP").should =~ /#{application_for_json["container_host"]}/
         find("JPAAS_CONTAINER_DEBUG_PORT").should =~ /4568/
       end
     end
