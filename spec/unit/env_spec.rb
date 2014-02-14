@@ -225,6 +225,22 @@ describe Dea::Env do
         "tier" => "free"
       }
     end
+    
+    let(:tcp_ports) do
+      {
+        "prod_ports" => {
+          "name" => {
+            "host_port" => 1234,
+            "container_port" => 2234,
+            "port_info" => {
+              "port" => 3234,
+              "http" => true,
+              "bns"  => false,
+            }
+          }
+        }
+      }
+    end
 
     before do
       subject.stub(:application_for_json).and_return(application_for_json)
@@ -240,7 +256,7 @@ describe Dea::Env do
       instance.stub(:instance_console_container_port).and_return(4569)
       instance.stub(:instance_console_host_port).and_return(64569)
 
-      instance.stub(:instance_meta).and_return(nil)
+      instance.stub(:instance_meta).and_return()
 
       instance.stub(:services).and_return([service])
 

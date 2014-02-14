@@ -815,7 +815,7 @@ describe Dea::Instance do
           })
           instance.stub(:runtime).and_return(runtime)
           instance.unstub(:promise_exec_hook_script)
-          instance.stub(:instance_meta).and_return(nil)
+          instance.stub(:instance_meta).and_return({})
           instance.container.stub(:info => info_response)
         end
 
@@ -1002,7 +1002,7 @@ describe Dea::Instance do
           })
           instance.stub(:runtime).and_return(runtime)
           instance.stub(:state_starting_timestamp).and_return(Time.now)
-          instance.stub(:instance_meta).and_return(nil)
+          instance.stub(:instance_meta).and_return({})
           instance.container.stub(:info => info_response)
         end
         it "should execute script file" do
