@@ -230,37 +230,37 @@ describe Dea::Env do
       pair[1] if pair
     end
 
-    it "includes VCAP_APPLICATION" do
-      find("VCAP_APPLICATION").should include(Yajl::Encoder.encode(application_for_json))
+    it "includes JPAAS_APPLICATION" do
+      find("JPAAS_APPLICATION").should include(Yajl::Encoder.encode(application_for_json))
     end
 
-    it "includes VCAP_SERVICES" do
-      find("VCAP_SERVICES").should include(Yajl::Encoder.encode(services_for_json))
+    it "includes JPAAS_SERVICES" do
+      find("JPAAS_SERVICES").should include(Yajl::Encoder.encode(services_for_json))
     end
 
-    it "includes VCAP_APP_*" do
+    it "includes JPAAS_APP_*" do
       find("VCAP_APP_HOST").should =~ /#{application_for_json["host"]}/
       find("VCAP_APP_PORT").should =~ /4567/
     end
 
-    it "does not includes VCAP_DEBUG_*" do
-      find("VCAP_DEBUG_IP").should be_nil
-      find("VCAP_DEBUG_PORT").should be_nil
+    it "does not includes JPAAS_DEBUG_*" do
+      find("JPAAS_DEBUG_IP").should be_nil
+      find("JPAAS_DEBUG_PORT").should be_nil
     end
 
-    it "includes VCAP_CONSOLE_*" do
-      find("VCAP_CONSOLE_IP").should =~ /#{application_for_json["host"]}/
-      find("VCAP_CONSOLE_PORT").should =~ /4569/
+    it "includes JPAAS_CONSOLE_*" do
+      find("JPAAS_CONSOLE_IP").should =~ /#{application_for_json["host"]}/
+      find("JPAAS_CONSOLE_PORT").should =~ /4569/
     end
 
     it "includes the debug mode when the debug mode is set" do
       instance.stub(:debug).and_return("mode")
-      find("VCAP_DEBUG_MODE").should == "'mode'"
+      find("JPAAS_DEBUG_MODE").should == "'mode'"
     end
 
     it "doesn't include the debug mode when debug mode is not set" do
       instance.stub(:debug).and_return(nil)
-      find("VCAP_DEBUG_MODE").should_not be
+      find("JPAAS_DEBUG_MODE").should_not be
     end
 
     it "includes the user-specified environment" do
@@ -274,9 +274,9 @@ describe Dea::Env do
     context "when in debug mode" do
       before { instance.stub(:debug).and_return(true) }
 
-      it "does not includes VCAP_DEBUG_*" do
-        find("VCAP_DEBUG_IP").should =~ /#{application_for_json["host"]}/
-        find("VCAP_DEBUG_PORT").should =~ /4568/
+      it "does not includes JPAAS_DEBUG_*" do
+        find("JPAAS_DEBUG_IP").should =~ /#{application_for_json["host"]}/
+        find("JPAAS_DEBUG_PORT").should =~ /4568/
       end
     end
   end
