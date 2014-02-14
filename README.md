@@ -8,7 +8,7 @@ and related components.
 ## Components
 
 ### DEA
-
+  
 The DEA itself is written in Ruby and takes care of managing an
 application instance's lifecycle. It can be instructed by the [Cloud
 Controller][cc] to start and stop application instances. It keeps track

@@ -51,6 +51,24 @@ directory_server:
 stacks:
   - lucid64
 
+status:
+  port: 8091
+  user: test
+  password: test
+
+clean_droplet: false
+enable_sshd: true
+
+org_data:
+  src_prefix: appdata
+  share_mode: space
+  bind_mounts:
+    -
+      name: mfs
+      mode: "rw"
+    -
+      name: jdata
+
 app_workspace:
   user: vcap
 
@@ -60,3 +78,4 @@ app_workspace:
 #   after_start: path/to/script
 #   before_stop: path/to/script
 #   after_stop: path/to/script
+

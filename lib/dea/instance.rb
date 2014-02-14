@@ -342,15 +342,31 @@ module Dea
       [droplet.droplet_dirname]
     end
 
+    def tag_info(key)
+      attributes["tags"].fetch("#{key}_name", "default")
+    end
+
+    def data_path(mode)
+      case mode
+        when "org"
+          tag_info("org")
+        when "space"
+          File.join(tag_info("org"), tag_info("space"))
+        else
+          tag_info("org")
+      end
+    end
+    
     def data_paths_to_bind
       return [] if ! config["org_data"]
       prefix = config["org_data"]["src_prefix"]
-      org = attributes["tags"]["org_name"] || "default"
       bind_mounts = []
-      bind_mount = {}
+      data_dir_to_mount = data_path(config["org_data"].fetch("share_mode", "org"))
       config["org_data"]["bind_mounts"].each do |bm|
-        bind_mount["src_path"] = File.join(prefix,bm["name"],org)
-        bind_mount["dst_path"] = bm["dst_path"] || File.join(prefix,bm["name"])
+        bind_mount = {}
+        src_base_path = File.join("/home", app_workspace_user, prefix)
+        bind_mount["src_path"] = File.join("/home/work", prefix, bm["name"], data_dir_to_mount)
+        bind_mount["dst_path"] = File.join(src_base_path, bm["name"])
         bind_mount["mode"] = bm["mode"] || "ro"
         p bind_mount
         bind_mounts << bind_mount.dup
@@ -563,7 +579,7 @@ module Dea
 
         request.rlimits = ::Warden::Protocol::ResourceLimits.new
         request.rlimits.nofile = self.file_descriptor_limit
-        request.rlimits.nproc = 512
+        request.rlimits.nproc = 307200
 
         response = promise_warden_call(:app, request).resolve
 
