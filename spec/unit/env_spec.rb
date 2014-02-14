@@ -126,6 +126,10 @@ describe Dea::Env do
       info_response
     end
 
+    let(:container) do
+      mock("container")
+    end
+
     before do
       instance_attributes.each do |key, value|
         instance.stub(key).and_return(value)
@@ -135,7 +139,8 @@ describe Dea::Env do
 
       instance.stub(:instance_container_port).and_return(4567)
       instance.stub(:instance_host_port).and_return(64567)
-      instance.container.stub(:info => info_response)
+      instance.stub(:container).and_return(container)
+      container.stub(:info => info_response)
     end
 
     it "returns a Hash" do
@@ -234,6 +239,8 @@ describe Dea::Env do
 
       instance.stub(:instance_console_container_port).and_return(4569)
       instance.stub(:instance_console_host_port).and_return(64569)
+
+      instance.stub(:instance_meta).and_return(nil)
 
       instance.stub(:services).and_return([service])
 
