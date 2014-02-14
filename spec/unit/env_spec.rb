@@ -165,6 +165,7 @@ describe Dea::Env do
     it "includes the container host and port the instance should listen on" do
       application_for_json["host"].should be
       application_for_json["host_port"].should == 64567
+    end
 
     it "includes the resource limits" do
       application_for_json["limits"].should be_a(Hash)
@@ -311,6 +312,7 @@ describe Dea::Env do
         find("JPAAS_CONTAINER_DEBUG_IP").should =~ /#{application_for_json["container_host"]}/
         find("JPAAS_CONTAINER_DEBUG_PORT").should =~ /4568/
       end
+
     end
   end
 end
