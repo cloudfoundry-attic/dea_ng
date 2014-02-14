@@ -119,6 +119,12 @@ describe Dea::Env do
     let(:application_for_json) do
       env.application_for_json
     end
+    
+    let(:info_response) do
+      info_response = mock("InfoResponse")
+      info_response.stub(:host_ip).and_return("127.0.0.1")
+      info_response
+    end
 
     before do
       instance_attributes.each do |key, value|
@@ -129,7 +135,7 @@ describe Dea::Env do
 
       instance.stub(:instance_container_port).and_return(4567)
       instance.stub(:instance_host_port).and_return(64567)
-      instance.container.info.stub(:host_ip).and_return("127.0.0.1")
+      instance.container.stub(:info => info_response)
     end
 
     it "returns a Hash" do
