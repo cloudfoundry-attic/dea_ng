@@ -170,12 +170,12 @@ describe Dea::Env do
 
     it "includes the host and port the instance should listen on" do
       application_for_json["host"].should be
-      application_for_json["http_port"].should == 4567
+      application_for_json["http_port"].should == 64567
     end
 
     it "includes the container host and port the instance should listen on" do
       application_for_json["container_host"].should be
-      application_for_json["container_http_port"].should == 64567
+      application_for_json["container_http_port"].should == 4567
     end
 
     it "includes the resource limits" do
@@ -235,7 +235,7 @@ describe Dea::Env do
             "port_info" => {
               "port" => 1234,
               "http" => true,
-              "bns"  => false,
+              "bns"  => true,
             }
           },
           "name_2" => {
@@ -243,8 +243,8 @@ describe Dea::Env do
             "container_port" => 1235,
             "port_info" => {
               "port" => 1235,
-              "http" => true,
-              "bns"  => false,
+              "http" => false,
+              "bns"  => true,
             }
           }
         }
@@ -322,7 +322,7 @@ describe Dea::Env do
 
     it "includes JPAAS_TCP_PORT_*" do
       find("JPAAS_TCP_PORT_1").should =~ /61234/
-      find("JPAAS_TCP_PORT_2").should =~ /61235/
+      find("JPAAS_TCP_PORT_2").should be_nil
     end
 
     it "includes the debug mode when the debug mode is set" do
