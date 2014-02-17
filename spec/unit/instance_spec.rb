@@ -801,6 +801,12 @@ describe Dea::Instance do
           runtime
         end
 
+        let(:info_response) do
+          info_response = mock("InfoResponse")
+          info_response.stub(:host_ip).and_return("127.0.0.1")
+          info_response
+        end
+
         before do
           bootstrap.stub(:config).and_return({
             "hooks" => {
@@ -809,6 +815,8 @@ describe Dea::Instance do
           })
           instance.stub(:runtime).and_return(runtime)
           instance.unstub(:promise_exec_hook_script)
+          instance.stub(:instance_meta).and_return({})
+          instance.container.stub(:info => info_response)
         end
 
         it "should execute script file" do
@@ -851,7 +859,17 @@ describe Dea::Instance do
         response
       end
 
-      before { instance.unstub(:promise_start) }
+      let(:info_response) do
+        info_response = mock("InfoResponse")
+        info_response.stub(:host_ip).and_return("127.0.0.1")
+        info_response
+      end
+
+      before do
+        instance.unstub(:promise_start) 
+        instance.stub(:instance_meta).and_return({})
+        instance.container.stub(:info => info_response)
+      end
 
       it "executes a SpawnRequest" do
         instance.attributes["warden_handle"] = "handle"
@@ -979,6 +997,13 @@ describe Dea::Instance do
           runtime.stub(:environment).and_return({})
           runtime
         end
+
+        let(:info_response) do
+          info_response = mock("InfoResponse")
+          info_response.stub(:host_ip).and_return("127.0.0.1")
+          info_response
+        end
+
         before do
           bootstrap.stub(:config).and_return({
             "hooks" => {
@@ -987,6 +1012,8 @@ describe Dea::Instance do
           })
           instance.stub(:runtime).and_return(runtime)
           instance.stub(:state_starting_timestamp).and_return(Time.now)
+          instance.stub(:instance_meta).and_return({})
+          instance.container.stub(:info => info_response)
         end
         it "should execute script file" do
           script_content = nil

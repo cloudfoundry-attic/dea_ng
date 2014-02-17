@@ -119,6 +119,16 @@ describe Dea::Env do
     let(:application_for_json) do
       env.application_for_json
     end
+    
+    let(:info_response) do
+      info_response = mock("InfoResponse")
+      info_response.stub(:host_ip).and_return("127.0.0.1")
+      info_response
+    end
+
+    let(:container) do
+      mock("container")
+    end
 
     before do
       instance_attributes.each do |key, value|
@@ -128,6 +138,9 @@ describe Dea::Env do
       instance.stub(:state_starting_timestamp).and_return(Time.now.to_f)
 
       instance.stub(:instance_container_port).and_return(4567)
+      instance.stub(:instance_host_port).and_return(64567)
+      instance.stub(:container).and_return(container)
+      container.stub(:info => info_response)
     end
 
     it "returns a Hash" do
@@ -157,7 +170,12 @@ describe Dea::Env do
 
     it "includes the host and port the instance should listen on" do
       application_for_json["host"].should be
-      application_for_json["port"].should == 4567
+      application_for_json["http_port"].should == 64567
+    end
+
+    it "includes the container host and port the instance should listen on" do
+      application_for_json["container_host"].should be
+      application_for_json["container_http_port"].should == 4567
     end
 
     it "includes the resource limits" do
@@ -187,6 +205,7 @@ describe Dea::Env do
     let(:application_for_json) do
       {
         "host"        => "localhost",
+        "container_host" => "192.168.0.1",
         "name"        => "name",
         "instance_id" => "instance_id",
         "version"     => "version",
@@ -207,14 +226,47 @@ describe Dea::Env do
       }
     end
 
+    let(:prod_ports) do
+      {
+        "prod_ports" => {
+          "name_1" => {
+            "host_port" => 61234,
+            "container_port" => 1234,
+            "port_info" => {
+              "port" => 1234,
+              "http" => true,
+              "bns"  => true,
+            }
+          },
+          "name_2" => {
+            "host_port" => 61235,
+            "container_port" => 1235,
+            "port_info" => {
+              "port" => 1235,
+              "http" => false,
+              "bns"  => false,
+            }
+          }
+        }
+      }
+    end
+
     before do
       subject.stub(:application_for_json).and_return(application_for_json)
       subject.stub(:services_for_json).and_return(services_for_json)
       subject.stub(:legacy_services_for_json).and_return(legacy_services_for_json)
 
       instance.stub(:instance_container_port).and_return(4567)
+      instance.stub(:instance_host_port).and_return(64567)
+
       instance.stub(:instance_debug_container_port).and_return(4568)
+      instance.stub(:instance_debug_host_port).and_return(64568)
+
       instance.stub(:instance_console_container_port).and_return(4569)
+      instance.stub(:instance_console_host_port).and_return(64569)
+
+      instance.stub(:instance_meta).and_return(prod_ports)
+
       instance.stub(:services).and_return([service])
 
       instance.stub(:debug).and_return(nil)
@@ -230,37 +282,57 @@ describe Dea::Env do
       pair[1] if pair
     end
 
-    it "includes VCAP_APPLICATION" do
-      find("VCAP_APPLICATION").should include(Yajl::Encoder.encode(application_for_json))
+    it "includes JPAAS_APPLICATION" do
+      find("JPAAS_APPLICATION").should include(Yajl::Encoder.encode(application_for_json))
     end
 
-    it "includes VCAP_SERVICES" do
-      find("VCAP_SERVICES").should include(Yajl::Encoder.encode(services_for_json))
+    it "includes JPAAS_SERVICES" do
+      find("JPAAS_SERVICES").should include(Yajl::Encoder.encode(services_for_json))
     end
 
-    it "includes VCAP_APP_*" do
-      find("VCAP_APP_HOST").should =~ /#{application_for_json["host"]}/
-      find("VCAP_APP_PORT").should =~ /4567/
+    it "includes JPAAS_*" do
+      find("JPAAS_HOST").should =~ /#{application_for_json["host"]}/
+      find("JPAAS_HTTP_PORT").should =~ /64567/
     end
 
-    it "does not includes VCAP_DEBUG_*" do
-      find("VCAP_DEBUG_IP").should be_nil
-      find("VCAP_DEBUG_PORT").should be_nil
+    it "includes JPAAS_CONTAINER*" do
+      find("JPAAS_CONTAINER_HOST").should =~ /#{application_for_json["container_host"]}/
+      find("JPAAS_CONTAINER_HTTP_PORT").should =~ /4567/
     end
 
-    it "includes VCAP_CONSOLE_*" do
-      find("VCAP_CONSOLE_IP").should =~ /#{application_for_json["host"]}/
-      find("VCAP_CONSOLE_PORT").should =~ /4569/
+    it "does not includes JPAAS_DEBUG_*" do
+      find("JPAAS_DEBUG_IP").should be_nil
+      find("JPAAS_DEBUG_PORT").should be_nil
+    end
+
+    it "does not includes JPAAS_CONTAINER_DEBUG_*" do
+      find("JPAAS_CONTAINER_DEBUG_IP").should be_nil
+      find("JPAAS_CONTAINER_DEBUG_PORT").should be_nil
+    end
+
+    it "includes JPAAS_CONSOLE_*" do
+      find("JPAAS_CONSOLE_IP").should =~ /#{application_for_json["host"]}/
+      find("JPAAS_CONSOLE_PORT").should =~ /64569/
+    end
+
+    it "includes JPAAS_CONTAINER_CONSOLE_*" do
+      find("JPAAS_CONTAINER_CONSOLE_IP").should =~ /#{application_for_json["container_host"]}/
+      find("JPAAS_CONTAINER_CONSOLE_PORT").should =~ /4569/
+    end
+
+    it "includes JPAAS_TCP_PORT_*" do
+      find("JPAAS_TCP_PORT_1").should =~ /61234/
+      find("JPAAS_TCP_PORT_2").should be_nil
     end
 
     it "includes the debug mode when the debug mode is set" do
       instance.stub(:debug).and_return("mode")
-      find("VCAP_DEBUG_MODE").should == "'mode'"
+      find("JPAAS_DEBUG_MODE").should == "'mode'"
     end
 
     it "doesn't include the debug mode when debug mode is not set" do
       instance.stub(:debug).and_return(nil)
-      find("VCAP_DEBUG_MODE").should_not be
+      find("JPAAS_DEBUG_MODE").should_not be
     end
 
     it "includes the user-specified environment" do
@@ -274,10 +346,16 @@ describe Dea::Env do
     context "when in debug mode" do
       before { instance.stub(:debug).and_return(true) }
 
-      it "does not includes VCAP_DEBUG_*" do
-        find("VCAP_DEBUG_IP").should =~ /#{application_for_json["host"]}/
-        find("VCAP_DEBUG_PORT").should =~ /4568/
+      it "does not includes JPAAS_DEBUG_*" do
+        find("JPAAS_DEBUG_IP").should =~ /#{application_for_json["host"]}/
+        find("JPAAS_DEBUG_PORT").should =~ /64568/
       end
+
+      it "does not includes JPAAS_CONTAINER_DEBUG_*" do
+        find("JPAAS_CONTAINER_DEBUG_IP").should =~ /#{application_for_json["container_host"]}/
+        find("JPAAS_CONTAINER_DEBUG_PORT").should =~ /4568/
+      end
+
     end
   end
 end

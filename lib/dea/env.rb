@@ -1,5 +1,6 @@
 # coding: UTF-8
 
+require "socket"
 require "steno"
 require "steno/core_ext"
 require "yajl"
@@ -59,8 +60,10 @@ module Dea
 
       hash["started_at"]           = started_at
       hash["started_at_timestamp"] = started_at.to_i
-      hash["host"]                 = "0.0.0.0"
-      hash["port"]                 = instance.instance_container_port
+      hash["host"]                 = local_ip
+      hash["http_port"]            = instance.instance_host_port
+      hash["container_host"]       = instance.container.info.host_ip
+      hash["container_http_port"]  = instance.instance_container_port
       hash["limits"]               = instance.limits
 
       # Translate keys for backwards compatibility
@@ -75,26 +78,51 @@ module Dea
       hash
     end
 
+    def tcp_ports_env
+      ports = []
+      index = 1
+      prod_ports = instance.instance_meta["prod_ports"]
+      return ports if prod_ports.nil?
+      prod_ports.each_pair do |k,v|
+        if v["port_info"]["bns"] == true
+          ports << ["JPAAS_TCP_PORT_#{index}", v["host_port"]]
+          index += 1
+        end
+      end
+      ports
+    end
+
     def env
       application = application_for_json
       services    = services_for_json
-
       env = []
-      env << ["VCAP_APPLICATION",  Yajl::Encoder.encode(application)]
-      env << ["VCAP_SERVICES",     Yajl::Encoder.encode(services)]
+      env << ["JPAAS_APPLICATION",  Yajl::Encoder.encode(application)]
+      env << ["JPAAS_SERVICES",     Yajl::Encoder.encode(services)]
 
-      env << ["VCAP_APP_HOST",     application["host"]]
-      env << ["VCAP_APP_PORT",     instance.instance_container_port]
+      env << ["JPAAS_CONTAINER_HOST",       application["container_host"]]
+      env << ["JPAAS_CONTAINER_HTTP_PORT",  instance.instance_container_port]
 
-      env << ["VCAP_CONSOLE_IP",   application["host"]]
-      env << ["VCAP_CONSOLE_PORT", instance.instance_console_container_port]
+      env << ["JPAAS_HOST",          application["host"]]
+      env << ["JPAAS_HTTP_PORT",     instance.instance_host_port]
+
+      env << ["JPAAS_CONTAINER_CONSOLE_IP",   application["container_host"]]
+      env << ["JPAAS_CONTAINER_CONSOLE_PORT", instance.instance_console_container_port]
+
+      env << ["JPAAS_CONSOLE_IP",   application["host"]]
+      env << ["JPAAS_CONSOLE_PORT", instance.instance_console_host_port]
 
       if instance.debug
-        env << ["VCAP_DEBUG_IP",     application["host"]]
-        env << ["VCAP_DEBUG_PORT",   instance.instance_debug_container_port]
+        env << ["JPAAS_CONTAINER_DEBUG_IP",     application["container_host"]]
+        env << ["JPAAS_CONTAINER_DEBUG_PORT",   instance.instance_debug_container_port]
+
+        env << ["JPAAS_DEBUG_IP",     application["host"]]
+        env << ["JPAAS_DEBUG_PORT",   instance.instance_debug_host_port]
+
         # Set debug environment for buildpacks to process
-        env << ["VCAP_DEBUG_MODE", instance.debug]
+        env << ["JPAAS_DEBUG_MODE",   instance.debug]
       end
+
+      env += tcp_ports_env unless tcp_ports_env.empty?
 
       # Wrap variables above in single quotes (no interpolation)
       env = env.map do |(key, value)|
@@ -118,5 +146,15 @@ module Dea
         [key, value]
       end
     end
+
+    def local_ip
+      begin
+        ip = IPSocket.getaddress(Socket.gethostname)
+      rescue SocketError
+        ip = "0.0.0.0"
+      end
+      ip
+    end
+
   end
 end
