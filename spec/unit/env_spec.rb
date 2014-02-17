@@ -170,12 +170,12 @@ describe Dea::Env do
 
     it "includes the host and port the instance should listen on" do
       application_for_json["host"].should be
-      application_for_json["host_port"].should == 4567
+      application_for_json["http_port"].should == 4567
     end
 
     it "includes the container host and port the instance should listen on" do
-      application_for_json["host"].should be
-      application_for_json["host_port"].should == 64567
+      application_for_json["container_host"].should be
+      application_for_json["container_http_port"].should == 64567
     end
 
     it "includes the resource limits" do
@@ -226,7 +226,7 @@ describe Dea::Env do
       }
     end
     
-    let(:tcp_ports) do
+    let(:tcp_ports_env) do
       {
         "prod_ports" => {
           "name" => {
