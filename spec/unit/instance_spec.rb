@@ -869,7 +869,7 @@ describe Dea::Instance do
         instance.unstub(:promise_start) 
         instance.stub(:instance_meta).and_return({})
         instance.container.stub(:info => info_response)
-      }
+      end
 
       it "executes a SpawnRequest" do
         instance.attributes["warden_handle"] = "handle"
