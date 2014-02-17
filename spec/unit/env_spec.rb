@@ -225,15 +225,24 @@ describe Dea::Env do
         "tier" => "free"
       }
     end
-    
-    let(:tcp_ports_env) do
+
+    let(:prod_ports) do
       {
         "prod_ports" => {
-          "name" => {
-            "host_port" => 1234,
-            "container_port" => 2234,
+          "name_1" => {
+            "host_port" => 61234,
+            "container_port" => 1234,
             "port_info" => {
-              "port" => 3234,
+              "port" => 1234,
+              "http" => true,
+              "bns"  => false,
+            }
+          },
+          "name_2" => {
+            "host_port" => 61235,
+            "container_port" => 1235,
+            "port_info" => {
+              "port" => 1235,
               "http" => true,
               "bns"  => false,
             }
@@ -246,6 +255,7 @@ describe Dea::Env do
       subject.stub(:application_for_json).and_return(application_for_json)
       subject.stub(:services_for_json).and_return(services_for_json)
       subject.stub(:legacy_services_for_json).and_return(legacy_services_for_json)
+      subject.stub(:tcp_ports_env).and_return(tcp_ports_env)
 
       instance.stub(:instance_container_port).and_return(4567)
       instance.stub(:instance_host_port).and_return(64567)
@@ -256,7 +266,7 @@ describe Dea::Env do
       instance.stub(:instance_console_container_port).and_return(4569)
       instance.stub(:instance_console_host_port).and_return(64569)
 
-      instance.stub(:instance_meta).and_return()
+      instance.stub(:instance_meta).and_return(prod_ports)
 
       instance.stub(:services).and_return([service])
 
@@ -309,6 +319,11 @@ describe Dea::Env do
     it "includes JPAAS_CONTAINER_CONSOLE_*" do
       find("JPAAS_CONTAINER_CONSOLE_IP").should =~ /#{application_for_json["container_host"]}/
       find("JPAAS_CONTAINER_CONSOLE_PORT").should =~ /4569/
+    end
+
+    it "includes JPAAS_TCP_PORT_*" do
+      find("JPAAS_TCP_PORT_1").should =~ /61234/
+      find("JPAAS_TCP_PORT_2").should =~ /61235/
     end
 
     it "includes the debug mode when the debug mode is set" do
