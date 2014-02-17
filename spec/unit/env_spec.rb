@@ -255,7 +255,6 @@ describe Dea::Env do
       subject.stub(:application_for_json).and_return(application_for_json)
       subject.stub(:services_for_json).and_return(services_for_json)
       subject.stub(:legacy_services_for_json).and_return(legacy_services_for_json)
-      subject.stub(:tcp_ports_env).and_return(tcp_ports_env)
 
       instance.stub(:instance_container_port).and_return(4567)
       instance.stub(:instance_host_port).and_return(64567)

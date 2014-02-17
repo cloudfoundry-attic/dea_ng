@@ -859,7 +859,17 @@ describe Dea::Instance do
         response
       end
 
-      before { instance.unstub(:promise_start) }
+      let(:info_response) do
+        info_response = mock("InfoResponse")
+        info_response.stub(:host_ip).and_return("127.0.0.1")
+        info_response
+      end
+
+      before do
+        instance.unstub(:promise_start) 
+        instance.stub(:instance_meta).and_return({})
+        instance.container.stub(:info => info_response)
+      }
 
       it "executes a SpawnRequest" do
         instance.attributes["warden_handle"] = "handle"
