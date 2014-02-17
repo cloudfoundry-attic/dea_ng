@@ -244,7 +244,7 @@ describe Dea::Env do
             "port_info" => {
               "port" => 1235,
               "http" => false,
-              "bns"  => true,
+              "bns"  => false,
             }
           }
         }
