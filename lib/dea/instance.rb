@@ -581,6 +581,8 @@ module Dea
         request.rlimits.nofile = self.file_descriptor_limit
         request.rlimits.nproc = 307200
 
+        request.work_user  = work_user
+
         response = promise_warden_call(:app, request).resolve
 
         attributes["warden_job_id"] = response.job_id
@@ -626,6 +628,7 @@ module Dea
         [
           promise_extract_droplet,
           promise_setup_network,
+          promise_update_work_user,
           promise_exec_hook_script('before_start'),
           promise_start
         ].each(&:resolve)
@@ -658,6 +661,32 @@ module Dea
         end
 
         callback.call(error) unless callback.nil?
+      end
+    end
+
+    def work_user
+      attributes.fetch('instance_meta', {}).
+                 fetch('work_user', app_workspace_user)
+    end
+
+    def promise_update_work_user
+      Promise.new do |p|
+        script = []
+
+        script << "useradd #{work_user} -M"
+        find_opts = []
+        find_opts << "find /home/#{app_workspace_user}"
+        find_opts << "-maxdepth 1"
+        find_opts << ["dea_ng", "appdata", "."].
+                     map {|e| "-not -name " + e }.
+                     join(" ")
+        find_opts << "-exec chown -R #{work_user}:#{work_user} '{}' ';'"
+        script << find_opts.join(" ")
+        script << "ln -s /home/#{app_workspace_user} /home/#{work_user}"
+        script = script.join("&&")
+        promise_warden_run(:app, script, true).resolve
+
+        p.deliver
       end
     end
 
