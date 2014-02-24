@@ -1,0 +1,17 @@
+---
+url : http://data-jpaas.baidu.com 
+
+jdks:
+  - version: "1.6"
+    jdk: jdk-1.6.0_30.tar.gz
+    md5: a828159ae7df2ad814f3c247ddb48e6a
+  - version : "1.5"
+    jdk: jdk-1.5.0_22.tar.gz
+    md5: b825bc9d0c3751c06a1223b7cee97a84
+tomcats:
+  - version: "6.0"
+    tomcat: apache-tomcat-6-jpaas.tar.gz
+    md5: cb63601fe89b9ab05dcab9ee413e28c3
+  - version: "5.5"
+    tomcat: apache-tomcat-5-jpaas.tar.gz
+    md5: 5a1df883bd4160d94a5aae0e3f9b04b3

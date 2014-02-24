@@ -66,8 +66,8 @@ module Dea
         File.join(base_dir,"../unzip_droplet")
     end
 
-    def seed_file
-        File.join(base_dir,"../tmpseed.torrent")
+    def seed_file(infohash)
+        File.join(base_dir,"../#{infohash}.torrent")
     end
 
     def download_unzip_droplet(infohash,&blk)
@@ -77,26 +77,30 @@ module Dea
       logger.debug "Waiting for download to complete"
 
       if @download_waiting.size == 1
-        # Fire off request when this is the first call to #download
-        unzip_droplet_dir=File.join(base_dir,"../unzip_droplet")
-        FileUtils.mkdir_p(unzip_droplet_dir) unless File.exists?(unzip_droplet_dir)
-        system("gko3 sdown -i #{infohash} -p #{unzip_droplet_dir} -d 15 -u 15 --seedtime 5 --save-torrent #{seed_file}")
-        if $?.success?
-            err=nil
-            logger.debug "Download unzip droplet to #{unzip_droplet_dir}"
-            #delete extra files if necessary
-            system("gko3 rmfiles -p #{unzip_droplet_dir} -r #{seed_file} --not-in")
+        begin
+            # Fire off request when this is the first call to #download
+            unzip_droplet_dir=File.join(base_dir,"../unzip_droplet")
+            FileUtils.mkdir_p(unzip_droplet_dir) unless File.exists?(unzip_droplet_dir)
+            system("gko3 sdown -i #{infohash} -p #{unzip_droplet_dir} -d 15 -u 15 --seedtime 5 --save-torrent #{seed_file(infohash)}")
             if $?.success?
                 err=nil
-                logger.debug "delete extra files ok"
+                logger.debug "Download unzip droplet to #{unzip_droplet_dir}"
+                #delete extra files if necessary
+                system("gko3 rmfiles -p #{unzip_droplet_dir} -r #{seed_file(infohash)} --not-in")
+                if $?.success?
+                    err=nil
+                    logger.debug "delete extra files ok"
+                else
+                    err="Failed to delete extra files"
+                end
             else
-                err="Failed to delete extra files"
+                err="Failed to download unzip droplet:gko3 sdown -i #{infohash} -p #{unzip_droplet_dir} -d 15 -u 15"
             end
-        else
-            err="Failed to download unzip droplet:gko3 sdown -i #{infohash} -p #{unzip_droplet_dir} -d 15 -u 15"
-        end
-        while blk = @download_waiting.shift
-            blk.call(err)
+            while blk = @download_waiting.shift
+                blk.call(err)
+            end
+        ensure
+            system("rm -f #{seed_file(infohash)}")
         end
       end
     end
