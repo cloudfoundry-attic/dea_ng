@@ -699,10 +699,10 @@ module Dea
     def promise_droplet
       Promise.new do |p|
         if use_p2p?
-            log(:info, "unzip droplet.download.starting")
+            log(:info, "unzip droplet.download.starting by gko3")
             start = Time.now
             promise_unzipdroplet_download.resolve
-            log(:info, "unzip droplet.download.finished", :took => Time.now - start)
+            log(:info, "unzip droplet.download.finished by gko3", :took => Time.now - start)
         else
             if !droplet.droplet_exist?
                 log(:info, "droplet.download.starting")
