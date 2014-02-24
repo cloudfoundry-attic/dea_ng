@@ -212,7 +212,7 @@ BASH
       vars = release_info['config_vars'] || {}
       vars.each { |k, v| vars[k] = "${#{k}:-#{v}}" }
       vars["HOME"] = "$PWD"
-      vars["PORT"] = "$VCAP_APP_PORT"
+      vars["PORT"] = "$JPAAS_CONTAINER_HTTP_PORT"
       vars["DATABASE_URL"] = @services.database_uri if rails_buildpack?(build_pack) && @services.database_uri
       vars["MEMORY_LIMIT"] = "#{application_memory}m"
       vars
