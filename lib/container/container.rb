@@ -1,4 +1,5 @@
 require 'em/warden/client'
+require 'vcap/component'
 
 class Container
   class WardenError < StandardError
@@ -204,7 +205,13 @@ class Container
   end
 
   def call(name, request)
+    start_time_in_ms = (Time.now.to_f * 1_000).to_i
     client(name).call(request)
+  rescue => e
+    emit_warden_failure_to_varz
+    raise e
+  ensure
+    emit_warden_response_time_to_varz((Time.now.to_f * 1_000).to_i - start_time_in_ms)
   end
 
   def stream(request, &blk)
@@ -232,5 +239,23 @@ class Container
   def limit_memory(bytes)
     request = ::Warden::Protocol::LimitMemoryRequest.new(handle: self.handle, limit_in_bytes: bytes)
     call(:app, request)
+  end
+
+  private
+
+  def emit_warden_response_time_to_varz(response_time_in_ms)
+    VCAP::Component.varz.synchronize do
+      VCAP::Component.varz[:total_warden_response_time_in_ms] ||= 0
+      VCAP::Component.varz[:total_warden_response_time_in_ms] += response_time_in_ms
+      VCAP::Component.varz[:warden_request_count] ||= 0
+      VCAP::Component.varz[:warden_request_count] += 1
+    end
+  end
+
+  def emit_warden_failure_to_varz
+    VCAP::Component.varz.synchronize do
+      VCAP::Component.varz[:warden_error_response_count] ||= 0
+      VCAP::Component.varz[:warden_error_response_count] += 1
+    end
   end
 end

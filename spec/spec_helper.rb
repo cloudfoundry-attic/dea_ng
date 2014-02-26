@@ -61,6 +61,8 @@ RSpec.configure do |config|
   end
 end
 
+#Timecop.safe_mode = true
+
 TEST_TEMP = Dir.mktmpdir
 FILE_SERVER_DIR = '/tmp/dea'
 

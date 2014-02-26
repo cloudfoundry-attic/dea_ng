@@ -132,9 +132,86 @@ describe Container do
   end
 
   describe '#call' do
+    before do
+      VCAP::Component.varz.synchronize do
+        VCAP::Component.varz[:total_warden_response_time_in_ms] = 10
+        VCAP::Component.varz[:warden_request_count] = 10
+        VCAP::Component.varz[:warden_error_response_count] = 1
+      end
+    end
     it 'makes a request using connection#call' do
       connection.should_receive(:call).with(request).and_return(response)
       container.call(connection_name, request)
+    end
+
+    context "when the call passes" do
+      subject(:the_call) do
+        Timecop.freeze(Time.local(2014, 1, 1, 0, 0, 0)) do
+          container.call(connection_name, request)
+        end
+      end
+
+      before do
+        connection.stub(:call) do
+          Timecop.freeze(Time.local(2014, 1, 1, 0, 0, 10))
+        end
+      end
+
+      it 'logs the response time to varz' do
+        the_call
+
+        expect(VCAP::Component.varz[:total_warden_response_time_in_ms]).to eq(10_010)
+      end
+
+      it 'logs the response count to varz' do
+        the_call
+
+        expect(VCAP::Component.varz[:warden_request_count]).to eq(11)
+      end
+
+      context "when there's no recorded total_warden_response_time_in_ms or total_warden_request_count" do
+        before do
+          VCAP::Component.varz.synchronize do
+            VCAP::Component.varz[:total_warden_response_time_in_ms] = nil
+            VCAP::Component.varz[:warden_request_count] = nil
+          end
+        end
+
+        it "logs the values correctly" do
+          the_call
+
+          expect(VCAP::Component.varz[:total_warden_response_time_in_ms]).to eq(10_000)
+          expect(VCAP::Component.varz[:warden_request_count]).to eq(1)
+        end
+      end
+    end
+
+    context 'when the call fails' do
+      subject(:the_call) do
+        Timecop.freeze(Time.local(2014, 1, 1, 0, 0, 0)) do
+          expect{ container.call(connection_name, request) }.to raise_error("Hell")
+        end
+      end
+
+      before do
+        connection.stub(:call) do
+          Timecop.freeze(Time.local(2014, 1, 1, 0, 0, 10))
+          raise "Hell"
+        end
+      end
+
+      it 'still logs the response time to varz' do
+        the_call
+
+        expect(VCAP::Component.varz[:total_warden_response_time_in_ms]).to eq(10010)
+        expect(VCAP::Component.varz[:warden_request_count]).to eq(11)
+      end
+
+      it 'logs the failure to varz' do
+        the_call
+
+        expect(VCAP::Component.varz[:warden_error_response_count]).to eq(2)
+      end
     end
   end
 
