@@ -1,4 +1,4 @@
-// +build !windows,!plan9
+// +build windows
 
 package common
 
@@ -18,9 +18,6 @@ func SetupSteno(logConfig *LogConfig) {
 		sinks = append(sinks, steno.NewFileSink(logConfig.File))
 	} else {
 		sinks = append(sinks, steno.NewIOSink(os.Stdout))
-	}
-	if logConfig.Syslog != "" {
-		sinks = append(sinks, steno.NewSyslogSink(logConfig.Syslog))
 	}
 
 	stenoConfig := &steno.Config{
