@@ -1,10 +1,9 @@
 GIT
   remote: https://github.com/cloudfoundry/steno.git
-  revision: d88c70767c43a5eff32ccb47e3bb561b981e62e8
+  revision: 3117002a92258fe4294bc34aaa8fd5005cf58e72
   specs:
-    steno (1.1.0)
+    steno (1.2.4)
       fluent-logger
-      grape
       yajl-ruby (~> 1.0)
 
 GIT
@@ -91,8 +90,8 @@ GEM
       eventmachine (>= 1.0.0.beta.4)
     eventmachine (1.0.3)
     ffi (1.0.11)
-    fluent-logger (0.4.5)
-      msgpack (= 0.4.7)
+    fluent-logger (0.4.7)
+      msgpack (>= 0.4.4, < 0.6.0, != 0.5.3, != 0.5.2, != 0.5.1, != 0.5.0)
       yajl-ruby (~> 1.0)
     foreman (0.61.0)
       thor (>= 0.13.6)
@@ -106,7 +105,7 @@ GEM
       beefcake (~> 0.3.7)
     membrane (0.0.2)
     mime-types (2.1)
-    msgpack (0.4.7)
+    msgpack (0.5.8)
     multi_json (1.7.6)
     multi_xml (0.5.4)
     multipart-post (2.0.0)
@@ -189,7 +188,7 @@ DEPENDENCIES
   rspec-fire
   rubyzip
   sinatra
-  steno (~> 1.1.0)!
+  steno (~> 1.2.4)!
   sys-filesystem
   thin
   timecop
