@@ -3,6 +3,7 @@ require "dea/staging/staging_task_workspace"
 require "dea/staging/staging_message"
 
 describe Dea::StagingTaskWorkspace do
+  platform_specific(:platform, default_platform: :Linux)
 
   let(:base_dir) { Dir.mktmpdir }
 

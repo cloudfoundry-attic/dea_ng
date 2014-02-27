@@ -6,8 +6,12 @@ require 'dea/config'
 
 require 'dea/directory_server/directory_server_v2'
 require 'dea/staging/staging_task'
+require 'dea/utils/platform_compat'
 
 describe Dea::StagingTask do
+
+  platform_specific(:platform, default_platform: :Linux)
+  
   let(:loggregator_emitter) { FakeEmitter.new }
 
   let(:memory_limit_mb) { 256 }
@@ -34,6 +38,7 @@ describe Dea::StagingTask do
         'disk_inode_limit' => disk_inode_limit,
         'max_staging_duration' => max_staging_duration
       },
+      'dea_ruby' => '/foo/dea_ruby'
     }
   end
 
@@ -266,6 +271,13 @@ YAML
 
     it 'hmacs url' do
       url.should match(/hmac=.*/)
+    end
+    
+    context 'on Windows' do
+      let(:platform) { :Windows }
+      it 'includes path to staging task output on windows' do
+        url.should include 'path=%40ROOT%40%2Ftmp%2Fstaged%2Flogs%2Fstaging_task.log'
+      end
     end
   end
 
@@ -533,7 +545,7 @@ YAML
     end
 
     context 'when buildpack_cache_download_uri is provided' do
-      subject(:staging_task) { Dea::StagingTask.new(bootstrap, dir_server, StagingMessage.new(attributes.merge('buildpack_cache_download_uri' => 'http://www.someurl.com')), buildpacks_in_use) }
+      let(:staging_message) { StagingMessage.new(attributes.merge('buildpack_cache_download_uri' => 'http://www.someurl.com')) }
 
       it 'downloads buildpack cache' do
         staging_task.should_receive(:promise_buildpack_cache_download)
@@ -730,6 +742,16 @@ YAML
       end
       staging_task.promise_prepare_staging_log.resolve
     end
+
+    context 'on Windows' do
+      let(:platform) { :Windows }
+      it 'assembles a shell command that creates staging_task.log file for tailing it' do
+        staging_task.container.should_receive(:run_script) do |connection_name, cmd|
+          cmd.should match "[{\"cmd\":\"mkdir\",\"args\":[\"@ROOT@/tmp/staged/logs\"]},{\"cmd\":\"touch\",\"args\":[\"@ROOT@/tmp/staged/logs/staging_task.log\"]}]"
+        end
+        staging_task.promise_prepare_staging_log.resolve
+      end
+    end
   end
 
   describe '#promise_app_download' do
@@ -755,7 +777,7 @@ YAML
       end
     end
 
-    context 'when there is no error' do
+    context 'when there is no error', unix_only:true do
       before do
         Download.any_instance.stub(:download!).and_yield(nil)
       end
@@ -794,7 +816,7 @@ YAML
       end
     end
 
-    context 'when there is no error' do
+    context 'when there is no error', unix_only:true do
       before { Download.any_instance.stub(:download!).and_yield(nil) }
 
       its(:result) { should eq([:deliver, nil]) }
@@ -825,6 +847,17 @@ YAML
       expect(loggregator_emitter.error_messages.size).to eql(1)
       expect(loggregator_emitter.messages[app_id][0]).to eql('stdout message')
       expect(loggregator_emitter.error_messages[app_id][0]).to eql('stderr message')
+    end
+
+    context 'on Windows' do
+      let(:platform) { :Windows }
+      it 'assembles a shell command' do
+        staging_task.container.should_receive(:run_script) do |connection_name, cmd|
+          cmd.should include("{\"cmd\":\"unzip\",\"args\":[\"#{workspace_dir}/app.zip\",\"@ROOT@/tmp/unstaged\"]}")
+        end.and_return(empty_streams)
+
+        staging_task.promise_unpack_app.resolve
+      end
     end
   end
 
@@ -859,6 +892,18 @@ YAML
         expect(loggregator_emitter.messages[app_id][0]).to eql('stdout message')
         expect(loggregator_emitter.error_messages[app_id][0]).to eql('stderr message')
       end
+
+      context 'on Windows' do
+        let(:platform) { :Windows }
+        it 'assembles a shell command on windows' do
+          staging_task.container.should_receive(:run_script) do |_, cmd|
+            cmd.should include("#{workspace_dir}/buildpack_cache.tgz")
+            cmd.should include("\"cmd\":\"tar\"")
+          end.and_return(empty_streams)
+
+          staging_task.promise_unpack_buildpack_cache.resolve
+        end
+      end
     end
   end
 
@@ -870,6 +915,18 @@ YAML
 
       staging_task.promise_pack_app.resolve
     end
+
+
+    context 'on Windows' do
+      let(:platform) { :Windows }
+      it 'assembles a shell command on windows' do
+        staging_task.container.should_receive(:run_script) do |connection_name, cmd|
+          normalize_whitespace(cmd).should include("{\"cmd\":\"tar\",\"args\":[\"c\",\"@ROOT@/tmp/staged\",\"@ROOT@/tmp/droplet.tgz\"]}")
+        end
+
+        staging_task.promise_pack_app.resolve
+      end
+    end
   end
 
   describe '#promise_pack_buildpack_cache' do
@@ -879,6 +936,18 @@ YAML
       end
 
       staging_task.promise_pack_buildpack_cache.resolve
+    end
+
+
+    context 'on Windows' do
+      let(:platform) { :Windows }
+      it 'assembles a shell command on windows' do
+        staging_task.container.should_receive(:run_script) do |_, cmd|
+          normalize_whitespace(cmd).should include("{\"cmd\":\"tar\",\"args\":[\"c\",\"@ROOT@/tmp/cache\",\"@ROOT@/tmp/buildpack_cache.tgz\"]}")
+        end
+
+        staging_task.promise_pack_buildpack_cache.resolve
+      end
     end
   end
 
@@ -975,6 +1044,14 @@ YAML
       staging_task.should_receive(:copy_out_request).with('/tmp/droplet.tgz', /.{5,}/)
       subject
     end
+
+    context 'on Windows' do
+      let(:platform) { :Windows }
+      it 'should send copying out request' do
+        staging_task.should_receive(:copy_out_request).with('@ROOT@/tmp/droplet.tgz', /.{5,}/)
+        subject
+      end
+    end
   end
 
   describe '#promise_save_droplet' do
@@ -1014,6 +1091,14 @@ YAML
       staging_task.should_receive(:copy_out_request).with('/tmp/buildpack_cache.tgz', /.{5,}/)
       subject
     end
+
+    context 'on Windows' do
+      let(:platform) { :Windows }
+      it 'should send copying out request on windows' do
+        staging_task.should_receive(:copy_out_request).with('@ROOT@/tmp/buildpack_cache.tgz', /.{5,}/)
+        subject
+      end
+    end
   end
 
   describe '#promise_task_log' do
@@ -1026,6 +1111,14 @@ YAML
     it 'should send copying out request' do
       staging_task.should_receive(:copy_out_request).with('/tmp/staged/logs/staging_task.log', /#{workspace_dir}/)
       subject
+    end
+
+    context 'on Windows' do
+      let(:platform) { :Windows }
+      it 'should send copying out request on windows' do
+        staging_task.should_receive(:copy_out_request).with('@ROOT@/tmp/staged/logs/staging_task.log', /#{workspace_dir}/)
+        subject
+      end
     end
   end
 
@@ -1040,7 +1133,16 @@ YAML
       staging_task.should_receive(:copy_out_request).with('/tmp/staged/staging_info.yml', /#{workspace_dir}/)
       subject
     end
+
+    context 'on Windows' do
+      let(:platform) { :Windows }
+      it 'should send copying out request' do
+        staging_task.should_receive(:copy_out_request).with('@ROOT@/tmp/staged/staging_info.yml', /#{workspace_dir}/)
+        subject
+      end
+    end
   end
+
 
   describe '#snapshot_attributes' do
     let(:services) {
