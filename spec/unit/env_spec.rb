@@ -5,6 +5,7 @@ require "vcap/common"
 require "dea/env"
 require "dea/starting/start_message"
 require "dea/staging/staging_message"
+require "dea/utils/platform_compat"
 
 describe Dea::Env do
   let(:service) do
@@ -61,8 +62,41 @@ describe Dea::Env do
 
   def self.it_exports(name, value)
     it "exports $#{name} as #{value}" do
-      expect(`env | grep #{name}`).to be
-      expect(`#{exported_variables} echo $#{name}`.chomp).to match value
+      if platform == :Windows
+        example = %Q{$env:%s='%s'} % [name, value]
+      else
+        example = %Q{export %s="%s"} % [name, value.to_s.gsub('"', '\"')]
+      end
+      expect(exported_variables).to include example
+    end
+  end
+
+  def self.it_does_not_export(name)
+    it "does not export $#{name}" do
+      if platform == :Windows
+        example = %Q{$env:%s=.*} % [name]
+      else
+        example = %Q{export %s=.*} % [name]
+      end
+      expect(exported_variables.to_s).to_not match_regex example
+    end
+  end
+
+  def self.it_exports_with_substr(name, value_substr)
+    it "exports $#{name} which contains #{value_substr}" do
+      if platform == :Windows
+        # Windows uses PowerShell's single-quote strings, which does not require us to escape double-quotes.
+        name_regex = Regexp.new("^\\$env:%s" % [name])
+      else
+        # Linux uses 'export', which requires the value to be in double-quotes. This means
+        # we need to handle escaping them in the generated JSON.
+        name_regex = Regexp.new("^export %s" % [name])
+        value_substr = value_substr.gsub('"', '\"')
+      end
+
+      expect(exported_variables.split('\n').find_index { |str|
+        str =~ name_regex && str.include?(value_substr)
+      }).to_not be_nil
     end
   end
 
@@ -177,19 +211,17 @@ describe Dea::Env do
       end
     end
 
-    describe "#exported_system_environment_variables" do
-      let(:exported_variables) { env.exported_system_environment_variables }
-
-      it_exports "VCAP_APPLICATION", %r{\"instance_index\":0}
-      it_exports "VCAP_SERVICES", %r{\"plan\":\"panda\"}
+    def self.run_starting_task_exported_system_environment_variables
+      it_exports_with_substr "VCAP_APPLICATION", "\"instance_index\":0"
+      it_exports_with_substr "VCAP_SERVICES", "\"plan\":\"panda\""
       it_exports "VCAP_APP_HOST", "0.0.0.0"
       it_exports "VCAP_APP_PORT", "4567"
-      it_exports "VCAP_DEBUG_IP", ""
-      it_exports "VCAP_DEBUG_PORT", ""
+      it_does_not_export "VCAP_DEBUG_IP"
+      it_does_not_export "VCAP_DEBUG_PORT"
       it_exports "PORT", "4567"
       it_exports "MEMORY_LIMIT", "512m"
-      it_exports "HOME", "#{Dir.pwd}/app"
-      it_exports "TMPDIR", "#{Dir.pwd}/tmp"
+      it_exports "HOME", "$PWD/app"
+      it_exports "TMPDIR", "$PWD/tmp"
 
       context "when it has a DB" do
         it_exports "DATABASE_URL", "postgres://user:pass@host:5432/db"
@@ -198,19 +230,49 @@ describe Dea::Env do
       context "when it does NOT have a DB" do
         let(:services) { [] }
 
-        it_exports "DATABASE_URL", ""
+        it_does_not_export "DATABASE_URL"
+      end
+    end
+
+    def self.run_starting_task_exported_user_environment_variables
+      it_exports "A", "one_value"
+      it_exports "B", "with spaces"
+      it_exports "C", %Q[with'quotes"double]
+      it_exports "D", "referencing $A"
+      it_exports "E", "with=equals"
+      it_exports "F", ""
+    end
+
+    describe "#exported_system_environment_variables" do
+      platform_specific(:platform)
+
+      let(:exported_variables) { env.exported_system_environment_variables }
+
+      context "on linux" do
+        let(:platform) { :Linux }
+        run_starting_task_exported_system_environment_variables
+      end
+
+      context "on windows" do
+        let(:platform) { :Windows }
+        run_starting_task_exported_system_environment_variables
       end
     end
 
     describe "#exported_user_environment_variables" do
+      platform_specific(:platform)
+
       let(:exported_variables) { env.exported_user_environment_variables }
 
-      it_exports "A", "one_value"
-      it_exports "B", "with spaces"
-      it_exports "C", %Q[with'quotes"double]
-      it_exports "D", "referencing one_value"
-      it_exports "E", "with=equals"
-      it_exports "F", ""
+      context "on linux" do
+        let(:platform) { :Linux }
+        run_starting_task_exported_user_environment_variables
+      end
+
+      context "on windows" do
+        let(:platform) { :Windows }
+        run_starting_task_exported_user_environment_variables
+      end
     end
   end
 
@@ -342,11 +404,9 @@ describe Dea::Env do
       end
     end
 
-    describe "#exported_system_environment_variables" do
-      let(:exported_variables) { env.exported_system_environment_variables }
-
-      it_exports "VCAP_APPLICATION", %r{\"mem\":512}
-      it_exports "VCAP_SERVICES", %r{\"plan\":\"panda\"}
+    def self.run_staging_task_exported_system_environment_variables
+      it_exports_with_substr "VCAP_APPLICATION", "\"mem\":512"
+      it_exports_with_substr "VCAP_SERVICES", "\"plan\":\"panda\""
       it_exports "MEMORY_LIMIT", "512m"
 
       context "when it has a DB" do
@@ -356,26 +416,65 @@ describe Dea::Env do
       context "when it does NOT have a DB" do
         let(:services) { [] }
 
-        it_exports "DATABASE_URL", ""
+        it_does_not_export "DATABASE_URL"
+      end
+    end
+
+    def self.run_staging_task_exported_user_environment_variables
+      it_exports "A", "one_value"
+      it_exports "B", "with spaces"
+      it_exports "C", %Q[with'quotes"double]
+      it_exports "D", "referencing $A"
+      it_exports "E", "with=equals"
+      it_exports "F", ""
+    end
+
+    describe "#exported_system_environment_variables" do
+      platform_specific(:platform)
+
+      let(:exported_variables) { env.exported_system_environment_variables }
+
+      context "on linux" do
+        let(:platform) { :Linux }
+        run_staging_task_exported_system_environment_variables
+      end
+
+      context "on windows" do
+        let(:platform) { :Windows }
+        run_staging_task_exported_system_environment_variables
       end
     end
 
     describe "#user_environment_variables" do
+      platform_specific(:platform)
+
       let(:exported_variables) { env.exported_user_environment_variables }
 
-      it_exports "A", "one_value"
-      it_exports "B", "with spaces"
-      it_exports "C", %Q[with'quotes"double]
-      it_exports "D", "referencing one_value"
-      it_exports "E", "with=equals"
-      it_exports "F", ""
+      context "on linux" do
+        let(:platform) { :Linux }
+        run_staging_task_exported_user_environment_variables
+      end
+
+      context "on windows" do
+        let(:platform) { :Windows }
+        run_staging_task_exported_user_environment_variables
+      end
     end
   end
 
   describe "exported_environment_variables" do
     let(:environment) { ["PORT=stupid idea"] }
+    platform_specific(:platform)
     let(:exported_variables) { env.exported_environment_variables }
 
-    it_exports "PORT", "stupid idea"
+    context "on linux" do
+      let(:platform) { :Linux }
+      it_exports "PORT", "stupid idea"
+    end
+
+    context "on windows" do
+      let(:platform) { :Windows }
+      it_exports "PORT", "stupid idea"
+    end
   end
 end
