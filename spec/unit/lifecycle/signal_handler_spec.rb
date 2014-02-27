@@ -65,7 +65,7 @@ describe SignalHandler do
     end
   end
 
-  describe "#trap_quit" do
+  describe "#trap_quit", unix_only:true do
     it "shutsdown the system" do
       expect(message_bus).to receive(:stop)
 
@@ -74,7 +74,7 @@ describe SignalHandler do
     end
   end
 
-  describe "#trap_usr1" do
+  describe "#trap_usr1", unix_only:true do
     it "sends the shutdown message" do
       @signal_handlers["USR1"].call
       shutdown_message = @published_messages["dea.shutdown"][0]
@@ -92,7 +92,7 @@ describe SignalHandler do
     end
   end
 
-  describe "#trap_usr2" do
+  describe "#trap_usr2", unix_only:true do
     before do
       instance_registry.register(instance)
       @signal_handlers["USR2"].call
