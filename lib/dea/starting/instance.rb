@@ -15,11 +15,20 @@ require 'dea/task'
 require 'dea/utils/event_emitter'
 require 'dea/starting/startup_script_generator'
 require 'dea/user_facing_errors'
+require 'dea/utils/platform_compat'
 
 module Dea
   class Instance < Task
     include EventEmitter
 
+    include_platform_compat
+    abstract_method :promise_setup_environment_script, 
+                    :promise_extract_droplet_script,
+                    :promise_start_default_script,
+                    :build_promise_exec_hook_script,
+                    :promise_copy_out_src_dir,
+                    :container_relative_path
+                    
     STAT_COLLECTION_INTERVAL_SECS = 10
     NPROC_LIMIT = 512
 
@@ -394,7 +403,7 @@ module Dea
 
     def promise_setup_environment
       Promise.new do |p|
-        script = 'cd / && mkdir -p home/vcap/app && chown vcap:vcap home/vcap/app && ln -s home/vcap/app /app'
+        script = promise_setup_environment_script
         container.run_script(:app, script, true)
 
         p.deliver
@@ -403,7 +412,7 @@ module Dea
 
     def promise_extract_droplet
       Promise.new do |p|
-        script = "cd /home/vcap/ && tar zxf #{droplet.droplet_path}"
+        script = promise_extract_droplet_script(droplet.droplet_path)
 
         container.run_script(:app, script)
 
@@ -430,7 +439,7 @@ module Dea
               env.exported_system_environment_variables
             ).generate
         else
-          start_script = env.exported_environment_variables + "./startup;\nexit"
+          start_script = promise_start_default_script(env)
         end
 
         response = container.spawn(start_script,
@@ -450,12 +459,9 @@ module Dea
         if bootstrap.config['hooks'] && bootstrap.config['hooks'][key]
           script_path = bootstrap.config['hooks'][key]
           if File.exist?(script_path)
-            script = []
-            script << 'umask 077'
-            script << Env.new(StartMessage.new(@raw_attributes), self).exported_environment_variables
-            script << File.read(script_path)
-            script << 'exit'
-            container.run_script(:app, script.join("\n"))
+            env = Env.new(StartMessage.new(@raw_attributes), self)
+            script = build_promise_exec_hook_script(env, script_path)
+            container.run_script(:app, script)
           else
             logger.warn('droplet.hook-script.missing', hook: key, script_path: script_path)
           end
@@ -587,7 +593,7 @@ module Dea
       Promise.new do |p|
         new_instance_path = File.join(config.crashes_path, instance_id)
         new_instance_path = File.expand_path(new_instance_path)
-        copy_out_request('/home/vcap/logs/', new_instance_path + '/logs')
+        copy_out_request(promise_copy_out_src_dir + '/logs/', new_instance_path + '/logs')
 
         attributes['instance_path'] = new_instance_path
 
@@ -819,7 +825,7 @@ module Dea
           staging_file_name = 'staging_info.yml'
           copied_file_name = "#{destination_dir}/#{staging_file_name}"
 
-          copy_out_request("/home/vcap/#{staging_file_name}", destination_dir)
+          copy_out_request("#{promise_copy_out_src_dir}#{staging_file_name}", destination_dir)
 
           YAML.load_file(copied_file_name) if File.exists?(copied_file_name)
         end
@@ -891,16 +897,6 @@ module Dea
       end
     end
 
-    def container_relative_path(root, *parts)
-      # This can be removed once warden's wsh branch is merged to master
-      if File.directory?(File.join(root, 'rootfs'))
-        return File.join(root, 'rootfs', 'home', 'vcap', *parts)
-      end
-
-      # New path
-      File.join(root, 'tmp', 'rootfs', 'home', 'vcap', *parts)
-    end
-
     def health_check_timeout
       app_specific_health_check_timeout || default_health_check_timeout
     end
@@ -923,6 +919,88 @@ module Dea
       }
 
       @logger ||= self.class.logger.tag(tags)
+    end
+  end
+  
+  class WindowsInstance < Instance
+    def promise_setup_environment_script
+      commands = [
+        { :cmd => 'mkdir', :args => [ '@ROOT@/app' ] }
+      ]
+      commands.to_json
+    end
+
+    def promise_extract_droplet_script(droplet_path)
+      commands = [
+        { :cmd => 'tar', :args => [ 'x', '@ROOT@', droplet_path ] }
+      ]
+      commands.to_json
+    end
+
+    def promise_start_default_script(env)
+      commands = [ 
+        { :cmd => 'ps1', :args => [ './startup.ps1' ] }
+      ]
+      commands.to_json
+    end
+
+    def build_promise_exec_hook_script(env, script_path)
+      script = []
+
+      script << env.exported_environment_variables
+      script << File.read(script_path)
+      script << "exit"
+
+      commands = [ 
+        { :cmd => 'ps1', :args => script }
+      ]
+      commands.to_json
+    end
+
+    def promise_copy_out_src_dir
+      "@ROOT@/"
+    end
+    
+    def container_relative_path(root, *parts)
+      container_relative_path = File.join(root, *parts)
+      return container_relative_path;
+    end
+  end
+  
+  class LinuxInstance < Instance
+    def promise_setup_environment_script
+      'cd / && mkdir -p home/vcap/app && chown vcap:vcap home/vcap/app && ln -s home/vcap/app /app'
+    end
+
+    def promise_extract_droplet_script(droplet_path)
+      "cd /home/vcap/ && tar zxf #{droplet_path}"
+    end
+    
+    def promise_start_default_script(env)
+      env.exported_environment_variables + "./startup;\nexit"
+    end
+
+    def build_promise_exec_hook_script(env, script_path)
+      script = []
+      script << 'umask 077'
+      script << env.exported_environment_variables
+      script << File.read(script_path)
+      script << 'exit'
+      script.join("\n")
+    end
+
+    def promise_copy_out_src_dir
+      '/home/vcap/'
+    end
+
+    def container_relative_path(root, *parts)
+      # This can be removed once warden's wsh branch is merged to master
+      if File.directory?(File.join(root, 'rootfs'))
+        return File.join(root, 'rootfs', 'home', 'vcap', *parts)
+      end
+
+      # New path
+      File.join(root, 'tmp', 'rootfs', 'home', 'vcap', *parts)
     end
   end
 end
