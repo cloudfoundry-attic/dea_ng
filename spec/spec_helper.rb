@@ -17,6 +17,51 @@ require 'webmock/rspec'
 
 Dir[File.join(SPEC_ROOT, 'support/**/*.rb')].map { |f| require f }
 
+module PlatformCompat
+  VALID_PLATFORMS = [:Linux, :Windows].freeze
+
+  # Useful for testing, but not really safe or useful for production code
+  def self.platform=(value)
+    raise StandardError.new("Invalid platform '#{value}'.") unless VALID_PLATFORMS.include?(value)
+    @@platform = value
+  end
+
+  class PlatformContext
+    def initialize(platform_to_set, platform_to_restore)
+      @platform_to_set = platform_to_set
+      @platform_to_restore = platform_to_restore
+    end
+
+    def self.enter(platform)
+      context = PlatformContext.new(platform, PlatformCompat.platform)
+      context.enter!
+      context
+    end
+
+    def enter!
+      PlatformCompat.platform = @platform_to_set
+    end
+
+    def exit!
+      PlatformCompat.platform = @platform_to_restore
+    end
+  end
+end
+
+module PlatformSpecificExamples
+  def platform_specific(symbol, opts = {})
+    let(symbol) { opts[:default_platform] || :Linux }
+    before {
+      platform = self.public_send(symbol)
+      @platform_context = PlatformCompat::PlatformContext.enter(platform)
+    }
+    after {
+      @platform_context.exit! unless @platform_context.nil?
+      @platform_context = nil
+    }
+  end
+end
+
 RSpec.configure do |config|
   config.include(Helpers)
   config.include(StagingSpecHelpers, type: :buildpack)
@@ -58,6 +103,14 @@ RSpec.configure do |config|
 
   config.after(:all, type: :integration) do
     stop_file_server
+  end
+
+  config.extend(PlatformSpecificExamples)
+
+  if RbConfig::CONFIG['host_os'] =~ /mswin|mingw|cygwin/
+    config.filter_run_excluding :unix_only => true
+  else
+    config.filter_run_excluding :windows_only => true
   end
 end
 
