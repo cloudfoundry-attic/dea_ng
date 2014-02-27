@@ -21,7 +21,7 @@ describe Dea::HealthCheck::PortOpen do
   end
 
   it "should succed if someone starts listening on the port" do
-    ok = run_health_check(host, port, 0.1) do
+    ok = run_health_check(host, port, 0.6) do
       EM.add_timer(0.04) { start_server }
     end
 
