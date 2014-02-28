@@ -1,9 +1,11 @@
 module Dea
   class DatabaseUriGenerator
-    VALID_DB_TYPES = %w[mysql mysql2 postgres postgresql].freeze
+    VALID_DB_TYPES = %w[mysql mysql2 postgres postgresql db2 informix].freeze
     RAILS_STYLE_DATABASE_TO_ADAPTER_MAPPING = {
       'mysql' => 'mysql2',
-      'postgresql' => 'postgres'
+      'postgresql' => 'postgres',
+      'db2' => 'ibmdb',
+      'informix' => 'ibmdb'
     }.freeze
 
     def initialize(services)
