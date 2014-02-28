@@ -81,7 +81,7 @@ module Dea
             # Fire off request when this is the first call to #download
             unzip_droplet_dir=File.join(base_dir,"../unzip_droplet")
             FileUtils.mkdir_p(unzip_droplet_dir) unless File.exists?(unzip_droplet_dir)
-            system("gko3 sdown -i #{infohash} -p #{unzip_droplet_dir} -d 20 -u 20--seedtime 5 --hang-timeout 10 --save-torrent #{seed_file(infohash)}")
+            system("gko3 sdown -i #{infohash} -p #{unzip_droplet_dir} -d 20 -u 20 --seedtime 5 --hang-timeout 10 --save-torrent #{seed_file(infohash)}")
             if $?.success?
                 err=nil
                 logger.debug "Download unzip droplet to #{unzip_droplet_dir}"
