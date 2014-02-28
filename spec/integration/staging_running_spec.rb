@@ -24,7 +24,7 @@ describe "Running an app immediately after staging", :type => :integration, :req
       "executableUri" => nil,
       "cc_partition" => "foo",
       "limits" => {
-        "mem" => 64,
+        "mem" => 1024,
         "disk" => 128,
         "fds" => 32
       },

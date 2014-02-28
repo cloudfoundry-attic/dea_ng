@@ -42,7 +42,6 @@ staging:
   max_staging_duration: 900 # 15 minutes
 
 instance:
-  cpu_limit_shares: 256
   disk_inode_limit: 200000
 
 dea_ruby: /usr/bin/ruby

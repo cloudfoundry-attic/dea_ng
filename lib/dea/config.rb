@@ -18,7 +18,9 @@ module Dea
       "crash_inode_usage_ratio_threshold" => 0.8,
       "placement_properties" => { "zone" => "default" },
       "instance" => {
-        "cpu_limit_shares" => 256,
+        "cpu_share_factor" => 8,
+        "max_cpu_share_limit" => 256,
+        "min_cpu_share_limit" => 1,
         "disk_inode_limit" => DEFAULT_INSTANCE_DISK_INODE_LIMIT,
       },
       "staging" => {
@@ -96,7 +98,9 @@ module Dea
           },
 
           optional("instance") => {
-            optional("cpu_limit_shares") => Integer,
+            optional("cpu_share_factor") => Integer,
+            optional("max_cpu_share_limit") => Integer,
+            optional("min_cpu_share_limit") => Integer,
             optional("disk_inode_limit") => Integer
           },
 
@@ -119,7 +123,9 @@ module Dea
     end
 
     def initialize(config)
-      @config = EMPTY_CONFIG.merge(config)
+      @config = EMPTY_CONFIG.merge(config) do |_, x, y|
+        y.is_a?(Hash) && x.is_a?(Hash) ? x.merge(y) : y
+      end
     end
 
     def [](k)
