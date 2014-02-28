@@ -40,6 +40,7 @@ describe "Staging a node app", :type => :integration, :requires_warden => true d
   end
 
   it "downloads node from Heroku's S3 mirror of nodejs.org/dist and stages the app properly" do
+    pending "Until Node.js self signed certificates issue is fixed and node-gyp support from latest node.js (0.10.26)"
     response, log = perform_stage_request(staging_message)
 
     expect(response["error"]).to be_nil
@@ -78,6 +79,8 @@ describe "Staging a node app", :type => :integration, :requires_warden => true d
     end
 
     it "passes (for the most part, but fails intermittently)" do
+      pending "Until Node.js self signed certificates issue is fixed and node-gyp support from latest node.js (0.10.26)"
+
       # There appears to be an existing problem with Heroku's tests for this buildpack
       # where different tests will fail intermittently. We've seen these pass several times
       # in a row now and are avoiding making changes to the buildpack so we're going to live
