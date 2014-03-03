@@ -43,6 +43,9 @@ staging:
 
 instance:
   disk_inode_limit: 200000
+  cpu_share_factor: 8
+  max_cpu_share_limit: 256
+  min_cpu_share_limit: 1
 
 dea_ruby: /usr/bin/ruby
 

@@ -98,10 +98,10 @@ module Dea
           },
 
           optional("instance") => {
-            optional("cpu_share_factor") => Integer,
-            optional("max_cpu_share_limit") => Integer,
-            optional("min_cpu_share_limit") => Integer,
-            optional("disk_inode_limit") => Integer
+            "cpu_share_factor" => Integer,
+            "max_cpu_share_limit" => Integer,
+            "min_cpu_share_limit" => Integer,
+            "disk_inode_limit" => Integer
           },
 
           optional("staging") => {
@@ -123,9 +123,7 @@ module Dea
     end
 
     def initialize(config)
-      @config = EMPTY_CONFIG.merge(config) do |_, x, y|
-        y.is_a?(Hash) && x.is_a?(Hash) ? x.merge(y) : y
-      end
+      @config = EMPTY_CONFIG.merge(config)
     end
 
     def [](k)

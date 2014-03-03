@@ -65,6 +65,10 @@ module Dea
 
     def validate_config
       config.validate
+    rescue Exception => e
+      # Too early in the init process, we haven't got a logger
+      puts("Validation config failed with error #{e}")
+      raise e
     end
 
     def setup

@@ -38,15 +38,6 @@ module Dea
         it "has the expected default values" do
           config_as_hash.values.should eq(Config::EMPTY_CONFIG.values)
         end
-
-        context "when only one key in a subhash is overridden" do
-          # NOTE:  we don't actually recursively merge the hashes
-          # since we only have one level of nesting, our solution only works for one level of nesting
-          let(:config_hash) { { "instance" => { "disk_inode_limit" => 777 } } }
-          it "keeps the other keys from the original hash" do
-            expect(config_as_hash["instance"]["cpu_share_factor"]).to eq(8)
-          end
-        end
       end
     end
 

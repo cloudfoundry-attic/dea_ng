@@ -90,7 +90,7 @@ module Dea
         end
 
         if error
-          logger.warn "#{name}.failed",
+          logger.warn "#{name}.failed with error #{error}",
             duration: p.elapsed_time,
             error: error,
             backtrace: error.backtrace
