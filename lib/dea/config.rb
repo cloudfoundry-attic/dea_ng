@@ -18,7 +18,7 @@ module Dea
       "crash_inode_usage_ratio_threshold" => 0.8,
       "placement_properties" => { "zone" => "default" },
       "instance" => {
-        "cpu_share_factor" => 8,
+        "memory_to_cpu_share_ratio" => 8,
         "max_cpu_share_limit" => 256,
         "min_cpu_share_limit" => 1,
         "disk_inode_limit" => DEFAULT_INSTANCE_DISK_INODE_LIMIT,
@@ -98,7 +98,7 @@ module Dea
           },
 
           optional("instance") => {
-            "cpu_share_factor" => Integer,
+            "memory_to_cpu_share_ratio" => Integer,
             "max_cpu_share_limit" => Integer,
             "min_cpu_share_limit" => Integer,
             "disk_inode_limit" => Integer

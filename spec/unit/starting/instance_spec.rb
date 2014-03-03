@@ -662,7 +662,7 @@ describe Dea::Instance do
       before do
         instance.config['instance']['max_cpu_share_limit'] = 256
         instance.config['instance']['min_cpu_share_limit'] = 1
-        instance.config['instance']['cpu_share_factor'] = 8
+        instance.config['instance']['memory_to_cpu_share_ratio'] = 8
       end
 
       it 'is calcuted from app memory divided by share_factor' do

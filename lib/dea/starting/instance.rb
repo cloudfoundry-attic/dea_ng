@@ -800,7 +800,7 @@ module Dea
     end
 
     def cpu_shares
-      calculated_shares = limits['mem'].to_i / config['instance']['cpu_share_factor']
+      calculated_shares = limits['mem'].to_i / config['instance']['memory_to_cpu_share_ratio']
       if calculated_shares > config['instance']['max_cpu_share_limit']
         return config['instance']['max_cpu_share_limit']
       elsif calculated_shares < config['instance']['min_cpu_share_limit']

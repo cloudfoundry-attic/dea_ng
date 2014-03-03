@@ -43,7 +43,7 @@ staging:
 
 instance:
   disk_inode_limit: 200000
-  cpu_share_factor: 8
+  memory_to_cpu_share_ratio: 8
   max_cpu_share_limit: 256
   min_cpu_share_limit: 1
 
