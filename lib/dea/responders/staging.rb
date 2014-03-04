@@ -40,7 +40,7 @@ module Dea::Responders
       logger = logger_for_app(app_id)
 
       Dea::Loggregator.emit(app_id, "Got staging request for app with id #{app_id}")
-      logger.info('staging.handle.start', request: message)
+      logger.debug('staging.handle.start', request: message.inspect)
 
       task = Dea::StagingTask.new(bootstrap, dir_server, message, buildpacks_in_use, logger)
       unless resource_manager.could_reserve?(task.memory_limit_mb, task.disk_limit_mb)
