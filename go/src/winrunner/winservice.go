@@ -38,6 +38,8 @@ func runServer(configPath string) {
 		elog.Error(1, fmt.Sprintf("config file failed: %v", err))
 	}
 
+	common.SetupSteno(&config.Server.Logging)
+
 	var localIp *string
 	localIp, err = getLocalIp()
 
@@ -54,12 +56,14 @@ func (ws *windowsService) Execute(args []string, r <-chan svc.ChangeRequest, cha
 	const cmdsAccepted = svc.AcceptStop | svc.AcceptShutdown | svc.AcceptPauseAndContinue
 	changes <- svc.Status{State: svc.StartPending}
 
-	if len(args) > 0 {
-		ws.configPath = args[0]
-	}
+	if len(ws.configPath) == 0 {
+		if len(args) > 0 {
+			ws.configPath = args[0]
+		}
 
-	if len(os.Args) > 1 {
-		ws.configPath = os.Args[1]
+		if len(os.Args) > 1 {
+			ws.configPath = os.Args[1]
+		}
 	}
 
 	elog.Info(1, "Running directory server with config file " + ws.configPath)
@@ -90,7 +94,7 @@ loop:
 	return
 }
 
-func runService(name string, isDebug bool) {
+func runService(name string, configPath string, isDebug bool) {
 	var err error
 	if isDebug {
 		elog = debug.New(name)
@@ -109,7 +113,7 @@ func runService(name string, isDebug bool) {
 	}
 
 	ws := windowsService{}
-	ws.configPath = ""
+	ws.configPath = configPath
 	err = run(name, &ws)
 	if err != nil {
 		elog.Error(1, fmt.Sprintf("%s service failed: %v", name, err))

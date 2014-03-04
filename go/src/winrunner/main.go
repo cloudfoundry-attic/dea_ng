@@ -39,7 +39,8 @@ func main() {
 		log.Fatalf("failed to determine if we are running in an interactive session: %v", err)
 	}
 	if !isIntSess {
-		runService(svcName, false)
+
+		runService(svcName, "", false)
 		return
 	}
 
@@ -50,7 +51,11 @@ func main() {
 	cmd := strings.ToLower(os.Args[1])
 	switch cmd {
 	case "debug":
-		runService(svcName, true)
+		if len(os.Args) < 3 {
+			usagewithconfigpath("no config path specified")
+		}
+		configPath := os.Args[2]
+		runService(svcName, configPath, true)
 		return
 	case "install":
 		if len(os.Args) < 3 {
