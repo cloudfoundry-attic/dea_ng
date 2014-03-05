@@ -20,6 +20,8 @@ module Dea
 
     STAT_COLLECTION_INTERVAL_SECS = 10
     DEFAULT_APPWORKSPACE_USER = "default"
+    DEFAULT_WORKUSER_LENGTH = 30
+    DEFAULT_WORKUSER_PASSWORD = 'default'
 
     BIND_MOUNT_MODE_MAP = {
       "ro" =>  ::Warden::Protocol::CreateRequest::BindMount::Mode::RO,
@@ -628,7 +630,7 @@ module Dea
         [
           promise_extract_droplet,
           promise_setup_network,
-          promise_update_work_user,
+          promise_change_work_user,
           promise_exec_hook_script('before_start'),
           promise_start
         ].each(&:resolve)
@@ -665,8 +667,24 @@ module Dea
     end
 
     def work_user
-      attributes.fetch('instance_meta', {}).
-                 fetch('work_user', app_workspace_user)
+      user_given = attributes.fetch('instance_meta', {}).
+                   fetch('work_user', app_workspace_user)
+      if user_given.size <= DEFAULT_WORKUSER_LENGTH &&
+         (/^[a-z\d][\w,-]*[a-z\d]$/i.match(user_given))
+         user = user_given
+      end
+      user
+    end
+
+    def promise_change_work_user
+      Promise.new do |p|
+        if work_user
+          promise_update_work_user.resolve
+        else
+          p.fail("Work user should be composed by letters/numbers/-/_( e.g.: a-b_1, test1) and shorter than #{DEFAULT_WORKUSER_LENGTH}")
+        end
+        p.deliver 
+      end
     end
 
     def promise_update_work_user
@@ -674,6 +692,7 @@ module Dea
         script = []
 
         script << "useradd #{work_user} -M"
+        script << "echo '#{work_user}:#{DEFAULT_WORKUSER_PASSWORD}' | chpasswd"
         find_opts = []
         find_opts << "find /home/#{app_workspace_user}"
         find_opts << "-maxdepth 1"
