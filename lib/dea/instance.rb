@@ -679,7 +679,7 @@ module Dea
     def promise_change_work_user
       Promise.new do |p|
         if work_user
-          promise_update_work_user.resolve
+          promise_update_work_user.resolve unless work_user == app_workspace_user
         else
           p.fail("Work user should be composed by letters/numbers/-/_( e.g.: a-b_1, test1) and shorter than #{DEFAULT_WORKUSER_LENGTH}")
         end
