@@ -86,7 +86,7 @@ module Dea
       prod_ports.each_pair do |k,v|
         if k != "sshd" && v["port_info"]["bns"] == true 
           ports << ["JPAAS_TCP_PORT_#{index}", v["host_port"]]
-          ports << [k, v["host_port"] ]
+          ports << [k, v["container_port"] ]
           index += 1
         end
       end
