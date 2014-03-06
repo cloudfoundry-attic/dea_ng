@@ -84,8 +84,9 @@ module Dea
       prod_ports = instance.instance_meta["prod_ports"]
       return ports if prod_ports.nil?
       prod_ports.each_pair do |k,v|
-        if v["port_info"]["bns"] == true
+        if k != "sshd" && v["port_info"]["bns"] == true 
           ports << ["JPAAS_TCP_PORT_#{index}", v["host_port"]]
+          ports << [k, v["host_port"] ]
           index += 1
         end
       end
