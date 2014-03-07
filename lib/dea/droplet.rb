@@ -12,6 +12,9 @@ module Dea
   class Droplet
     attr_reader :base_dir
     attr_reader :sha1
+    attr_reader :app_name
+    attr_reader :app_space
+    attr_reader :app_org
 
     def initialize(base_dir, sha1)
       @base_dir = base_dir
@@ -56,6 +59,48 @@ module Dea
           while blk = @download_waiting.shift
             blk.call(err)
           end
+        end
+      end
+    end
+    def unzip_droplet_dir
+        File.join(base_dir,"../unzip_droplet")
+    end
+
+    def seed_file(infohash)
+        File.join(base_dir,"../#{infohash}.torrent")
+    end
+
+    def download_unzip_droplet(infohash,&blk)
+      @download_waiting ||= []
+      @download_waiting << blk
+
+      logger.debug "Waiting for download to complete by gko3"
+
+      if @download_waiting.size == 1
+        begin
+            # Fire off request when this is the first call to #download
+            unzip_droplet_dir=File.join(base_dir,"../unzip_droplet")
+            FileUtils.mkdir_p(unzip_droplet_dir) unless File.exists?(unzip_droplet_dir)
+            system("gko3 sdown -i #{infohash} -p #{unzip_droplet_dir} -d 20 -u 20 --seedtime 5 --hang-timeout 10 --save-torrent #{seed_file(infohash)}")
+            if $?.success?
+                err=nil
+                logger.debug "Download unzip droplet to #{unzip_droplet_dir}"
+                #delete extra files if necessary
+                system("gko3 rmfiles -p #{unzip_droplet_dir} -r #{seed_file(infohash)} --not-in")
+                if $?.success?
+                    err=nil
+                    logger.debug "delete extra files ok"
+                else
+                    err="Failed to delete extra files"
+                end
+            else
+                err="Failed to download unzip droplet:gko3 sdown -i #{infohash} -p #{unzip_droplet_dir}"
+            end
+            while blk = @download_waiting.shift
+                blk.call(err)
+            end
+        ensure
+            system("rm -f #{seed_file(infohash)}")
         end
       end
     end
