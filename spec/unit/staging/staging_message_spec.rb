@@ -87,5 +87,16 @@ describe StagingMessage do
         }
       ])
     end
+
+    it "should handle invalid buildpack urls" do
+      admin_buildpacks[0]["url"] = nil
+
+      expect(message.admin_buildpacks).to eq([
+        {
+          url: URI("http://www.example.com/buildpacks/uri/second"),
+          key: "second"
+        }
+      ])
+    end
   end
 end
