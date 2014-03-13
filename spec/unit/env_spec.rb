@@ -7,13 +7,13 @@ require "dea/starting/start_message"
 require "dea/staging/staging_message"
 
 describe Dea::Env do
-  class NullEnvExporter < Struct.new(:variables)
+  class NullExporter < Struct.new(:variables)
     def export
       variables.inject({}) {|h, a| h[a[0]] = a[1]; h }
     end
   end
 
-  let(:env_exporter) { NullEnvExporter }
+  let(:env_exporter) { NullExporter }
 
   let(:service) do
     {
