@@ -10,6 +10,7 @@ require "dea/starting/database_uri_generator"
 require "dea/staging/env"
 require "dea/starting/env"
 require "dea/env_exporter"
+require "dea/env_strategy_chooser"
 
 module Dea
   class Env
@@ -17,13 +18,9 @@ module Dea
 
     attr_reader :strategy_env
 
-    def initialize(message, instance_or_staging_task, env_exporter = EnvExporter)
+    def initialize(message, instance_or_staging_task, env_exporter = EnvExporter, env_strategy_chooser = EnvStrategyChooser.new(message, instance_or_staging_task))
       @env_exporter = env_exporter
-      @strategy_env = if message.is_a? StagingMessage
-        Staging::Env.new(message, instance_or_staging_task)
-      else
-        Starting::Env.new(message, instance_or_staging_task)
-      end
+      @strategy_env = env_strategy_chooser.strategy
     end
 
     def message
