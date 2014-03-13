@@ -9,7 +9,7 @@ module Dea
       @staging_task = staging_task
     end
 
-    def exported_system_environment_variables
+    def system_environment_variables
       [
         ["BUILDPACK_CACHE", staging_task.staging_config["environment"]["BUILDPACK_CACHE"]],
         ["STAGING_TIMEOUT", staging_task.staging_timeout],

@@ -11,7 +11,7 @@ module Dea
       @instance = instance
     end
 
-    def exported_system_environment_variables
+    def system_environment_variables
       env = [
         ["HOME", "$PWD/app"],
         ["TMPDIR", "$PWD/tmp"],

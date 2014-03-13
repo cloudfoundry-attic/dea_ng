@@ -31,6 +31,24 @@ module Dea
     end
 
     def exported_system_environment_variables
+      to_export(system_environment_variables)
+    end
+
+    def exported_user_environment_variables
+      to_export(user_environment_variables)
+    end
+
+    def exported_environment_variables
+      to_export(system_environment_variables + user_environment_variables)
+    end
+
+    private
+
+    def user_environment_variables
+      translate_env(message.env)
+    end
+
+    def system_environment_variables
       env = [
         ["VCAP_APPLICATION",  Yajl::Encoder.encode(vcap_application)],
         ["VCAP_SERVICES",     Yajl::Encoder.encode(vcap_services)],
@@ -38,18 +56,8 @@ module Dea
       ]
       env << ["DATABASE_URL", DatabaseUriGenerator.new(message.services).database_uri] if message.services.any?
 
-      to_export(env + strategy_env.exported_system_environment_variables)
+      env + strategy_env.system_environment_variables
     end
-
-    def exported_user_environment_variables
-      to_export(translate_env(message.env))
-    end
-
-    def exported_environment_variables
-      exported_system_environment_variables + exported_user_environment_variables
-    end
-
-    private
 
     def vcap_services
       @vcap_services ||=
@@ -95,6 +103,5 @@ module Dea
     def to_export(env)
       @env_exporter.new(env).export
     end
-
   end
 end
