@@ -463,7 +463,7 @@ describe Container do
 
   describe '#link' do
     it 'calls #call_with_retry correctly' do
-      fake_response = instance_double(::Warden::Protocol::LinkResponse)
+      fake_response = "fake response"
 
       container.should_receive(:call_with_retry) do |name, request|
         expect(name).to eq(:link)
