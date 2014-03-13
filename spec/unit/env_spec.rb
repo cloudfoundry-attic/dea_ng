@@ -7,13 +7,13 @@ require "dea/starting/start_message"
 require "dea/staging/staging_message"
 
 describe Dea::Env do
-  def env_to_hash(export_statements)
-    `#{export_statements} env`.lines.inject({}) do |memo, l|
-      m = %r{(.*?)=(.*)}.match(l)
-      memo[m[1]] = m[2].chomp
-      memo
+  class NullEnvExporter < Struct.new(:variables)
+    def export
+      variables.inject({}) {|h, a| h[a[0]] = a[1]; h }
     end
   end
+
+  let(:env_exporter) { NullEnvExporter }
 
   let(:service) do
     {
@@ -33,7 +33,7 @@ describe Dea::Env do
 
   let(:services) { [service] }
 
-  let(:environment) { ["A=one_value", "B=with spaces", "C=with'quotes\"double", "D=referencing $A", "E=with=equals", "F="] }
+  let(:user_provided_environment) { ["fake_user_provided_key=fake_user_provided_value"] }
 
   let(:instance) do
     attributes = {"instance_id" => VCAP.secure_uuid}
@@ -61,13 +61,13 @@ describe Dea::Env do
         "disk" => 1024,
         "fds" => 16384},
       "cc_partition" => "default",
-      "env" => environment,
+      "env" => user_provided_environment,
       "index" => 0
     }
   end
 
   context "when running from the starting (instance) task" do
-    subject(:env) { Dea::Env.new(start_message, instance) }
+    subject(:env) { Dea::Env.new(start_message, instance, env_exporter) }
 
     its(:strategy_env) { should be_an_instance_of Dea::RunningEnv }
 
@@ -180,49 +180,49 @@ describe Dea::Env do
     describe "#exported_system_environment_variables" do
       let(:exported_system_vars) { env.exported_system_environment_variables }
 
-      it "exports the right variables" do
-        env_to_hash(exported_system_vars)["VCAP_APPLICATION"].should match(%r{\"instance_index\":0})
+      it "exports VCAP_APPLICATION" do
+        exported_system_vars["VCAP_APPLICATION"].should match(%r{\"instance_index\":0})
       end
 
       it "exports VCAP_SERVICES" do
-        env_to_hash(exported_system_vars)["VCAP_SERVICES"].should match(%r{\"plan\":\"panda\"})
+        exported_system_vars["VCAP_SERVICES"].should match(%r{\"plan\":\"panda\"})
       end
 
       it "exports VCAP_APP_HOST" do
-        env_to_hash(exported_system_vars)["VCAP_APP_HOST"].should match("0.0.0.0")
+        exported_system_vars["VCAP_APP_HOST"].should match("0.0.0.0")
       end
 
       it "exports VCAP_APP_PORT" do
-        env_to_hash(exported_system_vars)["VCAP_APP_PORT"].should match("4567")
+        exported_system_vars["VCAP_APP_PORT"].should eql(4567)
       end
 
       it "does not export VCAP_DEBUG_IP" do
-        env_to_hash(exported_system_vars).should_not have_key("VCAP_DEBUG_IP")
+        exported_system_vars.should_not have_key("VCAP_DEBUG_IP")
       end
 
       it "does not export VCAP_DEBUG_PORT" do
-        env_to_hash(exported_system_vars).should_not have_key("VCAP_DEBUG_PORT")
+        exported_system_vars.should_not have_key("VCAP_DEBUG_PORT")
       end
 
       it "exports PORT" do
-        env_to_hash(exported_system_vars)["PORT"].should match("4567")
+        exported_system_vars["PORT"].should eql("$VCAP_APP_PORT")
       end
 
       it "exports MEMORY_LIMIT" do
-        env_to_hash(exported_system_vars)["MEMORY_LIMIT"].should match("512m")
+        exported_system_vars["MEMORY_LIMIT"].should match("512m")
       end
 
       it "exports HOME" do
-        env_to_hash(exported_system_vars)["HOME"].should match("#{Dir.pwd}/app")
+        exported_system_vars["HOME"].should eql("$PWD/app")
       end
 
       it "exports TMPDIR" do
-        env_to_hash(exported_system_vars)["TMPDIR"].should match("#{Dir.pwd}/tmp")
+        exported_system_vars["TMPDIR"].should eql("$PWD/tmp")
       end
 
       context "when it has a DB" do
         it "exports DATABASE_URL" do
-          env_to_hash(exported_system_vars)["DATABASE_URL"].should match("postgres://user:pass@host:5432/db")
+          exported_system_vars["DATABASE_URL"].should match("postgres://user:pass@host:5432/db")
         end
       end
 
@@ -230,7 +230,7 @@ describe Dea::Env do
         let(:services) { [] }
 
         it "does not export DATABASE_URL" do
-          env_to_hash(exported_system_vars).should_not have_key("DATABASE_URL")
+          exported_system_vars.should_not have_key("DATABASE_URL")
         end
       end
     end
@@ -238,28 +238,8 @@ describe Dea::Env do
     describe "#exported_user_environment_variables" do
       let(:exported_variables) { env.exported_user_environment_variables }
 
-      it "exports A" do
-        env_to_hash(exported_variables)["A"].should match("one_value")
-      end
-
-      it "exports B" do
-        env_to_hash(exported_variables)["B"].should match("with spaces")
-      end
-
-      it "exports C" do
-        env_to_hash(exported_variables)["C"].should match(%Q[with'quotes"double])
-      end
-
-      it "exports D" do
-        env_to_hash(exported_variables)["D"].should match("referencing one_value")
-      end
-
-      it "exports E" do
-        env_to_hash(exported_variables)["E"].should match("with=equals")
-      end
-
-      it "exports F even if it's empty" do
-        env_to_hash(exported_variables)["F"].should match("")
+      it "includes the user defined variables" do
+        exported_variables["fake_user_provided_key"].should match("fake_user_provided_value")
       end
     end
   end
@@ -277,7 +257,7 @@ describe Dea::Env do
             "disk" => 1024,
             "fds" => 16384
           },
-          "environment" => environment,
+          "environment" => user_provided_environment,
           "meta" => {
             "command" => "some_command"
           }
@@ -298,7 +278,7 @@ describe Dea::Env do
       staging_task
     end
 
-    subject(:env) { Dea::Env.new(StagingMessage.new(staging_message), staging_task) }
+    subject(:env) { Dea::Env.new(StagingMessage.new(staging_message), staging_task, env_exporter) }
 
     its(:strategy_env) { should be_an_instance_of Dea::StagingEnv }
 
@@ -396,18 +376,18 @@ describe Dea::Env do
       let(:exported_variables) { env.exported_system_environment_variables }
 
       it "exports VCAP_APPLICATION" do
-        env_to_hash(exported_variables)["VCAP_APPLICATION"].should match(%r{\"mem\":512})
+        exported_variables["VCAP_APPLICATION"].should match(%r{\"mem\":512})
       end
       it "exports VCAP_SERVICES" do
-        env_to_hash(exported_variables)["VCAP_SERVICES"].should match(%r{\"plan\":\"panda\"})
+        exported_variables["VCAP_SERVICES"].should match(%r{\"plan\":\"panda\"})
       end
       it "exports MEMORY_LIMIT" do
-        env_to_hash(exported_variables)["MEMORY_LIMIT"].should match("512m")
+        exported_variables["MEMORY_LIMIT"].should match("512m")
       end
 
       context "when it has a DB" do
         it "exports DATABASE_URL" do
-          env_to_hash(exported_variables)["DATABASE_URL"].should match("postgres://user:pass@host:5432/db")
+          exported_variables["DATABASE_URL"].should match("postgres://user:pass@host:5432/db")
         end
       end
 
@@ -415,7 +395,7 @@ describe Dea::Env do
         let(:services) { [] }
 
         it "does not exports DATABASE_URL" do
-          env_to_hash(exported_variables).should_not have_key("DATABASE_URL")
+          exported_variables.should_not have_key("DATABASE_URL")
         end
       end
     end
@@ -423,33 +403,18 @@ describe Dea::Env do
     describe "#user_environment_variables" do
       let(:exported_variables) { env.exported_user_environment_variables }
 
-      it "exports A" do
-        env_to_hash(exported_variables)["A"].should match("one_value")
-      end
-      it "exports B" do
-        env_to_hash(exported_variables)["B"].should match("with spaces")
-      end
-      it "exports C" do
-        env_to_hash(exported_variables)["C"].should match(%Q[with'quotes"double])
-      end
-      it "exports D" do
-        env_to_hash(exported_variables)["D"].should match("referencing one_value")
-      end
-      it "exports E" do
-        env_to_hash(exported_variables)["E"].should match("with=equals")
-      end
-      it "exports F" do
-        env_to_hash(exported_variables)["F"].should match("")
+      it "includes the user defined variables" do
+        exported_variables["fake_user_provided_key"].should match("fake_user_provided_value")
       end
     end
   end
 
   describe "exported_environment_variables" do
-    let(:environment) { ["PORT=stupid idea"] }
-    subject(:env) { Dea::Env.new(start_message, instance) }
+    let(:user_provided_environment) { ["PORT=stupid idea"] }
+    subject(:env) { Dea::Env.new(start_message, instance, env_exporter) }
 
     it "exports PORT" do
-      env_to_hash(env.exported_environment_variables)["PORT"].should match("stupid idea")
+      env.exported_environment_variables["PORT"].should match("stupid idea")
     end
   end
 end
