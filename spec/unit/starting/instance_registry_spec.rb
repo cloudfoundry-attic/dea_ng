@@ -472,6 +472,7 @@ describe Dea::InstanceRegistry do
     end
 
     it "should return false when #stat raises" do
+      Sys::Filesystem.should_receive(:mount_point)
       Sys::Filesystem.should_receive(:stat).and_raise("error")
 
       instance_registry.disk_pressure?.should be_false
@@ -482,6 +483,7 @@ describe Dea::InstanceRegistry do
       stat.stub(:blocks => 10, :blocks_free => 8)
       stat.stub(:files => 10, :files_free => 8)
 
+      Sys::Filesystem.should_receive(:mount_point)
       Sys::Filesystem.should_receive(:stat).and_return(stat)
 
       instance_registry.disk_pressure?.should be_false
@@ -492,6 +494,7 @@ describe Dea::InstanceRegistry do
       stat.stub(:blocks => 10, :blocks_free => 2)
       stat.stub(:files => 10, :files_free => 8)
 
+      Sys::Filesystem.should_receive(:mount_point)
       Sys::Filesystem.should_receive(:stat).and_return(stat)
 
       instance_registry.disk_pressure?.should be_true
@@ -502,9 +505,21 @@ describe Dea::InstanceRegistry do
       stat.stub(:blocks => 10, :blocks_free => 8)
       stat.stub(:files => 10, :files_free => 2)
 
+      Sys::Filesystem.should_receive(:mount_point)
       Sys::Filesystem.should_receive(:stat).and_return(stat)
 
       instance_registry.disk_pressure?.should be_true
+    end
+    
+    it "should ignore inode threshold when not supported" do
+      stat = double
+      stat.stub(:blocks => 10, :blocks_free => 8)
+      stat.stub(:files => nil, :files_free => nil)
+
+      Sys::Filesystem.should_receive(:mount_point)
+      Sys::Filesystem.should_receive(:stat).and_return(stat)
+
+      instance_registry.disk_pressure?.should be_false
     end
   end
 

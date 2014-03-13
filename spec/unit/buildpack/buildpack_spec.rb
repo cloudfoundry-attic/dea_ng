@@ -41,10 +41,45 @@ describe Buildpacks::Buildpack, type: :buildpack do
   end
 
   describe "#copy_source_files" do
+    context "on Linux" do
+      old_platform = nil
+      before do
+        old_platform = PlatformDetect.platform
+        PlatformDetect.platform = :Linux
+      end
+
+      after do
+        PlatformDetect.platform = old_platform
+      end
+
+      it "Copies files using system command" do
+        # recursively (-r) while not following symlinks (-P) and preserving dir structure (-p)
+        # this is why we use system copy not FileUtil
+        build_pack.should_receive(:system).with("cp -a #{File.expand_path("fakesrcdir") + "/."} #{File.expand_path("fakedestdir/app")}")
+        FileUtils.should_receive(:chmod_R).with(0744, File.expand_path("fakedestdir/app"))
+        build_pack.copy_source_files
+      end
+    end
+
+    context "on Windows" do
+      old_platform = nil
+      before do
+        old_platform = PlatformDetect.platform
+        PlatformDetect.platform = :Windows
+      end
+
+      after do
+        PlatformDetect.platform = old_platform
+      end
+      it "Copies files using FileUtils" do
+        FileUtils.should_receive(:cp_r).with(File.expand_path("fakesrcdir") + "/.", File.expand_path("fakedestdir/app"), { :preserve => true })
+        FileUtils.should_receive(:chmod_R).with(0744, File.expand_path("fakedestdir/app"))
+        build_pack.copy_source_files
+      end
+    end
+
     it "Copy all the files from the source dir into the dest dir" do
-      # recursively (-r) while not following symlinks (-P) and preserving dir structure (-p)
-      # this is why we use system copy not FileUtil
-      build_pack.should_receive(:system).with("cp -a #{File.expand_path "fakesrcdir"}/. #{File.expand_path "fakedestdir/app"}")
+      build_pack.should_receive(:cp_a).with(File.expand_path("fakesrcdir") + "/.", File.expand_path("fakedestdir/app"))
       FileUtils.should_receive(:chmod_R).with(0744, File.expand_path("fakedestdir/app"))
       build_pack.copy_source_files
     end
@@ -102,7 +137,7 @@ describe Buildpacks::Buildpack, type: :buildpack do
       end
     end
 
-    context "when passing in multiple buildpacks" do
+    context "when passing in multiple buildpacks", unix_only:true do
       before { app_fixture :node_with_procfile }
 
       let(:buildpack_dirs) do
@@ -132,7 +167,7 @@ describe Buildpacks::Buildpack, type: :buildpack do
       end
     end
 
-    context "when the buildpack is detected" do
+    context "when the buildpack is detected", unix_only:true do
       before { app_fixture :node_with_procfile }
 
       let(:buildpack_dirs) { ["#{fake_buildpacks_dir}/no_start_command"] }
@@ -151,7 +186,7 @@ describe Buildpacks::Buildpack, type: :buildpack do
     context "when no start command is passed and the application does not have a procfile" do
       before { app_fixture :node_without_procfile }
 
-      context "when the buildpack provides a default start command" do
+      context "when the buildpack provides a default start command", unix_only:true do
         let(:buildpack_dirs) { ["#{fake_buildpacks_dir}/start_command"] }
 
         it "uses the default start command" do
@@ -159,7 +194,7 @@ describe Buildpacks::Buildpack, type: :buildpack do
         end
       end
 
-      context "when the buildpack does not provide a default start command" do
+      context "when the buildpack does not provide a default start command", unix_only:true  do
         let(:buildpack_dirs) { ["#{fake_buildpacks_dir}/no_start_command"] }
 
         it "sets the start command to an empty string" do

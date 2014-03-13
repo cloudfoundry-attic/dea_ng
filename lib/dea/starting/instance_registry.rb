@@ -214,13 +214,16 @@ module Dea
       r = false
 
       begin
-        stat = Sys::Filesystem.stat(config.crashes_path)
+        stat = Sys::Filesystem.stat(Sys::Filesystem.mount_point(config.crashes_path))
 
         block_usage_ratio = Float(stat.blocks - stat.blocks_free) / Float(stat.blocks)
-        inode_usage_ratio = Float(stat.files - stat.files_free) / Float(stat.files)
-
         r ||= block_usage_ratio > config.crash_block_usage_ratio_threshold
-        r ||= inode_usage_ratio > config.crash_inode_usage_ratio_threshold
+        
+        inode_usage_ratio = 0
+        unless stat.files.nil?
+          inode_usage_ratio = Float(stat.files - stat.files_free) / Float(stat.files)
+          r ||= inode_usage_ratio > config.crash_inode_usage_ratio_threshold
+        end
 
         if r
           logger.debug("Disk usage (block/inode): %.3f/%.3f" % [block_usage_ratio, inode_usage_ratio])

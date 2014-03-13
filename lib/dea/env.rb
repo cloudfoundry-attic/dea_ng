@@ -9,6 +9,7 @@ require "dea/staging/staging_env"
 
 require "dea/starting/database_uri_generator"
 require "dea/starting/running_env"
+require "dea/utils/platform_compat"
 
 module Dea
   class Env
@@ -36,11 +37,11 @@ module Dea
       ]
       env << ["DATABASE_URL", DatabaseUriGenerator.new(message.services).database_uri] if message.services.any?
 
-      to_export(env + strategy_env.exported_system_environment_variables)
+      PlatformCompat.to_env(env + strategy_env.exported_system_environment_variables)
     end
 
     def exported_user_environment_variables
-      to_export(translate_env(message.env))
+      PlatformCompat.to_env(translate_env(message.env))
     end
 
     def exported_environment_variables
@@ -88,12 +89,6 @@ module Dea
 
     def translate_env(env)
       env ? env.map { |e| e.split("=", 2) } : []
-    end
-
-    def to_export(envs)
-      envs.map do |(key, value)|
-        %Q{export %s="%s";\n} % [key, value.to_s.gsub('"', '\"')]
-      end.join
     end
   end
 end

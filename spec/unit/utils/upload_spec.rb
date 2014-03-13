@@ -44,7 +44,7 @@ describe Upload do
       em { example.call }
     end
 
-    it "requests an async upload of the droplet" do
+    it "requests an async upload of the droplet", unix_only:true do
       stub_request(:post, "http://127.0.0.1:12345/").with(query: {async: "true"})
       subject.upload! {}
       done
@@ -63,7 +63,7 @@ describe Upload do
       done
     end
 
-    context "when sync and successfully" do
+    context "when sync and successfully", unix_only:true do
       before do
         start_http_server(12345) do |connection, data|
           uploaded_contents << data
@@ -80,7 +80,7 @@ describe Upload do
       end
     end
 
-    context "when async" do
+    context "when async", unix_only:true do
       context "and the polling URL is invalid" do
         let(:job_url) { "I am not a url!" }
         before do
@@ -267,7 +267,7 @@ describe Upload do
       end
     end
 
-    context "when you get a 500" do
+    context "when you get a 500", unix_only:true do
       before do
         start_http_server(12345) do |connection, data|
           create_response(connection, "", 500)

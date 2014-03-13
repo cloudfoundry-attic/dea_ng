@@ -80,7 +80,7 @@ describe EventMachine::HttpClient do
 
       it "adds the multipart footer to the file" do
         subject
-        File.read(tempfile.path).should eq("#{body}\r\n--multipart-boundary-UUID--\n")
+        File.read(tempfile.path, :mode => 'rb').should eq("#{body}\r\n--multipart-boundary-UUID--\n")
       end
     end
 

@@ -9,6 +9,14 @@ module Dea
     STAGING_LOG = "staging_task.log".freeze
     STAGING_INFO = "staging_info.yml".freeze
 
+    include_platform_compat
+    abstract_method :warden_staged_droplet,
+                    :warden_unstaged_buildpack_cache,
+                    :warden_staged_buildpack_cache,
+                    :warden_cache,
+                    :warden_unstaged_dir,
+                    :warden_staged_dir
+
     def initialize(base_dir, staging_message, buildpacks_in_use)
       @base_dir = base_dir
       @environment_properties = staging_message.properties
@@ -56,31 +64,6 @@ module Dea
     end
 
     ###### Accessors
-
-    def warden_staged_droplet
-      "/tmp/#{DROPLET_FILE}"
-    end
-
-    def warden_unstaged_buildpack_cache
-      "/tmp/#{BUILDPACK_CACHE_FILE}"
-    end
-
-    def warden_staged_buildpack_cache
-      "/tmp/#{BUILDPACK_CACHE_FILE}"
-    end
-
-    def warden_cache
-      "/tmp/cache"
-    end
-
-    def warden_unstaged_dir
-      "/tmp/unstaged"
-    end
-
-    def warden_staged_dir
-      "/tmp/staged"
-    end
-
     def tmpdir
       File.join(@base_dir, "tmp")
     end
@@ -131,6 +114,58 @@ module Dea
 
     def downloaded_buildpack_cache_path
       File.join(workspace_dir, BUILDPACK_CACHE_FILE)
+    end
+  end
+
+  class LinuxStagingTaskWorkspace < StagingTaskWorkspace
+    def warden_staged_droplet
+      "/tmp/#{DROPLET_FILE}"
+    end
+
+    def warden_unstaged_buildpack_cache
+      "/tmp/#{BUILDPACK_CACHE_FILE}"
+    end
+
+    def warden_staged_buildpack_cache
+      "/tmp/#{BUILDPACK_CACHE_FILE}"
+    end
+
+    def warden_cache
+      "/tmp/cache"
+    end
+
+    def warden_unstaged_dir
+      "/tmp/unstaged"
+    end
+
+    def warden_staged_dir
+      "/tmp/staged"
+    end
+  end
+
+  class WindowsStagingTaskWorkspace < StagingTaskWorkspace
+    def warden_staged_droplet
+      "@ROOT@/tmp/#{DROPLET_FILE}"
+    end
+
+    def warden_unstaged_buildpack_cache
+      "@ROOT@/tmp/#{BUILDPACK_CACHE_FILE}"
+    end
+
+    def warden_staged_buildpack_cache
+      "@ROOT@/tmp/#{BUILDPACK_CACHE_FILE}"
+    end
+
+    def warden_cache
+      "@ROOT@/tmp/cache"
+    end
+
+    def warden_unstaged_dir
+      "@ROOT@/tmp/unstaged"
+    end
+
+    def warden_staged_dir
+      "@ROOT@/tmp/staged"
     end
   end
 end

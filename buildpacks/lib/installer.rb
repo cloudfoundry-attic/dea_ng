@@ -1,7 +1,18 @@
 require "open3"
+require "platform_detect"
 
 module Buildpacks
   class Installer < Struct.new(:path, :app_dir, :cache_dir)
+    def self.new(path, app_dir, cache_dir)
+      if PlatformDetect.windows?
+        object = WindowsInstaller.allocate
+      else
+        object = LinuxInstaller.allocate
+      end
+      object.send :initialize, path, app_dir, cache_dir
+      object
+    end
+    
     def detect
       @detect_output, status = Open3.capture2 command('detect')
       status == 0
@@ -24,11 +35,17 @@ module Buildpacks
       raise "Release info failed:\n#{output}" unless status == 0
       YAML.load(output)
     end
+  end
 
-    private
-
+  class LinuxInstaller < Installer
     def command(command_name)
       "#{path}/bin/#{command_name} #{app_dir}"
+    end
+  end
+
+  class WindowsInstaller < Installer
+    def command(command_name)
+      "ruby #{path}/bin/#{command_name} #{app_dir}"
     end
   end
 end

@@ -1,5 +1,6 @@
 require "dea/lifecycle/evacuation_handler"
 require "dea/lifecycle/shutdown_handler"
+require "dea/utils/platform_compat"
 
 class SignalHandler
   SIGNALS_OF_INTEREST = %W[TERM INT QUIT USR1 USR2].freeze
@@ -20,9 +21,11 @@ class SignalHandler
 
   def setup(&kernel_trap)
     SIGNALS_OF_INTEREST.each do |signal|
-      kernel_trap.call(signal) do
-        @logger.warn "caught SIG#{signal}"
-        send("trap_#{signal.downcase}")
+      if PlatformCompat.signal_supported? signal
+        kernel_trap.call(signal) do
+          @logger.warn "caught SIG#{signal}"
+          send("trap_#{signal.downcase}")
+        end
       end
     end
   end
@@ -37,15 +40,18 @@ class SignalHandler
     shutdown
   end
 
+  # not supported on windows
   def trap_quit
     shutdown
   end
 
+  # not supported on windows
   def trap_usr1
     @message_bus.publish("dea.shutdown", goodbye_message)
     @locator_responders.each(&:stop)
   end
 
+  # not supported on windows
   def trap_usr2
     @evac_handler ||= EvacuationHandler.new(@message_bus, @locator_responders, @instance_registry, @logger, @config)
     can_shutdown = @evac_handler.evacuate!(goodbye_message)

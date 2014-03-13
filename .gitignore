@@ -1,6 +1,7 @@
 .bundle
 .idea
 .vagrant*
+.hg
 /go/
 spec/fixtures/**/.git
 tmp/*

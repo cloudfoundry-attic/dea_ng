@@ -50,7 +50,7 @@ describe Dea::Bootstrap do
       end
     end
 
-    it "should use a syslog sink when specified" do
+    it "should use a syslog sink when specified", unix_only:true do
       @config = { "logging" => { "syslog" => "ident" } }
 
       Steno.should_receive(:init).with do |config|

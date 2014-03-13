@@ -1,8 +1,11 @@
 require 'spec_helper'
 require 'dea/starting/instance'
+require 'dea/utils/platform_compat'
 
 describe Dea::Instance do
   include_context 'tmpdir'
+
+  platform_specific(:platform, default_platform: :Linux)
 
   let(:connection) { double('connection', :promise_call => delivering_promise) }
   let(:snapshot) do
@@ -18,10 +21,12 @@ describe Dea::Instance do
     bootstrap.config.stub(:crashes_path).and_return('crashes/path')
   end
 
+  let(:attributes) { valid_instance_attributes }
+  
   subject(:instance) do
-    Dea::Instance.new(bootstrap, valid_instance_attributes)
+    Dea::Instance.new(bootstrap, attributes)
   end
-
+  
   describe 'default attributes' do
     it 'defaults exit status to -1' do
       expect(instance.exit_status).to eq(-1)
@@ -42,9 +47,7 @@ describe Dea::Instance do
       message
     end
 
-    subject(:instance) do
-      Dea::Instance.new(bootstrap, start_message.data)
-    end
+    let(:attributes) { start_message.data }
 
     describe 'instance attributes' do
       let(:start_message_data) do
@@ -150,8 +153,6 @@ describe Dea::Instance do
         )
       end
 
-      subject { described_class.new(bootstrap, attributes) }
-
       its(:warden_handle) { should == 'abc' }
       its(:instance_host_port) { should == 1234 }
       its(:instance_container_port) { should == 5678 }
@@ -184,26 +185,32 @@ describe Dea::Instance do
 
   describe 'validation' do
     it 'should not raise when the attributes are valid' do
-      instance = Dea::Instance.new(bootstrap, valid_instance_attributes)
-
       expect { instance.validate }.to_not raise_error
     end
 
-    it 'should raise when attributes are missing' do
-      attributes = valid_instance_attributes.dup
-      attributes.delete('application_id')
-      attributes.delete('droplet')
-      instance = Dea::Instance.new(bootstrap, attributes)
-
-      expect { instance.validate }.to raise_error
+    context 'when attributes are missing' do
+      let(:attributes) do
+        attributes = valid_instance_attributes.dup
+        attributes.delete('application_id')
+        attributes.delete('droplet')
+        attributes
+      end
+      
+      it 'should raise' do
+        expect { instance.validate }.to raise_error
+      end
     end
 
-    it 'should raise when attributes are invalid' do
-      attributes = valid_instance_attributes.dup
-      attributes['application_id'] = attributes['application_id'].to_i
-      instance = Dea::Instance.new(bootstrap, attributes)
+    context 'when attributes are invalid' do
+      let(:attributes) do
+        attributes = valid_instance_attributes.dup
+        attributes['application_id'] = attributes['application_id'].to_i
+        attributes
+      end
 
-      expect { instance.validate }.to raise_error
+      it 'should raise' do
+        expect { instance.validate }.to raise_error
+      end
     end
   end
 
@@ -211,7 +218,7 @@ describe Dea::Instance do
     it 'should set state_timestamp when invoked' do
       old_timestamp = instance.state_timestamp
       instance.state = Dea::Instance::State::RUNNING
-      instance.state_timestamp.should > old_timestamp
+      instance.state_timestamp.should >= old_timestamp
     end
   end
 
@@ -267,8 +274,9 @@ describe Dea::Instance do
   end
 
   describe 'predicate methods' do
+    let(:attributes) { {} }
+    
     it 'should be present for each state' do
-      instance = Dea::Instance.new(bootstrap, {})
       instance.state = 'invalid'
 
       Dea::Instance::State.constants do |state|
@@ -713,6 +721,19 @@ describe Dea::Instance do
 
         expect_start.to raise_error(msg)
       end
+
+      context 'on Windows' do
+        let(:platform) { :Windows }
+
+        it 'should run tar' do
+          instance.container.stub(:run_script) do |_, script|
+            script.should =~ /\"cmd\":\"tar\"/
+          end
+
+          expect_start.to_not raise_error
+          instance.exit_description.should be_empty
+        end
+      end
     end
 
     describe 'setting up environment' do
@@ -756,9 +777,34 @@ describe Dea::Instance do
 
         expect_start.to raise_error(msg)
       end
+
+      context 'on windows' do
+        let(:platform) { :Windows }
+
+        it 'should reference the app dir' do
+          instance.container.stub(:run_script) do |_, script|
+            script.should =~ %r{@ROOT@/app}
+          end
+
+          expect_start.to_not raise_error
+          instance.exit_description.should be_empty
+        end
+
+        it 'should create the app dir' do
+          instance.container.stub(:run_script) do |_, script|
+            script.should =~ %r{"cmd":"mkdir","args":\["@ROOT@/app"\]}
+          end
+
+          expect_start.to_not raise_error
+          instance.exit_description.should be_empty
+        end
+      end
+
     end
 
-    shared_examples_for 'start script hook' do |hook|
+    shared_examples_for 'start script hook' do |hook, platform|
+      let(:platform) { platform }
+
       describe "#{hook} hook" do
         let(:runtime) do
           runtime = double(:runtime)
@@ -776,14 +822,13 @@ describe Dea::Instance do
           script_content = nil
           instance.container.stub(:run_script) do |_, script|
             script.should_not be_empty
-            lines = script.split("\n")
-            script_content = lines[-2]
+            script_content = script
           end
 
           expect_start.to_not raise_error
           instance.exit_description.should be_empty
 
-          script_content.should == "echo \"#{hook}\""
+          script_content.should match Regexp.new("echo [\\\\]?\"#{hook}[\\\\]?\"")
         end
 
         it 'should raise error when script execution fails' do
@@ -798,8 +843,11 @@ describe Dea::Instance do
       end
     end
 
-    it_behaves_like 'start script hook', 'before_start'
-    it_behaves_like 'start script hook', 'after_start'
+    it_behaves_like 'start script hook', 'before_start', :Linux
+    it_behaves_like 'start script hook', 'before_start', :Windows
+    it_behaves_like 'start script hook', 'after_start', :Linux
+    it_behaves_like 'start script hook', 'after_start', :Windows
+
 
     describe '#promise_start' do
       let(:response) { double('spawn_response', job_id: 37) }
@@ -937,6 +985,19 @@ describe Dea::Instance do
 
           instance.promise_start.resolve
         end
+
+        context 'on Windows' do
+          let(:platform) { :Windows }
+
+          it 'runs the startup script instead of generating one' do
+            instance.container.should_receive(:call) do |name, request|
+              expect(request.script).to include('./startup.ps1')
+              response
+            end
+
+            instance.promise_start.resolve
+          end
+        end
       end
 
       context 'saving the snapshot' do
@@ -1062,15 +1123,16 @@ describe Dea::Instance do
       end
     end
 
-    shared_examples_for 'stop script hook' do |hook|
+    shared_examples_for 'stop script hook' do |hook, platform|
       describe 'script hook' do
+        let(:platform) { platform }
         let(:runtime) do
           runtime = double(:runtime)
           runtime.stub(:environment).and_return({})
           runtime
         end
 
-        let(:env) { double('environment', exported_environment_variables: "export A=B;\n") }
+        let(:env) { double('environment', exported_environment_variables: 'export A=B;\n') }
 
         before do
           Dea::Env.stub(:new).with(instance).and_return(env)
@@ -1080,11 +1142,10 @@ describe Dea::Instance do
         it "executes the #{hook} script file" do
           script_content = nil
           instance.container.stub(:run_script) do |_, script|
-            lines = script.split("\n")
-            script_content = lines[-2]
+            script_content = script
           end
           expect_stop.to_not raise_error
-          script_content.should == "echo \"#{hook}\""
+          script_content.should match Regexp.new("echo [\\\\]?\"#{hook}[\\\\]?\"")
         end
 
         it 'exports the variables in the hook files' do
@@ -1098,8 +1159,10 @@ describe Dea::Instance do
       end
     end
 
-    it_behaves_like 'stop script hook', 'before_stop'
-    it_behaves_like 'stop script hook', 'after_stop'
+    it_behaves_like 'stop script hook', 'before_stop', :Linux
+    it_behaves_like 'stop script hook', 'before_stop', :Windows
+    it_behaves_like 'stop script hook', 'after_stop', :Linux
+    it_behaves_like 'stop script hook', 'after_stop', :Windows
   end
 
   describe '#promise_link' do
@@ -1277,10 +1340,6 @@ describe Dea::Instance do
   end
 
   describe 'destroy' do
-    subject(:instance) do
-      Dea::Instance.new(bootstrap, valid_instance_attributes)
-    end
-
     let(:connection) { double('connection', :promise_call => delivering_promise) }
 
     before do
@@ -1317,10 +1376,6 @@ describe Dea::Instance do
   end
 
   describe 'health checks' do
-    let(:instance) do
-      Dea::Instance.new(bootstrap, valid_instance_attributes)
-    end
-
     let(:manifest_path) do
       File.join(tmpdir, 'rootfs', 'home', 'vcap', 'droplet.yaml')
     end
@@ -1446,6 +1501,16 @@ describe Dea::Instance do
         YAML.should_receive(:load_file).once
         instance.staged_info
         instance.staged_info
+
+      end
+
+      context 'on Windows' do
+        let(:platform) { :Windows }
+
+        it 'sends copying out request' do
+          instance.should_receive(:copy_out_request).with('@ROOT@/staging_info.yml', instance_of(String))
+          instance.staged_info
+        end
       end
     end
 
@@ -1472,8 +1537,15 @@ describe Dea::Instance do
       context 'when warden_container_path is set' do
         before { instance.container.stub(:path => '/root/dir') }
 
-        it 'returns container path' do
+        it 'returns container path', unix_only:true do
           expect(instance.instance_path).to eq('/root/dir/tmp/rootfs/home/vcap')
+        end
+
+        context 'on Windows' do
+          let(:platform) { :Windows }
+          it 'returns container path', windows_only:true do
+            expect(instance.instance_path).to eq('C:/root/dir')
+          end
         end
       end
 
@@ -1488,11 +1560,19 @@ describe Dea::Instance do
 
     context 'when state is RUNNING' do
       before { instance.state = Dea::Instance::State::RUNNING }
+
       context 'when warden_container_path is set' do
         before { instance.container.stub(:path => '/root/dir') }
 
-        it 'returns container path' do
+        it 'returns container path', unix_only: true do
           expect(instance.instance_path).to eq('/root/dir/tmp/rootfs/home/vcap')
+        end
+
+        context 'on Windows' do
+          let(:platform) { :Windows }
+          it 'returns container path', windows_only: true do
+            expect(instance.instance_path).to eq('C:/root/dir')
+          end
         end
       end
 
@@ -1517,22 +1597,28 @@ describe Dea::Instance do
   end
 
   describe 'recovering from a snapshot' do
-    it "sets the container's warden handle" do
-      instance = described_class.new(bootstrap,
-                                     valid_instance_attributes.merge(
-                                       'warden_handle' => 'abc'))
+    context 'with specific warden handle' do
+      let(:attributes) do
+        valid_instance_attributes.merge(
+          'warden_handle' => 'abc')
+      end
 
-      expect(instance.container.handle).to eq('abc')
+      it "sets the container's warden handle" do
+        expect(instance.container.handle).to eq('abc')
+      end
     end
 
-    it "sets the container's network ports" do
-      instance = described_class.new(bootstrap,
-                                     valid_instance_attributes.merge(
-                                       'instance_host_port' => 1234,
-                                       'instance_container_port' => 5678))
+    context 'with specific network ports' do
+      let(:attributes) do
+        valid_instance_attributes.merge(
+          'instance_host_port' => 1234,
+          'instance_container_port' => 5678)
+      end
 
-      instance.instance_host_port.should == 1234
-      instance.instance_container_port.should == 5678
+      it "sets the container's network ports" do
+        instance.instance_host_port.should == 1234
+        instance.instance_container_port.should == 5678
+      end
     end
   end
 
