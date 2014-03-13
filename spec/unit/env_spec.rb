@@ -69,7 +69,7 @@ describe Dea::Env do
   context "when running from the starting (instance) task" do
     subject(:env) { Dea::Env.new(start_message, instance, env_exporter) }
 
-    its(:strategy_env) { should be_an_instance_of Dea::RunningEnv }
+    its(:strategy_env) { should be_an_instance_of Dea::Starting::Env }
 
     describe "#vcap_services" do
       let(:vcap_services) { env.send(:vcap_services) }
@@ -280,7 +280,7 @@ describe Dea::Env do
 
     subject(:env) { Dea::Env.new(StagingMessage.new(staging_message), staging_task, env_exporter) }
 
-    its(:strategy_env) { should be_an_instance_of Dea::StagingEnv }
+    its(:strategy_env) { should be_an_instance_of Dea::Staging::Env }
 
     describe "#vcap_services" do
       let(:vcap_services) { env.send(:vcap_services) }

@@ -5,10 +5,10 @@ require "steno/core_ext"
 require "yajl"
 
 require "dea/staging/staging_task"
-require "dea/staging/staging_env"
 
 require "dea/starting/database_uri_generator"
-require "dea/starting/running_env"
+require "dea/staging/env"
+require "dea/starting/env"
 require "dea/env_exporter"
 
 module Dea
@@ -20,9 +20,9 @@ module Dea
     def initialize(message, instance_or_staging_task, env_exporter = EnvExporter)
       @env_exporter = env_exporter
       @strategy_env = if message.is_a? StagingMessage
-        StagingEnv.new(message, instance_or_staging_task)
+        Staging::Env.new(message, instance_or_staging_task)
       else
-        RunningEnv.new(message, instance_or_staging_task)
+        Starting::Env.new(message, instance_or_staging_task)
       end
     end
 
