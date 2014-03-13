@@ -9,6 +9,7 @@ require "dea/staging/staging_env"
 
 require "dea/starting/database_uri_generator"
 require "dea/starting/running_env"
+require "dea/env_exporter"
 
 module Dea
   class Env
@@ -16,7 +17,8 @@ module Dea
 
     attr_reader :strategy_env
 
-    def initialize(message, instance_or_staging_task=nil)
+    def initialize(message, instance_or_staging_task, env_exporter = EnvExporter)
+      @env_exporter = env_exporter
       @strategy_env = if message.is_a? StagingMessage
         StagingEnv.new(message, instance_or_staging_task)
       else
@@ -90,10 +92,9 @@ module Dea
       env ? env.map { |e| e.split("=", 2) } : []
     end
 
-    def to_export(envs)
-      envs.map do |(key, value)|
-        %Q{export %s="%s";\n} % [key, value.to_s.gsub('"', '\"')]
-      end.join
+    def to_export(env)
+      @env_exporter.new(env).export
     end
+
   end
 end
