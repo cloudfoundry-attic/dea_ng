@@ -1,0 +1,4 @@
+- DEA_NG:
+  release: 2014-03-14
+  version: 2.0.0.10
+  description: allow developer specify work user of instance
