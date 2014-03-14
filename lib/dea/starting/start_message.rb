@@ -39,6 +39,10 @@ class StartMessage
     message["cc_partition"]
   end
 
+  def vcap_application
+    message["vcap_application"] || {}
+  end
+
   def limits
     message["limits"] || {}
   end

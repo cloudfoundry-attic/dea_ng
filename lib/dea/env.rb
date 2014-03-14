@@ -76,22 +76,7 @@ module Dea
     end
 
     def vcap_application
-      @vcap_application ||=
-        begin
-          hash = strategy_env.vcap_application
-
-          hash["limits"] = message.limits
-          hash["application_version"] = message.version
-          hash["application_name"] = message.name
-          hash["application_uris"] = message.uris
-          # Translate keys for backwards compatibility
-          hash["version"] = hash["application_version"]
-          hash["name"] = hash["application_name"]
-          hash["uris"] = hash["application_uris"]
-          hash["users"] = hash["application_users"]
-
-          hash
-        end
+      @vcap_application ||= message.vcap_application.merge(strategy_env.vcap_application)
     end
 
     def translate_env(env)

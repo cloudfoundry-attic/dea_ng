@@ -3,8 +3,6 @@
 module Dea
   module Starting
     class Env
-      HOST = "0.0.0.0".freeze
-
       attr_reader :message, :instance
 
       def initialize(message, instance)
@@ -13,36 +11,27 @@ module Dea
       end
 
       def system_environment_variables
-        env = [
+        [
           ["HOME", "$PWD/app"],
           ["TMPDIR", "$PWD/tmp"],
-          ["VCAP_APP_HOST", HOST],
-          ["VCAP_APP_PORT", instance.instance_container_port],
+          ["VCAP_APP_HOST", "0.0.0.0"],
+          ["VCAP_APP_PORT", @instance.instance_container_port],
+          ["PORT", "$VCAP_APP_PORT"]
         ]
-
-        env << ["PORT", "$VCAP_APP_PORT"]
-
-        env
       end
 
       def vcap_application
-        hash = {}
-
-        hash["instance_id"] = instance.attributes["instance_id"]
-        hash["instance_index"] = message.index
-
-        hash["host"] = HOST
-        hash["port"] = instance.instance_container_port
-
-        started_at = Time.at(instance.state_starting_timestamp)
-
-        hash["started_at"] = started_at
-        hash["started_at_timestamp"] = started_at.to_i
-
-        hash["start"] = hash["started_at"]
-        hash["state_timestamp"] = hash["started_at_timestamp"]
-
-        hash
+        start_time = Time.at(@instance.state_starting_timestamp)
+        {
+          "instance_id" => @instance.attributes["instance_id"],
+          "instance_index" => @message.index,
+          "host" => "0.0.0.0",
+          "port" => @instance.instance_container_port,
+          "started_at" => start_time,
+          "started_at_timestamp" => start_time.to_i,
+          "start" => start_time,
+          "state_timestamp" => start_time.to_i,
+        }
       end
     end
   end

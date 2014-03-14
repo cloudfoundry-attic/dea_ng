@@ -25,7 +25,8 @@ describe StartMessage do
       "console" => console,
       "debug" => debug,
       "start_command" => "rails s -s $PORT",
-      "index" => 1
+      "index" => 1,
+      "vcap_application" => "message vcap_application",
     }
   end
 
@@ -50,6 +51,7 @@ describe StartMessage do
   its(:console) { should be_false }
   its(:debug) { should be_true }
   its(:start_command) { should eq "rails s -s $PORT" }
+  its(:vcap_application) { should eq "message vcap_application" }
   its(:to_hash) { should eq start_message }
 
   context "when there is no limits" do
@@ -129,5 +131,6 @@ describe StartMessage do
     its(:debug) { should be_false }
     its(:start_command) { should be_nil }
     its(:to_hash) { should eq({})}
+    its(:vcap_application) { should eq({})}
   end
 end
