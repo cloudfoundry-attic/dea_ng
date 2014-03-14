@@ -80,6 +80,7 @@ module Dea
 
           optional("org_data") => {
             "src_prefix" => String,
+            optional("share_mode") => enum("org", "space"),
             optional("bind_mounts") => [{
               "name" => String,
               optional("dst_path") => String,

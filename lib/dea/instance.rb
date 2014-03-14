@@ -20,6 +20,8 @@ module Dea
 
     STAT_COLLECTION_INTERVAL_SECS = 10
     DEFAULT_APPWORKSPACE_USER = "default"
+    DEFAULT_WORKUSER_LENGTH = 30
+    DEFAULT_WORKUSER_PASSWORD = 'default'
 
     BIND_MOUNT_MODE_MAP = {
       "ro" =>  ::Warden::Protocol::CreateRequest::BindMount::Mode::RO,
@@ -599,6 +601,8 @@ module Dea
         request.rlimits.nofile = self.file_descriptor_limit
         request.rlimits.nproc = 307200 
 
+        request.work_user  = work_user
+
         response = promise_warden_call(:app, request).resolve
 
         attributes["warden_job_id"] = response.job_id
@@ -644,6 +648,7 @@ module Dea
         [
           promise_extract_droplet,
           promise_setup_network,
+          promise_change_work_user,
           promise_exec_hook_script('before_start'),
           promise_start
         ].each(&:resolve)
@@ -676,6 +681,49 @@ module Dea
         end
 
         callback.call(error) unless callback.nil?
+      end
+    end
+
+    def work_user
+      user_given = attributes.fetch('instance_meta', {}).
+                   fetch('work_user', app_workspace_user)
+      if user_given.size <= DEFAULT_WORKUSER_LENGTH &&
+         (/^[a-z\d][\w,-]*[a-z\d]$/i.match(user_given))
+         user = user_given
+      end
+      user
+    end
+
+    def promise_change_work_user
+      Promise.new do |p|
+        if work_user
+          promise_update_work_user.resolve unless work_user == app_workspace_user
+        else
+          p.fail("Work user should be composed by letters/numbers/-/_( e.g.: a-b_1, test1) and shorter than #{DEFAULT_WORKUSER_LENGTH}")
+        end
+        p.deliver 
+      end
+    end
+
+    def promise_update_work_user
+      Promise.new do |p|
+        script = []
+
+        script << "useradd #{work_user} -M"
+        script << "echo '#{work_user}:#{DEFAULT_WORKUSER_PASSWORD}' | chpasswd"
+        find_opts = []
+        find_opts << "find /home/#{app_workspace_user}"
+        find_opts << "-maxdepth 1"
+        find_opts << ["dea_ng", "appdata", "."].
+                     map {|e| "-not -name " + e }.
+                     join(" ")
+        find_opts << "-exec chown -R #{work_user}:#{work_user} '{}' ';'"
+        script << find_opts.join(" ")
+        script << "ln -s /home/#{app_workspace_user} /home/#{work_user}"
+        script = script.join("&&")
+        promise_warden_run(:app, script, true).resolve
+
+        p.deliver
       end
     end
 
