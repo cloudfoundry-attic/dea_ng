@@ -997,7 +997,7 @@ module Dea
           if manifest && manifest["start_timeout"]
             start_timeout = manifest["start_timeout"]
           else
-            start_timeout = 60
+            start_timeout = 300
           end
           if manifest && manifest["state_file"]
             manifest_path = container_relative_path(info.container_path, manifest["state_file"])
