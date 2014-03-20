@@ -1,4 +1,7 @@
 - DEA_NG:
-  release: 2014-03-14
-  version: 2.0.0.10
-  description: allow developer specify work user of instance
+  - 2.0.0.10:
+    release: 2014-03-14
+    description: allow developer specify work user of instance
+  - 2.0.0.11:
+    release: 2014-03-20
+    description: increase start timeout, allow snapshot when start, disable sshd port
