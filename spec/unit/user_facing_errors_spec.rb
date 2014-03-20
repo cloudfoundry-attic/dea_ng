@@ -4,7 +4,7 @@ require "dea/user_facing_errors"
 module Dea
   describe HealthCheckFailed do
     describe "#to_s" do
-      its(:to_s) { should == "failed to start accepting connections" }
+      its(:to_s) { should == "failed to accept connections within health check timeout" }
     end
   end
 

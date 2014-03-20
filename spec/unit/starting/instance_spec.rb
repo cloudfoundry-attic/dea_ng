@@ -6,7 +6,7 @@ describe Dea::Instance do
 
   let(:connection) { double('connection', :promise_call => delivering_promise) }
   let(:snapshot) do
-      double('snapshot', :save => {})
+    double('snapshot', :save => {})
   end
   let(:bootstrap) do
     double('bootstrap', :config => config, :snapshot => snapshot)
@@ -978,7 +978,7 @@ describe Dea::Instance do
         expect_start.to raise_error
 
         # Instance exit description should be set to the failure message
-        instance.exit_description.should == 'failed to start accepting connections'
+        instance.exit_description.should == Dea::HealthCheckFailed.new.to_s
       end
     end
 
