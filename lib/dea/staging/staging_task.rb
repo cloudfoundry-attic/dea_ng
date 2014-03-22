@@ -80,6 +80,14 @@ module Dea
     def workspace
       @workspace ||= StagingTaskWorkspace.new(
         config['base_dir'],
+        staging_message.properties
+      )
+    end
+
+    def buildpack_manager
+      @buildpack_manager ||= BuildpackManager.new(
+        workspace.admin_buildpacks_dir,
+        workspace.system_buildpacks_dir,
         staging_message,
         @buildpacks_in_use
       )
@@ -99,6 +107,18 @@ module Dea
 
     def detected_buildpack
       task_info['detected_buildpack']
+    end
+
+    def buildpack_path
+      task_info['buildpack_path']
+    end
+
+    def buildpack_url
+      staging_message.buildpack_git_url || buildpack_manager.system_buildpack_url(buildpack_path)
+    end
+
+    def buildpack_key
+      staging_message.buildpack_key || buildpack_manager.buildpack_key(buildpack_path)
     end
 
     def memory_limit_mb
@@ -504,7 +524,7 @@ module Dea
     end
 
     def resolve_staging_setup
-      workspace.prepare
+      workspace.prepare(buildpack_manager)
       with_network = false
       container.create_container(
         bind_mounts: bind_mounts,

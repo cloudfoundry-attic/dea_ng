@@ -29,12 +29,13 @@ describe StagingMessage do
   end
 
   let(:admin_buildpacks) { [] }
+  let(:properties) { {"some_property" => "some_value"} }
 
   let(:staging_message) do
     {
       "app_id" => "some-node-app-id",
       "task_id" => "task-id",
-      "properties" => {"some_property" => "some_value"},
+      "properties" => properties,
       "download_uri" => "http://localhost/unstaged/rails3_with_db",
       "upload_uri" => "http://localhost/upload/rails3_with_db",
       "buildpack_cache_download_uri" => "http://localhost/buildpack_cache/download",
@@ -54,11 +55,40 @@ describe StagingMessage do
   its(:buildpack_cache_download_uri) { should eq URI("http://localhost/buildpack_cache/download") }
   its(:start_message) { should be_a StartMessage }
   its(:admin_buildpacks) { should eq([]) }
-  its(:properties) { should eq("some_property" => "some_value") }
+  its(:properties) { should eq({"some_property" => "some_value"}) }
+  its(:buildpack_git_url) { should be_nil }
+  its(:buildpack_key) { should be_nil }
   its(:to_hash) { should eq staging_message }
 
   it "should memoize the start message" do
     expect(message.start_message).to eq(message.start_message)
+  end
+
+  context "when a custom buildpack url is specified" do
+    context "when buildpack is used" do
+      let (:properties) { {"buildpack" => "https://example.com/repo.git"} }
+
+      its(:buildpack_git_url) { should eq(URI("https://example.com/repo.git")) }
+    end
+
+    context "when buildpack_git_url is used" do
+      let (:properties) { {"buildpack_git_url" => "https://example.com/another_repo.git"} }
+
+      its(:buildpack_git_url) { should eq(URI("https://example.com/another_repo.git")) }
+    end
+
+    context "when buildpack and buildpack_git_url are used" do
+      let (:properties) do
+        {
+          "buildpack" => "https://example.com/repo.git",
+          "buildpack_git_url" => "https://example.com/another_repo.git"
+        }
+      end
+
+      it "should return the value associated with buildpack" do
+        expect(message.buildpack_git_url).to eq(URI("https://example.com/repo.git"))
+      end
+    end
   end
 
   context "when admin build packs are specified" do
@@ -98,5 +128,11 @@ describe StagingMessage do
         }
       ])
     end
+  end
+
+  context "when a buildpack key is specified" do
+    let(:properties) { {"buildpack_key" => "admin_buildpack_key"} }
+
+    its(:buildpack_key) { should eq "admin_buildpack_key" }
   end
 end

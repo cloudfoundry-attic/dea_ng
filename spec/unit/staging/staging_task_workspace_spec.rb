@@ -5,10 +5,7 @@ require "dea/staging/staging_message"
 describe Dea::StagingTaskWorkspace do
 
   let(:base_dir) { Dir.mktmpdir }
-
-  let(:system_buildpack_dir) do
-    Pathname.new(File.expand_path("../../../../buildpacks/vendor", __FILE__)).children.sort.map(&:to_s)
-  end
+  let(:buildpacks_in_use) { [] }
 
   let(:admin_buildpacks) do
     [
@@ -23,6 +20,22 @@ describe Dea::StagingTaskWorkspace do
     ]
   end
 
+  let(:system_buildpacks) do
+    Pathname.new(File.expand_path("../../../../buildpacks/vendor", __FILE__)).children.sort.map(&:to_s)
+  end
+
+  let(:buildpack_dirs) do
+    system_buildpacks + [ "/tmp/admin/admin" ]
+  end
+
+  let(:buildpack_manager) do
+    buildpack_manager = instance_double("Dea::BuildpackManager")
+    buildpack_manager.stub(:buildpack_dirs => buildpack_dirs)
+    buildpack_manager.stub(:clean)
+    buildpack_manager.stub(:download)
+    buildpack_manager
+  end
+
   let(:env_properties) do
     {
       "a" => 1,
@@ -30,168 +43,83 @@ describe Dea::StagingTaskWorkspace do
     }
   end
 
-  let(:staging_message) do
-    StagingMessage.new(
-      "admin_buildpacks" => admin_buildpacks,
-      "properties" => env_properties
-    )
-  end
-
-  let(:buildpacks_in_use) { [] }
-
   subject do
-    Dea::StagingTaskWorkspace.new(base_dir, staging_message, buildpacks_in_use)
+    Dea::StagingTaskWorkspace.new(base_dir, env_properties)
   end
 
   before do
-    AdminBuildpackDownloader.stub(:new).and_return(downloader)
+    Dea::BuildpackManager.stub(:new).and_return(buildpack_manager)
   end
 
   after { FileUtils.rm_f(base_dir) }
 
-  let(:downloader) { double("AdminBuildpackDownloader").as_null_object }
+  describe "#workspace_dir" do
+    let(:staging_dir) { Pathname.new(base_dir).join("staging") }
+    let(:workspace_path) { Pathname.new(subject.workspace_dir) }
 
-  describe "preparing the workspace" do
+    it "should create the staging directory" do
+      expect(staging_dir.exist?).to be_false
+      subject.workspace_dir
+      expect(staging_dir.exist?).to be_true
+      expect(staging_dir.directory?).to be_true
+    end
+
+    it "should create the workspace directory under the staging directory" do
+      expect(workspace_path.exist?).to be_true
+      expect(workspace_path.directory?).to be_true
+      expect(workspace_path.parent).to eq(staging_dir)
+    end
+
+    it "should return the same workspace directory when called multiple times" do
+      expect(subject.workspace_dir).to eq(workspace_path.to_s)
+    end
+
+    it "should have expected permissions" do
+      expect(workspace_path.stat.mode.to_s(8)).to end_with("0755")
+    end
+  end
+
+  describe "#prepare" do
+    it "creates the tmp folder" do
+      subject.prepare(buildpack_manager)
+      expect(File.exists?(subject.tmpdir)).to be_true
+    end
+
+    it "creates the admin buildpacks dir folder" do
+      subject.prepare(buildpack_manager)
+      expect(File.exists?(subject.admin_buildpacks_dir)).to be_true
+    end
+
     it "downloads the admin buildpacks" do
-      AdminBuildpackDownloader.should_receive(:new).with(instance_of(Array), subject.admin_buildpacks_dir).and_return(downloader)
-      downloader.should_receive(:download)
-      subject.prepare
+      buildpack_manager.should_receive(:download)
+      subject.prepare(buildpack_manager)
     end
 
-    describe "the plugin config file" do
-      context "when admin buildpack exists" do
-        before do
-          subject.prepare
-          @admin_buildpack = File.join(subject.admin_buildpacks_dir, "abcdef")
-          Dir.mkdir(@admin_buildpack)
-          subject.prepare
-          @config = YAML.load_file(subject.plugin_config_path)
-        end
+    it "deletes stale admin buildpacks" do
+      buildpack_manager.should_receive(:clean)
+      subject.prepare(buildpack_manager)
+    end
 
-        after do
-          FileUtils.rm_f(@admin_buildpack)
-        end
-
-        it "includes the admin buildpacks" do
-          expect(@config["buildpack_dirs"]).to include(@admin_buildpack)
-        end
-
-        it "admin buildpack should come first" do
-          expect(@config["buildpack_dirs"][0]).to eq(@admin_buildpack)
-        end
-      end
-
-      context "when multiple admin buildpacks exist" do
-        before do
-          subject.prepare
-          @admin_buildpack = File.join(subject.admin_buildpacks_dir, "abcdef")
-          Dir.mkdir(@admin_buildpack)
-          @another_buildpack = File.join(subject.admin_buildpacks_dir, "xyz")
-          Dir.mkdir(@another_buildpack)
-          subject.prepare
-          @config = YAML.load_file(subject.plugin_config_path)
-        end
-
-        after do
-          FileUtils.rm_f(@admin_buildpack)
-          FileUtils.rm_f(@another_buildpack)
-        end
-
-        it "only returns buildpacks specified in start message" do
-          expect(@config["buildpack_dirs"][0]).to eq(@admin_buildpack)
-          expect(@config["buildpack_dirs"]).to_not include(@another_buildpack)
-        end
-      end
-
-      context "when the config lists multiple admin buildpacks which exist on disk" do
-        before do
-          subject.prepare
-          @admin_buildpack = File.join(subject.admin_buildpacks_dir, "abcdef")
-          Dir.mkdir(@admin_buildpack)
-          @another_buildpack = File.join(subject.admin_buildpacks_dir, "ghijk")
-          Dir.mkdir(@another_buildpack)
-          subject.prepare
-          @config = YAML.load_file(subject.plugin_config_path)
-        end
-
-        after do
-          FileUtils.rm_f(@admin_buildpack)
-          FileUtils.rm_f(@another_buildpack)
-        end
-
-        context "when the buildpacks are ordered admin_buildpack, another_buildpack" do
-          let(:admin_buildpacks) do
-            [{
-              "url" => "http://example.com/buildpacks/uri/abcdef",
-              "key" => "abcdef"
-            },
-              {
-                "url" => "http://example.com/buildpacks/uri/ghijk",
-                "key" => "ghijk"
-              }]
-          end
-
-          it "returns the buildpacks in the order of the admin_buildpacks message" do
-            expect(@config["buildpack_dirs"][0]).to eq(@admin_buildpack)
-            expect(@config["buildpack_dirs"][1]).to eq(@another_buildpack)
-          end
-        end
-
-        context "when the buildpacks are ordered another_buildpack, admin_buildpack" do
-          let(:admin_buildpacks) do
-            [
-              {
-                "url" => "http://example.com/buildpacks/uri/ghijk",
-                "key" => "ghijk"
-              },
-              {
-                "url" => "http://example.com/buildpacks/uri/abcdef",
-                "key" => "abcdef"
-              }
-            ]
-          end
-
-          it "returns the buildpacks in the order of the admin_buildpacks message" do
-            expect(@config["buildpack_dirs"][0]).to eq(@another_buildpack)
-            expect(@config["buildpack_dirs"][1]).to eq(@admin_buildpack)
-          end
-        end
-      end
-
-      context "when admin buildpack does not exist" do
-        before do
-          subject.prepare
-          @config = YAML.load_file(subject.plugin_config_path)
-        end
-
-        it "has the right source, destination and cache directories" do
-          expect(@config["source_dir"]).to eq("/tmp/unstaged")
-          expect(@config["dest_dir"]).to eq("/tmp/staged")
-          expect(@config["cache_dir"]).to eq("/tmp/cache")
-        end
-
-        it "includes the specified environment config" do
-          expect(@config["environment"]).to eq(env_properties)
-        end
-
-        it "includes the staging info path" do
-          expect(@config["staging_info_name"]).to eq("staging_info.yml")
-        end
-
-        it "include the system buildpacks" do
-          expect(@config["buildpack_dirs"]).to eq(system_buildpack_dir)
-        end
-      end
+    it "creates the plugin config file" do
+      subject.prepare(buildpack_manager)
+      expect(File.exists?(subject.plugin_config_path)).to be_true
     end
   end
 
-  it "creates the tmp folder" do
-    subject.prepare
-    expect(File.exists?(subject.tmpdir)).to be_true
-  end
+  describe "the plugin config file" do
+    before do
+      subject.prepare(buildpack_manager)
+      @config = YAML.load_file(subject.plugin_config_path)
+    end
 
-  it "creates the admin buildpacks dir folder" do
-    subject.prepare
-    expect(File.exists?(subject.admin_buildpacks_dir)).to be_true
+    it "should contain buildpack data from the buildpack manager" do
+      expect(@config["buildpack_dirs"]).to_not be_nil
+      expect(@config["buildpack_dirs"]).to eq(buildpack_dirs)
+    end
+
+    it "includes the specified environment config" do
+      expect(@config["environment"]).to_not be_nil
+      expect(@config["environment"]).to eq(env_properties)
+    end
   end
 end

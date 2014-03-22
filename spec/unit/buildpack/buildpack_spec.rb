@@ -143,6 +143,18 @@ describe Buildpacks::Buildpack, type: :buildpack do
         expect(buildpack_info["detected_buildpack"]).to eq("Node.js")
       end
 
+      it "has the buildpack path" do
+        expect(buildpack_info["buildpack_path"]).to eq("#{fake_buildpacks_dir}/no_start_command")
+      end
+
+      it "has a nil specified_buildpack_key" do
+        expect(buildpack_info["specified_buildpack_key"]).to be_nil
+      end
+
+      it "has a nil custom buildpack url" do
+        expect(buildpack_info["custom_buildpack_url"]).to be_nil
+      end
+
       context "when the application has a procfile" do
         it "uses the start command specified by the 'web' key in the procfile" do
           expect(buildpack_info["start_command"]).to eq("node app.js --from-procfile=true")
@@ -267,4 +279,3 @@ describe Buildpacks::Buildpack, type: :buildpack do
     end
   end
 end
-

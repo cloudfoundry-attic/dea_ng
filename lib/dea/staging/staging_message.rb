@@ -53,6 +53,15 @@ class StagingMessage
     end.compact
   end
 
+  def buildpack_git_url
+    url = properties["buildpack"] || properties["buildpack_git_url"]
+    URI(url) if url
+  end
+
+  def buildpack_key
+    properties["buildpack_key"]
+  end
+
   private
 
   def logger
