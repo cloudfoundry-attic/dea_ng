@@ -1,5 +1,4 @@
 require "fileutils"
-require "dea/staging/admin_buildpack_downloader"
 require "dea/staging/buildpack_manager"
 
 module Dea
@@ -9,15 +8,9 @@ module Dea
     STAGING_LOG = "staging_task.log".freeze
     STAGING_INFO = "staging_info.yml".freeze
 
-    def initialize(base_dir, staging_message, buildpacks_in_use)
+    def initialize(base_dir, properties)
       @base_dir = base_dir
-      @environment_properties = staging_message.properties
-      @buildpack_manager = Dea::BuildpackManager.new(
-        admin_buildpacks_dir,
-        File.join(buildpack_dir, "vendor"),
-        staging_message.admin_buildpacks,
-        buildpacks_in_use
-      )
+      @environment_properties = properties
     end
 
     ###### Setup
@@ -33,26 +26,28 @@ module Dea
       end
     end
 
-    def write_config_file
+    def write_config_file(buildpack_dirs)
       plugin_config = {
         "source_dir" => warden_unstaged_dir,
         "dest_dir" => warden_staged_dir,
         "cache_dir" => warden_cache,
         "environment" => @environment_properties,
         "staging_info_name" => STAGING_INFO,
-        "buildpack_dirs" => @buildpack_manager.list
+        "buildpack_dirs" => buildpack_dirs
       }
 
       logger.debug plugin_config
       File.open(plugin_config_path, 'w') { |f| YAML.dump(plugin_config, f) }
     end
 
-    def prepare
+    private :write_config_file
+
+    def prepare(buildpack_manager)
       FileUtils.mkdir_p(tmpdir)
       FileUtils.mkdir_p(admin_buildpacks_dir)
-      @buildpack_manager.download
-      @buildpack_manager.clean
-      write_config_file
+      buildpack_manager.download
+      buildpack_manager.clean
+      write_config_file(buildpack_manager.buildpack_dirs)
     end
 
     ###### Accessors
@@ -91,6 +86,10 @@ module Dea
 
     def buildpack_dir
       File.expand_path("../../../../buildpacks", __FILE__)
+    end
+
+    def system_buildpacks_dir
+      File.join(buildpack_dir, "vendor")
     end
 
     def warden_staging_log
