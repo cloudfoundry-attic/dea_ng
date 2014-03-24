@@ -30,6 +30,16 @@ describe Dea::DatabaseUriGenerator do
         it { should eq "postgres://username:password@host/db" }
       end
 
+      context "and there uri is for db2" do
+        let(:services_env) { [{"credentials" => {"uri" => "db2://username:password@host/db"}}] }
+        it { should eq "ibmdb://username:password@host/db" }
+      end
+
+      context "and there uri is for informix" do
+        let(:services_env) { [{"credentials" => {"uri" => "informix://username:password@host/db"}}] }
+        it { should eq "ibmdb://username:password@host/db" }
+      end
+
       context "and there are more than one production relational database" do
         let(:services_env) do
           [
