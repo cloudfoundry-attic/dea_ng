@@ -75,6 +75,7 @@ module Dea::Protocol::V1
         "stacks" => message[:stacks],
         "available_memory" => message[:available_memory],
         "available_disk" => message[:available_disk],
+        "available_instances" => message[:available_instances],
         "app_id_to_count" => message[:app_id_to_count],
         "placement_properties" => {"zone" => message[:placement_zone]},
       }

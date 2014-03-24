@@ -101,6 +101,7 @@ describe Dea::Responders::DeaLocator do
     let(:config_overrides) { { "stacks" => ["stack-1", "stack-2"] } }
     let(:available_disk) { 12345 }
     let(:available_memory) { 45678 }
+    let(:available_instances) { 1 }
     before do
       resource_manager.stub(app_id_to_count: {
         "app_id_1" => 1,
@@ -108,6 +109,7 @@ describe Dea::Responders::DeaLocator do
       })
       resource_manager.stub(:remaining_memory => available_memory)
       resource_manager.stub(:remaining_disk => available_disk)
+      resource_manager.stub(:remaining_instances => available_instances)
     end
 
     it "publishes 'dea.advertise' message" do
@@ -117,6 +119,7 @@ describe Dea::Responders::DeaLocator do
           "stacks" => ["stack-1", "stack-2"],
           "available_memory" => available_memory,
           "available_disk" => available_disk,
+          "available_instances" => available_instances,
           "app_id_to_count" => {
             "app_id_1" => 1,
             "app_id_2" => 3

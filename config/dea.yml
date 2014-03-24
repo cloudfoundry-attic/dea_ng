@@ -15,6 +15,7 @@ resources:
   memory_overcommit_factor: 2
   disk_mb: 2048
   disk_overcommit_factor: 2
+  max_instances: 256
 
 nats_servers:
   - nats://localhost:4222/
