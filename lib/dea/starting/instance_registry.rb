@@ -87,10 +87,6 @@ module Dea
       app_count
     end
 
-    def undeleted_instances_count
-      @instances.size  - select(&:deleted?).size
-    end
-
     def each(&block)
       @instances.each_value(&block)
     end
