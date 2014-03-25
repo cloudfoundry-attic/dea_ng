@@ -3,5 +3,7 @@ Vagrant.configure("2") do |config|
   config.vm.box = "warden-compatible"
   config.vm.box_url = "~/boxes/warden-compatible.box"
   config.ssh.username = "vagrant"
-  config.vm.define "dea_test_vm"
+
+  config.vm.provision "shell", inline: "sudo apt-get -q -y install libxslt-dev libxml2-dev" # For Nokogiri
+  config.vm.provision "shell", inline: "sudo apt-get -q -y install libcurl4-gnutls-dev" # For
 end
