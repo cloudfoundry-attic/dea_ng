@@ -1,7 +1,7 @@
 ROOT = File.expand_path("../../..", __FILE__)
 GIT_URL = "git://github.com/cloudfoundry/warden-test-infrastructure.git"
 REPO_PATH = "#{ROOT}/tmp/warden-test-infrastructure"
-BOX_PATH = File.expand_path("~/boxes/ci_with_warden_prereqs.box")
+BOX_PATH = File.expand_path("~/boxes/warden-compatible.box")
 
 desc "Check if configuration file is valid"
 task :test_vm do

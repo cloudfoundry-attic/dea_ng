@@ -96,23 +96,25 @@ vagrant up
 # shell into the VM
 vagrant ssh
 
-# start warden
-cd /warden
 # pull the latest warden
-sudo git checkout master
-sudo git pull
-cd warden
-bundle
-rvmsudo bundle exec rake warden:start[config/test_vm.yml] 2>&1 > /tmp/warden.log &
+cd /warden
+git checkout master
+git pull
+
+# start warden
+cd /warden/warden
+sudo bundle install
+sudo bundle exec rake warden:start[config/test_vm.yml] &> /tmp/warden.log &
 
 # start the DEA's dependencies
 cd /vagrant
-bundle install
-rvmsudo foreman start > /tmp/foreman.log &
+sudo bundle install
+sudo bundle exec foreman start &> /tmp/foreman.log &
 ```
 
 To run the tests (unit, integration or all):
 ```
+bundle install
 bundle exec rspec spec/unit
 LOCAL_DEA=true bundle exec rspec spec/integration
 ```
