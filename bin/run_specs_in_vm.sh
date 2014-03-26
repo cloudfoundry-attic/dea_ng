@@ -8,7 +8,6 @@ vagrant up
 
 vagrant ssh-config > ssh_config
 rsync -arq --rsh="ssh -F ssh_config" $BUILD_TO_RUN_PATH/ default:workspace
-rsync -arq --rsh="ssh -F ssh_config" $TEST_INFRA_PATH/start_warden.sh default:workspace/
 
 echo "Your vagrant box is now provisioned in folder $PWD, don't forget to vagrant destroy it eventually."
 echo "To connect: vagrant ssh "

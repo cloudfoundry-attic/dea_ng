@@ -17,7 +17,6 @@ end
 tmpdir = Dir.mktmpdir
 
 FileUtils.copy("bin/run_specs_in_vm.sh", tmpdir)
-FileUtils.copy("bin/start_warden.sh", tmpdir)
 FileUtils.copy("Vagrantfile", tmpdir)
 puts "Running vagrant in a temporary folder: #{tmpdir}"
 
