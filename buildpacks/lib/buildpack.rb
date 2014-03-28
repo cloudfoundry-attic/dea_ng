@@ -69,8 +69,12 @@ module Buildpacks
     end
 
     def compile_with_timeout(timeout)
-      Timeout.timeout(timeout) do
-        build_pack.compile
+      begin
+        Timeout.timeout(timeout) do
+          build_pack.compile
+        end
+      rescue Timeout::Error
+        Process.kill(15, -Process.getpgid(Process.pid))
       end
     end
 

@@ -56,20 +56,22 @@ describe Buildpacks::Buildpack, type: :buildpack do
     context "when the staging takes too long" do
       let(:duration) { 1 }
 
-      it "times out" do
-        expect {
-          build_pack.compile_with_timeout(0.01)
-        }.to raise_error(Timeout::Error)
+      it "kills the process group for the compilation task" do
+        expect(Process).to receive(:kill).with(15, -Process.getpgid(Process.pid))
+
+        build_pack.compile_with_timeout(0.01)
       end
     end
 
     context "when the staging completes within the timeout" do
       let(:duration) { 0 }
 
-      it "does not time out" do
-        expect {
-          build_pack.compile_with_timeout(0.1)
-        }.to_not raise_error
+      it "does not kill the process group" do
+        allow(Process).to receive(:kill)
+
+        build_pack.compile_with_timeout(0.1)
+
+        expect(Process).not_to have_received(:kill)
       end
     end
   end
