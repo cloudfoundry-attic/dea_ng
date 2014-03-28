@@ -76,9 +76,6 @@ bundle install
 # check that your version of Vagrant is 1.5 or greater
 vagrant --version
 
-# create your test VM
-bundle exec rake test_vm
-
 # initialize the test VM
 cd ~/workspace/dea_ng
 vagrant up
