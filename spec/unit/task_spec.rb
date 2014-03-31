@@ -9,6 +9,7 @@ describe Dea::Task do
   let(:config) { { "warden_socket" => warden_socket } }
   let(:warden_socket) { "warden.socksies" }
   let(:connection_provider) { double("connection provider")}
+
   before do
     WardenClientProvider.stub(:new).with(warden_socket).and_return(connection_provider)
   end
@@ -31,26 +32,44 @@ describe Dea::Task do
   end
 
   describe "#promise_stop -" do
-    let(:response) { double("Warden::Protocol::StopResponse mock") }
-
     before { task.container.stub(:handle) { "handle" } }
 
     it "executes a StopRequest" do
-      task.container.should_receive(:call) do |connection, request|
-        expect(request).to be_kind_of(::Warden::Protocol::StopRequest)
-        expect(request.handle).to eq("handle")
-        expect(connection).to eq(:stop)
-
-        response
-      end
+      expect(task.container).to receive(:call).and_return(double(Warden::Protocol::StopResponse))
 
       expect {
         task.promise_stop.resolve
       }.to_not raise_error
     end
 
+    context "when kill_flag is NOT passed" do
+      it "generates a StopRequest with kill: false" do
+        expect(task.container).to receive(:call) do |connection, request|
+          expect(request).to be_kind_of(::Warden::Protocol::StopRequest)
+          expect(request.handle).to eq("handle")
+          expect(request.kill).to eq(false)
+          expect(connection).to eq(:stop)
+        end
+
+        task.promise_stop.resolve
+      end
+    end
+
+    context "when kill_flag is passed" do
+      it "generates a StopRequest with kill: true" do
+        expect(task.container).to receive(:call) do |connection, request|
+          expect(request).to be_kind_of(::Warden::Protocol::StopRequest)
+          expect(request.handle).to eq("handle")
+          expect(request.kill).to eq(true)
+          expect(connection).to eq(:stop)
+        end
+
+        task.promise_stop(true).resolve
+      end
+    end
+
     it "raises error when the StopRequest fails" do
-      task.container.should_receive(:call).and_raise(RuntimeError.new("error"))
+      expect(task.container).to receive(:call).and_raise(RuntimeError.new("error"))
 
       expect {
         task.promise_stop.resolve
