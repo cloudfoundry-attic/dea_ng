@@ -25,9 +25,7 @@ module Dea
     def retrieve_stats(now)
       info = @container.info
     rescue => e
-      logger.error "stat-collector.info-retrieval.failed",
-        :handle => @container.handle,
-        :error => e, :backtrace => e.backtrace
+      logger.error("stat-collector.info-retrieval.failed", handle: @container.handle, error: e, backtrace: e.backtrace)
     else
       @used_memory_in_bytes = compute_memory_usage(info.memory_stat)
       @used_disk_in_bytes = info.disk_stat.bytes_used if info.disk_stat

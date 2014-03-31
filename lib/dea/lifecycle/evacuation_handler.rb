@@ -12,7 +12,7 @@ class EvacuationHandler
   def evacuate!(goodbye_message)
     @start_time = Time.now unless evacuating?
 
-    logger.info "Evacuating (first time: #{!evacuating?}; can shutdown: #{dea_can_shutdown?})"
+    logger.info("Evacuating (first time: #{!evacuating?}; can shutdown: #{dea_can_shutdown?})")
     send_shutdown_and_stop_advertising(goodbye_message) unless evacuating?
     send_droplet_exited_messages
     transition_instances_to_evacuating

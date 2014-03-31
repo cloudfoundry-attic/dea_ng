@@ -65,7 +65,7 @@ module Dea
         begin
           yield handle_incoming_message("response to #{subject}", raw_data, respond_to)
         rescue => e
-          logger.error "nats.request.failed", subject: subject, data: raw_data
+          logger.error("nats.request.failed", subject: subject, data: raw_data)
         end
       end
     end
@@ -79,11 +79,9 @@ module Dea
         begin
           yield handle_incoming_message(subject, raw_data, respond_to)
         rescue Yajl::ParseError => e
-          logger.error "nats.subscription.json_error", error: e, backtrace: e.backtrace
+          logger.error("nats.subscription.json_error", error: e, backtrace: e.backtrace)
         rescue => e
-          logger.error "nats.subscription.error",
-            subject: subject, data: raw_data, respond_to: respond_to,
-            error: e, backtrace: e.backtrace
+          logger.error("nats.subscription.error", subject: subject, data: raw_data, respond_to: respond_to, error: e, backtrace: e.backtrace)
         end
       end
 
@@ -100,7 +98,7 @@ module Dea
     end
 
     def create_nats_client
-      logger.info "nats.connecting", servers: config["nats_servers"]
+      logger.info("nats.connecting", servers: config["nats_servers"])
 
       ::NATS.connect(
         :servers => config["nats_servers"],
@@ -145,7 +143,7 @@ module Dea
 
     def handle_incoming_message(subject, raw_data, respond_to)
       message = Message.decode(self, subject, raw_data, respond_to)
-      logger.debug "nats.message.received", subject: subject, data: message.data
+      logger.debug("nats.message.received", subject: subject, data: message.data)
       message
     end
 

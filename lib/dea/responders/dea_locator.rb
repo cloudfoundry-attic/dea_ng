@@ -39,7 +39,7 @@ module Dea::Responders
         ),
       )
     rescue => e
-      logger.error "dea_locator.advertise", error: e, backtrace: e.backtrace
+      logger.error("dea_locator.advertise", error: e, backtrace: e.backtrace)
     end
 
     private

@@ -16,7 +16,7 @@ module Dea
       begin
         instance.validate
       rescue => error
-        logger.warn "Error validating instance: #{error.message}"
+        logger.warn("Error validating instance: #{error.message}")
         return
       end
 
@@ -28,10 +28,10 @@ module Dea
       unless resource_manager.could_reserve?(attributes["limits"]["mem"], attributes["limits"]["disk"])
         constrained_resource = resource_manager.get_constrained_resource(attributes["limits"]["mem"],
                                                                          attributes["limits"]["disk"])
-        logger.error "instance.start.insufficient-resource",
-                     :app => instance.attributes["application_id"],
-                     :instance => instance.attributes["instance_index"],
-                     :constrained_resource => constrained_resource
+        logger.error("instance.start.insufficient-resource",
+                     app: instance.attributes["application_id"],
+                      instance: instance.attributes["instance_index"],
+                      constrained_resource: constrained_resource)
 
         instance.exit_description = "Not enough #{constrained_resource} resource available."
         instance.state = Instance::State::CRASHED

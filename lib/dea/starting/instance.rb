@@ -466,7 +466,7 @@ module Dea
 
     def start(&callback)
       p = Promise.new do
-        logger.info 'droplet.starting'
+        logger.info('droplet.starting')
 
         promise_state(State::BORN, State::STARTING).resolve
 
@@ -563,7 +563,7 @@ module Dea
 
     def stop(&callback)
       p = Promise.new do
-        logger.info 'droplet.stopping'
+        logger.info('droplet.stopping')
 
         promise_exec_hook_script('before_stop').resolve
 

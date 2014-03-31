@@ -208,7 +208,7 @@ module Dea
         pid_file = VCAP::PidFile.new(path, false)
         pid_file.unlink_at_exit
       rescue => err
-        logger.error "Cannot create pid file at #{path} (#{err})"
+        logger.error("Cannot create pid file at #{path} (#{err})")
         raise
       end
     end
@@ -406,7 +406,7 @@ module Dea
 
     def send_staging_stop
       staging_task_registry.tasks.each do |task|
-        logger.debug "Stopping staging task #{task}"
+        logger.debug("Stopping staging task #{task}")
         task.stop
       end
     end

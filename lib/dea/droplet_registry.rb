@@ -11,7 +11,7 @@ module Dea
     def initialize(base_dir)
       super() do |hash, sha1|
         raise ArgumentError, "sha cannot be nil" if sha1.nil?
-        logger.debug "New droplet: #{sha1}", :droplet_sha1 => sha1
+        logger.debug("New droplet: #{sha1}", droplet_sha1: sha1)
 
         hash[sha1] = Droplet.new(base_dir, sha1)
       end

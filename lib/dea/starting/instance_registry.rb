@@ -236,11 +236,11 @@ module Dea
     def instances_filtered_by_message(message)
       app_id = message.data["droplet"].to_s
 
-      logger.debug2("Filter message for app_id: %s" % app_id, :app_id => app_id)
+      logger.debug2("Filter message for app_id: %s" % app_id, app_id: app_id)
 
       instances = instances_for_application(app_id)
       if instances.empty?
-        logger.debug2("No instances found for app_id: %s" % app_id, :app_id => app_id)
+        logger.debug2("No instances found for app_id: %s" % app_id, app_id: app_id)
         return
       end
 

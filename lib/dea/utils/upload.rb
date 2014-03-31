@@ -100,8 +100,7 @@ class Upload
                 message: error.message,
                 http_error: http.error,
                 http_status: http.response_header.status,
-                http_response: http.response
-    )
+                http_response: http.response)
 
     upload_callback.call(error)
   end

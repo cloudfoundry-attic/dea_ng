@@ -12,7 +12,7 @@ class AdminBuildpackDownloader
   end
 
   def download
-    logger.debug "admin-buildpacks.download", buildpacks: @buildpacks
+    logger.debug("admin-buildpacks.download", buildpacks: @buildpacks)
     return unless @buildpacks
 
     download_promises = []

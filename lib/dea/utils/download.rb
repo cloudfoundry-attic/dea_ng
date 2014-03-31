@@ -42,7 +42,7 @@ class Download
         logger.warn(error.message, error.data)
         blk.call(error)
       rescue => e
-        logger.error "em-download.failed", error: e, backtrace: e.backtrace
+        logger.error("em-download.failed", error: e, backtrace: e.backtrace)
       end
     end
 
@@ -72,7 +72,7 @@ class Download
           blk.call(error)
         end
       rescue => e
-        logger.error "em-download.failed", error: e, backtrace: e.backtrace
+        logger.error("em-download.failed", error: e, backtrace: e.backtrace)
       end
     end
   end

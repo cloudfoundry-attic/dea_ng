@@ -122,7 +122,7 @@ module Dea
     end
 
     def logger
-      @logger ||= self.class.logger.tag(:droplet_sha1 => sha1)
+      @logger ||= self.class.logger.tag(droplet_sha1: sha1)
     end
   end
 end
