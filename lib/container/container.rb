@@ -16,8 +16,8 @@ class Container
     'rw' => ::Warden::Protocol::CreateRequest::BindMount::Mode::RW,
   }
 
-  attr_reader :path, :host_ip, :network_ports
   attr_accessor :handle
+  attr_reader :path, :host_ip, :network_ports
 
   def initialize(client_provider)
     @client_provider = client_provider
