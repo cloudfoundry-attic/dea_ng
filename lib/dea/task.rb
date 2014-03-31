@@ -53,8 +53,7 @@ module Dea
         if container.handle.nil?
           logger.error("task.destroy.invalid")
         else
-          request = ::Warden::Protocol::DestroyRequest.new
-          request.handle = container.handle
+          request = ::Warden::Protocol::DestroyRequest.new(handle: container.handle)
 
           begin
             container.call_with_retry(:app, request)
@@ -104,11 +103,10 @@ module Dea
     def copy_out_request(source_path, destination_path)
       FileUtils.mkdir_p(destination_path)
 
-      request = ::Warden::Protocol::CopyOutRequest.new
-      request.handle = container.handle
-      request.src_path = source_path
-      request.dst_path = destination_path
-      request.owner = Process.uid.to_s
+      request = ::Warden::Protocol::CopyOutRequest.new(handle: container.handle,
+                                                       src_path: source_path,
+                                                       dst_path: destination_path,
+                                                       owner: Process.uid.to_s)
 
       begin
         container.call_with_retry(:app, request)
