@@ -200,7 +200,7 @@ module Dea
         @warden_job_id = spawn_response.job_id
         bootstrap.snapshot.save
         begin
-          Timeout.timeout(staging_timeout + staging_timeout_grace_period) do
+          Timeout.timeout(staging_timeout) do
             container.link_or_raise(@warden_job_id)
           end
           p.deliver
@@ -547,10 +547,6 @@ module Dea
 
     def run_plugin_path
       File.join(workspace.buildpack_dir, 'bin/run')
-    end
-
-    def staging_timeout_grace_period
-      60
     end
 
     def loggregator_emit_result(result)

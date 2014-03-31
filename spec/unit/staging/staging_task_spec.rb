@@ -165,33 +165,15 @@ describe Dea::StagingTask do
       end
     end
 
-    context 'when job exceeds staging timeout and grace period' do
+    context 'when job exceeds staging timeout' do
       let(:max_staging_duration) { 0.5 }
 
-      context 'when the staging times out past the grace period' do
-        it 'fails with a TimeoutError' do
-          staging_task.stub(:staging_timeout_grace_period) { 0.5 }
-
-          staging_task.container.should_receive(:link_or_raise) do
-            sleep 2
-          end
-
-          expect { staging_task.promise_stage.resolve }.to raise_error(TimeoutError)
+      it 'fails with a TimeoutError' do
+        staging_task.container.should_receive(:link_or_raise) do
+          sleep 1
         end
-      end
 
-      context 'when the staging finishes within the grace period' do
-        it 'does not time out' do
-          staging_task.stub(:staging_timeout_grace_period) { 0.5 }
-
-          staging_task.container.should_receive(:link_or_raise) do
-            sleep 0.75
-
-            empty_streams
-          end
-
-          expect { staging_task.promise_stage.resolve }.to_not raise_error
-        end
+        expect { staging_task.promise_stage.resolve }.to raise_error(TimeoutError)
       end
     end
   end
