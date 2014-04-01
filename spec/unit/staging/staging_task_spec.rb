@@ -235,6 +235,102 @@ YAML
     end
   end
 
+  describe '#buildpack_path' do
+    before do
+      contents = <<YAML
+---
+buildpack_path: some/buildpack/path
+YAML
+      staging_info = File.join(workspace_dir, 'staging_info.yml')
+      File.open(staging_info, 'w') { |f| f.write(contents) }
+    end
+
+    it 'returns the buildpack path' do
+      staging_task.buildpack_path.should eq('some/buildpack/path')
+    end
+  end
+
+  describe '#buildpack_url' do
+    let(:buildpack_path) { "#{staging_task.workspace.system_buildpacks_dir}/java" }
+
+    before do
+      contents = <<YAML
+---
+buildpack_path: #{buildpack_path}
+YAML
+      staging_info = File.join(workspace_dir, 'staging_info.yml')
+      File.open(staging_info, 'w') { |f| f.write(contents) }
+    end
+
+    context 'when a detected system buildpack is used' do
+      it 'returns the correct system buildpack url' do
+        staging_task.buildpack_url.should eq(URI('buildpack:system:java'))
+      end
+    end
+
+    context 'when a custom buildpack is used' do
+      let(:attributes) do
+        staging_attributes = valid_staging_attributes
+        staging_attributes['properties']['buildpack_git_url'] = 'https://example.com/repo.git'
+        staging_attributes
+      end
+
+      it 'returns the custom buildpack url' do
+        staging_task.buildpack_url.should eq(URI('https://example.com/repo.git'))
+      end
+    end
+
+    context 'when an admin buildpack is used' do
+      let(:buildpack_path) { "#{staging_task.workspace.admin_buildpacks_dir}/admin_key" }
+
+      it 'returns a nil buildpack url' do
+        staging_task.buildpack_url.should be_nil
+      end
+    end
+  end
+
+  describe '#buildpack_key' do
+    let(:buildpack_path) { "#{staging_task.workspace.admin_buildpacks_dir}/admin_key" }
+
+    before do
+      FileUtils.mkdir_p(staging_task.workspace.admin_buildpacks_dir)
+      FileUtils.mkdir_p(buildpack_path)
+      contents = <<YAML
+---
+buildpack_path: #{buildpack_path}
+YAML
+      staging_info = File.join(workspace_dir, 'staging_info.yml')
+      File.open(staging_info, 'w') { |f| f.write(contents) }
+    end
+
+    context 'when an admin buildpack is detected' do
+      it 'returns the correct buildpack key' do
+        staging_task.buildpack_key.should eq('admin_key')
+      end
+    end
+
+    context 'when an admin buildpack is specified' do
+      let(:buildpack_path) { "#{staging_task.workspace.admin_buildpacks_dir}/ignored" }
+      let(:attributes) do
+        staging_attributes = valid_staging_attributes
+        staging_attributes['properties']['buildpack_key'] = 'specified_admin_key'
+        staging_attributes
+      end
+
+      it 'returns the specified admin key' do
+        staging_task.buildpack_key.should eq('specified_admin_key')
+      end
+    end
+
+    context 'when a detected system buildpack is used' do
+      let(:buildpack_path) { "#{staging_task.workspace.system_buildpacks_dir}/java" }
+
+      it 'returns a nil buildpack key' do
+        staging_task.buildpack_key.should be_nil
+      end
+    end
+  end
+
   describe '#streaming_log_url' do
     let(:url) { staging_task.streaming_log_url }
 
@@ -515,7 +611,14 @@ YAML
     end
 
     context 'when buildpack_cache_download_uri is provided' do
-      subject(:staging_task) { Dea::StagingTask.new(bootstrap, dir_server, StagingMessage.new(attributes.merge('buildpack_cache_download_uri' => 'http://www.someurl.com')), buildpacks_in_use) }
+      subject(:staging_task) do
+        Dea::StagingTask.new(
+          bootstrap,
+          dir_server,
+          StagingMessage.new(attributes.merge('buildpack_cache_download_uri' => 'http://www.someurl.com')),
+          buildpacks_in_use
+        )
+      end
 
       it 'downloads buildpack cache' do
         staging_task.should_receive(:promise_buildpack_cache_download)
@@ -754,7 +857,7 @@ YAML
 
   describe '#promise_buildpack_cache_download' do
     subject do
-      staging_task.workspace.prepare
+      staging_task.workspace.prepare(staging_task.buildpack_manager)
       promise = staging_task.promise_buildpack_cache_download
       promise.resolve
       promise

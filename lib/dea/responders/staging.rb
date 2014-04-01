@@ -126,6 +126,8 @@ module Dea::Responders
           task_id: task.task_id,
           error: (error.to_s if error),
           detected_buildpack: task.detected_buildpack,
+          buildpack_key: task.buildpack_key,
+          buildpack_url: task.buildpack_url,
           droplet_sha1: task.droplet_sha1
         })
 
@@ -164,6 +166,8 @@ module Dea::Responders
         'task_id' => params[:task_id],
         'task_streaming_log_url' => params[:streaming_log_url],
         'detected_buildpack' => params[:detected_buildpack],
+        'buildpack_key' => params[:buildpack_key],
+        'buildpack_url' => params[:buildpack_url],
         'error' => params[:error],
         'droplet_sha1' => params[:droplet_sha1]
       )
