@@ -47,15 +47,10 @@ describe Dea::StagingTaskWorkspace do
     Dea::StagingTaskWorkspace.new(base_dir, env_properties)
   end
 
-  before do
-    Dea::BuildpackManager.stub(:new).and_return(buildpack_manager)
-  end
-
   after { FileUtils.rm_f(base_dir) }
 
   describe "#workspace_dir" do
     let(:staging_dir) { Pathname.new(base_dir).join("staging") }
-    let(:workspace_path) { Pathname.new(subject.workspace_dir) }
 
     it "should create the staging directory" do
       expect(staging_dir.exist?).to be_false
@@ -64,18 +59,16 @@ describe Dea::StagingTaskWorkspace do
       expect(staging_dir.directory?).to be_true
     end
 
-    it "should create the workspace directory under the staging directory" do
+    it "should create the workspace directory under the staging directory with the expected permissions" do
+      workspace_path = Pathname.new(subject.workspace_dir)
       expect(workspace_path.exist?).to be_true
       expect(workspace_path.directory?).to be_true
       expect(workspace_path.parent).to eq(staging_dir)
+      expect(workspace_path.stat.mode.to_s(8)).to end_with("0755")
     end
 
     it "should return the same workspace directory when called multiple times" do
-      expect(subject.workspace_dir).to eq(workspace_path.to_s)
-    end
-
-    it "should have expected permissions" do
-      expect(workspace_path.stat.mode.to_s(8)).to end_with("0755")
+      expect(subject.workspace_dir).to eq(subject.workspace_dir)
     end
   end
 
@@ -120,6 +113,11 @@ describe Dea::StagingTaskWorkspace do
     it "includes the specified environment config" do
       expect(@config["environment"]).to_not be_nil
       expect(@config["environment"]).to eq(env_properties)
+    end
+
+    it "includes the staging info path" do
+      expect(@config["staging_info_name"]).to_not be_nil
+      expect(@config["staging_info_name"]).to eq("staging_info.yml")
     end
   end
 end
