@@ -296,45 +296,6 @@ YAML
     end
   end
 
-  describe '#buildpack_url' do
-    let(:buildpack_path) { "#{staging_task.workspace.system_buildpacks_dir}/java" }
-
-    before do
-      contents = <<YAML
----
-buildpack_path: #{buildpack_path}
-YAML
-      staging_info = File.join(workspace_dir, 'staging_info.yml')
-      File.open(staging_info, 'w') { |f| f.write(contents) }
-    end
-
-    context 'when a detected system buildpack is used' do
-      it 'returns the correct system buildpack url' do
-        staging_task.buildpack_url.should eq(URI('buildpack:system:java'))
-      end
-    end
-
-    context 'when a custom buildpack is used' do
-      let(:attributes) do
-        staging_attributes = valid_staging_attributes
-        staging_attributes['properties']['buildpack_git_url'] = 'https://example.com/repo.git'
-        staging_attributes
-      end
-
-      it 'returns the custom buildpack url' do
-        staging_task.buildpack_url.should eq(URI('https://example.com/repo.git'))
-      end
-    end
-
-    context 'when an admin buildpack is used' do
-      let(:buildpack_path) { "#{staging_task.workspace.admin_buildpacks_dir}/admin_key" }
-
-      it 'returns a nil buildpack url' do
-        staging_task.buildpack_url.should be_nil
-      end
-    end
-  end
-
   describe '#buildpack_key' do
     let(:buildpack_path) { "#{staging_task.workspace.admin_buildpacks_dir}/admin_key" }
 

@@ -30,13 +30,6 @@ module Dea
       path.basename.to_s
     end
 
-    def system_buildpack_url(buildpack_dir)
-      return nil unless buildpack_dir
-      path = Pathname.new(buildpack_dir)
-      return nil unless system_buildpack_path?(path)
-      URI("buildpack:system:#{path.basename.to_s}")
-    end
-
     private
 
     def buildpack_paths_needing_deletion

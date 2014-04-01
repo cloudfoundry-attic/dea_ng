@@ -113,10 +113,6 @@ module Dea
       task_info['buildpack_path']
     end
 
-    def buildpack_url
-      staging_message.buildpack_git_url || buildpack_manager.system_buildpack_url(buildpack_path)
-    end
-
     def buildpack_key
       staging_message.buildpack_key || buildpack_manager.buildpack_key(buildpack_path)
     end

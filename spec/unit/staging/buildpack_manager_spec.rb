@@ -181,7 +181,7 @@ describe Dea::BuildpackManager do
     end
   end
 
-  describe "buildpack keys and urls" do
+  describe "buildpack keys" do
     let(:system_buildpack) { File.join(system_buildpacks_dir, "java") }
     let(:admin_buildpack) { File.join(admin_buildpacks_dir, "admin") }
 
@@ -205,24 +205,6 @@ describe Dea::BuildpackManager do
 
       it "should be nil for a nil buildpack dir" do
         expect(subject.buildpack_key(nil)).to be_nil
-      end
-    end
-
-    describe "#system_buildpack_url" do
-      it "should be a system buildpack url for a system buildpack" do
-        expect(subject.system_buildpack_url(system_buildpack)).to eq(URI("buildpack:system:java"))
-      end
-
-      it "should be nil for an admin buildpack" do
-        expect(subject.system_buildpack_url(admin_buildpack)).to be_nil
-      end
-
-      it "should be nil for a custom buildpack" do
-        expect(subject.system_buildpack_url("/tmp/cloned")).to be_nil
-      end
-
-      it "should be nil for a nil buildpack dir" do
-        expect(subject.system_buildpack_url(nil)).to be_nil
       end
     end
   end
