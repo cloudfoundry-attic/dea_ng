@@ -28,8 +28,7 @@ class Container
   def update_path_and_ip
     raise ArgumentError, 'container handle must not be nil' unless handle
 
-    request = ::Warden::Protocol::InfoRequest.new(handle: handle)
-    response = call(:info, request)
+    response = call(:info, ::Warden::Protocol::InfoRequest.new(handle: handle))
 
     raise RuntimeError, 'container path is not available' unless response.container_path
     @path = response.container_path
@@ -39,8 +38,7 @@ class Container
   end
 
   def get_new_warden_net_in
-    request = ::Warden::Protocol::NetInRequest.new(handle: handle)
-    call(:app, request)
+    call(:app, ::Warden::Protocol::NetInRequest.new(handle: handle))
   end
 
   def call_with_retry(name, request)
@@ -85,29 +83,24 @@ class Container
   end
 
   def spawn(script, resource_limits = nil)
-    request =
-      ::Warden::Protocol::SpawnRequest.new(handle: handle,
-                                           script: script,
-                                           discard_output: true)
+    spawn_params = {
+        handle: handle,
+        script: script,
+        discard_output: true
+    }
+    spawn_params[:rlimits] = resource_limits if resource_limits
 
-    request.rlimits = resource_limits if resource_limits
-
-    response = call(:app, request)
-
-    response
+    call(:app, ::Warden::Protocol::SpawnRequest.new(spawn_params))
   end
 
   def resource_limits(file_descriptor_limit, process_limit)
-    ::Warden::Protocol::ResourceLimits.new(nofile: file_descriptor_limit,
-                                           nproc: process_limit)
+    ::Warden::Protocol::ResourceLimits.new(nofile: file_descriptor_limit, nproc: process_limit)
   end
 
   def destroy!
     with_em do
-      request = ::Warden::Protocol::DestroyRequest.new(handle: handle)
-
       begin
-        call_with_retry(:app, request)
+        call_with_retry(:app, ::Warden::Protocol::DestroyRequest.new(handle: handle))
       rescue ::EM::Warden::Client::Error => error
         logger.warn("Error destroying container: #{error.message}")
       end
@@ -138,12 +131,16 @@ class Container
             dst_path = bm['dst_path'] || src_path
             mode_key = bm['mode'] || 'ro'
 
-            ::Warden::Protocol::CreateRequest::BindMount.new(src_path: src_path, dst_path: dst_path, mode: BIND_MOUNT_MODE_MAP[mode_key])
+            bind_mount_params = {
+                src_path: src_path,
+                dst_path: dst_path,
+                mode: BIND_MOUNT_MODE_MAP[mode_key]
+            }
+
+            ::Warden::Protocol::CreateRequest::BindMount.new(bind_mount_params)
           end
 
-      create_request = ::Warden::Protocol::CreateRequest.new(bind_mounts: bind_mount_requests)
-
-      response = call(:app, create_request)
+      response = call(:app, ::Warden::Protocol::CreateRequest.new(bind_mounts: bind_mount_requests))
 
       @handle = response.handle
     end
@@ -154,20 +151,17 @@ class Container
   end
 
   def setup_network
-    request = ::Warden::Protocol::NetInRequest.new(handle: handle)
-    response = call(:app, request)
+    response = call(:app, ::Warden::Protocol::NetInRequest.new(handle: handle))
     network_ports['host_port'] = response.host_port
     network_ports['container_port'] = response.container_port
 
-    request = ::Warden::Protocol::NetInRequest.new(handle: handle)
-    response = call(:app, request)
+    response = call(:app, ::Warden::Protocol::NetInRequest.new(handle: handle))
     network_ports['console_host_port'] = response.host_port
     network_ports['console_container_port'] = response.container_port
   end
 
   def info
-    request = ::Warden::Protocol::InfoRequest.new(handle: handle)
-    call(:app_info, request)
+    call(:app_info, ::Warden::Protocol::InfoRequest.new(handle: handle))
   end
 
   def link(job_id)
@@ -202,8 +196,7 @@ class Container
   end
 
   def limit_cpu(shares)
-    request = ::Warden::Protocol::LimitCpuRequest.new(handle: handle, limit_in_shares: shares)
-    call(:app, request)
+    call(:app, ::Warden::Protocol::LimitCpuRequest.new(handle: handle, limit_in_shares: shares))
   end
 
   def limit_disk(params)
@@ -211,13 +204,11 @@ class Container
     request_params[:byte] = params[:byte] unless params[:byte].nil?
     request_params[:inode] = params[:inode] unless params[:inode].nil?
 
-    request = ::Warden::Protocol::LimitDiskRequest.new(request_params)
-    call(:app, request)
+    call(:app, ::Warden::Protocol::LimitDiskRequest.new(request_params))
   end
 
   def limit_memory(bytes)
-    request = ::Warden::Protocol::LimitMemoryRequest.new(handle: handle, limit_in_bytes: bytes)
-    call(:app, request)
+    call(:app, ::Warden::Protocol::LimitMemoryRequest.new(handle: handle, limit_in_bytes: bytes))
   end
 
   private
