@@ -6,10 +6,6 @@ describe Dea::StagingTaskWorkspace do
 
   let(:base_dir) { Dir.mktmpdir }
 
-  let(:system_buildpack_dir) do
-    Pathname.new(File.expand_path("../../../../buildpacks/vendor", __FILE__)).children.sort.map(&:to_s)
-  end
-
   let(:admin_buildpacks) do
     [
       {
@@ -178,9 +174,6 @@ describe Dea::StagingTaskWorkspace do
           expect(@config["staging_info_name"]).to eq("staging_info.yml")
         end
 
-        it "include the system buildpacks" do
-          expect(@config["buildpack_dirs"]).to eq(system_buildpack_dir)
-        end
       end
     end
   end

@@ -2,9 +2,8 @@ require "dea/staging/admin_buildpack_downloader"
 
 module Dea
   class BuildpackManager
-    def initialize (admin_buildpacks_dir, system_buildpacks_dir, admin_buildpacks, buildpacks_in_use)
+    def initialize (admin_buildpacks_dir, admin_buildpacks, buildpacks_in_use)
       @admin_buildpacks_dir = admin_buildpacks_dir
-      @system_buildpacks_dir = system_buildpacks_dir
       @admin_buildpacks = admin_buildpacks
       @buildpacks_in_use = buildpacks_in_use
     end
@@ -20,7 +19,7 @@ module Dea
     end
 
     def list
-      admin_buildpacks_in_staging_message + system_buildpack_paths
+      admin_buildpacks_in_staging_message
     end
 
     private
@@ -41,10 +40,6 @@ module Dea
 
     def all_buildpack_paths
       Pathname.new(@admin_buildpacks_dir).children.map(&:to_s)
-    end
-
-    def system_buildpack_paths
-      Pathname.new(@system_buildpacks_dir).children.sort.map(&:to_s)
     end
   end
 end

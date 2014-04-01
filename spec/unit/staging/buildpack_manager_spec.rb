@@ -4,7 +4,6 @@ require 'dea/staging/buildpack_manager'
 describe Dea::BuildpackManager do
   let(:base_dir) { Dir.mktmpdir }
   let(:admin_buildpacks_dir) { "#{base_dir}/admin_buildpacks" }
-  let(:system_buildpacks_dir) { "#{base_dir}/system_buildpacks" }
   let(:admin_buildpacks) do
     [
       {
@@ -18,7 +17,7 @@ describe Dea::BuildpackManager do
 
   after { FileUtils.rm_f(base_dir) }
 
-  subject(:manager) { Dea::BuildpackManager.new(admin_buildpacks_dir, system_buildpacks_dir, admin_buildpacks, buildpacks_in_use) }
+  subject(:manager) { Dea::BuildpackManager.new(admin_buildpacks_dir, admin_buildpacks, buildpacks_in_use) }
 
   def create_populated_directory(path)
     FileUtils.mkdir_p(File.join(path, "a_buildpack_file"))
@@ -78,26 +77,6 @@ describe Dea::BuildpackManager do
   end
 
   describe "#list" do
-    let(:system_buildpack) { File.join(system_buildpacks_dir, "abcdef") }
-
-    before do
-      create_populated_directory(system_buildpack)
-    end
-
-    context "when there are multiple system buildpacks" do
-      let(:additional_system_buildpacks) { [File.join(system_buildpacks_dir, "abc"),File.join(system_buildpacks_dir, "def")]}
-
-      before {additional_system_buildpacks.each {|path| create_populated_directory(path)}}
-
-      after {FileUtils.rm_rf(additional_system_buildpacks)}
-
-      it "has a sorted list of system buildpacks" do
-        sorted_buildpacks = additional_system_buildpacks.dup
-        sorted_buildpacks << system_buildpack
-        expect(manager.list).to eq(sorted_buildpacks.sort)
-      end
-    end
-
     context "when there are admin buildpacks" do
       let(:admin_buildpacks) do
         [
@@ -117,7 +96,7 @@ describe Dea::BuildpackManager do
       before { create_populated_directory(admin_buildpack) }
 
       it "has the correct number of buildpacks" do
-        expect(manager.list).to have(2).item
+        expect(manager.list).to have(1).item
       end
 
       it "copes with an admin buildpack not being there" do
@@ -130,9 +109,8 @@ describe Dea::BuildpackManager do
     end
 
     context "when there are no admin buildpacks" do
-      it "includes the system buildpacks" do
-        expect(manager.list).to have(1).item
-        expect(manager.list).to include("#{system_buildpacks_dir}/abcdef")
+      it "has the correct number of buildpacks" do
+        expect(manager.list).to have(0).item
       end
     end
   end
