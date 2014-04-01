@@ -100,7 +100,10 @@ describe Dea::StagingTask do
           spawn_response
         end
 
-        staging_task.promise_stage.resolve
+        with_event_machine do
+          staging_task.promise_stage.resolve
+          done
+        end
       end
 
       context 'when env variables need to be escaped' do
@@ -112,14 +115,22 @@ describe Dea::StagingTask do
 
             spawn_response
           end
-          staging_task.promise_stage.resolve
+
+          with_event_machine do
+            staging_task.promise_stage.resolve
+            done
+          end
         end
 
         it 'copes with quotes' do
           staging_task.container.should_receive(:spawn) do |cmd|
             expect(cmd).to include(%Q{export FOO="z'y\\"d";})
           end.and_return(spawn_response)
-          staging_task.promise_stage.resolve
+
+          with_event_machine do
+            staging_task.promise_stage.resolve
+            done
+          end
         end
 
         it 'copes with blank' do
@@ -128,14 +139,22 @@ describe Dea::StagingTask do
 
             spawn_response
           end
-          staging_task.promise_stage.resolve
+
+          with_event_machine do
+            staging_task.promise_stage.resolve
+            done
+          end
         end
 
         it 'copes with equal sign' do
           staging_task.container.should_receive(:spawn) do |cmd|
             expect(cmd).to include('export BAZ="foo=baz";')
           end.and_return(spawn_response)
-          staging_task.promise_stage.resolve
+
+          with_event_machine do
+            staging_task.promise_stage.resolve
+            done
+          end
         end
       end
     end
@@ -144,14 +163,22 @@ describe Dea::StagingTask do
       expect(staging_task.snapshot_attributes['warden_job_id']).to be_nil
 
       expect(staging_task.bootstrap.snapshot).to receive(:save)
-      staging_task.promise_stage.resolve
+
+      with_event_machine do
+        staging_task.promise_stage.resolve
+        done
+      end
 
       expect(staging_task.snapshot_attributes['warden_job_id']).to eq(25)
     end
 
     it 'links to the job' do
       expect(staging_task.container).to receive(:link_or_raise).with(25)
-      staging_task.promise_stage.resolve
+
+      with_event_machine do
+        staging_task.promise_stage.resolve
+        done
+      end
     end
 
     context 'when job fails' do
@@ -161,19 +188,38 @@ describe Dea::StagingTask do
       before { staging_task.container.should_receive(:link_or_raise).and_raise(staging_error) }
 
       it 'raises Container::WardenError' do
-        expect { staging_task.promise_stage.resolve }.to raise_error(Container::WardenError)
+
+        with_event_machine do
+          expect { staging_task.promise_stage.resolve }.to raise_error(Container::WardenError)
+          done
+        end
       end
     end
 
     context 'when job exceeds staging timeout' do
-      let(:max_staging_duration) { 0.5 }
+      let(:max_staging_duration) { 0.1 }
+      let(:container_staging_duration) { 0.2 }
 
       it 'fails with a TimeoutError' do
-        staging_task.container.should_receive(:link_or_raise) do
-          sleep 1
+        stop_request = ::Warden::Protocol::StopRequest.new(handle: staging_task.container.handle, kill: true)
+        allow(staging_task.container).to receive(:call).with(:stop, stop_request)
+
+        allow(staging_task.container).to receive(:link_or_raise) do
+          f = Fiber.current
+
+          EM.add_timer(container_staging_duration) do
+            f.resume
+          end
+
+          Fiber.yield
         end
 
-        expect { staging_task.promise_stage.resolve }.to raise_error(TimeoutError)
+        with_event_machine do
+          Fiber.new do
+            expect { staging_task.promise_stage.resolve }.to raise_error('Staging in container timed out')
+            done
+          end.resume
+        end
       end
     end
   end

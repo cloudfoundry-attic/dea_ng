@@ -42,6 +42,16 @@ describe Dea::Task do
       }.to_not raise_error
     end
 
+    context "when the stop request call fails" do
+      it "fails the promise" do
+        expect(task.container).to receive(:call).and_raise("Stop request failed")
+
+        expect {
+          task.promise_stop.resolve
+        }.to raise_error("Stop request failed")
+      end
+    end
+
     context "when kill_flag is NOT passed" do
       it "generates a StopRequest with kill: false" do
         expect(task.container).to receive(:call) do |connection, request|
