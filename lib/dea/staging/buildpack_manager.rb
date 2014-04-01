@@ -33,13 +33,11 @@ module Dea
     private
 
     def buildpack_paths_needing_deletion
-      local_admin_buildpack_paths - (admin_buildpacks.map{ |b| Pathname.new(b) } + buildpacks_in_use_paths)
+      local_admin_buildpack_paths - (admin_buildpack_paths + buildpacks_in_use_paths)
     end
 
     def admin_buildpacks
-      @staging_message.admin_buildpacks.map do |buildpack|
-        File.join(@admin_buildpacks_dir, buildpack[:key])
-      end.select{ |dir| File.exists?(dir) }.map(&:to_s)
+      admin_buildpack_paths.map(&:to_s)
     end
 
     def system_buildpacks
@@ -48,6 +46,14 @@ module Dea
 
     def buildpacks_in_use_paths
       @buildpacks_in_use.map { |b| Pathname.new(@admin_buildpacks_dir).join(b[:key]) }
+    end
+
+    def admin_buildpack_paths
+      @staging_message.admin_buildpacks.map do |buildpack|
+        File.join(@admin_buildpacks_dir, buildpack[:key])
+      end.select { |dir| File.exists?(dir) }.map do |dir|
+        Pathname.new(dir)
+      end
     end
 
     def local_admin_buildpack_paths
