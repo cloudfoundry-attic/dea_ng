@@ -19,7 +19,7 @@ describe Dea do
       done
     end
 
-    em(:timeout => 1) do
+    with_event_machine(:timeout => 1) do
       bootstrap.setup
       bootstrap.start
     end
@@ -36,7 +36,7 @@ describe Dea do
       done
     end
 
-    em(:timeout => 1) do
+    with_event_machine(:timeout => 1) do
       bootstrap.setup
       bootstrap.start
     end
@@ -51,7 +51,7 @@ describe Dea do
       done
     end
 
-    em(:timeout => 1) do
+    with_event_machine(:timeout => 1) do
       bootstrap.setup
       bootstrap.start
 

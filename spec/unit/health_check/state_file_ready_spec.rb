@@ -40,7 +40,7 @@ describe Dea::HealthCheck::StateFileReady do
   def run_health_check(path, timeout, &before_health_check)
     result = nil
 
-    em(:timeout => 1) do
+    with_event_machine(:timeout => 1) do
       before_health_check.call unless before_health_check.nil?
 
       Dea::HealthCheck::StateFileReady.new(path, 0.02) do |hc|

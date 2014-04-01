@@ -14,7 +14,7 @@ describe Dea do
 
   describe "responses to messages received on 'dea.find.droplet'" do
     def run
-      em(:timeout => 1) do
+      with_event_machine(:timeout => 1) do
         bootstrap.setup
         bootstrap.start
 

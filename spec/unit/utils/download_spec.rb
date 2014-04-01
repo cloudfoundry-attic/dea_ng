@@ -3,7 +3,7 @@ require "dea/utils/download"
 
 describe Download do
   around do |example|
-    em { example.call }
+    with_event_machine { example.call }
   end
 
   let(:from_uri) { URI("http://127.0.0.1:12345/droplet") }

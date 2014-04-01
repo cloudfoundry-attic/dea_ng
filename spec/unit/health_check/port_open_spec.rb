@@ -40,7 +40,7 @@ describe Dea::HealthCheck::PortOpen do
   def run_health_check(host, port, timeout, &blk)
     success = false
 
-    em(:timeout => 1) do
+    with_event_machine(:timeout => 1) do
       blk.call if blk
 
       Dea::HealthCheck::PortOpen.new(host, port, 0.02) do |hc|

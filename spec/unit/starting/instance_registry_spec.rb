@@ -9,7 +9,7 @@ describe Dea::InstanceRegistry do
   let(:bootstrap) { double("bootstrap", :config => {}) }
   let(:instance_registry) do
     instance_registry = nil
-    em do
+    with_event_machine do
       instance_registry = Dea::InstanceRegistry.new
       done
     end
@@ -267,7 +267,7 @@ describe Dea::InstanceRegistry do
 
     let(:instance_registry) do
       instance_registry = nil
-      em do
+      with_event_machine do
         instance_registry = Dea::InstanceRegistry.new(config)
         done
       end
@@ -276,7 +276,7 @@ describe Dea::InstanceRegistry do
     it "should reap orphaned crashes" do
       instance = register_crashed_instance(nil)
 
-      em do
+      with_event_machine do
         instance_registry.reap_orphaned_crashes
 
         after_defers_finish do
@@ -290,7 +290,7 @@ describe Dea::InstanceRegistry do
     it "should ignore referenced crashes" do
       instance = register_crashed_instance(instance_registry)
 
-      em do
+      with_event_machine do
         instance_registry.reap_orphaned_crashes
 
         after_defers_finish do
@@ -314,7 +314,7 @@ describe Dea::InstanceRegistry do
 
     let(:instance_registry) do
       instance_registry = nil
-      em do
+      with_event_machine do
         instance_registry = Dea::InstanceRegistry.new(config)
         done
       end
@@ -336,7 +336,7 @@ describe Dea::InstanceRegistry do
                                   :state_timestamp => age)
       end
 
-      em do
+      with_event_machine do
         instance_registry.reap_crashes
 
         after_defers_finish do
@@ -355,7 +355,7 @@ describe Dea::InstanceRegistry do
                                   :state_timestamp => age)
       end
 
-      em do
+      with_event_machine do
         instance_registry.reap_crashes
 
         after_defers_finish do
@@ -379,7 +379,7 @@ describe Dea::InstanceRegistry do
     end
     let(:instance_registry) do
       instance_registry = nil
-      em do
+      with_event_machine do
         instance_registry = Dea::InstanceRegistry.new(config)
         done
       end
@@ -394,7 +394,7 @@ describe Dea::InstanceRegistry do
                                   :state_timestamp => i)
       end
 
-      em do
+      with_event_machine do
         instance_registry.reap_crashes_under_disk_pressure
 
         after_defers_finish do
@@ -414,7 +414,7 @@ describe Dea::InstanceRegistry do
                                   :state_timestamp => i)
       end
 
-      em do
+      with_event_machine do
         instance_registry.reap_crashes_under_disk_pressure
 
         after_defers_finish do
@@ -438,7 +438,7 @@ describe Dea::InstanceRegistry do
 
       instance_registry.register(instance)
 
-      em do
+      with_event_machine do
         instance_registry.reap_crash(instance.instance_id, "no reason") do
           instance_registry.reap_crashes_under_disk_pressure
         end
@@ -464,7 +464,7 @@ describe Dea::InstanceRegistry do
 
     let(:instance_registry) do
       instance_registry = nil
-      em do
+      with_event_machine do
         instance_registry = Dea::InstanceRegistry.new(config)
         done
       end

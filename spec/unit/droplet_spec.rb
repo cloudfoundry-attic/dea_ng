@@ -33,7 +33,7 @@ describe Dea::Droplet do
     it "should remove the associated directory" do
       File.exist?(droplet.droplet_dirname).should be_true
 
-      em do
+      with_event_machine do
         droplet.destroy { EM.stop }
         done
       end
@@ -47,7 +47,7 @@ describe Dea::Droplet do
       it "should fail when server is unreachable" do
         error = nil
 
-        em do
+        with_event_machine do
           droplet.download("http://127.0.0.1:12346/droplet") do |err|
             error = err
             done
@@ -65,7 +65,7 @@ describe Dea::Droplet do
         it "should fail" do
           error = nil
 
-          em do
+          with_event_machine do
             droplet.download("http://127.0.0.1:12345/droplet") do |err|
               error = err
               done
@@ -76,7 +76,7 @@ describe Dea::Droplet do
         end
 
         it "should not create droplet file" do
-          em do
+          with_event_machine do
             droplet.download("http://127.0.0.1:12345/droplet") do |err|
               done
             end
@@ -91,7 +91,7 @@ describe Dea::Droplet do
 
         error = nil
 
-        em do
+        with_event_machine do
           droplet.download("http://127.0.0.1:12345/droplet") do |err|
             error = err
             done
@@ -114,7 +114,7 @@ describe Dea::Droplet do
       it "should call callback without error" do
         error = nil
 
-        em do
+        with_event_machine do
           droplet.download("http://127.0.0.1:12345/droplet") do |err|
             error = err
             done
@@ -133,7 +133,7 @@ describe Dea::Droplet do
 
       it "only downloads the droplet once" do
         called = 0
-        em do
+        with_event_machine do
           3.times do
             droplet.download("http://127.0.0.1:12345/droplet") do
               called += 1
@@ -162,7 +162,7 @@ describe Dea::Droplet do
         end
 
         it "does not download the file" do
-          em do
+          with_event_machine do
             droplet.download("http://127.0.0.1:12345/droplet") do
               done
             end
@@ -180,7 +180,7 @@ describe Dea::Droplet do
         end
 
         it "downloads the file" do
-          em do
+          with_event_machine do
             droplet.download("http://127.0.0.1:12345/droplet") do
               done
             end

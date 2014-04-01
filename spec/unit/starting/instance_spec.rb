@@ -387,7 +387,7 @@ describe Dea::Instance do
     def execute_health_check
       error = result = nil
 
-      em do
+      with_event_machine do
         Dea::Promise.resolve(instance.promise_health_check) do |error_, result_|
           error, result = error_, result_
           done
@@ -563,7 +563,7 @@ describe Dea::Instance do
     def expect_start
       error = nil
 
-      em do
+      with_event_machine do
         instance.start do |error_|
           error = error_
           done
@@ -1024,7 +1024,7 @@ describe Dea::Instance do
     def expect_stop
       error = nil
 
-      em do
+      with_event_machine do
         instance.stop do |error_|
           error = error_
           done
@@ -1290,7 +1290,7 @@ describe Dea::Instance do
     def expect_destroy
       error = nil
 
-      em do
+      with_event_machine do
         instance.destroy do |error_|
           error = error_
           done
@@ -1358,7 +1358,7 @@ describe Dea::Instance do
     def expect_crash_handler
       error = nil
 
-      em do
+      with_event_machine do
         instance.crash_handler do |error_|
           error = error_
           done

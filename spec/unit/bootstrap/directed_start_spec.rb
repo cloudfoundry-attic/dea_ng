@@ -8,7 +8,7 @@ describe Dea do
 
   describe "directed start" do
     def publish
-      em do
+      with_event_machine do
         bootstrap.setup
         bootstrap.start
 

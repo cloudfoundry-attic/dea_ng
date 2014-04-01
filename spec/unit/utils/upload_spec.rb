@@ -41,7 +41,7 @@ describe Upload do
     end
 
     around do |example|
-      em { example.call }
+      with_event_machine { example.call }
     end
 
     it "requests an async upload of the droplet" do

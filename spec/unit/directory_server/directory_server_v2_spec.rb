@@ -6,7 +6,7 @@ require "dea/staging/staging_task_registry"
 describe Dea::DirectoryServerV2 do
   let(:instance_registry) do
     instance_registry = nil
-    em do
+    with_event_machine do
       instance_registry = Dea::InstanceRegistry.new({})
       done
     end
@@ -69,7 +69,7 @@ describe Dea::DirectoryServerV2 do
       # For debugging you can do 'Thin::Logging.silent = false'
       def make_request(url)
         response = nil
-        em(:timeout => 1) do
+        with_event_machine(:timeout => 1) do
           subject.start
 
           http = EM::HttpRequest.new(url).get

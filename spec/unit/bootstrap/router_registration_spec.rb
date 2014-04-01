@@ -23,7 +23,7 @@ describe Dea do
       done
     end
 
-    em(:timeout => 1) do
+    with_event_machine(:timeout => 1) do
       bootstrap.setup
       bootstrap.start
 
@@ -66,7 +66,7 @@ describe Dea do
   end
 
   it "sets up a periodic timer with the requested interval" do
-    em do
+    with_event_machine do
       bootstrap.setup
       bootstrap.start
 
@@ -78,7 +78,7 @@ describe Dea do
   end
 
   it "does not set up a periodic timer when no interval is given" do
-    em do
+    with_event_machine do
       bootstrap.setup
       bootstrap.start
 
@@ -90,7 +90,7 @@ describe Dea do
   end
 
   it "clears previous timer and creates a new one if a timer already exists" do
-    em do
+    with_event_machine do
       bootstrap.setup
       bootstrap.start
 
@@ -106,7 +106,7 @@ describe Dea do
   end
 
   it "sends router.greet on startup and registers a timer" do
-    em do
+    with_event_machine do
       bootstrap.setup
       bootstrap.start
 
@@ -154,7 +154,7 @@ describe Dea do
           done if reqs.size == 2
         end
 
-        em(:timeout => 1) do
+        with_event_machine(:timeout => 1) do
           bootstrap.setup
           bootstrap.start
 
@@ -195,7 +195,7 @@ describe Dea do
           done if reqs.size == 2
         end
 
-        em(:timeout => 1) do
+        with_event_machine(:timeout => 1) do
           bootstrap.setup
           bootstrap.start
 
@@ -241,7 +241,7 @@ describe Dea do
         context "when both the uris and app version are specified" do
           it "updates the instance's uris and app version" do
             expect {
-              em do
+              with_event_machine do
                 bootstrap.start
 
                 nats_mock.publish("dea.update",
@@ -261,7 +261,7 @@ describe Dea do
             bootstrap.instance_registry.lookup_instance(instance.instance_id).should == instance
 
             expect {
-              em do
+              with_event_machine do
                 bootstrap.start
 
                 nats_mock.publish("dea.update",
@@ -281,7 +281,7 @@ describe Dea do
         context "when the app version is not in the message (for backwards compatibility)" do
           it "does not change the instance's app version" do
             expect {
-              em do
+              with_event_machine do
                 bootstrap.start
 
                 nats_mock.publish("dea.update",
@@ -298,7 +298,7 @@ describe Dea do
             bootstrap.instance_registry.lookup_instance(instance.instance_id).should == instance
 
             expect {
-              em do
+              with_event_machine do
                 bootstrap.start
 
                 nats_mock.publish("dea.update",
@@ -332,7 +332,7 @@ describe Dea do
 
       it "should not change uri registration or version" do
         expect {
-          em do
+          with_event_machine do
             bootstrap.start
 
             nats_mock.publish("dea.update",
@@ -352,7 +352,7 @@ describe Dea do
         bootstrap.instance_registry.lookup_instance(instance.instance_id).should == instance
 
         expect {
-          em do
+          with_event_machine do
             bootstrap.start
 
             nats_mock.publish("dea.update",

@@ -2,7 +2,7 @@ shared_examples :handles_registry_enumerations do
 
   let(:registry) do
     registry = nil
-    em do
+    with_event_machine do
       registry = described_class.new
       done
     end

@@ -21,7 +21,7 @@ describe Dea::Bootstrap do
   subject(:bootstrap) do
     bootstrap = nil
     if EM.reactor_running?
-      em do
+      with_event_machine do
         bootstrap = Dea::Bootstrap.new(@config)
         done
       end

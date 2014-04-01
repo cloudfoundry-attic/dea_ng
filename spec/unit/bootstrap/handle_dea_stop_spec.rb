@@ -7,7 +7,7 @@ describe "Dea::Bootstrap#handle_dea_stop" do
   include_context "bootstrap_setup"
 
   def publish(message = {})
-    em do
+    with_event_machine do
       bootstrap.setup
       bootstrap.start
 
@@ -32,7 +32,7 @@ describe "Dea::Bootstrap#handle_dea_stop" do
 
   before do
     bootstrap.unstub(:setup_router_client)
-    em do
+    with_event_machine do
       bootstrap.setup
       done
     end
