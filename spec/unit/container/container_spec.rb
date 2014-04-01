@@ -334,28 +334,18 @@ describe Container do
   end
 
   describe '#setup_network' do
-    let(:response_a) { double('network_response', host_port: 8765, container_port: 000)}
-    let(:response_b) { double('network_response', host_port: 1111, container_port: 2222)}
     it 'makes a create network request and returns the ports' do
-      client_provider.should_receive(:get).with(:app).twice.and_return(connection)
+      client_provider.should_receive(:get).with(:app).and_return(connection)
       connection.should_receive(:call) do |request|
         expect(request).to be_an_instance_of(::Warden::Protocol::NetInRequest)
         expect(request.handle).to eq(container.handle)
-
-        response_a
-      end.ordered
-      connection.should_receive(:call) do |request|
-        expect(request).to be_an_instance_of(::Warden::Protocol::NetInRequest)
-        response_b
-      end.ordered
+        double('network_response', host_port: 8765, container_port: 000)
+      end
 
       container.setup_network
 
       expect(container.network_ports['host_port']).to eql(8765)
       expect(container.network_ports['container_port']).to eql(000)
-
-      expect(container.network_ports['console_host_port']).to eql(1111)
-      expect(container.network_ports['console_container_port']).to eql(2222)
     end
   end
 

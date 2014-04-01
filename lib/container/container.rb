@@ -154,10 +154,6 @@ class Container
     response = call(:app, ::Warden::Protocol::NetInRequest.new(handle: handle))
     network_ports['host_port'] = response.host_port
     network_ports['container_port'] = response.container_port
-
-    response = call(:app, ::Warden::Protocol::NetInRequest.new(handle: handle))
-    network_ports['console_host_port'] = response.host_port
-    network_ports['console_container_port'] = response.container_port
   end
 
   def info
