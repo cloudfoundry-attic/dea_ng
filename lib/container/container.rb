@@ -43,24 +43,6 @@ class Container
     call(:app, request)
   end
 
-  def with_em(&blk)
-    if EM.reactor_running?
-      blk.call
-    else
-      EM.run do
-        f = Fiber.new do
-          begin
-            blk.call
-          ensure
-            EM.stop
-          end
-        end
-        f.resume
-      end
-    end
-
-  end
-
   def call_with_retry(name, request)
     count = 0
     response = nil
@@ -239,6 +221,22 @@ class Container
   end
 
   private
+
+  def with_em(&blk)
+    if EM.reactor_running?
+      blk.call
+    else
+      EM.run do
+        Fiber.new do
+          begin
+            blk.call
+          ensure
+            EM.stop
+          end
+        end.resume
+      end
+    end
+  end
 
   def emit_warden_response_time_to_varz(response_time_in_ms)
     VCAP::Component.varz.synchronize do
