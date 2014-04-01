@@ -180,7 +180,8 @@ class Container
     emit_warden_failure_to_varz
     raise e
   ensure
-    emit_warden_response_time_to_varz((Time.now.to_f * 1_000).to_i - start_time_in_ms)
+    elapsed_time = (Time.now.to_f * 1_000).to_i - start_time_in_ms
+    emit_warden_response_time_to_varz(elapsed_time)
   end
 
   def stream(request, &blk)
