@@ -20,12 +20,8 @@ describe Dea::StagingTaskWorkspace do
     ]
   end
 
-  let(:system_buildpacks) do
-    Pathname.new(File.expand_path("../../../../buildpacks/vendor", __FILE__)).children.sort.map(&:to_s)
-  end
-
   let(:buildpack_dirs) do
-    system_buildpacks + [ "/tmp/admin/admin" ]
+    [ "/tmp/admin/admin" ]
   end
 
   let(:buildpack_manager) do

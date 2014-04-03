@@ -1,15 +1,6 @@
-[submodule "buildpacks/vendor/nodejs"]
-	path = buildpacks/vendor/nodejs
-	url = https://github.com/cloudfoundry/heroku-buildpack-nodejs.git
-[submodule "buildpacks/vendor/ruby"]
-	path = buildpacks/vendor/ruby
-	url = https://github.com/cloudfoundry/heroku-buildpack-ruby.git
 [submodule "go/vendor"]
 	path = go/vendor
 	url = https://github.com/cloudfoundry/govendor
-[submodule "buildpacks/vendor/java"]
-	path = buildpacks/vendor/java
-	url = https://github.com/cloudfoundry/java-buildpack
 [submodule "go/src/github.com/cloudfoundry/gosteno"]
 	path = go/src/github.com/cloudfoundry/gosteno
 	url = https://github.com/cloudfoundry/gosteno.git

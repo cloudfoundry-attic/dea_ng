@@ -87,7 +87,6 @@ module Dea
     def buildpack_manager
       @buildpack_manager ||= BuildpackManager.new(
         workspace.admin_buildpacks_dir,
-        workspace.system_buildpacks_dir,
         staging_message,
         @buildpacks_in_use
       )
