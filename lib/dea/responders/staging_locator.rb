@@ -33,7 +33,8 @@ module Dea::Responders
       nats.publish("staging.advertise", {
         "id" => dea_id,
         "stacks" => config["stacks"],
-        "available_memory" => resource_manager.remaining_memory
+        "available_memory" => resource_manager.remaining_memory,
+        "available_disk" => resource_manager.remaining_disk,
       })
     rescue => e
       logger.error("staging_locator.advertise", error: e, backtrace: e.backtrace)
