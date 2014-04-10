@@ -529,6 +529,15 @@ module Dea
       end
     end
 
+    def promise_setup_crond
+      log(:debug, "start crond service")
+      Promise.new do |p|
+        script = "service crond start"
+        promise_warden_run(:app, script, true).resolve
+        p.deliver
+      end
+    end
+
     def promise_extract_droplet
       Promise.new do |p|
         if use_p2p?
@@ -735,6 +744,7 @@ module Dea
         promise_limit_memory.resolve
         promise_setup_environment.resolve
         promise_setup_sshd.resolve if ( config['enable_sshd'] == true )
+        promise_setup_crond.resolve 
 
         p.deliver
       end
