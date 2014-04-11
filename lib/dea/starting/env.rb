@@ -23,6 +23,7 @@ module Dea
       def vcap_application
         start_time = Time.at(@instance.state_starting_timestamp)
         {
+          "application_id" => @instance.attributes["application_id"],
           "instance_id" => @instance.attributes["instance_id"],
           "instance_index" => @message.index,
           "host" => "0.0.0.0",
