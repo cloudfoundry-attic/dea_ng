@@ -531,8 +531,8 @@ module Dea
       )
       promises = [promise_app_download]
       promises << promise_buildpack_cache_download if staging_message.buildpack_cache_download_uri
-
       Promise.run_in_parallel(*promises)
+
       promise_update = Promise.new do |p|
         container.update_path_and_ip
         p.deliver

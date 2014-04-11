@@ -31,6 +31,18 @@ module Dea
         promises.each(&:run).each(&:resolve)
       end
 
+      def run_in_parallel_and_join(*promises)
+        failure = nil
+        promises.each(&:run).each{ |p|
+          begin
+            p.resolve
+          rescue => error
+            failure = error if failure.nil?
+          end
+        }
+        raise failure if failure
+      end
+
       def run_serially(*promises)
         promises.each(&:resolve)
       end
