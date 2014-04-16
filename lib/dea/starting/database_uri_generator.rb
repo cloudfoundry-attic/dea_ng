@@ -9,7 +9,7 @@ module Dea
     }.freeze
 
     def initialize(services)
-      @services = services || []
+      @services = Array(services).compact || []
     end
 
     def database_uri

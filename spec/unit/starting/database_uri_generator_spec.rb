@@ -70,4 +70,12 @@ describe Dea::DatabaseUriGenerator do
       it { should be_nil }
     end
   end
+
+  describe "dealing with nils" do
+    let(:services_env) { [nil] }
+
+    it "should be fine" do
+      expect{services.database_uri}.to_not raise_error
+    end
+  end
 end
