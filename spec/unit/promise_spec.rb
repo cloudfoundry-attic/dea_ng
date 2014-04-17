@@ -103,4 +103,113 @@ describe Dea::Promise do
       Dea::Promise.resolve(p, &b)
     end.to yield_with_args([nil, "ok"])
   end
+
+  context "run_in_parallel_and_join" do
+    it "resolves all promises" do
+      p1 = Dea::Promise.new do
+        p1.deliver("ok")
+      end
+
+      p2 = Dea::Promise.new do
+        p2.deliver("ok")
+      end
+
+      Fiber.new do
+        Dea::Promise.run_in_parallel_and_join(p1, p2)
+      end.resume
+
+      expect(p1.result).to_not be_nil
+      expect(p2.result).to_not be_nil
+    end
+
+    context "when a promise fails" do
+      it "resolves all promises" do
+        p1 = Dea::Promise.new do
+          p1.fail("fail")
+        end
+        p2 = Dea::Promise.new do
+          f = Fiber.current
+          EM::add_timer(1) { f.resume }
+          Fiber::yield
+          p2.deliver("ok")
+        end
+
+        EM.run do
+          Fiber.new do
+            begin
+              expect do
+                Dea::Promise.run_in_parallel_and_join(p1, p2)
+              end.to raise_error("fail")
+            ensure
+              EM.stop
+            end
+          end.resume
+        end
+
+        expect(p1.result).to_not be_nil
+        expect(p2.result).to_not be_nil
+      end
+
+      it "raises one of the failures when multiple promises fail" do
+        p1 = Dea::Promise.new do
+          p1.fail("fail")
+        end
+        p2 = Dea::Promise.new do
+          f = Fiber.current
+          EM::add_timer(1) { f.resume }
+          Fiber::yield
+          p2.fail("fail")
+        end
+
+        EM.run do
+          Fiber.new do
+            begin
+              expect do
+                Dea::Promise.run_in_parallel_and_join(p1, p2)
+              end.to raise_error("fail")
+            ensure
+              EM.stop
+            end
+          end.resume
+        end
+
+        expect(p1.result).to_not be_nil
+        expect(p2.result).to_not be_nil
+      end
+    end
+
+    context "run_serially" do
+      it "resolves all promises" do
+        p1 = Dea::Promise.new do
+          p1.deliver("ok")
+        end
+
+        p2 = Dea::Promise.new do
+          p2.deliver("ok")
+        end
+
+        Dea::Promise.run_serially(p1, p2)
+
+        expect(p1.result).to_not be_nil
+        expect(p2.result).to_not be_nil
+      end
+
+      it "resolves until the first failure" do
+        p1 = Dea::Promise.new do
+          p1.fail("fail")
+        end
+
+        p2 = Dea::Promise.new do
+          p2.deliver("ok")
+        end
+
+        expect do
+          Dea::Promise.run_serially(p1, p2)
+        end.to raise_error("fail")
+
+        expect(p1.result).to_not be_nil
+        expect(p2.result).to be_nil
+      end
+    end
+  end
 end

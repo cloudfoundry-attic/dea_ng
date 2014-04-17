@@ -471,16 +471,16 @@ module Dea
         promise_state(State::BORN, State::STARTING).resolve
 
         # Concurrently download droplet and setup container
-        [
+        Promise.run_in_parallel_and_join(
           promise_droplet,
           promise_container
-        ].each(&:run).each(&:resolve)
+        )
 
-        [
+        Promise.run_serially(
           promise_extract_droplet,
           promise_exec_hook_script('before_start'),
           promise_start
-        ].each(&:resolve)
+        )
 
         on(Transition.new(:starting, :crashed)) do
           cancel_health_check
