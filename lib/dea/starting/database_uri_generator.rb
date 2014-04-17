@@ -29,7 +29,8 @@ module Dea
     def bound_relational_valid_databases
       @bound_relational_valid_databases ||= @services.inject([]) do |collection, binding|
         begin
-          if binding["credentials"]["uri"]
+          credentials = binding["credentials"]
+          if credentials && credentials["uri"]
             uri = URI.parse(binding["credentials"]["uri"])
             collection << {uri: uri, name: binding["name"]} if VALID_DB_TYPES.include?(uri.scheme)
           end

@@ -78,4 +78,11 @@ describe Dea::DatabaseUriGenerator do
       expect{services.database_uri}.to_not raise_error
     end
   end
+
+  describe "dealing with services which dont have credentials" do
+    let(:services_env) { [{}] }
+    it "should be fine" do
+      expect{services.database_uri}.to_not raise_error
+    end
+  end
 end
