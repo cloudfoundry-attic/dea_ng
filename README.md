@@ -73,22 +73,37 @@ cd dea_ng
 git submodule update --init
 bundle install
 
-# check that your version of Vagrant is 1.5 or greater
+```
+
+## Testing
+
+The DEA integration tests run against real Warden, directory, and NATS servers, so they must be run
+in a [Vagrant][vagrant] VM. The `bin` directory contains a helper script that runs the entire DEA test suite:
+
+[vagrant]: http://docs.vagrantup.com/v2/installation/index.html
+
+```bash
+# Checkout the repo
+git clone https://github.com/cloudfoundry/dea_ng
+
+# Verify that Vagrant version is at least 1.5
 vagrant --version
 
-# initialize the test VM
-cd ~/workspace/dea_ng
-vagrant up
+# Run test suite in Vagrant vm
+bin/test_in_vm
+```
+Note that the integration tests stage and run real applications, which requires an internet connection.
+They take 5-10 minutes to run, depending on your connection speed.
 
-# shell into the VM
+To run tests individually, there is a bit of setup:
+
+```bash
+shell into the VM
 vagrant ssh
 
 # pull the latest warden
 cd /warden
-git checkout master
-git pull
-
-# start warden
+#start warden
 cd /warden/warden
 sudo bundle install
 sudo bundle exec rake warden:start[config/test_vm.yml] &> /tmp/warden.log &
@@ -97,20 +112,15 @@ sudo bundle exec rake warden:start[config/test_vm.yml] &> /tmp/warden.log &
 cd /vagrant
 sudo bundle install
 sudo bundle exec foreman start &> /tmp/foreman.log &
-```
 
-To run the tests (unit, integration or all):
-```
+#To run the tests (unit, integration or all):
 bundle install
-bundle exec rspec spec/unit
-LOCAL_DEA=true bundle exec rspec spec/integration
+LOCAL_DEA=true bundle exec rspec spec/{spec_file_name}
 ```
-
-Note that the integration tests stage and run real applications, which requires an internet connection.
-They take 5-10 minutes to run, depending on your connection speed.
 
 To watch the internal NATS traffic while the tests run, do this
 in another ssh session:
+
 ```
 nats-sub ">" -s nats://localhost:4222
 ```
