@@ -83,6 +83,7 @@ in a [Vagrant][vagrant] VM. The `bin` directory contains a helper script that ru
 [vagrant]: http://docs.vagrantup.com/v2/installation/index.html
 
 ```bash
+
 # Checkout the repo
 git clone https://github.com/cloudfoundry/dea_ng
 
@@ -98,7 +99,8 @@ They take 5-10 minutes to run, depending on your connection speed.
 To run tests individually, there is a bit of setup:
 
 ```bash
-shell into the VM
+
+#shell into the VM
 vagrant ssh
 
 # pull the latest warden
