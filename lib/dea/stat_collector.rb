@@ -90,7 +90,7 @@ module Dea
     end
 
     def compute_memory_usage(memory_stat)
-      return memory_stat.total_rss + memory_stat.total_cache
+      return memory_stat.total_rss + memory_stat.total_cache - memory_stat.total_inactive_file
     end
   end
 end
