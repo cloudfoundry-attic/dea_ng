@@ -28,6 +28,7 @@ describe Dea::Instance do
       defaults = {
         "index"   => 0,
         "droplet" => 1,
+        "application_name" => "my_application",
       }
 
       message.stub(:data).and_return(defaults.merge(start_message_data))
