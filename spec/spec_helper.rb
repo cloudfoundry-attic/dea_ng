@@ -44,6 +44,7 @@ end
 STAGING_TEMP = Dir.mktmpdir
 FILE_SERVER_DIR = "/tmp/dea"
 DEFAULT_APPWORKSPACE_USER = "default"
+DEFAULT_APPWORKSPACE_DIR = ".default"
 
 at_exit do
   if File.directory?(STAGING_TEMP)

@@ -7,7 +7,7 @@ describe Dea::Instance do
   include_context "tmpdir"
 
   let(:bootstrap) do
-    mock("bootstrap", :config => { "app_workspace" => {"user" => DEFAULT_APPWORKSPACE_USER }})
+    mock("bootstrap", :config => { "app_workspace" => {"user" => DEFAULT_APPWORKSPACE_USER, "work_dir" => DEFAULT_APPWORKSPACE_DIR }})
   end
 
   subject(:instance) do
@@ -55,6 +55,7 @@ describe Dea::Instance do
           "droplet" => 37,
           "version" => "some_version",
           "name"    => "my_application",
+          "application_name"    => "application_1-0-0-0",
           "uris"    => ["foo.com", "bar.com"],
           "users"   => ["john@doe.com"],
         }

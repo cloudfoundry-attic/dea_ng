@@ -660,7 +660,7 @@ YAML
   describe "#promise_prepare_staging_log" do
     it "assembles a shell command that creates staging_task.log file for tailing it" do
       staging.should_receive(:promise_warden_run) do |connection_name, cmd|
-        cmd.should match "mkdir -p /tmp/staged/logs && touch /tmp/staged/logs/staging_task.log"
+        cmd.should match "mkdir -p /tmp/staged && touch /tmp/staged/logs/staging_task.log"
         mock(:prepare_staging_log_promise, :resolve => nil)
       end
       staging.promise_prepare_staging_log.resolve
@@ -979,7 +979,7 @@ YAML
     end
 
     it "should send copying out request" do
-      staging.should_receive(:copy_out_request).with("/tmp/staged/logs/staging_task.log", /#{workspace_dir}/)
+      staging.should_receive(:copy_out_request).with("/tmp/staged/staging_task.log", /#{workspace_dir}/)
       subject
     end
 
