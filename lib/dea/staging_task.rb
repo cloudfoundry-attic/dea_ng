@@ -166,12 +166,27 @@ module Dea
       File.open(workspace.plugin_config_path, 'w') { |f| YAML.dump(plugin_config, f) }
       File.open(workspace.platform_config_path, "w") { |f| YAML.dump(platform_config, f) }
     end
+ 
+    def app_workspace
+      @config['app_workspace'] || {}
+    end
+
+    def app_workdir
+      app_workspace.fetch("work_dir", ".jpaas")
+    end
+
+    def app_workuser
+      app_workspace.fetch("user", "work")
+    end
 
     def promise_prepare_staging_log
       Promise.new do |p|
-        script = "su -c 'mkdir -p #{workspace.warden_staged_dir}/logs && touch #{workspace.warden_staging_log}' #{@config["app_workspace"]["user"]}"
+        script = [ 
+          "mkdir -p #{workspace.warden_staged_dir}",
+          "touch #{workspace.warden_staging_log}",
+          ].join(' && ')
         logger.info("Preparing staging log: #{script}")
-        promise_warden_run(:app, script, true).resolve
+        promise_warden_run(:app, script).resolve
         p.deliver
       end
     end
@@ -181,7 +196,11 @@ module Dea
         # Some buildpacks seem to make assumption that /app is a non-empty directory
         # See: https://github.com/heroku/heroku-buildpack-python/blob/master/bin/compile#L46
         # TODO possibly remove this if pull request is accepted
-        script = "mkdir -p /app && touch /app/support_heroku_buildpacks && chown -R #{@config["app_workspace"]["user"]}:#{@config["app_workspace"]["user"]} /app"
+        script = [
+          "mkdir -p /app",
+          "touch /app/support_heroku_buildpacks",
+          "chown -R #{app_workuser}:#{app_workuser} /app"
+          ].join(' && ')
         promise_warden_run(:app, script, true).resolve
         p.deliver
       end
@@ -455,7 +474,7 @@ module Dea
     end
 
     def paths_to_bind
-      [workspace.workspace_dir, buildpack_dir]
+      [{ :src => workspace.workspace_dir, :dst => workspace.workspace_dir }, {:src => buildpack_dir, :dst => buildpack_dir} ]
     end
 
     def run_plugin_path

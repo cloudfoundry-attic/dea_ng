@@ -298,6 +298,14 @@ module Dea
       @app_user ? @app_user : DEFAULT_APPWORKSPACE_USER
     end
 
+    def app_workspace
+      bootstrap.config['app_workspace']
+    end
+
+    def app_workdir
+      app_workspace['work_dir']
+    end
+
     def memory_limit_in_bytes
       limits["mem"].to_i * 1024 * 1024
     end
@@ -353,9 +361,9 @@ module Dea
     end
     def paths_to_bind
       if use_p2p?
-        [unzip_droplet_file_dir]
+        [ {:src => unzip_droplet_file_dir, :dst => unzip_droplet_file_dir} ]
       else
-        [droplet.droplet_dirname]
+        [ { :src => droplet.droplet_dirname, :dst => droplet.droplet_dirname_in_container} ]
       end
     end
 
@@ -385,10 +393,8 @@ module Dea
         bind_mount["src_path"] = File.join("/home/work", prefix, bm["name"], data_dir_to_mount)
         bind_mount["dst_path"] = File.join(src_base_path, bm["name"])
         bind_mount["mode"] = bm["mode"] || "ro"
-        p bind_mount
         bind_mounts << bind_mount.dup
       end
-      p bind_mounts
       bind_mounts
     end
 
@@ -513,7 +519,12 @@ module Dea
 
     def promise_setup_environment
       Promise.new do |p|
-        script = "cd / && mkdir -p home/#{app_workspace_user}/app && chown #{app_workspace_user}:#{app_workspace_user} home/#{app_workspace_user} && chown #{app_workspace_user}:#{app_workspace_user} home/#{app_workspace_user}/app && ln -s home/#{app_workspace_user} /app"
+        script = [
+          "cd / && mkdir -p home/#{app_workspace_user}/#{app_workdir}",
+          "chown #{app_workspace_user}:#{app_workspace_user} home/#{app_workspace_user}",
+          "chown #{app_workspace_user}:#{app_workspace_user} home/#{app_workspace_user}/#{app_workdir}",
+          "ln -s home/#{app_workspace_user}/#{app_workdir} /app"
+          ].join(' && ')
         promise_warden_run(:app, script, true).resolve
 
         p.deliver
@@ -544,7 +555,12 @@ module Dea
             script = "cd /home/#{app_workspace_user}/ && cp -r #{unzip_droplet_file_dir}/* /home/#{app_workspace_user} &&mv app/* /home/#{app_workspace_user}/ && find . -type f -maxdepth 1 | xargs chmod og-x"
             promise_warden_run(:app, script).resolve
         else
-            script = "cd /home/#{app_workspace_user}/ && tar zxf #{droplet.droplet_path} && mv app/* /home/#{app_workspace_user}/ && find . -type f -maxdepth 1 | xargs chmod og-x"
+            script = [
+              "cd /home/#{app_workspace_user}/#{app_workdir}/",
+              "tar zxf #{droplet.droplet_path_in_container}",
+              "mv /home/#{app_workspace_user}/#{app_workdir}/app/* /home/#{app_workspace_user}",
+              "mv /home/#{app_workspace_user}/#{app_workdir}/startup /home/#{app_workspace_user}"
+            ].join(' && ')
             promise_warden_run(:app, script).resolve
         end
         p.deliver
@@ -744,8 +760,7 @@ module Dea
         promise_limit_memory.resolve
         promise_setup_environment.resolve
         promise_setup_sshd.resolve if ( config['enable_sshd'] == true )
-        promise_setup_crond.resolve 
-
+        promise_setup_crond.resolve
         p.deliver
       end
     end
@@ -937,7 +952,7 @@ module Dea
           next
         end
 
-        manifest_path = container_relative_path(container_path, "droplet.yaml")
+        manifest_path = container_relative_path(container_path, app_workdir, "droplet.yaml")
         if !File.exist?(manifest_path)
           p.deliver({})
         else

@@ -141,8 +141,8 @@ module Dea
       Promise.new do |p|
         bind_mounts = paths_to_bind.map do |path|
           bind_mount = ::Warden::Protocol::CreateRequest::BindMount.new
-          bind_mount.src_path = path
-          bind_mount.dst_path = path
+          bind_mount.src_path = path[:src]
+          bind_mount.dst_path = path[:dst]
           bind_mount.mode = ::Warden::Protocol::CreateRequest::BindMount::Mode::RO
           bind_mount
         end

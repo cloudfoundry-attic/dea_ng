@@ -53,7 +53,7 @@ module Dea
     end
 
     def warden_staging_log
-      "/tmp/staged/logs/#{STAGING_LOG}"
+      "/tmp/staged/#{STAGING_LOG}"
     end
 
     def warden_staging_info

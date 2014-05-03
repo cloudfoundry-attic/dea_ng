@@ -38,6 +38,10 @@ module Helpers
       "droplet_sha1"        => "deadbeef",
       "droplet_uri"         => "http://foo.com/file.ext",
 
+      "infohash"            => "info",
+      "application_space"   => "test_space",
+      "application_org"     => "test_org",
+      "application_name_without_version" => "app_name_without_version",
       "limits"              => { "mem" => 1, "disk" => 2, "fds" => 3 },
       "environment"         => { "FOO" => "BAR" },
       "services"            => [valid_service_attributes],

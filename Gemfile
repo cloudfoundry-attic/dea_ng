@@ -1,4 +1,5 @@
-source "https://rubygems.org"
+#source "https://rubygems.org"
+source "http://ruby.taobao.org"
 
 gem "eventmachine"
 gem "em-http-request"
