@@ -87,6 +87,8 @@ module Dea
         if k != "sshd" && v["port_info"]["bns"] == true 
           ports << ["JPAAS_TCP_PORT_#{index}", v["host_port"]]
           ports << [k, v["container_port"] ]
+          ports << ["#{k}_host", v["host_port"]]
+          ports << ["JPAAS_HOST_PORT_#{v["container_port"]}", v["host_port"]]
           index += 1
         end
       end
