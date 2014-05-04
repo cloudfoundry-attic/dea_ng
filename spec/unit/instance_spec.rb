@@ -426,6 +426,7 @@ describe Dea::Instance do
       instance.stub(:promise_warden_connection).and_return(failing_promise("error"))
       instance.stub(:promise_create_container).and_return(delivering_promise)
       instance.stub(:promise_setup_network).and_return(delivering_promise)
+      instance.stub(:promise_setup_crond).and_return(delivering_promise)
       instance.stub(:promise_limit_disk).and_return(delivering_promise)
       instance.stub(:promise_limit_memory).and_return(delivering_promise)
       instance.stub(:promise_setup_environment).and_return(delivering_promise)
