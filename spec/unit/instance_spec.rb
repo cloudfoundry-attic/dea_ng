@@ -724,7 +724,7 @@ describe Dea::Instance do
       #TODO: this is a fake test, should be fixed later
       it "should run tar" do
         instance.stub(:promise_warden_run) do |_, script|
-          script.should =~ /service crond start/
+          script.should =~ /tar zxf/
 
           delivering_promise
         end

@@ -18,7 +18,7 @@ GIT
       membrane (~> 0.0.2)
       mime-types
       multipart-post
-      nats (~> 0.4.24)
+     nats (~> 0.5.0.beta.12)
       posix-spawn (~> 0.3.6)
       thin
       vmstat (~> 2.0)
@@ -125,7 +125,7 @@ GEM
     multi_json (1.7.6)
     multi_xml (0.5.4)
     multipart-post (1.2.0)
-    nats (0.4.26)
+    nats (0.5.0.beta.12)
       daemons (>= 1.1.5)
       eventmachine (>= 0.12.10)
       json_pure (>= 1.7.3)
