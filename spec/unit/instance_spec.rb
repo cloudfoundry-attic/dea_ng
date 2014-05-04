@@ -752,7 +752,7 @@ describe Dea::Instance do
 
       it "should create the app dir" do
        instance.stub(:promise_warden_run) do |_, script|
-          script.should =~ %r{cd / && mkdir -p home/#{DEFAULT_APPWORKSPAC     E_USER}/#{DEFAULT_APPWORKSPACE_DIR} && chown #{DEFAULT_APPWORKSPACE_USER}     :#{DEFAULT_APPWORKSPACE_USER} home/#{DEFAULT_APPWORKSPACE_USER} && chown      #{DEFAULT_APPWORKSPACE_USER}:#{DEFAULT_APPWORKSPACE_USER} home/#{DEFAULT_     APPWORKSPACE_USER}/#{DEFAULT_APPWORKSPACE_DIR} && ln -s home/#{DEFAULT_AP     PWORKSPACE_USER}/#{DEFAULT_APPWORKSPACE_DIR} /app}
+          script.should =~ %r{cd / && mkdir -p home/#{DEFAULT_APPWORKSPAC     E_USER}/#{DEFAULT_APPWORKSPACE_DIR} && chown #{DEFAULT_APPWORKSPACE_USER}:#{DEFAULT_APPWORKSPACE_USER} home/#{DEFAULT_APPWORKSPACE_USER} && chown #{DEFAULT_APPWORKSPACE_USER}:#{DEFAULT_APPWORKSPACE_USER} home/#{DEFAULT_APPWORKSPACE_USER}/#{DEFAULT_APPWORKSPACE_DIR} && ln -s home/#{DEFAULT_APPWORKSPACE_USER}/#{DEFAULT_APPWORKSPACE_DIR} /app}
 
           delivering_promise
         end
