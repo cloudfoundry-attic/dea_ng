@@ -3,15 +3,11 @@ source "https://rubygems.org"
 gem "eventmachine"
 gem "em-http-request"
    
-#gem "em-warden-client", :git => "https://github.com/cloudfoundry/warden.git"
-#gem "warden-client", :git => "https://github.com/cloudfoundry/warden.git"
-#gem "warden-protocol", :git => "https://github.com/cloudfoundry/warden.git"
+gem "em-warden-client", :git => "https://github.com/X-Plat/warden.git", :branch => "x-plat_dev"
+gem "warden-client", :git => "https://github.com/X-Plat/warden.git", :branch => "x-plat_dev"
+gem "warden-protocol", :git => "https://github.com/X-Plat/warden.git", :branch => "x-plat_dev"
 
-gem "em-warden-client", :git => "https://github.com/cloudfoundry/warden.git"
-gem "warden-client", :git => "https://github.com/cloudfoundry/warden.git"
-gem "warden-protocol", :git => "https://github.com/X-Plat/warden.git"
-
-gem "nats", :require => "nats/client"
+gem "nats", :require => "nats/client", :branch => "cluster"
 gem "rack", :require => %w[rack/utils rack/mime]
 gem "rake"
 gem "thin"

@@ -25,8 +25,9 @@ GIT
       yajl-ruby
 
 GIT
-  remote: https://github.com/cloudfoundry/warden.git
-  revision: 609bbdfa0ea796ff0c140e937d475fa8081388fb
+  remote: https://github.com/X-Plat/warden.git
+  revision: 0e42988ca4d59aea5b7640a812c819172459b58e
+  branch: x-plat_dev
   specs:
     em-warden-client (0.1.1)
       eventmachine
