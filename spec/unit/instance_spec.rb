@@ -1289,7 +1289,7 @@ describe Dea::Instance do
     end
 
     let(:manifest_path) do
-      File.join(tmpdir, "rootfs", "home", DEFAULT_APPWORKSPACE_USER, "droplet.yaml")
+      File.join(tmpdir, "rootfs", "home", DEFAULT_APPWORKSPACE_USER, DEFAULT_APPWORKSPACE_DIR, "droplet.yaml")
     end
 
     before :each do

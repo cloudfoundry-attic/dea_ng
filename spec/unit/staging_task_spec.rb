@@ -68,7 +68,7 @@ describe Dea::StagingTask do
         expect(cmd).to match %r{export PLATFORM_CONFIG=.+/platform_config;}
         expect(cmd).to include %Q{export BUILDPACK_CACHE=buildpack_cache_url;}
         expect(cmd).to include %Q{export STAGING_TIMEOUT=900.0;}
-        expect(cmd).to match %r{.*/bin/run .*/plugin_config >> /tmp/staged/logs/staging_task.log 2>&1$}
+        expect(cmd).to match %r{.*/bin/run .*/plugin_config >> /tmp/staged/staging_task.log 2>&1$}
 
         mock("promise", :resolve => nil)
       end
@@ -985,7 +985,7 @@ YAML
 
     it "should write the staging log to the main logger" do
       logger.should_receive(:info).with(anything)
-      staging.should_receive(:copy_out_request).with("/tmp/staged/logs/staging_task.log", /#{workspace_dir}/)
+      staging.should_receive(:copy_out_request).with("/tmp/staged/staging_task.log", /#{workspace_dir}/)
       subject
     end
   end

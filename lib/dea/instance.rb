@@ -299,7 +299,7 @@ module Dea
     end
 
     def app_workspace
-      bootstrap.config['app_workspace']
+      @bootstrap.config['app_workspace']
     end
 
     def app_workdir
