@@ -39,6 +39,7 @@ module Helpers
       "droplet_uri"         => "http://foo.com/file.ext",
 
       "infohash"            => "info",
+      "use_p2p"             => false,
       "application_space"   => "test_space",
       "application_org"     => "test_org",
       "application_name_without_version" => "app_name_without_version",
