@@ -20,6 +20,7 @@ module Dea
 
     STAT_COLLECTION_INTERVAL_SECS = 10
     DEFAULT_APPWORKSPACE_USER = "default"
+    DEFAULT_APPWORKSPACE_DIR = ".default"
     DEFAULT_WORKUSER_LENGTH = 30
     DEFAULT_WORKUSER_PASSWORD = 'default'
 
@@ -259,7 +260,7 @@ module Dea
     attr_accessor :exit_status
     attr_accessor :exit_description
 
-    def initialize(bootstrap, attributes, app_user = nil)
+    def initialize(bootstrap, attributes, app_user = nil, app_workdir = nil)
       super(bootstrap.config)
       @bootstrap = bootstrap
 
@@ -278,6 +279,7 @@ module Dea
       @attributes["application_prod"] ||= false
 
       @app_user = app_user
+      @app_workdir = app_workdir
 
       @exit_status           = -1
       @exit_description      = ""
@@ -298,12 +300,8 @@ module Dea
       @app_user ? @app_user : DEFAULT_APPWORKSPACE_USER
     end
 
-    def app_workspace
-      @bootstrap.config['app_workspace']
-    end
-
-    def app_workdir
-      app_workspace['work_dir']
+    def app_workspace_dir
+      @app_workdir ? @app_workdir : DEFAULT_APPWORKSPACE_DIR
     end
 
     def memory_limit_in_bytes
@@ -520,10 +518,10 @@ module Dea
     def promise_setup_environment
       Promise.new do |p|
         script = [
-          "cd / && mkdir -p home/#{app_workspace_user}/#{app_workdir}",
+          "cd / && mkdir -p home/#{app_workspace_user}/#{app_workspace_dir}",
           "chown #{app_workspace_user}:#{app_workspace_user} home/#{app_workspace_user}",
-          "chown #{app_workspace_user}:#{app_workspace_user} home/#{app_workspace_user}/#{app_workdir}",
-          "ln -s home/#{app_workspace_user}/#{app_workdir} /app"
+          "chown #{app_workspace_user}:#{app_workspace_user} home/#{app_workspace_user}/#{app_workspace_dir}",
+          "ln -s home/#{app_workspace_user}/#{app_workspace_dir} /app"
           ].join(' && ')
         promise_warden_run(:app, script, true).resolve
 
@@ -556,10 +554,10 @@ module Dea
             promise_warden_run(:app, script).resolve
         else
             script = [
-              "cd /home/#{app_workspace_user}/#{app_workdir}/",
+              "cd /home/#{app_workspace_user}/#{app_workspace_dir}/",
               "tar zxf #{droplet.droplet_path_in_container}",
-              "mv /home/#{app_workspace_user}/#{app_workdir}/app/* /home/#{app_workspace_user}",
-              "mv /home/#{app_workspace_user}/#{app_workdir}/startup /home/#{app_workspace_user}"
+              "mv /home/#{app_workspace_user}/#{app_workspace_dir}/app/* /home/#{app_workspace_user}",
+              "mv /home/#{app_workspace_user}/#{app_workspace_dir}/startup /home/#{app_workspace_user}"
             ].join(' && ')
             promise_warden_run(:app, script).resolve
         end
@@ -952,7 +950,7 @@ module Dea
           next
         end
 
-        manifest_path = container_relative_path(container_path, app_workdir, "droplet.yaml")
+        manifest_path = container_relative_path(container_path, app_workspace_dir, "droplet.yaml")
         if !File.exist?(manifest_path)
           p.deliver({})
         else

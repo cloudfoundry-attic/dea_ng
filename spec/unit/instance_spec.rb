@@ -7,11 +7,11 @@ describe Dea::Instance do
   include_context "tmpdir"
 
   let(:bootstrap) do
-    mock("bootstrap", :config => { "app_workspace" => {"user" => DEFAULT_APPWORKSPACE_USER, "work_dir" => DEFAULT_APPWORKSPACE_DIR, },})
+    mock("bootstrap", :config => { "app_workspace" => {"user" => DEFAULT_APPWORKSPACE_USER, "work_dir" => DEFAULT_APPWORKSPACE_DIR }})
   end
 
   subject(:instance) do
-    Dea::Instance.new(bootstrap, valid_instance_attributes, DEFAULT_APPWORKSPACE_USER)
+    Dea::Instance.new(bootstrap, valid_instance_attributes, DEFAULT_APPWORKSPACE_USER, DEFAULT_APPWORKSPACE_DIR)
   end
 
   describe "default attributes" do
