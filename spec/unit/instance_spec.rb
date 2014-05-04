@@ -56,7 +56,7 @@ describe Dea::Instance do
           "droplet" => 37,
           "version" => "some_version",
           "name"    => "my_application",
-          "application_name"    => "application_1-0-0-0",
+          "application_name"    => "my_application",
           "uris"    => ["foo.com", "bar.com"],
           "users"   => ["john@doe.com"],
         }

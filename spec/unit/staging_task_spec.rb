@@ -209,7 +209,7 @@ YAML
     end
 
     it "includes path to staging task output" do
-      url.should include "path=%2Ftmp%2Fstaged%2Flogs%2Fstaging_task.log"
+      url.should include "path=%2Ftmp%2Fstaged%2Fstaging_task.log"
     end
 
     it "hmacs url" do
@@ -660,7 +660,7 @@ YAML
   describe "#promise_prepare_staging_log" do
     it "assembles a shell command that creates staging_task.log file for tailing it" do
       staging.should_receive(:promise_warden_run) do |connection_name, cmd|
-        cmd.should match "mkdir -p /tmp/staged && touch /tmp/staged/logs/staging_task.log"
+        cmd.should match "mkdir -p /tmp/staged && touch /tmp/staged/staging_task.log"
         mock(:prepare_staging_log_promise, :resolve => nil)
       end
       staging.promise_prepare_staging_log.resolve
