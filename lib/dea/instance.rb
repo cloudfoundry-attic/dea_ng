@@ -699,6 +699,7 @@ module Dea
       resolve(p, "start instance") do |error, _|
         if error
           # An error occured while starting, mark as crashed
+            p error.message
           self.exit_description = error.message
           self.state = State::CRASHED
         end
