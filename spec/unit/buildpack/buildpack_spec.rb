@@ -44,8 +44,8 @@ describe Buildpacks::Buildpack, :type => :buildpack do
         start_script.should be_executable_file
         script_body = File.read(start_script)
         script_body.should include(<<-EXPECTED)
-if [ -d app/.profile.d ]; then
-  for i in app/.profile.d/*.sh; do
+if [ -d .jpaas/.profile.d ]; then
+  for i in .jpaas/.profile.d/*.sh; do
     if [ -r $i ]; then
       . $i
     fi
@@ -115,7 +115,7 @@ fi
 
     it "put stderr and stdout to logfiles " do
       stage :environment => staging_env do |staged_dir|
-        start_script_body(staged_dir).should include("> $DROPLET_BASE_DIR/logs/stdout.log 2> $DROPLET_BASE_DIR/logs/stderr.log &")
+        start_script_body(staged_dir).should include("> $DROPLET_BASE_DIR/jpaas_run/logs/stdout.log 2> $DROPLET_BASE_DIR/jpaas_run/logs/stderr.log &")
       end
     end
   end

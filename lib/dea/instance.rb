@@ -518,7 +518,7 @@ module Dea
     def promise_setup_environment
       Promise.new do |p|
         script = [
-          "cd / && mkdir -p home/#{app_workspace_user}/#{app_workspace_dir}/bin",
+          "cd / && mkdir -p home/#{app_workspace_user}/#{app_workspace_dir}",
           "chown #{app_workspace_user}:#{app_workspace_user} home/#{app_workspace_user}",
           "chown #{app_workspace_user}:#{app_workspace_user} home/#{app_workspace_user}/#{app_workspace_dir}",
           "ln -s home/#{app_workspace_user}/#{app_workspace_dir} /app"
