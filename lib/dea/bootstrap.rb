@@ -135,7 +135,7 @@ module Dea
     attr_reader :droplet_registry
 
     def setup_droplet_registry
-      @droplet_registry = Dea::DropletRegistry.new(File.join(config["base_dir"], "droplets"), config['app_workspace']['user'], config['app_workspace']['work_dir'])
+      @droplet_registry = Dea::DropletRegistry.new(File.join(config["base_dir"], "droplets"), app_workuser, app_workdir)
     end
 
     attr_reader :instance_registry
