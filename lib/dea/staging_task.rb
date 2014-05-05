@@ -182,7 +182,7 @@ module Dea
     def promise_prepare_staging_log
       Promise.new do |p|
         script = [ 
-          "mkdir -p #{workspace.warden_staged_dir}",
+          "mkdir -p #{workspace.warden_staged_dir}/logs",
           "touch #{workspace.warden_staging_log}",
           ].join(' && ')
         logger.info("Preparing staging log: #{script}")
@@ -474,7 +474,15 @@ module Dea
     end
 
     def paths_to_bind
-      [{ :src => workspace.workspace_dir, :dst => workspace.workspace_dir }, {:src => buildpack_dir, :dst => buildpack_dir} ]
+      [{  
+         :src => workspace.workspace_dir, 
+         :dst => workspace.workspace_dir 
+       }, 
+       {
+         :src => buildpack_dir, 
+         :dst => buildpack_dir
+       }
+      ]
     end
 
     def run_plugin_path

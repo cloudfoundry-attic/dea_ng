@@ -80,12 +80,16 @@ module Dea
       setup_router_client
     end
 
-    def app_user
-      config["app_workspace"]["user"]
+    def app_workspace
+      config["app_workspace"] || {}
     end
 
-    def app_work_dir
-      config["app_workspace"]["work_dir"]  
+    def app_workuser
+      app_workspace.fetch("user", "work")
+    end
+
+    def app_workdir
+      app_workspace.fetch("work_dir", ".jpaas")
     end
 
     def setup_varz
@@ -404,7 +408,7 @@ module Dea
         return nil
       end
 
-      instance = Instance.new(self, attributes, app_user, app_work_dir)
+      instance = Instance.new(self, attributes, app_workuser, app_workdir)
       instance.setup
 
       instance.on(Instance::Transition.new(:starting, :crashed)) do
