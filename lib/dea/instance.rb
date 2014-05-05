@@ -518,7 +518,7 @@ module Dea
     def promise_setup_environment
       Promise.new do |p|
         script = [
-          "cd / && mkdir -p home/#{app_workspace_user}/#{app_workspace_dir}",
+          "cd / && mkdir -p home/#{app_workspace_user}/#{app_workspace_dir}/bin",
           "chown #{app_workspace_user}:#{app_workspace_user} home/#{app_workspace_user}",
           "chown #{app_workspace_user}:#{app_workspace_user} home/#{app_workspace_user}/#{app_workspace_dir}",
           "ln -s home/#{app_workspace_user}/#{app_workspace_dir} /app"
@@ -737,14 +737,14 @@ module Dea
         script << "echo '#{work_user}:#{DEFAULT_WORKUSER_PASSWORD}' | chpasswd"
         find_opts = []
         find_opts << "find /home/#{app_workspace_user}"
-        find_opts << "-maxdepth 1"
-        find_opts << ["dea_ng", "appdata", "."].
+        find_opts << "-maxdepth 2"
+        find_opts << [ config["org_data"]["src_prefix"], app_workspace_dir, "."].
                      map {|e| "-not -name " + e }.
                      join(" ")
         find_opts << "-exec chown -R #{work_user}:#{work_user} '{}' ';'"
         script << find_opts.join(" ")
         script << "ln -s /home/#{app_workspace_user} /home/#{work_user}"
-        script = script.join("&&")
+        script = script.join(" && ")
         promise_warden_run(:app, script, true).resolve
 
         p.deliver
