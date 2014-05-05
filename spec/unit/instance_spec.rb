@@ -764,7 +764,7 @@ describe Dea::Instance do
 
       it "should chown the app dir" do
         instance.stub(:promise_warden_run) do |_, script|
-          script.should =~ %r{cd / && mkdir -p home/#{DEFAULT_APPWORKSPACE_USER}/#{DEFAULT_APPWORKSPACE_DIR} && cd / && mkdir -p home/                          #{DEFAULT_APPWORKSPACE_USER}/jpaas_run && chown #{DEFAULT_APPWORKSPACE_USER}:#{DEFAULT_APPWORKSPACE_USER} home/#{DEFAULT_APPWORKSPACE_USER} && chown #{DEFAULT_APPWORKSPACE_USER}:#{DEFAULT_APPWORKSPACE_USER} home/#{DEFAULT_APPWORKSPACE_USER}/#{DEFAULT_APPWORKSPACE_DIR} && ln -s home/#{DEFAULT_APPWORKSPACE_USER}/#{DEFAULT_APPWORKSPACE_DIR} /app}
+          script.should =~ %r{cd / && mkdir -p home/#{DEFAULT_APPWORKSPACE_USER}/#{DEFAULT_APPWORKSPACE_DIR} && cd / && mkdir -p home/#{DEFAULT_APPWORKSPACE_USER}/jpaas_run && chown #{DEFAULT_APPWORKSPACE_USER}:#{DEFAULT_APPWORKSPACE_USER} home/#{DEFAULT_APPWORKSPACE_USER} && chown #{DEFAULT_APPWORKSPACE_USER}:#{DEFAULT_APPWORKSPACE_USER} home/#{DEFAULT_APPWORKSPACE_USER}/#{DEFAULT_APPWORKSPACE_DIR} && ln -s home/#{DEFAULT_APPWORKSPACE_USER}/#{DEFAULT_APPWORKSPACE_DIR} /app}
 
           delivering_promise
         end
