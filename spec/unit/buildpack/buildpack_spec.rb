@@ -115,7 +115,7 @@ fi
 
     it "put stderr and stdout to logfiles " do
       stage :environment => staging_env do |staged_dir|
-        start_script_body(staged_dir).should include("> $DROPLET_BASE_DIR/jpaas_run/logs/stdout.log 2> $DROPLET_BASE_DIR/jpaas_run/logs/stderr.log &")
+        start_script_body(staged_dir).should include("> ${DROPLET_RUN_DIR}/logs/stdout.log 2> ${DROPLET_RUN_DIR}/logs/stderr.log &")
       end
     end
   end
