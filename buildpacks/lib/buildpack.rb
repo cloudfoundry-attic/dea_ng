@@ -183,8 +183,8 @@ module Buildpacks
       generate_startup_script(running_environment_variables) do
         script_content = <<-BASH
 unset GEM_PATH
-if [ -d .jpaas/.profile.d ]; then
-  for i in .jpaas/.profile.d/*.sh; do
+if [ -d .jpaas/app/.profile.d ]; then
+  for i in .jpaas/app/.profile.d/*.sh; do
     if [ -r $i ]; then
       . $i
     fi
