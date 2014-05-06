@@ -44,8 +44,8 @@ describe Buildpacks::Buildpack, :type => :buildpack do
         start_script.should be_executable_file
         script_body = File.read(start_script)
         script_body.should include(<<-EXPECTED)
-if [ -d .jpaas/.profile.d ]; then
-  for i in .jpaas/.profile.d/*.sh; do
+if [ -d .jpaas/app/.profile.d ]; then
+  for i in .jpaas/app/.profile.d/*.sh; do
     if [ -r $i ]; then
       . $i
     fi
