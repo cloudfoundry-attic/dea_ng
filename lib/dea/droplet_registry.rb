@@ -8,11 +8,11 @@ module Dea
   class DropletRegistry < Hash
     attr_reader :base_dir
 
-    def initialize(base_dir)
+    def initialize(base_dir, app_workusr='work', app_workdir='.jpaas')
       super() do |hash, sha1|
         logger.debug "New droplet: #{sha1}", :droplet_sha1 => sha1
 
-        hash[sha1] = Droplet.new(base_dir, sha1)
+        hash[sha1] = Droplet.new(base_dir, sha1, app_workusr, app_workdir)
       end
 
       # Seed registry with available droplets

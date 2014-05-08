@@ -20,6 +20,7 @@ module Dea
 
     STAT_COLLECTION_INTERVAL_SECS = 10
     DEFAULT_APPWORKSPACE_USER = "default"
+    DEFAULT_APPWORKSPACE_DIR = ".default"
     DEFAULT_WORKUSER_LENGTH = 30
     DEFAULT_WORKUSER_PASSWORD = 'default'
 
@@ -256,10 +257,12 @@ module Dea
 
     attr_reader :bootstrap
     attr_reader :attributes
+    attr_reader :app_workusr
+    attr_reader :app_workdir
     attr_accessor :exit_status
     attr_accessor :exit_description
 
-    def initialize(bootstrap, attributes, app_user = nil)
+    def initialize(bootstrap, attributes, app_workusr = DEFAULT_APPWORKSPACE_USER, app_workdir = DEFAULT_APPWORKSPACE_DIR)
       super(bootstrap.config)
       @bootstrap = bootstrap
 
@@ -277,7 +280,8 @@ module Dea
       # Assume non-production app when not specified
       @attributes["application_prod"] ||= false
 
-      @app_user = app_user
+      @app_workusr = app_workusr
+      @app_workdir = app_workdir
 
       @exit_status           = -1
       @exit_description      = ""
@@ -292,10 +296,6 @@ module Dea
     # TODO: Fill in once start is hooked up
     def flapping?
       false
-    end
-
-    def app_workspace_user
-      @app_user ? @app_user : DEFAULT_APPWORKSPACE_USER
     end
 
     def memory_limit_in_bytes
@@ -353,9 +353,9 @@ module Dea
     end
     def paths_to_bind
       if use_p2p?
-        [unzip_droplet_file_dir]
+        [ {:src => unzip_droplet_file_dir, :dst => unzip_droplet_file_dir} ]
       else
-        [droplet.droplet_dirname]
+        [ { :src => droplet.droplet_dirname, :dst => droplet.droplet_dirname_in_container} ]
       end
     end
 
@@ -376,19 +376,17 @@ module Dea
 
     def data_paths_to_bind
       return [] if ! config["org_data"]
-      prefix = config["org_data"]["src_prefix"]
+      prefix = mfs_path
       bind_mounts = []
       data_dir_to_mount = data_path(config["org_data"].fetch("share_mode", "org"))
-      config["org_data"]["bind_mounts"].each do |bm|
+      config["org_data"].fetch("bind_mounts", []).each do |bm|
         bind_mount = {}
-        src_base_path = File.join("/home", app_workspace_user, prefix)
+        src_base_path = File.join("/home", app_workusr, prefix)
         bind_mount["src_path"] = File.join("/home/work", prefix, bm["name"], data_dir_to_mount)
         bind_mount["dst_path"] = File.join(src_base_path, bm["name"])
         bind_mount["mode"] = bm["mode"] || "ro"
-        p bind_mount
         bind_mounts << bind_mount.dup
       end
-      p bind_mounts
       bind_mounts
     end
 
@@ -513,7 +511,13 @@ module Dea
 
     def promise_setup_environment
       Promise.new do |p|
-        script = "cd / && mkdir -p home/#{app_workspace_user}/app && chown #{app_workspace_user}:#{app_workspace_user} home/#{app_workspace_user} && chown #{app_workspace_user}:#{app_workspace_user} home/#{app_workspace_user}/app && ln -s home/#{app_workspace_user} /app"
+        script = [
+          "cd / && mkdir -p home/#{app_workusr}/#{app_workdir}",
+          "cd / && mkdir -p home/#{app_workusr}/jpaas_run",
+          "chown #{app_workusr}:#{app_workusr} home/#{app_workusr}",
+          "chown #{app_workusr}:#{app_workusr} home/#{app_workusr}/#{app_workdir}",
+          "ln -s home/#{app_workusr}/#{app_workdir} /app"
+          ].join(' && ')
         promise_warden_run(:app, script, true).resolve
 
         p.deliver
@@ -541,10 +545,15 @@ module Dea
     def promise_extract_droplet
       Promise.new do |p|
         if use_p2p?
-            script = "cd /home/#{app_workspace_user}/ && cp -r #{unzip_droplet_file_dir}/* /home/#{app_workspace_user} &&mv app/* /home/#{app_workspace_user}/ && find . -type f -maxdepth 1 | xargs chmod og-x"
+            script = "cd /home/#{app_workusr}/ && cp -r #{unzip_droplet_file_dir}/* /home/#{app_workusr} &&mv app/* /home/#{app_workusr}/ && find . -type f -maxdepth 1 | xargs chmod og-x"
             promise_warden_run(:app, script).resolve
         else
-            script = "cd /home/#{app_workspace_user}/ && tar zxf #{droplet.droplet_path} && mv app/* /home/#{app_workspace_user}/ && find . -type f -maxdepth 1 | xargs chmod og-x"
+            script = [
+              "cd /home/#{app_workusr}/#{app_workdir}/",
+              "tar zxf #{droplet.droplet_path_in_container}",
+              "mv /home/#{app_workusr}/#{app_workdir}/app/* /home/#{app_workusr}",
+              "mv /home/#{app_workusr}/#{app_workdir}/startup /home/#{app_workusr}"
+            ].join(' && ')
             promise_warden_run(:app, script).resolve
         end
         p.deliver
@@ -695,7 +704,7 @@ module Dea
 
     def work_user
       user_given = attributes.fetch('instance_meta', {}).
-                   fetch('work_user', app_workspace_user)
+                   fetch('work_user', app_workusr)
       if user_given.size <= DEFAULT_WORKUSER_LENGTH &&
          (/^[a-z\d][\w,-]*[a-z\d]$/i.match(user_given))
          user = user_given
@@ -706,12 +715,17 @@ module Dea
     def promise_change_work_user
       Promise.new do |p|
         if work_user
-          promise_update_work_user.resolve unless work_user == app_workspace_user
+          promise_update_work_user.resolve unless work_user == app_workusr
         else
           p.fail("Work user should be composed by letters/numbers/-/_( e.g.: a-b_1, test1) and shorter than #{DEFAULT_WORKUSER_LENGTH}")
         end
         p.deliver 
       end
+    end
+    
+    def mfs_path
+      org_data = config["org_data"] || {}
+      org_data.fetch("src_prefix", "appdata")
     end
 
     def promise_update_work_user
@@ -721,15 +735,15 @@ module Dea
         script << "useradd #{work_user} -M"
         script << "echo '#{work_user}:#{DEFAULT_WORKUSER_PASSWORD}' | chpasswd"
         find_opts = []
-        find_opts << "find /home/#{app_workspace_user}"
+        find_opts << "find /home/#{app_workusr}"
         find_opts << "-maxdepth 1"
-        find_opts << ["dea_ng", "appdata", "."].
+        find_opts << [ mfs_path, app_workdir, "."].
                      map {|e| "-not -name " + e }.
                      join(" ")
         find_opts << "-exec chown -R #{work_user}:#{work_user} '{}' ';'"
         script << find_opts.join(" ")
-        script << "ln -s /home/#{app_workspace_user} /home/#{work_user}"
-        script = script.join("&&")
+        script << "ln -s /home/#{app_workusr} /home/#{work_user}"
+        script = script.join(" && ")
         promise_warden_run(:app, script, true).resolve
 
         p.deliver
@@ -744,8 +758,7 @@ module Dea
         promise_limit_memory.resolve
         promise_setup_environment.resolve
         promise_setup_sshd.resolve if ( config['enable_sshd'] == true )
-        promise_setup_crond.resolve 
-
+        promise_setup_crond.resolve
         p.deliver
       end
     end
@@ -937,7 +950,7 @@ module Dea
           next
         end
 
-        manifest_path = container_relative_path(container_path, "droplet.yaml")
+        manifest_path = container_relative_path(container_path, app_workdir, "droplet.yaml")
         if !File.exist?(manifest_path)
           p.deliver({})
         else
@@ -1057,11 +1070,11 @@ module Dea
     def container_relative_path(root, *parts)
       # This can be removed once warden's wsh branch is merged to master
       if File.directory?(File.join(root, "rootfs"))
-        return File.join(root, "rootfs", "home", app_workspace_user, *parts)
+        return File.join(root, "rootfs", "home", app_workusr, *parts)
       end
 
       # New path
-      File.join(root, "tmp", "rootfs", "home", app_workspace_user, *parts)
+      File.join(root, "tmp", "rootfs", "home", app_workusr, *parts)
     end
 
     def logger
