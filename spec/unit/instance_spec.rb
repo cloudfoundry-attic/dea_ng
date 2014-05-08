@@ -1254,37 +1254,7 @@ describe Dea::Instance do
       end
     end
 
-    describe "#promise_destroy when clean_droplet is true" do
-      it "executes a DestroyRequest" do
-        instance.stub(:config).and_return({ "clean_droplet" => true })
-        instance.attributes["warden_handle"] = "handle"
 
-        instance.stub(:promise_warden_call) do |_, request|
-          request.should be_kind_of(::Warden::Protocol::DestroyRequest)
-          request.handle.should == "handle"
-
-          delivering_promise
-        end
-
-        expect_destroy.to_not raise_error
-      end
-    end
-
-    describe "#promise_stop when clean_droplet is false" do
-      it "executes a StopRequest" do
-        instance.stub(:config).and_return({ "clean_droplet" => false })
-        instance.attributes["warden_handle"] = "handle"
-
-        instance.stub(:promise_warden_call) do |_, request|
-          request.should be_kind_of(::Warden::Protocol::StopRequest)
-          request.handle.should == "handle"
-
-          delivering_promise
-        end
-
-        expect_destroy.to_not raise_error
-      end
-    end
   end
 
   describe "health checks" do

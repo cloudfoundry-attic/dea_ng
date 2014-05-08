@@ -453,10 +453,6 @@ module Dea
         save_snapshot
       end
 
-      instance.on(Instance::Transition.new(:starting, :crashed)) do
-        save_snapshot unless config['clean_droplet']
-      end
-
       instance.on(Instance::Transition.new(:running, :stopping)) do
         save_snapshot
       end
