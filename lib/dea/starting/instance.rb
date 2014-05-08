@@ -567,7 +567,7 @@ module Dea
 
         promise_exec_hook_script('before_stop').resolve
 
-        promise_state([State::RUNNING, State::STARTING, State::EVACUATING], State::STOPPING).resolve
+        promise_state([State::RUNNING, State::EVACUATING], State::STOPPING).resolve
 
         promise_exec_hook_script('after_stop').resolve
 
