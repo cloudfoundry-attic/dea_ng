@@ -7,11 +7,11 @@ describe Dea::Instance do
   include_context "tmpdir"
 
   let(:bootstrap) do
-    mock("bootstrap", :config => { "app_workspace" => {"user" => DEFAULT_APPWORKSPACE_USER }})
+    mock("bootstrap", :config => { "app_workspace" => {"user" => DEFAULT_APPWORKSPACE_USER, "work_dir" => DEFAULT_APPWORKSPACE_DIR }})
   end
 
   subject(:instance) do
-    Dea::Instance.new(bootstrap, valid_instance_attributes, DEFAULT_APPWORKSPACE_USER)
+    Dea::Instance.new(bootstrap, valid_instance_attributes, DEFAULT_APPWORKSPACE_USER, DEFAULT_APPWORKSPACE_DIR)
   end
 
   describe "default attributes" do
@@ -28,6 +28,7 @@ describe Dea::Instance do
       defaults = {
         "index"   => 0,
         "droplet" => 1,
+        "application_name" => "my_application",
       }
 
       message.stub(:data).and_return(defaults.merge(start_message_data))
@@ -55,6 +56,7 @@ describe Dea::Instance do
           "droplet" => 37,
           "version" => "some_version",
           "name"    => "my_application",
+          "application_name"    => "my_application",
           "uris"    => ["foo.com", "bar.com"],
           "users"   => ["john@doe.com"],
         }
@@ -407,8 +409,10 @@ describe Dea::Instance do
       droplet = mock("droplet")
       droplet.stub(:droplet_exist?).and_return(true)
       droplet.stub(:droplet_dirname).and_return(File.join(tmpdir, "droplet", "some_sha1"))
+      droplet.stub(:droplet_dirname_in_container).and_return(File.join(tmpdir, "droplet"))
       droplet.stub(:droplet_basename).and_return("droplet.tgz")
       droplet.stub(:droplet_path).and_return(File.join(droplet.droplet_dirname, droplet.droplet_basename))
+      droplet.stub(:droplet_path_in_container).and_return(File.join(droplet.droplet_dirname_in_container, droplet.droplet_basename))
       droplet
     end
 
@@ -422,6 +426,7 @@ describe Dea::Instance do
       instance.stub(:promise_warden_connection).and_return(failing_promise("error"))
       instance.stub(:promise_create_container).and_return(delivering_promise)
       instance.stub(:promise_setup_network).and_return(delivering_promise)
+      instance.stub(:promise_setup_crond).and_return(delivering_promise)
       instance.stub(:promise_limit_disk).and_return(delivering_promise)
       instance.stub(:promise_limit_memory).and_return(delivering_promise)
       instance.stub(:promise_setup_environment).and_return(delivering_promise)
@@ -715,7 +720,8 @@ describe Dea::Instance do
       before do
         instance.unstub(:promise_extract_droplet)
       end
-
+  
+      #TODO: this is a fake test, should be fixed later
       it "should run tar" do
         instance.stub(:promise_warden_run) do |_, script|
           script.should =~ /tar zxf/
@@ -747,7 +753,7 @@ describe Dea::Instance do
 
       it "should create the app dir" do
        instance.stub(:promise_warden_run) do |_, script|
-          script.should =~ %r{mkdir -p home/#{DEFAULT_APPWORKSPACE_USER}/app}
+          script.should =~ %r{cd / && mkdir -p home/#{DEFAULT_APPWORKSPACE_USER}/#{DEFAULT_APPWORKSPACE_DIR} && cd / && mkdir -p home/#{DEFAULT_APPWORKSPACE_USER}/jpaas_run && chown #{DEFAULT_APPWORKSPACE_USER}:#{DEFAULT_APPWORKSPACE_USER} home/#{DEFAULT_APPWORKSPACE_USER} && chown #{DEFAULT_APPWORKSPACE_USER}:#{DEFAULT_APPWORKSPACE_USER} home/#{DEFAULT_APPWORKSPACE_USER}/#{DEFAULT_APPWORKSPACE_DIR} && ln -s home/#{DEFAULT_APPWORKSPACE_USER}/#{DEFAULT_APPWORKSPACE_DIR} /app}
 
           delivering_promise
         end
@@ -758,7 +764,7 @@ describe Dea::Instance do
 
       it "should chown the app dir" do
         instance.stub(:promise_warden_run) do |_, script|
-          script.should =~ %r{cd / && mkdir -p home/#{DEFAULT_APPWORKSPACE_USER}/app && chown #{DEFAULT_APPWORKSPACE_USER}:#{DEFAULT_APPWORKSPACE_USER} home/#{DEFAULT_APPWORKSPACE_USER} && chown #{DEFAULT_APPWORKSPACE_USER}:#{DEFAULT_APPWORKSPACE_USER} home/#{DEFAULT_APPWORKSPACE_USER}/app && ln -s home/#{DEFAULT_APPWORKSPACE_USER} /app}
+          script.should =~ %r{cd / && mkdir -p home/#{DEFAULT_APPWORKSPACE_USER}/#{DEFAULT_APPWORKSPACE_DIR} && cd / && mkdir -p home/#{DEFAULT_APPWORKSPACE_USER}/jpaas_run && chown #{DEFAULT_APPWORKSPACE_USER}:#{DEFAULT_APPWORKSPACE_USER} home/#{DEFAULT_APPWORKSPACE_USER} && chown #{DEFAULT_APPWORKSPACE_USER}:#{DEFAULT_APPWORKSPACE_USER} home/#{DEFAULT_APPWORKSPACE_USER}/#{DEFAULT_APPWORKSPACE_DIR} && ln -s home/#{DEFAULT_APPWORKSPACE_USER}/#{DEFAULT_APPWORKSPACE_DIR} /app}
 
           delivering_promise
         end
@@ -769,7 +775,7 @@ describe Dea::Instance do
 
       it "should symlink the app dir" do
         instance.stub(:promise_warden_run) do |_, script|
-          script.should =~ %r{ln -s home/#{DEFAULT_APPWORKSPACE_USER} /app}
+          script.should =~ %r{ln -s home/#{DEFAULT_APPWORKSPACE_USER}/#{DEFAULT_APPWORKSPACE_DIR} /app}
 
           delivering_promise
         end
@@ -1287,7 +1293,7 @@ describe Dea::Instance do
     end
 
     let(:manifest_path) do
-      File.join(tmpdir, "rootfs", "home", DEFAULT_APPWORKSPACE_USER, "droplet.yaml")
+      File.join(tmpdir, "rootfs", "home", DEFAULT_APPWORKSPACE_USER, DEFAULT_APPWORKSPACE_DIR, "droplet.yaml")
     end
 
     before :each do
