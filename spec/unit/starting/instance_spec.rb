@@ -229,7 +229,7 @@ describe Dea::Instance do
       end
     end
 
-    [states::STOPPED, states::CRASHED, states::DELETED,
+    [states::STOPPED, states::CRASHED,
      states::RESUMING].each do |state|
       context "when the state is #{state}" do
         before { instance.state = state }
@@ -255,7 +255,7 @@ describe Dea::Instance do
       end
     end
 
-    [states::STOPPED, states::DELETED, states::RESUMING].each do |state|
+    [states::STOPPED, states::RESUMING].each do |state|
       context "when the state is #{state}" do
         before { instance.state = state }
 

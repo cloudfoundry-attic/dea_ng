@@ -39,7 +39,6 @@ describe EvacuationHandler do
       stopping: instance_with_state(Dea::Instance::State::STOPPING),
       stopped: instance_with_state(Dea::Instance::State::STOPPED),
       crashed: instance_with_state(Dea::Instance::State::CRASHED),
-      deleted: instance_with_state(Dea::Instance::State::DELETED),
       evacuating: instance_with_state(Dea::Instance::State::EVACUATING)
     }
   end
@@ -110,12 +109,11 @@ describe EvacuationHandler do
       end
     end
 
-    context "with all instances either stopping/stopped/crashed/deleted" do
+    context "with all instances either stopping/stopped/crashed" do
       before do
         instance_registry.register(instances[:stopping])
         instance_registry.register(instances[:stopped])
         instance_registry.register(instances[:crashed])
-        instance_registry.register(instances[:deleted])
       end
 
       it "does not transition instances" do
@@ -124,7 +122,6 @@ describe EvacuationHandler do
         expect(instances[:stopping]).to be_stopping
         expect(instances[:stopped]).to be_stopped
         expect(instances[:crashed]).to be_crashed
-        expect(instances[:deleted]).to be_deleted
       end
 
       it "returns true" do

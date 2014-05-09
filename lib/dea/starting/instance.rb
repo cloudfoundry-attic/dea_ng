@@ -30,7 +30,6 @@ module Dea
       STOPPING = 'STOPPING'
       STOPPED = 'STOPPED'
       CRASHED = 'CRASHED'
-      DELETED = 'DELETED'
       RESUMING = 'RESUMING'
       EVACUATING = 'EVACUATING'
 
@@ -48,8 +47,6 @@ module Dea
             STOPPED
           when 'CRASHED'
             CRASHED
-          when 'DELETED'
-            DELETED
           when 'RESUMING'
             RESUMING
           when 'EVACUATING'
@@ -73,8 +70,6 @@ module Dea
             'STOPPED'
           when Dea::Instance::State::CRASHED
             'CRASHED'
-          when Dea::Instance::State::DELETED
-            'DELETED'
           when Dea::Instance::State::RESUMING
             'RESUMING'
           when Dea::Instance::State::EVACUATING
