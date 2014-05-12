@@ -516,7 +516,7 @@ module Dea
       Promise.new do |p|
         script = [
           "cd / && mkdir -p home/#{app_workusr}/#{app_workdir}",
-          "cd / && mkdir -p home/#{app_workusr}/jpaas_run",
+          "cd / && mkdir -p home/#{app_workusr}/jpaas_run/{logs,status}",
           "chown #{app_workusr}:#{app_workusr} home/#{app_workusr}",
           "chown #{app_workusr}:#{app_workusr} home/#{app_workusr}/#{app_workdir}",
           "ln -s home/#{app_workusr}/#{app_workdir} /app"
