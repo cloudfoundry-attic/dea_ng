@@ -351,9 +351,12 @@ module Dea
     def unzip_droplet_file_dir
         File.join(droplet.unzip_droplet_dir,"#{attributes['application_org']}_#{attributes['application_space']}_#{attributes['application_name_without_version']}")
     end
+    def unzip_droplet_file_dir_in_container
+        File.join("/home/#{app_workuser}/#{app_workdir}/unzip_droplet","#{attributes['application_org']}_#{attributes['application_space']}_#{attributes['application_name_without_version']}")
+    end
     def paths_to_bind
       if use_p2p?
-        [ {:src => unzip_droplet_file_dir, :dst => unzip_droplet_file_dir} ]
+        [ {:src => unzip_droplet_file_dir, :dst => unzip_droplet_file_dir_in_container} ]
       else
         [ { :src => droplet.droplet_dirname, :dst => droplet.droplet_dirname_in_container} ]
       end
@@ -513,7 +516,7 @@ module Dea
       Promise.new do |p|
         script = [
           "cd / && mkdir -p home/#{app_workusr}/#{app_workdir}",
-          "cd / && mkdir -p home/#{app_workusr}/jpaas_run",
+          "cd / && mkdir -p home/#{app_workusr}/jpaas_run/{logs,status}",
           "chown #{app_workusr}:#{app_workusr} home/#{app_workusr}",
           "chown #{app_workusr}:#{app_workusr} home/#{app_workusr}/#{app_workdir}",
           "ln -s home/#{app_workusr}/#{app_workdir} /app"
@@ -545,7 +548,12 @@ module Dea
     def promise_extract_droplet
       Promise.new do |p|
         if use_p2p?
-            script = "cd /home/#{app_workusr}/ && cp -r #{unzip_droplet_file_dir}/* /home/#{app_workusr} &&mv app/* /home/#{app_workusr}/ && find . -type f -maxdepth 1 | xargs chmod og-x"
+            script = [
+              "cd /home/#{app_workusr}/",
+              "cp -r #{unzip_droplet_file_dir_in_container}/app/* /home/#{app_workusr}",
+              "mv /home/#{app_workusr}/#{app_workdir}/startup /home/#{app_workusr}/",
+              "find . -type f -maxdepth 1 | xargs chmod og-x"
+            ].join(' && ')
             promise_warden_run(:app, script).resolve
         else
             script = [
