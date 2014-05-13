@@ -7,4 +7,5 @@
     description: increase start timeout, allow snapshot when start, disable sshd port
   - 2.0.15:
     release: 2014-05-08
-    description: change the directory of container; fix info connection lost issue; 
+    description: change the directory of container; fix info connection lost issue ; store dead containers in dir other than '~/warden/containers';
+
