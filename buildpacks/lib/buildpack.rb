@@ -80,6 +80,7 @@ module Buildpacks
         #{after_env_before_script}
         DROPLET_BASE_DIR=$PWD
         DROPLET_RUN_DIR=${DROPLET_BASE_DIR}/jpaas_run
+        mkdir -p ${DROPLET_RUN_DIR}/{logs,status}
         (#{start_command}) > ${DROPLET_RUN_DIR}/logs/stdout.log 2> ${DROPLET_RUN_DIR}/logs/stderr.log &
         STARTED=$!
         echo "$STARTED" >> ${DROPLET_RUN_DIR}/status/run.pid
@@ -190,6 +191,7 @@ if [ -d .jpaas/app/.profile.d ]; then
   done
   unset i
 fi
+mkdir -p jpaas_run/logs/
 env > jpaas_run/logs/env.log
 BASH
         script_content += console_start_script if rails_buildpack?(build_pack)
