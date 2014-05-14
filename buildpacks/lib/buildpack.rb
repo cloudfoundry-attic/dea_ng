@@ -8,8 +8,10 @@ require "git"
 
 module Buildpacks
   class Buildpack
-    attr_accessor :source_directory, :destination_directory, :staging_info_path, :environment_json
-    attr_reader :procfile, :environment, :app_dir, :log_dir, :tmp_dir, :cache_dir, :buildpack_dirs, :staging_timeout, :staging_info_name
+
+    attr_reader :source_directory, :destination_directory, :procfile, :environment,
+                :app_dir, :log_dir, :tmp_dir, :cache_dir, :buildpack_dirs,
+                :staging_timeout, :staging_info_name
 
     def self.validate_arguments!(*args)
       source, dest, env = args
@@ -81,7 +83,7 @@ module Buildpacks
     def save_buildpack_info
       buildpack_info = {
         "buildpack_path" => build_pack.path,
-        "detected_buildpack"  => build_pack.name,
+        "detected_buildpack" => build_pack.name,
         "start_command" => start_command
       }
 
