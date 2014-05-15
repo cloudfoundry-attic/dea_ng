@@ -18,7 +18,7 @@ gem 'vcap_common', git: 'https://github.com/cloudfoundry/vcap-common.git'
 gem 'steno', '~> 1.1.0', git: 'https://github.com/cloudfoundry/steno.git'
 
 gem 'uuidtools'
-gem 'nokogiri'
+gem 'nokogiri', '~> 1.6.2'
 gem 'vmstat'
 
 gem 'loggregator_emitter'
