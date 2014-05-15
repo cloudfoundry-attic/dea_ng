@@ -112,6 +112,10 @@ module Dea
       task_info['buildpack_path']
     end
 
+    def error_info
+      task_info['staging_error']
+    end
+
     def buildpack_key
       staging_message.buildpack_key || buildpack_manager.buildpack_key(buildpack_path)
     end
@@ -177,7 +181,6 @@ module Dea
     def trigger_after_stop(error)
       @after_stop_callback.call(error) if @after_stop_callback
     end
-
     private :trigger_after_stop
 
     def promise_prepare_staging_log
@@ -558,10 +561,10 @@ module Dea
         promise_pack_app,
         promise_copy_out,
         promise_save_droplet,
-        promise_log_upload_started,
-        promise_staging_info
+        promise_log_upload_started
       )
     ensure
+      promise_staging_info.resolve
       promise_task_log.resolve
     end
 

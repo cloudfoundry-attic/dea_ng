@@ -3,12 +3,13 @@ require "spec_helper"
 describe Buildpacks::Buildpack, type: :buildpack do
   let(:fake_buildpacks_dir) { fixture("fake_buildpacks") }
   let(:buildpack_dirs) { Pathname(fake_buildpacks_dir).children.map(&:to_s) }
+  let(:dest_dir) { "fakedestdir" }
   let(:config) do
     {
       "environment" => {"services" => []},
       "source_dir" => "fakesrcdir",
-      "dest_dir" => "fakedestdir",
-      "staging_info_name" => "fake_staging_info.yml",
+      "dest_dir" => dest_dir,
+      "staging_info_path" => File.join(dest_dir, "fake_staging_info.yml"),
       "buildpack_dirs" => buildpack_dirs
     }
   end
@@ -26,7 +27,26 @@ describe Buildpacks::Buildpack, type: :buildpack do
       build_pack.should_receive(:copy_source_files).ordered
       build_pack.should_receive(:compile_with_timeout).ordered
       build_pack.should_receive(:save_buildpack_info).ordered
+      build_pack.should_not_receive(:save_error_info)
       build_pack.stage_application
+    end
+
+    context "when a staging error is raised" do
+      let(:staging_error) { Buildpacks::NoAppDetectedError.new("no buildpacks") }
+
+      it "saves the error information and exits with failure" do
+        Dir.should_receive(:chdir).with(File.expand_path "fakedestdir").and_yield
+        build_pack.should_receive(:create_app_directories).ordered
+        build_pack.should_receive(:copy_source_files).ordered
+        build_pack.should_receive(:compile_with_timeout).ordered.and_raise(staging_error)
+        build_pack.should_not_receive(:save_buildpack_info)
+
+        build_pack.should_receive(:save_error_info).ordered.with(staging_error)
+        $stdout.should_receive(:puts).with("Staging failed: #{staging_error.message}")
+        expect {
+          build_pack.stage_application
+        }.to raise_exception(SystemExit)
+      end
     end
   end
 
@@ -77,18 +97,7 @@ describe Buildpacks::Buildpack, type: :buildpack do
   end
 
   describe "#save_buildpack_info" do
-    let(:config) do
-      {
-        "environment" => {
-          "services" => []
-        },
-        "source_dir" => "",
-        "dest_dir" => @destination_dir,
-        "staging_info_name" => "fake_staging_info.yml",
-        "buildpack_dirs" => buildpack_dirs
-      }
-    end
-
+    let(:dest_dir) { @destination_dir }
     let(:buildpack) { Buildpacks::Buildpack.new(config) }
 
     def buildpack_info
@@ -187,9 +196,34 @@ describe Buildpacks::Buildpack, type: :buildpack do
         it "raises an error" do
           expect {
             buildpack_info
-          }.to raise_error("Unable to detect a supported application type")
+          }.to raise_error(Buildpacks::NoAppDetectedError, "An application could not be detected by any available buildpack")
         end
       end
+    end
+  end
+
+  describe "#save_error_info" do
+    let(:dest_dir) { @destination_dir }
+    let(:buildpack) { Buildpacks::Buildpack.new(config) }
+    let(:staging_info_file) { config["staging_info_path"] }
+
+    before { @destination_dir = Dir.mktmpdir }
+    after { FileUtils.rm_rf @destination_dir }
+
+    it "saves the error information in the approprate directory" do
+      expect(File.exists?(staging_info_file)).to be_false
+      buildpack.save_error_info(StandardError.new("my error"))
+      expect(File.exists?(staging_info_file)).to be_true
+    end
+
+    it "saves the base class name without module or namesapce" do
+      buildpack.save_error_info(::Buildpacks::StagingError.new("staging error"))
+      expect(YAML.load_file(staging_info_file)["staging_error"]["type"]).to eq("StagingError")
+    end
+
+    it "saves the message from the original exception" do
+      buildpack.save_error_info(StandardError.new("original exception message"))
+      expect(YAML.load_file(staging_info_file)["staging_error"]["message"]).to eq("original exception message")
     end
   end
 
