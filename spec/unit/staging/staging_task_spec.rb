@@ -338,6 +338,35 @@ YAML
     end
   end
 
+  describe '#error_info' do
+    let(:error_type) { "NoAppDetectedError" }
+    let(:error_message) { "An application could not be detected..." }
+
+    context 'when a staging error is present' do
+      before do
+        contents = <<YAML
+---
+staging_error:
+  type: #{error_type}
+  message: #{error_message}
+YAML
+        staging_info = File.join(workspace_dir, 'staging_info.yml')
+        File.open(staging_info, 'w') { |f| f.write(contents) }
+      end
+
+      it 'returns a hash with the error type and message' do
+        staging_task.error_info['type'].should eq(error_type)
+        staging_task.error_info['message'].should eq(error_message)
+      end
+    end
+
+    context 'when a staging error is not present' do
+      it 'returns returns nil' do
+        staging_task.error_info.should be_nil
+      end
+    end
+  end
+
   describe '#streaming_log_url' do
     let(:url) { staging_task.streaming_log_url }
 
