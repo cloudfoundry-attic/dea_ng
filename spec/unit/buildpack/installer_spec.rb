@@ -51,10 +51,15 @@ HEREDOC
 
     context "when running detect script raises an error" do
       before do
-        FileUtils.chmod 0400,  detect_path
+        FileUtils.chmod 0400, detect_path
       end
 
       it "returns false if detect script raises any error" do
+        expect(subject.detect).to be_false
+      end
+
+      it "writes an error message to $stdout" do
+        expect($stdout).to receive(:puts).with(/Failed to run buildpack detection script with error/)
         expect(subject.detect).to be_false
       end
     end
@@ -105,8 +110,10 @@ HEREDOC
 HEREDOC
       end
 
-      it "raises an error if script fails" do
-        expect { subject.compile }.to raise_error
+      it "raises a buildpack compile failed error if script fails" do
+        expect {
+          subject.compile
+        }.to raise_error(Buildpacks::BuildpackCompileFailed, /Buildpack compilation step failed/)
       end
     end
   end
@@ -125,6 +132,15 @@ HEREDOC
     before { prepare_script(release_path, release_script) }
     it "loads release info yaml" do
       expect(subject.release_info).to eq("key" => "value")
+    end
+
+    context "when release fails" do
+      it "raises a buildpack release failed error" do
+        expect(Open3).to receive(:capture2).and_return(["Error", 1])
+        expect {
+          subject.release_info
+        }.to raise_error(Buildpacks::BuildpackReleaseFailed, /Release info failed/)
+      end
     end
   end
 end

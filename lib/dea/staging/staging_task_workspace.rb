@@ -32,7 +32,7 @@ module Dea
         "dest_dir" => warden_staged_dir,
         "cache_dir" => warden_cache,
         "environment" => @environment_properties,
-        "staging_info_name" => STAGING_INFO,
+        "staging_info_path" => warden_staging_info,
         "buildpack_dirs" => buildpack_dirs
       }
 
