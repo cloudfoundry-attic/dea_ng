@@ -112,8 +112,8 @@ describe Dea::StagingTaskWorkspace do
     end
 
     it "includes the staging info path" do
-      expect(@config["staging_info_name"]).to_not be_nil
-      expect(@config["staging_info_name"]).to eq("staging_info.yml")
+      expect(@config["staging_info_path"]).to_not be_nil
+      expect(@config["staging_info_path"]).to eq("/tmp/staged/staging_info.yml")
     end
   end
 end
