@@ -450,7 +450,7 @@ module Dea
             script << Env.new(StartMessage.new(@raw_attributes), self).exported_environment_variables
             script << File.read(script_path)
             script << 'exit'
-            container.run_script(:app, script.join("\n"))
+            container.run_script(:app, script.join("\n"), bootstrap.config['hooks']['privileged'])
           else
             logger.warn('droplet.hook-script.missing', hook: key, script_path: script_path)
           end
