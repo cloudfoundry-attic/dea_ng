@@ -465,7 +465,7 @@ module Dea
     def promise_copy_out_buildpack_cache
       Promise.new do |p|
         logger.info('staging.buildpack-cache.copying-out',
-                    source: workspace.warden_staged_buildpack_cache, destination: workspace.staged_droplet_path)
+                    source: workspace.warden_staged_buildpack_cache, destination: workspace.staged_droplet_dir)
 
         copy_out_request(workspace.warden_staged_buildpack_cache, workspace.staged_droplet_dir)
 
