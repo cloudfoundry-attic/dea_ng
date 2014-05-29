@@ -47,11 +47,16 @@ describe SignalHandler do
     end
   end
 
+  def wait_for_thread_to_finish
+    sleep(0.5)
+  end
+
   describe "#trap_term" do
     it "shutsdown the system" do
       expect(message_bus).to receive(:stop)
 
       @signal_handlers["TERM"].call
+      wait_for_thread_to_finish
       expect(@published_messages["dea.shutdown"]).to have(1).item
     end
   end
@@ -61,6 +66,7 @@ describe SignalHandler do
       expect(message_bus).to receive(:stop)
 
       @signal_handlers["INT"].call
+      wait_for_thread_to_finish
       expect(@published_messages["dea.shutdown"]).to have(1).item
     end
   end
@@ -70,6 +76,7 @@ describe SignalHandler do
       expect(message_bus).to receive(:stop)
 
       @signal_handlers["QUIT"].call
+      wait_for_thread_to_finish
       expect(@published_messages["dea.shutdown"]).to have(1).item
     end
   end
@@ -77,6 +84,7 @@ describe SignalHandler do
   describe "#trap_usr1" do
     it "sends the shutdown message" do
       @signal_handlers["USR1"].call
+      wait_for_thread_to_finish
       shutdown_message = @published_messages["dea.shutdown"][0]
       expect(shutdown_message["id"]).to eq uuid
       expect(shutdown_message["ip"]).to eq local_ip
@@ -89,6 +97,7 @@ describe SignalHandler do
       end
 
       @signal_handlers["USR1"].call
+      wait_for_thread_to_finish
     end
   end
 
@@ -96,6 +105,7 @@ describe SignalHandler do
     before do
       instance_registry.register(instance)
       @signal_handlers["USR2"].call
+      wait_for_thread_to_finish
     end
 
     it "evacuates the system, and does not shut it down" do
@@ -111,8 +121,18 @@ describe SignalHandler do
       it "shutsdown the system" do
         expect(message_bus).to receive(:stop)
         @signal_handlers["USR2"].call
+        wait_for_thread_to_finish
         expect(@published_messages["dea.shutdown"]).to have(2).items
       end
+    end
+  end
+
+  describe "for thread safety, signals should be handled by in a new thread" do
+    it "spawns a thread to handle the trap" do
+      Thread.should_receive(:new).and_call_original
+      @signal_handlers["USR2"].call
+      wait_for_thread_to_finish
+      expect(@published_messages["dea.shutdown"]).to have(2).items
     end
   end
 end
