@@ -21,13 +21,21 @@ class SignalHandler
   def setup(&kernel_trap)
     SIGNALS_OF_INTEREST.each do |signal|
       kernel_trap.call(signal) do
-        @logger.warn("caught SIG#{signal}")
-        send("trap_#{signal.downcase}")
+        safely do
+          @logger.warn("caught SIG#{signal}")
+          send("trap_#{signal.downcase}")
+        end
       end
     end
   end
 
   private
+
+  def safely
+    Thread.new do
+      yield
+    end
+  end
 
   def trap_term
     shutdown
