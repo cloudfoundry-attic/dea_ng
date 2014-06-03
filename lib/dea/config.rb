@@ -47,6 +47,8 @@ module Dea
           },
 
           "stacks" => [String],
+          
+	  "domain" => /\.baidu\.com$/,
 
           optional("crash_lifetime_secs") => Integer,
           optional("crash_block_usage_ratio_threshold") => Float,
