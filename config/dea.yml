@@ -79,3 +79,4 @@ app_workspace:
 #   before_stop: path/to/script
 #   after_stop: path/to/script
 
+domain: test.baidu.com 

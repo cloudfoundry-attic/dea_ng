@@ -753,7 +753,7 @@ describe Dea::Instance do
 
       it "should create the app dir" do
        instance.stub(:promise_warden_run) do |_, script|
-          script.should =~ %r{cd / && mkdir -p home/#{DEFAULT_APPWORKSPACE_USER}/#{DEFAULT_APPWORKSPACE_DIR} && cd / && mkdir -p home/#{DEFAULT_APPWORKSPACE_USER}/jpaas_run/{logs,status} && chown #{DEFAULT_APPWORKSPACE_USER}:#{DEFAULT_APPWORKSPACE_USER} home/#{DEFAULT_APPWORKSPACE_USER} && chown #{DEFAULT_APPWORKSPACE_USER}:#{DEFAULT_APPWORKSPACE_USER} home/#{DEFAULT_APPWORKSPACE_USER}/#{DEFAULT_APPWORKSPACE_DIR} && ln -s home/#{DEFAULT_APPWORKSPACE_USER}/#{DEFAULT_APPWORKSPACE_DIR} /app}
+          script.should =~ %r{cd / && mkdir -p home/#{DEFAULT_APPWORKSPACE_USER}/#{DEFAULT_APPWORKSPACE_DIR} && cd / && mkdir -p home/#{DEFAULT_APPWORKSPACE_USER}/jpaas_run/{logs,status} && chown -R #{DEFAULT_APPWORKSPACE_USER}:#{DEFAULT_APPWORKSPACE_USER} home/#{DEFAULT_APPWORKSPACE_USER}/jpaas_run/ && chown #{DEFAULT_APPWORKSPACE_USER}:#{DEFAULT_APPWORKSPACE_USER} home/#{DEFAULT_APPWORKSPACE_USER} && chown #{DEFAULT_APPWORKSPACE_USER}:#{DEFAULT_APPWORKSPACE_USER} home/#{DEFAULT_APPWORKSPACE_USER}/#{DEFAULT_APPWORKSPACE_DIR} && ln -s home/#{DEFAULT_APPWORKSPACE_USER}/#{DEFAULT_APPWORKSPACE_DIR} /app}
 
           delivering_promise
         end
@@ -764,7 +764,7 @@ describe Dea::Instance do
 
       it "should chown the app dir" do
         instance.stub(:promise_warden_run) do |_, script|
-          script.should =~ %r{cd / && mkdir -p home/#{DEFAULT_APPWORKSPACE_USER}/#{DEFAULT_APPWORKSPACE_DIR} && cd / && mkdir -p home/#{DEFAULT_APPWORKSPACE_USER}/jpaas_run/{logs,status} && chown #{DEFAULT_APPWORKSPACE_USER}:#{DEFAULT_APPWORKSPACE_USER} home/#{DEFAULT_APPWORKSPACE_USER} && chown #{DEFAULT_APPWORKSPACE_USER}:#{DEFAULT_APPWORKSPACE_USER} home/#{DEFAULT_APPWORKSPACE_USER}/#{DEFAULT_APPWORKSPACE_DIR} && ln -s home/#{DEFAULT_APPWORKSPACE_USER}/#{DEFAULT_APPWORKSPACE_DIR} /app}
+          script.should =~ %r{cd / && mkdir -p home/#{DEFAULT_APPWORKSPACE_USER}/#{DEFAULT_APPWORKSPACE_DIR} && cd / && mkdir -p home/#{DEFAULT_APPWORKSPACE_USER}/jpaas_run/{logs,status} && chown -R #{DEFAULT_APPWORKSPACE_USER}:#{DEFAULT_APPWORKSPACE_USER} home/#{DEFAULT_APPWORKSPACE_USER}/jpaas_run/ && chown #{DEFAULT_APPWORKSPACE_USER}:#{DEFAULT_APPWORKSPACE_USER} home/#{DEFAULT_APPWORKSPACE_USER} && chown #{DEFAULT_APPWORKSPACE_USER}:#{DEFAULT_APPWORKSPACE_USER} home/#{DEFAULT_APPWORKSPACE_USER}/#{DEFAULT_APPWORKSPACE_DIR} && ln -s home/#{DEFAULT_APPWORKSPACE_USER}/#{DEFAULT_APPWORKSPACE_DIR} /app}
 
           delivering_promise
         end
@@ -817,7 +817,8 @@ describe Dea::Instance do
           bootstrap.stub(:config).and_return({
             "hooks" => {
               "#{hook}" => File.join(File.dirname(__FILE__), "hooks/#{hook}")
-            }
+            },
+            "domain" => "testme.baidu.com"
           })
           instance.stub(:runtime).and_return(runtime)
           instance.unstub(:promise_exec_hook_script)
@@ -872,6 +873,10 @@ describe Dea::Instance do
       end
 
       before do
+	bootstrap.stub(:config).and_return({
+	  "domain" => "testme.baidu.com"
+	})
+
         instance.unstub(:promise_start) 
         instance.stub(:instance_meta).and_return({})
         instance.container.stub(:info => info_response)
@@ -1014,7 +1019,8 @@ describe Dea::Instance do
           bootstrap.stub(:config).and_return({
             "hooks" => {
               hook => File.join(File.dirname(__FILE__), "hooks/#{hook}")
-            }
+            },
+	    "domain" => "testme.baidu.com"
           })
           instance.stub(:runtime).and_return(runtime)
           instance.stub(:state_starting_timestamp).and_return(Time.now)

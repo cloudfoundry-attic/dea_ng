@@ -74,6 +74,9 @@ module Dea
 
       hash["start"]           = hash["started_at"]
       hash["state_timestamp"] = hash["started_at_timestamp"]
+ 
+      # Custom defined key: cluster
+      hash["cluster"]         = cluster_id
 
       hash
     end
@@ -157,5 +160,9 @@ module Dea
       ip
     end
 
+    def cluster_id
+      cluster_postfix = '\.baidu\.com'
+      cluster = @instance.bootstrap.config["domain"].gsub(/#{cluster_postfix}/,'')
+    end
   end
 end
