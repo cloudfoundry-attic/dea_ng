@@ -191,6 +191,9 @@ if [ -d .jpaas/app/.profile.d ]; then
   done
   unset i
 fi
+if [ -e logagent/bin/logagent_control ]; then
+   cd logagent/bin/ && bash logagent_control start
+fi
 mkdir -p jpaas_run/logs/
 env > jpaas_run/logs/env.log
 BASH
