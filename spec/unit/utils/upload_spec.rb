@@ -143,14 +143,13 @@ describe Upload do
           it "should poll for a configured period of time before giving up" do
             subject.upload! do |error|
               expect(@request_timestamps.size).to be <= 4
-              #expect(error.message).to include "Error uploading: #{job_url} Job took too long"
               done
             end
           end
 
           it "should return an error" do
             subject.upload! do |error|
-              expect(error.message).to include "Error uploading: #{job_url} (Job took too long"
+              expect(error.message).to include "Error uploading: (Job took too long"
               done
             end
           end
@@ -169,7 +168,7 @@ describe Upload do
 
           it "should poll the cloud controller until failed and returns failure information" do
             subject.upload! do |error|
-              expect(error.message).to include "Error uploading: #{job_url} (Polling status:"
+              expect(error.message).to include "Error uploading: (Polling status:"
               done
             end
           end
@@ -226,7 +225,7 @@ describe Upload do
 
           it "should poll the cloud controller until errback-ed and returns failure information" do
             subject.upload! do |error|
-              expect(error.message).to include "Error uploading: #{job_url} (Polling status:"
+              expect(error.message).to include "Error uploading: (Polling status:"
               done
             end
           end
@@ -249,7 +248,7 @@ describe Upload do
           it "should poll the cloud controller until failed and returns failure information" do
             subject.upload! do |error|
               expect(error.message).not_to be_nil
-              expect(error.message).to eq "Error uploading: #{job_url} (Polling status: 400 - Client Error)"
+              expect(error.message).to eq "Error uploading: (Polling status: 400 - Client Error)"
               done
             end
           end
@@ -261,7 +260,7 @@ describe Upload do
       it "calls the block with the exception" do
         subject.upload! do |error|
           expect(error).to be_a(UploadError)
-          expect(error.message).to include "Error uploading: http://127.0.0.1:12345/ (Upload status:"
+          expect(error.message).to include "Error uploading: (Upload status:"
           done
         end
       end
@@ -277,7 +276,7 @@ describe Upload do
       it "calls the block with the exception" do
         subject.upload! do |error|
           expect(error).to be_a(UploadError)
-          expect(error.message).to match %r{Error uploading: #{to_uri} \(Upload status: 500 - }
+          expect(error.message).to match %r{Error uploading: \(Upload status: 500 - }
           done
         end
       end
