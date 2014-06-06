@@ -21,6 +21,7 @@ Vagrant.configure("2") do |config|
   end
 
   # For Nokogiri
+  config.vm.provision "shell", inline: "sudo apt-get -y update"
   config.vm.provision "shell", inline: "sudo apt-get -q -y install libxslt-dev libxml2-dev"
   config.vm.provision "shell", inline: "sudo apt-get -q -y install libcurl4-gnutls-dev"
 end
