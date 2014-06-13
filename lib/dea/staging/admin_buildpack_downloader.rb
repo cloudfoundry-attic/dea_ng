@@ -23,7 +23,7 @@ class AdminBuildpackDownloader
       end
     end
 
-    Dea::Promise.run_in_parallel(*download_promises)
+    Dea::Promise.run_in_parallel_and_join(*download_promises)
   end
 
   private
@@ -34,11 +34,15 @@ class AdminBuildpackDownloader
 
       Download.new(buildpack.fetch(:url), tmpfile, nil, logger).download! do |err|
         if err
-          p.deliver
+          p.fail err
         else
-          NonBlockingUnzipper.new.unzip_to_folder(tmpfile.path, dest_dir) do
+          NonBlockingUnzipper.new.unzip_to_folder(tmpfile.path, dest_dir) do |output, status|
             tmpfile.unlink
-            p.deliver
+            if status == 0
+              p.deliver
+            else
+              p.fail output
+            end
           end
         end
       end

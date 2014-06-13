@@ -25,9 +25,12 @@ sudo foreman start &
 
 exit_code=0
 bundle install
-bundle exec rspec spec/unit -fd || exit_code=$?
+bundle exec rspec spec/unit -fd
+exit_code=$?
+
 export LOCAL_DEA=true
-bundle exec rspec spec/integration -fd || exit_code=$?
+bundle exec rspec spec/integration -fd
+exit_code=$?
 
 echo "Tests finished: killing background jobs:"
 jobs

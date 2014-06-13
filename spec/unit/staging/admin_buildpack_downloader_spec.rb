@@ -6,12 +6,6 @@ describe AdminBuildpackDownloader do
   let(:zip_file) { fixture("buildpack.zip") }
   let(:destination_directory) { Dir.mktmpdir }
 
-  before do
-    stub_request(:any, "http://example.com/buildpacks/uri/abcdef").to_return(
-      body: File.new(zip_file)
-    )
-  end
-
   after { FileUtils.rm_f(destination_directory) }
 
   subject(:downloader) do
@@ -26,6 +20,12 @@ describe AdminBuildpackDownloader do
           key: "abcdef"
         }
       ]
+    end
+
+    before do
+      stub_request(:any, "http://example.com/buildpacks/uri/abcdef").to_return(
+          body: File.new(zip_file)
+      )
     end
 
     it "downloads the buildpack and unzip it" do
@@ -57,23 +57,33 @@ describe AdminBuildpackDownloader do
       ]
     end
 
-    it "only returns when all the downloads are done" do
+    before do
       stub_request(:any, "http://example.com/buildpacks/uri/ijgh").to_return(
-        body: File.new(zip_file)
+          body: File.new(zip_file)
       )
+    end
+
+    it "only returns when all the downloads are done" do
+      stub_request(:any, "http://example.com/buildpacks/uri/abcdef").to_return(
+          body: File.new(zip_file)
+      )
+
       do_download
       expect(Dir.entries(File.join(destination_directory))).to include("ijgh")
       expect(Dir.entries(File.join(destination_directory))).to include("abcdef")
       expect(Pathname.new(destination_directory).children).to have(2).items
     end
 
-    it "doesn't throw exceptions if the download fails" do
-      stub_request(:any, "http://example.com/buildpacks/uri/ijgh").to_return(
+    it "raises an exception if the download fails" do
+      stub_request(:any, "http://example.com/buildpacks/uri/abcdef").to_return(
         :status => [500, "Internal Server Error"]
       )
-      do_download
+      expect {
+        do_download
+      }.to raise_error
+
       expect(Pathname.new(destination_directory).children).to have(1).item
-      expect(Dir.entries(File.join(destination_directory))).to include("abcdef")
+      expect(Dir.entries(File.join(destination_directory))).to include("ijgh")
     end
   end
 
