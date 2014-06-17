@@ -7,7 +7,7 @@ describe NonBlockingUnzipper do
     let(:dest) { Dir.mktmpdir }
     let(:status) {double(exitstatus: 0)}
 
-    subject { NonBlockingUnzipper.new.unzip_to_folder(zip, dest) }
+    subject { NonBlockingUnzipper.new.unzip_to_folder(zip, dest) {} }
 
     after(:each) {
       FileUtils.rm_rf(dest)
@@ -53,6 +53,30 @@ describe NonBlockingUnzipper do
 
       subject do |status|
         expect(status).to_be eq(0)
+      end
+    end
+
+    context "when move fails halfway (moves aren't atomic between /tmp and ephemeral filesystem)" do
+      let(:status) {double(exitstatus: 0)}
+
+      before do
+        allow(EM).to receive(:system).with(/unzip/) do |&block|
+          block.call("", status)
+        end
+
+        expect(FileUtils).to receive(:mv) do |from, to|
+          Dir.mkdir(to)
+          File.open(File.join(to, "foo.txt"), 'w') do |file|
+            file.write("something something")
+          end
+
+          raise "the move fails half-way"
+        end
+      end
+
+      it "completely succeeds, or no files are copied" do
+        subject
+        expect(Pathname.new(dest).children).to be_empty
       end
     end
   end

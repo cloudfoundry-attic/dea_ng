@@ -82,16 +82,24 @@ describe AdminBuildpackDownloader do
         do_download
       }.to raise_error
 
-      expect(Pathname.new(destination_directory).children).to have(1).item
-      expect(Dir.entries(File.join(destination_directory))).to include("ijgh")
+      expect(Pathname.new(destination_directory).children).to have(0).item
     end
   end
 
   def do_download
-    EM.run_block do
+    failure = nil
+    EM.run do
       Fiber.new do
-        downloader.download
+        begin
+          downloader.download
+        rescue => error
+          failure = error
+        ensure
+          EM.stop
+        end
       end.resume
     end
+
+    raise failure unless failure.nil?
   end
 end
