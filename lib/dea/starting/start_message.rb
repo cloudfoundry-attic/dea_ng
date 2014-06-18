@@ -87,6 +87,10 @@ class StartMessage
     message["env"] || []
   end
 
+  def egress_network_rules
+    message["egress_network_rules"] || []
+  end
+
   def message
     @message || {}
   end

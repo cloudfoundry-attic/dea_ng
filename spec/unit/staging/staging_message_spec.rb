@@ -24,12 +24,14 @@ describe StagingMessage do
       "debug" => nil,
       "start_command" =>
         nil,
-      "index" => 0
+      "index" => 0,
+      "egress_network_rules" => nil,
     }
   end
 
   let(:admin_buildpacks) { [] }
   let(:properties) { {"some_property" => "some_value"} }
+  let(:egress_network_rules) { [{ 'json' => 'data' }] }
 
   let(:staging_message) do
     {
@@ -42,6 +44,7 @@ describe StagingMessage do
       "buildpack_cache_upload_uri" => "http://localhost/buildpack_cache/upload",
       "admin_buildpacks" => admin_buildpacks,
       "start_message" => start_message,
+      "egress_network_rules" => egress_network_rules,
     }
   end
 
@@ -58,6 +61,7 @@ describe StagingMessage do
   its(:properties) { should eq({"some_property" => "some_value"}) }
   its(:buildpack_git_url) { should be_nil }
   its(:buildpack_key) { should be_nil }
+  its(:egress_rules) { should eq([{ 'json' => 'data' }]) }
   its(:to_hash) { should eq staging_message }
 
   it "should memoize the start message" do
@@ -134,5 +138,10 @@ describe StagingMessage do
     let(:properties) { {"buildpack_key" => "admin_buildpack_key"} }
 
     its(:buildpack_key) { should eq "admin_buildpack_key" }
+  end
+
+  context "when egress rules are not specified" do
+    let(:egress_network_rules) { nil }
+    its(:egress_rules) { should eq([]) }
   end
 end

@@ -333,7 +333,36 @@ describe Container do
     end
   end
 
-  describe '#setup_network' do
+  describe '#setup_egress_rules' do
+    let(:egress_rules) do
+      [
+        { 'protocol' => 'tcp', 'port' => '80', 'destination' => '198.41.191.47/1' },
+        { 'protocol' => 'udp', 'port' => '53', 'destination' => '198.41.191.47/1' }
+      ]
+    end
+
+    it 'makes a create network request for each rule' do
+      client_provider.should_receive(:get).with(:app).and_return(connection)
+
+      connection.should_receive(:call) do |request|
+        expect(request).to be_an_instance_of(::Warden::Protocol::NetOutRequest)
+        expect(request[:protocol]).to eq(::Warden::Protocol::NetOutRequest::Protocol::TCP)
+        expect(request.handle).to eq(container.handle)
+        double(:network_response)
+      end
+
+      connection.should_receive(:call) do |request|
+        expect(request).to be_an_instance_of(::Warden::Protocol::NetOutRequest)
+        expect(request[:protocol]).to eq(::Warden::Protocol::NetOutRequest::Protocol::UDP)
+        expect(request.handle).to eq(container.handle)
+        double(:network_response)
+      end
+
+      container.setup_egress_rules(egress_rules)
+    end
+  end
+
+  describe '#setup_inbound_network' do
     it 'makes a create network request and returns the ports' do
       client_provider.should_receive(:get).with(:app).and_return(connection)
       connection.should_receive(:call) do |request|
@@ -342,7 +371,7 @@ describe Container do
         double('network_response', host_port: 8765, container_port: 000)
       end
 
-      container.setup_network
+      container.setup_inbound_network
 
       expect(container.network_ports['host_port']).to eql(8765)
       expect(container.network_ports['container_port']).to eql(000)
@@ -357,11 +386,14 @@ describe Container do
       byte: 100,
       inode: 100,
       limit_memory: 200,
-      setup_network: true
+      setup_inbound_network: true,
+      egress_rules: [{ 'protocol' => 'tcp', 'port' => '80', 'destination' => '198.41.191.47/1' }]
     } }
 
-    it 'requires all of its parameters' do
-      params.keys.each do |key|
+    it 'raises an error when a required parameter is missing' do
+      required_params = [:bind_mounts, :limit_cpu, :byte, :inode, :limit_memory, :setup_inbound_network]
+
+      required_params.each do |key|
         params_copy = params.dup
         params_copy.delete(key)
         expect {
@@ -370,25 +402,27 @@ describe Container do
       end
     end
 
-    it 'creates a new container with cpu, disk size in byte, disk inode and memory limit' do
+    it 'creates a new container with cpu, disk size in byte, disk inode limit, memory limit, and egress rules' do
       container.should_receive(:new_container_with_bind_mounts).with(bind_mounts)
       container.should_receive(:limit_cpu).with(params[:limit_cpu])
       container.should_receive(:limit_disk).with(byte: params[:byte], inode: params[:inode])
       container.should_receive(:limit_memory).with(params[:limit_memory])
-      container.should_receive(:setup_network)
+      container.should_receive(:setup_inbound_network)
+      container.should_receive(:setup_egress_rules).with(params[:egress_rules])
 
       container.create_container(params)
     end
 
     it 'does not create the network if not required' do
-      params[:setup_network] = false
+      params[:setup_inbound_network] = false
 
       container.stub(:new_container_with_bind_mounts)
       container.stub(:limit_cpu)
       container.stub(:limit_disk)
       container.stub(:limit_memory)
+      container.stub(:setup_egress_rules)
 
-      container.should_not_receive(:setup_network)
+      container.should_not_receive(:setup_inbound_network)
       container.create_container(params)
     end
   end

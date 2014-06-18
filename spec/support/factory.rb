@@ -45,6 +45,7 @@ module Helpers
       "services"            => lots_of_services ?
           [valid_service_attributes("syslog://log.example.com"), valid_service_attributes, valid_service_attributes("syslog://log2.example.com")] :
           [valid_service_attributes],
+      "egress_network_rules" => [],
     }
   end
 
@@ -65,7 +66,8 @@ module Helpers
       "upload_uri" => "http://127.0.0.1:12346/upload",
       "staged_path" => "",
       "start_message" => valid_instance_attributes,
-      "admin_buildpacks" => []
+      "admin_buildpacks" => [],
+      "egress_network_rules" => [],
     }
   end
 end

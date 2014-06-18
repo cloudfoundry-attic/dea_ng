@@ -373,6 +373,10 @@ module Dea
       'Instance(id=%s, idx=%s, app_id=%s)' % [instance_id.slice(0, 4), instance_index, application_id]
     end
 
+    def egress_network_rules
+      attributes['egress_network_rules'] || []
+    end
+
     def promise_state(from, to = nil)
       Promise.new do |p|
         if !Array(from).include?(state)
@@ -518,7 +522,8 @@ module Dea
           byte: disk_limit_in_bytes,
           inode: config.instance_disk_inode_limit,
           limit_memory: memory_limit_in_bytes,
-          setup_network: with_network)
+          setup_inbound_network: with_network,
+          egress_rules: egress_network_rules)
 
         attributes['warden_handle'] = container.handle
 

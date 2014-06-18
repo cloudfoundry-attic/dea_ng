@@ -631,7 +631,8 @@ YAML
              byte: staging_task.disk_limit_in_bytes,
              inode: staging_task.disk_inode_limit,
              limit_memory: staging_task.memory_limit_in_bytes,
-             setup_network: with_network).ordered
+             setup_inbound_network: with_network,
+             egress_rules: staging_task.staging_message.egress_rules).ordered
       %w(
         promise_app_download
         promise_prepare_staging_log

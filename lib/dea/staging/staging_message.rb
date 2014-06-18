@@ -62,6 +62,10 @@ class StagingMessage
     properties["buildpack_key"]
   end
 
+  def egress_rules
+    @message["egress_network_rules"] || []
+  end
+
   private
 
   def logger
