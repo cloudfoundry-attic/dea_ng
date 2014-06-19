@@ -216,6 +216,7 @@ describe Dea::Env do
         "name"        => "name",
         "instance_id" => "instance_id",
         "version"     => "version",
+	"cluster"     => "testme",
       }
     end
 
@@ -330,6 +331,10 @@ describe Dea::Env do
     it "includes JPAAS_TCP_PORT_*" do
       find("JPAAS_TCP_PORT_1").should =~ /61234/
       find("JPAAS_TCP_PORT_2").should be_nil
+    end
+
+    it "includes JPAAS_CLUSTER" do
+      find("JPAAS_CLUSTER").should =~ /#{application_for_json["cluster"]}/
     end
 
     it "includes the debug mode when the debug mode is set" do
