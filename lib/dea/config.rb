@@ -14,8 +14,11 @@ module Dea
       "only_production_apps" => false,
       "crash_block_usage_ratio_threshold" => 0.8,
       "crash_inode_usage_ratio_threshold" => 0.8,
-      "clean_droplet" => true,
       "enable_sshd" => false,
+      "app_workspace" => {
+        "user" => "work",
+        "work_dir" => ".jpaas"
+      },
     }
 
     def self.schema
@@ -44,6 +47,8 @@ module Dea
           },
 
           "stacks" => [String],
+          
+	  "domain" => /\.baidu\.com$/,
 
           optional("crash_lifetime_secs") => Integer,
           optional("crash_block_usage_ratio_threshold") => Float,
@@ -77,7 +82,12 @@ module Dea
             optional("dst_path") => String,
             optional("mode")     => enum("ro", "rw"),
           }],
-
+         
+          optional("app_workspace") => {
+            optional("user") => String,
+            optional("work_dir") => String,
+          },       
+ 
           optional("org_data") => {
             "src_prefix" => String,
             optional("share_mode") => enum("org", "space"),

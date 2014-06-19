@@ -140,6 +140,9 @@ describe Dea::Env do
       instance.stub(:instance_container_port).and_return(4567)
       instance.stub(:instance_host_port).and_return(64567)
       instance.stub(:container).and_return(container)
+      instance.stub(:bootstrap).and_return do
+        mock("bootstrap", :config => {"domain" => "testme.baidu.com"})
+      end
       container.stub(:info => info_response)
     end
 
@@ -198,6 +201,10 @@ describe Dea::Env do
           application_for_json[to].should == application_for_json[from]
         end
       end
+    end
+
+    it "includes the cluster id markable" do
+      application_for_json["cluster"].should == "testme"
     end
   end
 

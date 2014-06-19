@@ -18,7 +18,8 @@ shared_context "bootstrap_setup" do
         "v2_port" => 23456,
       },
       "app_workspace" => {
-        "user" => "default_user"
+        "user" => "default_user",
+        "work_dir" => "default_dir"
       },
       "domain" => "default",
     }

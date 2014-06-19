@@ -21,8 +21,10 @@ module Dea
     private
 
     def client
-      @client ||=
-        EventMachine::Warden::FiberAwareClient.new(@socket_path).tap(&:connect)
+      unless @client && @client.connected?
+        @client = EventMachine::Warden::FiberAwareClient.new(@socket_path).tap(&:connect)
+      end
+      @client
     end
   end
 end

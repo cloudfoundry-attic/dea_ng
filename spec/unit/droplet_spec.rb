@@ -16,7 +16,7 @@ describe Dea::Droplet do
   end
 
   subject(:droplet) do
-    Dea::Droplet.new(tmpdir, sha1)
+    Dea::Droplet.new(tmpdir, sha1, 'jpaas', '.jpaas')
   end
 
   it "should export its sha1" do

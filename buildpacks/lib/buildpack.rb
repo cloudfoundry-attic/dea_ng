@@ -77,11 +77,13 @@ module Buildpacks
       <<-SCRIPT.gsub(/^\s{8}/, "")
         #!/bin/bash
         #{environment_statements_for(env_vars)}
-      #{after_env_before_script}
+        #{after_env_before_script}
         DROPLET_BASE_DIR=$PWD
-        (#{start_command}) > $DROPLET_BASE_DIR/logs/stdout.log 2> $DROPLET_BASE_DIR/logs/stderr.log &
+        DROPLET_RUN_DIR=${DROPLET_BASE_DIR}/jpaas_run
+        mkdir -p ${DROPLET_RUN_DIR}/{logs,status}
+        (#{start_command}) > ${DROPLET_RUN_DIR}/logs/stdout.log 2> ${DROPLET_RUN_DIR}/logs/stderr.log &
         STARTED=$!
-        echo "$STARTED" >> $DROPLET_BASE_DIR/run.pid
+        echo "$STARTED" >> ${DROPLET_RUN_DIR}/status/run.pid
         wait $STARTED
       SCRIPT
     end
@@ -181,15 +183,20 @@ module Buildpacks
       generate_startup_script(running_environment_variables) do
         script_content = <<-BASH
 unset GEM_PATH
-if [ -d app/.profile.d ]; then
-  for i in app/.profile.d/*.sh; do
+if [ -d .jpaas/app/.profile.d ]; then
+  for i in .jpaas/app/.profile.d/*.sh; do
     if [ -r $i ]; then
       . $i
     fi
   done
   unset i
 fi
-env > logs/env.log
+if [ -e logagent/bin/logagent_control ]; then
+   (cd logagent/bin/ && bash logagent_control start)
+fi
+
+mkdir -p jpaas_run/logs/
+env > jpaas_run/logs/env.log
 BASH
         script_content += console_start_script if rails_buildpack?(build_pack)
         script_content
