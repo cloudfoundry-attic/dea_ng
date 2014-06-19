@@ -114,6 +114,8 @@ module Dea
 
       env << ["JPAAS_CONSOLE_IP",   application["host"]]
       env << ["JPAAS_CONSOLE_PORT", instance.instance_console_host_port]
+      
+      env << ["JPAAS_CLUSTER", application["cluster"]]
 
       if instance.debug
         env << ["JPAAS_CONTAINER_DEBUG_IP",     application["container_host"]]
