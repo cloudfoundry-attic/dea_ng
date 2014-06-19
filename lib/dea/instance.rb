@@ -499,6 +499,10 @@ module Dea
         attributes["instance_console_container_port"] = response.container_port
 
         response = net_in.call(nil)
+        attributes["instance_mgr_host_port"]      = response.host_port
+        attributes["instance_mgr_container_port"] = response.container_port
+
+        response = net_in.call(nil)
         attributes["noah_monitor_host_port"]      = response.host_port
         attributes["noah_monitor_container_port"] = response.container_port
 
