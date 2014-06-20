@@ -498,7 +498,7 @@ describe Dea::Instance do
         execute_health_check do
           deferrable.fail
         end
-        expect(@emitter.messages[application_id][0]).to eql('Instance (index 2) failed to start accepting connections')
+        expect(@emitter.error_messages[application_id][0]).to eql('Instance (index 2) failed to start accepting connections')
       end
     end
 
