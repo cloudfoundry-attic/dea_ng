@@ -5,7 +5,7 @@ describe EgressRulesMapper do
 
   let(:container_handle) { 'somehandle' }
 
-  let(:tcp_rule) { { 'protocol' => 'tcp', 'port' => '80', 'destination' => '198.41.191.47/1' } }
+  let(:tcp_rule) { { 'protocol' => 'tcp', 'ports' => '80', 'destination' => '198.41.191.47/1' } }
   let(:expected_tcp_rule) do
     ::Warden::Protocol::NetOutRequest.new({
       handle:   container_handle,
@@ -15,7 +15,7 @@ describe EgressRulesMapper do
     })
   end
 
-  let(:tcp_rule_range) { { 'protocol' => 'tcp', 'port' => '80-90', 'destination' => '198.41.191.47/1' } }
+  let(:tcp_rule_range) { { 'protocol' => 'tcp', 'ports' => '80-90', 'destination' => '198.41.191.47/1' } }
   let(:expected_tcp_rule_range) do
     ::Warden::Protocol::NetOutRequest.new({
       handle:     container_handle,
@@ -34,7 +34,7 @@ describe EgressRulesMapper do
     })
   end
 
-  let(:tcp_rule_port_list) { { 'protocol' => 'tcp', 'port' => '50,60', 'destination' => '198.41.191.47/1' } }
+  let(:tcp_rule_port_list) { { 'protocol' => 'tcp', 'ports' => '50,60', 'destination' => '198.41.191.47/1' } }
   let(:expected_tcp_rule_port_list_1) do
     ::Warden::Protocol::NetOutRequest.new({
       handle:   container_handle,
@@ -52,7 +52,7 @@ describe EgressRulesMapper do
     })
   end
 
-  let(:udp_rule) { { 'protocol' => 'udp', 'port' => '80', 'destination' => '198.41.191.47/1' } }
+  let(:udp_rule) { { 'protocol' => 'udp', 'ports' => '80', 'destination' => '198.41.191.47/1' } }
   let(:expected_udp_rule) do
     ::Warden::Protocol::NetOutRequest.new({
       handle:   container_handle,
@@ -62,7 +62,7 @@ describe EgressRulesMapper do
     })
   end
 
-  let(:udp_rule_range) { { 'protocol' => 'udp', 'port' => '80-90', 'destination' => '198.41.191.47/1' } }
+  let(:udp_rule_range) { { 'protocol' => 'udp', 'ports' => '80-90', 'destination' => '198.41.191.47/1' } }
   let(:expected_udp_rule_range) do
     ::Warden::Protocol::NetOutRequest.new({
       handle:     container_handle,
@@ -72,13 +72,13 @@ describe EgressRulesMapper do
     })
   end
 
-  let(:icmp_rule) { { 'protocol' => 'icmp', 'type' => '1', 'code' => '2', 'destination' => '198.41.191.47/1' } }
+  let(:icmp_rule) { { 'protocol' => 'icmp', 'type' => 1, 'code' => 2, 'destination' => '198.41.191.47/1' } }
   let(:expected_icmp_rule) do
     ::Warden::Protocol::NetOutRequest.new({
       handle:    container_handle,
       protocol:  ::Warden::Protocol::NetOutRequest::Protocol::ICMP,
-      icmp_type: '1',
-      icmp_code: '2',
+      icmp_type: 1,
+      icmp_code: 2,
       network:   '198.41.191.47/1',
     })
   end
@@ -123,7 +123,7 @@ describe EgressRulesMapper do
     end
 
     context 'when icmp specific rules are provided and the protocol is not icmp' do
-      let(:tcp_rule_with_icmp_data) { { 'protocol' => 'tcp', 'destination' => '198.41.191.47/1', 'type' => '8', 'code' => '0' } }
+      let(:tcp_rule_with_icmp_data) { { 'protocol' => 'tcp', 'destination' => '198.41.191.47/1', 'type' => 8, 'code' => 0 } }
       let(:rules) { [tcp_rule_with_icmp_data] }
 
       it 'ignores the type and code' do

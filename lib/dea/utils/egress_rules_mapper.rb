@@ -56,8 +56,8 @@ class EgressRulesMapper
 
     case protocol
       when ::Warden::Protocol::NetOutRequest::Protocol::TCP, ::Warden::Protocol::NetOutRequest::Protocol::UDP
-        if rule['port']
-          port_entries = port_entries(rule['port'])
+        if rule['ports']
+          port_entries = port_entries(rule['ports'])
           port_entries.each do |p|
             results << base_args.merge(warden_port_or_range_from_string(p))
           end
