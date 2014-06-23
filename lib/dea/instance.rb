@@ -229,7 +229,7 @@ module Dea
     end
 
     # Accessors for different types of host/container ports
-    [nil, "debug", "console"].each do |type|
+    [nil, "debug", "console", "mgr"].each do |type|
       ["host", "container"].each do |side|
         key = ["instance", type, side, "port"].compact.join("_")
         define_method(key) do
