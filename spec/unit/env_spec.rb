@@ -215,6 +215,7 @@ describe Dea::Env do
         "container_host" => "192.168.0.1",
         "name"        => "name",
         "instance_id" => "instance_id",
+	"instance_index" => "3"
         "version"     => "version",
 	"cluster"     => "testme",
       }
@@ -301,6 +302,7 @@ describe Dea::Env do
     it "includes JPAAS_*" do
       find("JPAAS_HOST").should =~ /#{application_for_json["host"]}/
       find("JPAAS_HTTP_PORT").should =~ /64567/
+      find("JPAAS_INSTANCE_INDEX").should =~ /#{application_for_json["instance_index"]}/
     end
 
     it "includes JPAAS_CONTAINER*" do

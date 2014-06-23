@@ -104,11 +104,15 @@ module Dea
       env = []
       env << ["JPAAS_APPLICATION",  Yajl::Encoder.encode(application)]
       env << ["JPAAS_SERVICES",     Yajl::Encoder.encode(services)]
+      
+      application.each do |k, v|
+         env << ["JPAAS_#{k.upcase}", v]
+      end
 
-      env << ["JPAAS_CONTAINER_HOST",       application["container_host"]]
+      #env << ["JPAAS_CONTAINER_HOST",       application["container_host"]]
       env << ["JPAAS_CONTAINER_HTTP_PORT",  instance.instance_container_port]
 
-      env << ["JPAAS_HOST",          application["host"]]
+      #env << ["JPAAS_HOST",          application["host"]]
       env << ["JPAAS_HTTP_PORT",     instance.instance_host_port]
 
       env << ["JPAAS_CONTAINER_CONSOLE_IP",   application["container_host"]]
@@ -117,7 +121,7 @@ module Dea
       env << ["JPAAS_CONSOLE_IP",   application["host"]]
       env << ["JPAAS_CONSOLE_PORT", instance.instance_console_host_port]
       
-      env << ["JPAAS_CLUSTER", application["cluster"]]
+      #env << ["JPAAS_CLUSTER", application["cluster"]]
 
       env << ["JPAAS_MGR_IP",   application["host"]]
       env << ["JPAAS_MGR_PORT", instance.instance_mgr_host_port]
