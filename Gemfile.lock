@@ -89,6 +89,8 @@ GEM
       http_parser.rb (>= 0.5.3)
     em-socksify (0.2.1)
       eventmachine (>= 1.0.0.beta.4)
+    em-synchrony (1.0.3)
+      eventmachine (>= 1.0.0.beta.1)
     eventmachine (1.0.3)
     ffi (1.0.11)
     fluent-logger (0.4.5)
@@ -175,6 +177,7 @@ DEPENDENCIES
   ci_reporter
   debugger
   em-http-request
+  em-synchrony
   em-warden-client!
   eventmachine
   foreman
