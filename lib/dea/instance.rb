@@ -352,7 +352,7 @@ module Dea
         File.join(droplet.unzip_droplet_dir,"#{attributes['application_org']}_#{attributes['application_space']}_#{attributes['application_name_without_version']}")
     end
     def unzip_droplet_file_dir_in_container
-        File.join("/home/#{app_workuser}/#{app_workdir}/unzip_droplet","#{attributes['application_org']}_#{attributes['application_space']}_#{attributes['application_name_without_version']}")
+        File.join("/home/#{app_workusr}/#{app_workdir}/unzip_droplet","#{attributes['application_org']}_#{attributes['application_space']}_#{attributes['application_name_without_version']}")
     end
     def paths_to_bind
       if use_p2p?
@@ -556,7 +556,7 @@ module Dea
             script = [
               "cd /home/#{app_workusr}/",
               "cp -r #{unzip_droplet_file_dir_in_container}/app/* /home/#{app_workusr}",
-              "mv /home/#{app_workusr}/#{app_workdir}/startup /home/#{app_workusr}/",
+              "cp #{unzip_droplet_file_dir_in_container}/startup /home/#{app_workusr}/",
               "find . -type f -maxdepth 1 | xargs chmod og-x"
             ].join(' && ')
             promise_warden_run(:app, script).resolve
@@ -963,7 +963,11 @@ module Dea
           next
         end
 
-        manifest_path = container_relative_path(container_path, app_workdir, "droplet.yaml")
+	if use_p2p?
+	  manifest_path=File.join(unzip_droplet_file_dir,"droplet.yaml")
+	else
+          manifest_path = container_relative_path(container_path, app_workdir, "droplet.yaml")
+	end
         if !File.exist?(manifest_path)
           p.deliver({})
         else
