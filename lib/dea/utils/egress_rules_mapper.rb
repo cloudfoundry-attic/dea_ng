@@ -32,6 +32,8 @@ class EgressRulesMapper
         ::Warden::Protocol::NetOutRequest::Protocol::UDP
       when 'icmp'
         ::Warden::Protocol::NetOutRequest::Protocol::ICMP
+      when 'all'
+        ::Warden::Protocol::NetOutRequest::Protocol::ALL
       else
         raise ArgumentError.new("Invalid protocol in egress rule: #{protocol_str}")
     end
@@ -71,6 +73,8 @@ class EgressRulesMapper
             icmp_type: rule['type'],
             icmp_code: rule['code']
           })
+      when ::Warden::Protocol::NetOutRequest::Protocol::ALL
+        results << base_args
     end
 
     results

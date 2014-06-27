@@ -83,6 +83,15 @@ describe EgressRulesMapper do
     })
   end
 
+  let(:all_rule) { {'protocol' => 'all', 'destination' => '198.41.191.47/1' } }
+  let(:expected_all_rule) do
+    ::Warden::Protocol::NetOutRequest.new({
+      handle:    container_handle,
+      protocol:  ::Warden::Protocol::NetOutRequest::Protocol::ALL,
+      network:   '198.41.191.47/1',
+    })
+  end
+
   let(:rules) do
     [
       tcp_rule,
@@ -91,7 +100,8 @@ describe EgressRulesMapper do
       tcp_rule_port_list,
       udp_rule,
       udp_rule_range,
-      icmp_rule
+      icmp_rule,
+      all_rule
     ]
   end
 
@@ -110,6 +120,7 @@ describe EgressRulesMapper do
         expected_udp_rule,
         expected_udp_rule_range,
         expected_icmp_rule,
+        expected_all_rule
       ])
     end
 
