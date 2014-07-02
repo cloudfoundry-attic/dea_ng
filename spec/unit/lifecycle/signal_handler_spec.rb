@@ -42,13 +42,18 @@ describe SignalHandler do
   before do
     @signal_handlers = {}
 
+    real_safely = handler.method(:safely)
+    handler.stub(:safely).and_return do |&blk|
+      @thread = real_safely.call &blk
+    end
+
     handler.setup do |signal, &block|
       @signal_handlers[signal] = block
     end
   end
 
   def wait_for_thread_to_finish
-    sleep(0.5)
+    @thread.join 0.5
   end
 
   describe "#trap_term" do
