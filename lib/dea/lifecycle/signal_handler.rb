@@ -33,7 +33,9 @@ class SignalHandler
 
   def safely
     Thread.new do
-      yield
+      EM.schedule do
+        yield
+      end
     end
   end
 
