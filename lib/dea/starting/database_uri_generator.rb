@@ -35,7 +35,6 @@ module Dea
             collection << {uri: uri, name: binding["name"]} if VALID_DB_TYPES.include?(uri.scheme)
           end
         rescue URI::InvalidURIError => e
-          raise URI::InvalidURIError, "Invalid database uri: #{binding["credentials"]["uri"].gsub(/\/\/.+@/, '//USER_NAME_PASS@')}"
         end
         collection
       end
