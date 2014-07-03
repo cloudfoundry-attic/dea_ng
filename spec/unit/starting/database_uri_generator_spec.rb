@@ -58,19 +58,8 @@ describe Dea::DatabaseUriGenerator do
           expect { database_uri }.not_to raise_exception
         end
 
-        it "does not set the environment variable" do
-          expect(subject).to be_nil
-        end
-
-        context "an invalid uri followed by a valid uri" do
-          let(:services_env) {
-            [
-              {"credentials" => {"uri" => "postgresql:///inva\\:password@host/db"}},
-              {"credentials" => {"uri" => "postgres://username:password@host/db", "name" => "isgood" }}
-            ]
-          }
-
-          it { should eq "postgres://username:password@host/db" }
+        it "still sets the url" do
+          expect(subject).to eq "postgres:///inva\\:password@host/db"
         end
       end
     end
