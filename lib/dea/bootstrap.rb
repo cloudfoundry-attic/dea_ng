@@ -14,6 +14,7 @@ require "vcap/common"
 require "vcap/component"
 
 require "dea/config"
+require "container/container"
 require "dea/droplet_registry"
 require "dea/nats"
 require "dea/protocol"
@@ -77,6 +78,7 @@ module Dea
       setup_nats
       setup_logging
       setup_loggregator
+      setup_warden_container_lister
       setup_droplet_registry
       setup_instance_registry
       setup_staging_task_registry
@@ -128,6 +130,12 @@ module Dea
 
       Steno.init(Steno::Config.new(options))
       logger.info("Dea started")
+    end
+
+    attr_reader :warden_container_lister
+
+    def setup_warden_container_lister
+      @warden_container_lister = Container.new(WardenClientProvider.new(config["warden_socket"]))
     end
 
     attr_reader :droplet_registry
@@ -430,6 +438,7 @@ module Dea
       reservable_stagers = resource_manager.number_reservable(mem_required, disk_required)
       available_memory_ratio = resource_manager.available_memory_ratio
       available_disk_ratio = resource_manager.available_disk_ratio
+      warden_containers = warden_container_lister.list.handles
 
       VCAP::Component.varz.synchronize do
         VCAP::Component.varz[:can_stage] = (reservable_stagers > 0) ? 1 : 0
@@ -437,6 +446,7 @@ module Dea
         VCAP::Component.varz[:available_memory_ratio] = available_memory_ratio
         VCAP::Component.varz[:available_disk_ratio] = available_disk_ratio
         VCAP::Component.varz[:instance_registry] = instance_registry.to_hash
+        VCAP::Component.varz[:warden_containers] = warden_containers
       end
     end
 

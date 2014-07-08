@@ -97,6 +97,18 @@ describe Dea::Bootstrap do
 
   end
 
+  describe "container lister setup" do
+    before do
+      @config["warden_socket"] = "123"
+    end
+
+    it "should create a new warden container to be used to send .list requests for varz updates" do
+      expect(WardenClientProvider).to receive(:new).with("123")
+      bootstrap.setup_warden_container_lister
+      bootstrap.warden_container_lister.should be_a(Container)
+    end
+  end
+
   describe "droplet registry setup" do
     before { bootstrap.setup_droplet_registry }
 
@@ -230,12 +242,20 @@ describe Dea::Bootstrap do
   describe "#periodic_varz_update" do
     before do
       bootstrap.setup_resource_manager
+      bootstrap.setup_warden_container_lister
       bootstrap.setup_instance_registry
       bootstrap.config.stub(:minimum_staging_memory_mb => 333)
       bootstrap.config.stub(:minimum_staging_disk_mb => 444)
       bootstrap.resource_manager.stub(number_reservable: 0,
                                       available_disk_ratio: 0,
                                       available_memory_ratio: 0)
+      allow(bootstrap.warden_container_lister).to receive(:list).and_return list_response
+    end
+
+    let(:list_response) do
+      Warden::Protocol::ListResponse.new(
+        :handles => []
+      )
     end
 
     describe "can_stage" do
@@ -278,6 +298,27 @@ describe Dea::Bootstrap do
         bootstrap.periodic_varz_update
 
         VCAP::Component.varz[:available_disk_ratio].should == 0.75
+      end
+    end
+
+    describe "warden_containers" do
+      context "when there are no containers" do
+        it "is an empty array" do
+          bootstrap.periodic_varz_update
+          VCAP::Component.varz[:warden_containers].should == []
+        end
+      end
+
+      context "with an active container" do
+        let(:list_response) do
+          Warden::Protocol::ListResponse.new(
+            :handles => ["ahandle", "anotherhandle"])
+        end
+
+        it "is a hash with keys matching the container guid" do
+          bootstrap.periodic_varz_update
+          VCAP::Component.varz[:warden_containers].should == [ "ahandle", "anotherhandle" ]
+        end
       end
     end
 

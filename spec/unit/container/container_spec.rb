@@ -58,6 +58,19 @@ describe Container do
     end
   end
 
+  describe '#list' do
+    it 'sends a list request to the container' do
+      called = false
+      connection.should_receive(:call) do |request|
+        called = true
+        expect(request).to be_a(::Warden::Protocol::ListRequest)
+      end
+
+      container.list
+      expect(called).to be_true
+    end
+  end
+
   describe '#update_path_and_ip' do
     let(:container_path) { '/container/path' }
     let(:container_host_ip) { '1.7.goodip' }

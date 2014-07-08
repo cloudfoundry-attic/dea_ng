@@ -169,6 +169,10 @@ class Container
     call(:app_info, ::Warden::Protocol::InfoRequest.new(handle: handle))
   end
 
+  def list
+    call(:list, ::Warden::Protocol::ListRequest.new)
+  end
+
   def link(job_id)
     call_with_retry(:link, ::Warden::Protocol::LinkRequest.new(handle: handle, job_id: job_id))
   end
