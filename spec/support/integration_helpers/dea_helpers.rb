@@ -59,9 +59,12 @@ module DeaHelpers
     @file_server_pid = run_cmd("bundle exec ruby spec/bin/file_server.rb", :debug => true)
 
     wait_until { is_port_open?("127.0.0.1", 10197) }
+    local_ip = LocalIPFinder.new.find
+    `sudo iptables -I INPUT 2 -j ACCEPT -p tcp --dport 10197 -d #{local_ip.ip_address}`
   end
 
   def stop_file_server
+    `sudo iptables -D INPUT 2`
     merciless_kill(@file_server_pid) if @file_server_pid
   end
 
