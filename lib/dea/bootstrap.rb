@@ -98,7 +98,9 @@ module Dea
       end
 
       EM.add_periodic_timer(DEFAULT_HEARTBEAT_INTERVAL) do
-        periodic_varz_update
+        Fiber.new do
+          periodic_varz_update
+        end.resume
       end
     end
 
@@ -438,7 +440,7 @@ module Dea
       reservable_stagers = resource_manager.number_reservable(mem_required, disk_required)
       available_memory_ratio = resource_manager.available_memory_ratio
       available_disk_ratio = resource_manager.available_disk_ratio
-      warden_containers = warden_container_lister.list.handles
+      warden_containers = warden_container_lister.list.handles || []
 
       VCAP::Component.varz.synchronize do
         VCAP::Component.varz[:can_stage] = (reservable_stagers > 0) ? 1 : 0
