@@ -20,7 +20,7 @@ module Dea
     START_SCRIPT = strip_heredoc(<<-BASH).freeze
       DROPLET_BASE_DIR=$PWD
       cd app
-      (%s) > >(tee $DROPLET_BASE_DIR/logs/stdout.log) 2> >(tee $DROPLET_BASE_DIR/logs/stderr.log >&2) &
+      (%s) &
       STARTED=$!
       echo "$STARTED" >> $DROPLET_BASE_DIR/run.pid
 
