@@ -95,6 +95,7 @@ module Dea
     def setup_varz
       VCAP::Component.varz.synchronize do
         VCAP::Component.varz[:stacks] = config["stacks"]
+        VCAP::Component.varz[:zone] = config["placement_properties"]["zone"]
       end
 
       EM.add_periodic_timer(DEFAULT_HEARTBEAT_INTERVAL) do

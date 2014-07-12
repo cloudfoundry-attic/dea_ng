@@ -30,11 +30,18 @@ module Dea::Responders
       # Currently we are not tracking memory used by
       # staging task, therefore, available_memory
       # is not accurate since it only account for running apps.
+      placement_properties_hash = if config["placement_properties"]["zone"]
+        {"zone" => config["placement_properties"]["zone"] }
+      else
+        {}
+      end
       nats.publish("staging.advertise", {
         "id" => dea_id,
         "stacks" => config["stacks"],
         "available_memory" => resource_manager.remaining_memory,
         "available_disk" => resource_manager.remaining_disk,
+        "app_id_to_count" => resource_manager.app_id_to_count,
+        "placement_properties" => placement_properties_hash,
       })
     rescue => e
       logger.error("staging_locator.advertise", error: e, backtrace: e.backtrace)

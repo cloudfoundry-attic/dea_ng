@@ -45,6 +45,7 @@ module Dea::Protocol::V1
       end
 
       if request["include_stats"] && instance.running?
+        zone = bootstrap.config["placement_properties"]["zone"]
         response["stats"] = {
           "name"       => instance.application_name,
           "uris"       => instance.application_uris,
@@ -54,6 +55,7 @@ module Dea::Protocol::V1
           "mem_quota"  => instance.memory_limit_in_bytes,
           "disk_quota" => instance.disk_limit_in_bytes,
           "fds_quota"  => instance.file_descriptor_limit,
+          "zone" => zone,
           "usage"      => {
             "time" => Time.now.to_s,
             "cpu"  => instance.computed_pcpu,
