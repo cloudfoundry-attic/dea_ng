@@ -10,3 +10,7 @@ before_script:
   - gvm use go1.2
 
 script: bin/test
+
+env:
+  global:
+    secure: "HhB9Uz44WH7hmq4Fmu+bnIxtX7h5f9DVdJj3xNJpUTiOITnektwLRF4+Djf3+MaXTswQ+/xtBqy40gdraKHARuhWV3a3EVCSPP8H5OUUoGPmnUCbl/DOY88/Gl2GysJfEmiZ34a8CYRatjIZs9cyJXDQvqhEPA5xmdTWS5hzM14="

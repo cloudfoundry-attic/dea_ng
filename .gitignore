@@ -2,6 +2,7 @@
 .idea
 .vagrant*
 /go/
+coverage
 spec/fixtures/**/.git
 tmp/*
 !.gitkeep

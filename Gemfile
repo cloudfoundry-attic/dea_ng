@@ -27,6 +27,7 @@ gem 'loggregator_emitter'
 gem 'sys-filesystem'
 
 group :test do
+  gem 'codeclimate-test-reporter', require: false
   gem 'ci_reporter'
   gem 'debugger'
   gem 'foreman'

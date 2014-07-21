@@ -7,6 +7,11 @@ $:.unshift(File.expand_path('../buildpacks/lib', SPEC_ROOT))
 require 'bundler'
 Bundler.require
 
+if ENV["CODECLIMATE_REPO_TOKEN"]
+  require "codeclimate-test-reporter"
+  CodeClimate::TestReporter.start
+end
+
 require 'rspec/fire'
 require 'socket'
 require 'tempfile'
