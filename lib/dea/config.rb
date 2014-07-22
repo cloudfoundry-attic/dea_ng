@@ -27,7 +27,8 @@ module Dea
         "cpu_limit_shares" => 512,
         "disk_inode_limit" => DEFAULT_STAGING_DISK_INODE_LIMIT,
       },
-      "default_health_check_timeout" => 60
+      "default_health_check_timeout" => 60,
+      "hook" => { "privileged" => false }
     }
 
     def self.schema
@@ -91,6 +92,7 @@ module Dea
                                       }],
 
           optional("hooks") => {
+            optional("privileged") => bool,
             optional("before_start") => String,
             optional("after_start") => String,
             optional("before_stop") => String,

@@ -391,6 +391,17 @@ module Dea
       end
     end
 
+    def promise_setup_kernel_core_directory
+      Promise.new do |p|
+        if bootstrap.config['kernel'] && bootstrap.config['kernel']['core_directory']
+          core_directory = bootstrap.config['kernel']['core_directory']
+          script = 'mkdir -p ' + core_directory + ' && chown vcap:vcap ' + core_directory
+          container.run_script(:app, script, true)
+        end
+        p.deliver
+      end
+    end
+
     def promise_setup_environment
       Promise.new do |p|
         script = 'cd / && mkdir -p home/vcap/app && chown vcap:vcap home/vcap/app && ln -s home/vcap/app /app'
@@ -454,7 +465,7 @@ module Dea
             script << Env.new(StartMessage.new(@raw_attributes), self).exported_environment_variables
             script << File.read(script_path)
             script << 'exit'
-            container.run_script(:app, script.join("\n"))
+            container.run_script(:app, script.join("\n"), bootstrap.config['hooks']['privileged'])
           else
             logger.warn('droplet.hook-script.missing', hook: key, script_path: script_path)
           end
@@ -528,6 +539,7 @@ module Dea
         attributes['warden_handle'] = container.handle
 
         promise_setup_environment.resolve
+        promise_setup_kernel_core_directory.resolve
         p.deliver
       end
     end

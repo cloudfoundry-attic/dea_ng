@@ -63,6 +63,7 @@ stacks:
 
 # Hook scripts for droplet start/stop
 # hooks:
+#   privileged: true/false (false by default)
 #   before_start: path/to/script
 #   after_start: path/to/script
 #   before_stop: path/to/script

@@ -572,6 +572,7 @@ describe Dea::Instance do
       instance.container.stub(:get_connection).and_raise('bad connection bad')
       instance.container.stub(:create_container)
       instance.stub(:promise_setup_environment).and_return(delivering_promise)
+      instance.stub(:promise_setup_kernel_core_directory).and_return(delivering_promise)
       instance.stub(:promise_extract_droplet).and_return(delivering_promise)
       instance.stub(:promise_prepare_start_script).and_return(delivering_promise)
       instance.stub(:promise_exec_hook_script).with('before_start').and_return(delivering_promise)
@@ -763,6 +764,41 @@ describe Dea::Instance do
 
       it 'can fail by run failing' do
         msg = 'droplet extraction failure'
+        instance.container.stub(:run_script) do |*_|
+          raise RuntimeError.new(msg)
+        end
+
+        expect_start.to raise_error(msg)
+      end
+    end
+
+    describe 'setting up core directory' do
+      before do
+        bootstrap.stub(:config).and_return('kernel' => {'core_directory' => '/var/vcap/sys/cores'})
+        instance.unstub(:promise_setup_kernel_core_directory)
+      end
+
+      it 'should create the core dir' do
+        instance.container.stub(:run_script) do |_, script|
+          script.should =~ %r{mkdir -p /var/vcap/sys/cores}
+        end
+
+        expect_start.to_not raise_error
+        instance.exit_description.should be_empty
+      end
+
+      it 'should chown the core dir' do
+        instance.container.stub(:run_script) do |_, script|
+          script.should =~ %r{chown vcap:vcap /var/vcap/sys/cores}
+        end
+
+        expect_start.to_not raise_error
+        instance.exit_description.should be_empty
+      end
+
+      it 'should fail by run failing' do
+        msg = 'core directory setup failure'
+
         instance.container.stub(:run_script) do |*_|
           raise RuntimeError.new(msg)
         end
