@@ -205,6 +205,11 @@ describe Dea::InstanceManager do
                 subject
               end
 
+              it "saves the snapshot" do
+                bootstrap.snapshot.should_receive(:save)
+                subject
+              end
+
               it "destroys the instance" do
                 instance.should_receive(:destroy)
                 subject

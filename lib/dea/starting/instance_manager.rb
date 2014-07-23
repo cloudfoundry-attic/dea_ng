@@ -68,7 +68,10 @@ module Dea
 
       instance.on(Instance::Transition.new(:stopping, :stopped)) do
         bootstrap.instance_registry.unregister(instance)
-        EM.next_tick { instance.destroy }
+        EM.next_tick do
+          instance.destroy
+          bootstrap.snapshot.save
+        end
       end
 
       bootstrap.instance_registry.register(instance)

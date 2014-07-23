@@ -1097,7 +1097,7 @@ describe Dea::Instance do
         instance.unstub(:promise_state)
       end
 
-      passing_states = [Dea::Instance::State::RUNNING, Dea::Instance::State::EVACUATING]
+      passing_states = [Dea::Instance::State::STOPPING, Dea::Instance::State::RUNNING, Dea::Instance::State::EVACUATING]
 
       passing_states.each do |state|
         it "passes when #{state.inspect}" do
@@ -1213,6 +1213,19 @@ describe Dea::Instance do
         result = instance.promise_link.resolve
         expect(result).to eq(response)
       end
+    end
+  end
+
+  context "when resuming an instance in stopping state" do
+    before do
+      instance.state = Dea::Instance::State::RESUMING
+      instance.setup
+    end
+
+    it "immediately links, and then stops the instance" do
+      expect(instance).to receive(:link).and_call_original
+      expect(instance).to receive(:stop)
+      instance.state = Dea::Instance::State::STOPPING
     end
   end
 

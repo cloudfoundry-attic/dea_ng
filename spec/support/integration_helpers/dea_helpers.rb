@@ -74,8 +74,8 @@ module DeaHelpers
     "#{local_ip.ip_address}:10197"
   end
 
-  def dea_start
-    dea_server.start
+  def dea_start(extra_config={})
+    dea_server.start(extra_config)
 
     Timeout.timeout(10) do
       while true
@@ -154,9 +154,9 @@ module DeaHelpers
       config["domain"]
     end
 
-    def start
+    def start(extra_config = {})
       f = File.new("/tmp/dea.yml", "w")
-      f.write(YAML.dump(config))
+      f.write(YAML.dump(config.merge(extra_config)))
       f.close
 
       run_cmd "mkdir -p tmp/logs && bundle exec bin/dea #{f.path} 2>&1 >>tmp/logs/dea.log"

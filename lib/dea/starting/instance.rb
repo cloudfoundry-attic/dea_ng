@@ -279,6 +279,7 @@ module Dea
     def setup
       setup_stat_collector
       setup_link
+      setup_resume_stopping
       setup_crash_handler
     end
 
@@ -567,7 +568,7 @@ module Dea
 
         promise_exec_hook_script('before_stop').resolve
 
-        promise_state([State::RUNNING, State::EVACUATING], State::STOPPING).resolve
+        promise_state([State::STOPPING, State::RUNNING, State::EVACUATING], State::STOPPING).resolve
 
         promise_exec_hook_script('after_stop').resolve
 
@@ -657,6 +658,14 @@ module Dea
       # Resuming to running state
       on(Transition.new(:resuming, :running)) do
         link
+      end
+    end
+
+    def setup_resume_stopping
+      on(Transition.new(:resuming, :stopping)) do
+        link do
+          stop
+        end
       end
     end
 

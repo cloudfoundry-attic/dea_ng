@@ -20,6 +20,7 @@ module Dea
       instances = instance_registry.select do |i|
         [
           Dea::Instance::State::STARTING,
+          Dea::Instance::State::STOPPING,
           Dea::Instance::State::RUNNING,
           Dea::Instance::State::CRASHED,
         ].include?(i.state)

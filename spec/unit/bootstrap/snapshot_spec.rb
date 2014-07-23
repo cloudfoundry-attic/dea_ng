@@ -59,6 +59,7 @@ describe Dea::Snapshot do
 
       expected_states = [
         Dea::Instance::State::STARTING,
+        Dea::Instance::State::STOPPING,
         Dea::Instance::State::RUNNING,
         Dea::Instance::State::CRASHED,
       ].sort.uniq
