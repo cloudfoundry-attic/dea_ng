@@ -16,8 +16,11 @@ module Dea
           ["TMPDIR", "$PWD/tmp"],
           ["VCAP_APP_HOST", "0.0.0.0"],
           ["VCAP_APP_PORT", @instance.instance_container_port],
-          ["PORT", "$VCAP_APP_PORT"]
-        ]
+          ["PORT", "$VCAP_APP_PORT"],
+          ["http_proxy", @instance.config["instance"]["http_proxy"]],
+          ["https_proxy", @instance.config["instance"]["https_proxy"]],
+          ["no_proxy", @instance.config["instance"]["no_proxy"]]
+        ].delete_if {|item| item[1].nil? }
       end
 
       def vcap_application

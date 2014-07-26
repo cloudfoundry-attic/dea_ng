@@ -7,7 +7,10 @@ module Dea::Starting
   describe Env do
     subject(:env) {Env.new(message, instance)}
     let(:message) { instance_double("StartMessage") }
-    let(:instance) { instance_double("Dea::Instance", instance_container_port: "fake_port") }
+    let(:config) { {"instance" => ""} }
+    let(:instance) do
+      instance_double("Dea::Instance", instance_container_port: "fake_port", config: config)
+    end
 
     describe "system environment variables" do
       subject(:system_environment_variables) { env.system_environment_variables }
@@ -20,6 +23,31 @@ module Dea::Starting
                                                       %w(VCAP_APP_PORT fake_port),
                                                       %w(PORT $VCAP_APP_PORT)
                                                     ])
+      end
+
+      context "when setting proxy" do
+        let(:config) {
+          {
+              "instance" =>
+                  {
+                      "http_proxy" => "http://user:password@1.2.3.4:8080/",
+                      "https_proxy" => "https://user:password@1.2.3.4:8080/",
+                      "no_proxy" => "localhost,127.0.0.1" 
+                  }
+          }
+        }
+        it "can get the proxy correctly" do
+          expect(system_environment_variables).to eql([
+                                                          %w(HOME $PWD/app),
+                                                          %w(TMPDIR $PWD/tmp),
+                                                          %w(VCAP_APP_HOST 0.0.0.0),
+                                                          %w(VCAP_APP_PORT fake_port),
+                                                          %w(PORT $VCAP_APP_PORT),
+                                                          %w(http_proxy http://user:password@1.2.3.4:8080/) ,
+                                                          %w(https_proxy https://user:password@1.2.3.4:8080/),
+                                                          %w(no_proxy localhost,127.0.0.1)
+                                                      ])
+        end
       end
     end
 
