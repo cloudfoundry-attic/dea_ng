@@ -28,7 +28,6 @@ bundle install
 bundle exec rspec spec/unit -fd
 exit_code=$?
 
-export LOCAL_DEA=true
 bundle exec rspec spec/integration -fd
 exit_code=$?
 

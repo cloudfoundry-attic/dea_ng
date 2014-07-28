@@ -48,11 +48,11 @@ RSpec.configure do |config|
   end
 
   config.before(:all, type: :integration, requires_warden: true) do
-    dea_start if ENV.has_key?('LOCAL_DEA')
+    dea_start
   end
 
   config.after(:all, type: :integration, requires_warden: true) do
-    dea_stop if ENV.has_key?('LOCAL_DEA')
+    dea_stop
   end
 
   config.before(:all, type: :integration) do

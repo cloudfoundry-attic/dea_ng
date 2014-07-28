@@ -140,7 +140,7 @@ module DeaHelpers
   end
 
   def dea_server
-    @dea_server ||= ENV["LOCAL_DEA"] ? LocalDea.new : RemoteDea.new
+    @dea_server ||= LocalDea.new
   end
 
   def dea_config
@@ -200,95 +200,6 @@ module DeaHelpers
 
     def instance_file_path
       File.join(config["base_dir"], "db", "instances.json")
-    end
-  end
-
-  class RemoteDea
-    INTEGRATION_CONFIG_FILE =
-        File.expand_path("../../../integration/config.yml", __FILE__)
-
-    def host
-      integration_config["host"]
-    end
-
-    def start
-      remote_exec("monit start dea_next")
-    end
-
-    def stop
-      remote_exec("monit stop dea_next")
-    end
-
-    def evacuate
-      remote_exec("kill USR2 #{pid}")
-    end
-
-    def terminated?
-    test_cmd = <<-BASH
-      if [ -e #{config["pid_filename"]} ]; then echo "exist"; fi
-    BASH
-      remote_exec(test_cmd).match("exist").nil?
-    end
-
-    def pid
-      remote_exec("cat #{config["pid_filename"]}").to_i if !terminated?
-    end
-
-    def instance_file
-      remote_file(File.join(config["base_dir"], "db", "instances.json"))
-    end
-
-    def remove_instance_file
-      remote_exec("rm -f #{File.join(config["base_dir"], "db", "instances.json")}")
-    end
-
-    def config
-      @config ||= begin
-        config_yaml = YAML.load(remote_file("/var/vcap/jobs/dea_next/config/dea.yml"))
-        Dea::Config.new(config_yaml).tap(&:validate)
-      end
-    end
-
-    def remote_file(path)
-      remote_exec("cat #{path}")
-    end
-
-    def directory_entries(path)
-      remote_exec("ruby -e \"puts Dir.entries('#{path}')\"").split("\n")
-    end
-
-    def integration_config
-      @integration_config ||= YAML.load_file(INTEGRATION_CONFIG_FILE)
-    end
-
-    def remote_exec(cmd)
-      host = integration_config["host"]
-      username = integration_config["username"]
-      password = integration_config["password"]
-
-      Net::SSH.start(host, username, :password => password) do |ssh|
-        result = ""
-
-        ssh.open_channel do |ch|
-          ch.request_pty do |ch, success|
-            raise "could not open pty" unless success
-
-            ch.exec("sudo bash -ic #{Shellwords.escape(cmd)}")
-
-            ch.on_data do |_, data|
-              if data =~ /^\[sudo\] password for #{username}:/
-                ch.send_data("#{password}\n")
-              else
-                result << data
-              end
-            end
-          end
-        end
-
-        ssh.loop
-
-        return result
-      end
     end
   end
 end

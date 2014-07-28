@@ -118,7 +118,7 @@ sudo bundle exec foreman start &> /tmp/foreman.log &
 
 #To run the tests (unit, integration or all):
 bundle install
-LOCAL_DEA=true bundle exec rspec spec/{spec_file_name}
+bundle exec rspec spec/{spec_file_name}
 ```
 
 To watch the internal NATS traffic while the tests run, do this
