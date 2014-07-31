@@ -277,42 +277,6 @@ describe Dea do
             bootstrap.instance_registry.lookup_instance(instance.instance_id).should == instance
           end
         end
-
-        context "when the app version is not in the message (for backwards compatibility)" do
-          it "does not change the instance's app version" do
-            expect {
-              with_event_machine do
-                bootstrap.start
-
-                nats_mock.publish("dea.update",
-                                  { "droplet" => instance.application_id,
-                                    "uris"    => ["new-uri"],
-                                  })
-
-                EM.next_tick { done }
-              end
-            }.to_not change { instance.application_version }
-          end
-
-          it "does not change the instance's id" do
-            bootstrap.instance_registry.lookup_instance(instance.instance_id).should == instance
-
-            expect {
-              with_event_machine do
-                bootstrap.start
-
-                nats_mock.publish("dea.update",
-                                  { "droplet" => instance.application_id,
-                                    "uris"    => ["new-uri"],
-                                  })
-
-                EM.next_tick { done }
-              end
-            }.to_not change { instance.instance_id }
-
-            bootstrap.instance_registry.lookup_instance(instance.instance_id).should == instance
-          end
-        end
       end
     end
 

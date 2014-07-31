@@ -391,13 +391,20 @@ module Dea
       uris = message.data["uris"]
       app_version = message.data["version"]
 
+      updated = false
       instance_registry.instances_for_application(app_id).dup.each do |_, instance|
         next unless instance.running? || instance.evacuating?
-        InstanceUriUpdater.new(instance, uris).update(router_client)
-        if app_version
+        updated ||= InstanceUriUpdater.new(instance, uris).update(router_client)
+        if app_version != instance.application_version
           instance.application_version = app_version
           instance_registry.change_instance_id(instance)
+          updated = true
         end
+      end
+
+      if updated
+        send_heartbeat
+        snapshot.save
       end
     end
 

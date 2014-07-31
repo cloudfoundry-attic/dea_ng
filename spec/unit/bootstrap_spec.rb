@@ -247,8 +247,8 @@ describe Dea::Bootstrap do
       bootstrap.config.stub(:minimum_staging_memory_mb => 333)
       bootstrap.config.stub(:minimum_staging_disk_mb => 444)
       bootstrap.resource_manager.stub(number_reservable: 0,
-                                      available_disk_ratio: 0,
-                                      available_memory_ratio: 0)
+        available_disk_ratio: 0,
+        available_memory_ratio: 0)
       allow(bootstrap.warden_container_lister).to receive(:list).and_return list_response
     end
 
@@ -317,7 +317,7 @@ describe Dea::Bootstrap do
 
         it "is a hash with keys matching the container guid" do
           bootstrap.periodic_varz_update
-          VCAP::Component.varz[:warden_containers].should == [ "ahandle", "anotherhandle" ]
+          VCAP::Component.varz[:warden_containers].should == ["ahandle", "anotherhandle"]
         end
       end
     end
@@ -482,7 +482,7 @@ describe Dea::Bootstrap do
 
     context "when recovering from snapshots" do
       let(:instances) do
-        [ Dea::Instance.new(bootstrap, valid_instance_attributes),
+        [Dea::Instance.new(bootstrap, valid_instance_attributes),
           Dea::Instance.new(bootstrap, valid_instance_attributes),
         ]
       end
@@ -538,6 +538,86 @@ describe Dea::Bootstrap do
       bootstrap.instance_manager.should_receive(:create_instance).with(instance_data).and_return(instance)
       instance.should_receive(:start)
       bootstrap.handle_dea_directed_start(Dea::Nats::Message.new(nil, nil, instance_data, nil))
+    end
+  end
+
+  describe "handle_dea_update" do
+    let(:app_version) { "version" }
+    let(:new_version) { "new version" }
+
+    let(:instance_data) do
+      {
+        "droplet" => "some-droplet",
+        "uris" => ["not used"],
+        "version" => new_version
+      }
+    end
+
+    let(:instance) { double("instance", :start => nil, :running? => true, :application_version => app_version) }
+    let(:instance_registry) { double("isntance_registry") }
+    let(:snapshot) { double("snapshot") }
+
+    before do
+      bootstrap.setup_instance_manager
+    end
+
+    context "with an existing instance" do
+      context "when the uris change" do
+        let (:new_version) { app_version }
+
+        it "updates the uris, heartbeats and snapshot" do
+          expect(bootstrap).to receive(:instance_registry).at_least(:once).and_return(instance_registry)
+          expect(bootstrap).to receive(:snapshot).and_return(snapshot)
+          instance_updater = double(:instance_updater)
+          expect(Dea::InstanceUriUpdater).to receive(:new).with(instance, instance_data["uris"]).and_return(instance_updater)
+
+          expect(instance_updater).to receive(:update).and_return(true)
+
+          expect(instance).not_to receive(:application_version=).with(new_version)
+
+          expect(instance_registry).to receive(:instances_for_application).and_return({ "myinstanceid" => instance })
+          expect(instance_registry).not_to receive(:change_instance_id).with(instance)
+
+          expect(bootstrap).to receive(:send_heartbeat)
+          expect(snapshot).to receive(:save)
+
+          bootstrap.handle_dea_update(Dea::Nats::Message.new(nil, nil, instance_data, nil))
+        end
+      end
+
+      context "when the version changes" do
+        it "updates the version, heartbeats and snapshot" do
+          expect(bootstrap).to receive(:instance_registry).at_least(:once).and_return(instance_registry)
+          expect(bootstrap).to receive(:snapshot).and_return(snapshot)
+          instance_updater = double(:instance_updater)
+          expect(Dea::InstanceUriUpdater).to receive(:new).with(instance, instance_data["uris"]).and_return(instance_updater)
+
+          expect(instance_updater).to receive(:update).and_return(false)
+
+          expect(instance).to receive(:application_version=).with(new_version)
+
+          expect(instance_registry).to receive(:instances_for_application).and_return({ "myinstanceid" => instance })
+          expect(instance_registry).to receive(:change_instance_id).with(instance)
+
+          expect(bootstrap).to receive(:send_heartbeat)
+          expect(snapshot).to receive(:save)
+
+          bootstrap.handle_dea_update(Dea::Nats::Message.new(nil, nil, instance_data, nil))
+        end
+      end
+    end
+
+    context "when the instance does not exist" do
+      it "does nothing" do
+        expect(bootstrap).to receive(:instance_registry).at_least(:once).and_return(instance_registry)
+        expect(bootstrap).not_to receive(:snapshot)
+
+        expect(instance_registry).to receive(:instances_for_application).and_return({})
+
+        expect(bootstrap).not_to receive(:send_heartbeat)
+
+        bootstrap.handle_dea_update(Dea::Nats::Message.new(nil, nil, instance_data, nil))
+      end
     end
   end
 
