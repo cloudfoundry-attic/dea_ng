@@ -865,6 +865,7 @@ module Dea
         'warden_job_id' => attributes['warden_job_id'],
         'warden_container_path' => container.path,
         'warden_host_ip' => container.host_ip,
+        'warden_container_ip' => container.container_ip,
         'instance_host_port' => container.network_ports['host_port'],
         'instance_container_port' => container.network_ports['container_port'],
 

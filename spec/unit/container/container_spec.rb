@@ -74,7 +74,12 @@ describe Container do
   describe '#update_path_and_ip' do
     let(:container_path) { '/container/path' }
     let(:container_host_ip) { '1.7.goodip' }
-    let(:info_response) { Warden::Protocol::InfoResponse.new(:container_path => container_path, :host_ip => container_host_ip) }
+    let(:container_ip) { '1.8.betterip' }
+    let(:info_response) { Warden::Protocol::InfoResponse.new(
+        :container_path => container_path,
+        :host_ip => container_host_ip,
+        :container_ip => container_ip
+    ) }
 
     it "makes warden InfoRequest, then updates and returns the container's path" do
       container.should_receive(:call).and_return do |name, request|
@@ -86,6 +91,7 @@ describe Container do
       container.update_path_and_ip
       expect(container.path).to eq(container_path)
       expect(container.host_ip).to eq(container_host_ip)
+      expect(container.container_ip).to eq(container_ip)
     end
 
     context 'when InfoRequest does not return a container_path in the response' do

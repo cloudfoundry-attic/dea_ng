@@ -18,7 +18,7 @@ class Container
   }
 
   attr_accessor :handle
-  attr_reader :path, :host_ip, :network_ports
+  attr_reader :path, :host_ip, :container_ip, :network_ports
 
   def initialize(client_provider)
     @client_provider = client_provider
@@ -34,6 +34,7 @@ class Container
     raise RuntimeError, 'container path is not available' unless response.container_path
     @path = response.container_path
     @host_ip = response.host_ip
+    @container_ip = response.container_ip
 
     response
   end
