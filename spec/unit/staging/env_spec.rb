@@ -22,6 +22,27 @@ module Dea::Staging
                                                       %w(MEMORY_LIMIT fake_mem_limitm),
                                                     ])
       end
+
+      context "when setting proxy" do
+          let(:staging_config) {
+            {
+                "http_proxy" => "http://user:password@1.2.3.4:8080/",
+                "https_proxy" => "https://user:password@1.2.3.4:8080/",
+                "no_proxy" => "localhost,127.0.0.1",
+                "environment" => { "BUILDPACK_CACHE" => "fake_buildpack_cache" }
+            }
+          }
+          it "can get the proxy correctly" do
+            expect(system_environment_variables).to eql([
+                                                            %w(BUILDPACK_CACHE fake_buildpack_cache),
+                                                            %w(STAGING_TIMEOUT fake_timeout),
+                                                            %w(MEMORY_LIMIT fake_mem_limitm),
+                                                            %w(http_proxy http://user:password@1.2.3.4:8080/) ,
+                                                            %w(https_proxy https://user:password@1.2.3.4:8080/),
+                                                            %w(no_proxy localhost,127.0.0.1),
+                                                        ])
+          end
+      end
     end
 
     describe "vcap_application" do

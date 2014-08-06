@@ -101,7 +101,10 @@ module Dea
             "memory_to_cpu_share_ratio" => Integer,
             "max_cpu_share_limit" => Integer,
             "min_cpu_share_limit" => Integer,
-            "disk_inode_limit" => Integer
+            "disk_inode_limit" => Integer,
+            optional("http_proxy") => String,
+            optional("https_proxy") => String,
+            optional("no_proxy") => String
           },
 
           optional("staging") => {
@@ -110,7 +113,10 @@ module Dea
             optional("environment") => Hash,
             optional("memory_limit_mb") => Integer,
             optional("disk_limit_mb") => Integer,
-            optional("cpu_limit_shares") => Integer
+            optional("cpu_limit_shares") => Integer,
+            optional("http_proxy") => String,
+            optional("https_proxy") => String,
+            optional("no_proxy") => String
           }
         }
       end

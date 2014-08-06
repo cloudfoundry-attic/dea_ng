@@ -14,8 +14,11 @@ module Dea
         [
           ["BUILDPACK_CACHE", staging_task.staging_config["environment"]["BUILDPACK_CACHE"]],
           ["STAGING_TIMEOUT", staging_task.staging_timeout],
-          ["MEMORY_LIMIT", "#{message.mem_limit}m"]
-        ]
+          ["MEMORY_LIMIT", "#{message.mem_limit}m"],
+          ["http_proxy", staging_task.staging_config["http_proxy"]],
+          ["https_proxy", staging_task.staging_config["https_proxy"]],
+          ["no_proxy", staging_task.staging_config["no_proxy"]]
+        ].delete_if {|item| item[1].nil? }
       end
 
       def vcap_application
