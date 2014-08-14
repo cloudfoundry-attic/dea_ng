@@ -54,6 +54,8 @@ class EgressRulesMapper
       network:  rule['destination'],
     }
 
+    base_args[:log] = true if rule['log']
+
     results = []
 
     case protocol
