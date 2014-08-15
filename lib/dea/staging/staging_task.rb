@@ -492,7 +492,7 @@ module Dea
     end
 
     def snapshot_attributes
-      logger.info('snapshot_attributes', properties: staging_message.properties)
+      logger.debug('snapshot_attributes', properties: staging_message.properties)
       {
         'staging_message' => staging_message.to_hash,
         'warden_container_path' => container.path,
