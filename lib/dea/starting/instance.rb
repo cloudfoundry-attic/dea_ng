@@ -540,6 +540,14 @@ module Dea
     def instance_container_port
       container.network_ports['container_port']
     end
+    
+    def warden_handle
+      attributes['warden_handle'] 
+    end
+    
+    def container_ip
+      attributes['warden_host_ip'] 
+    end    
 
     def promise_droplet
       Promise.new do |p|
