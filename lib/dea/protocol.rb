@@ -60,6 +60,8 @@ module Dea::Protocol::V1
             "mem"  => instance.used_memory_in_bytes,
             "disk" => instance.used_disk_in_bytes,
           },
+          "container_ip"  => instance.container_ip
+          "warden_handle" => instance.warden_handle
           # Purposefully omitted, as I'm not sure what purpose it serves.
           # cores
         }
