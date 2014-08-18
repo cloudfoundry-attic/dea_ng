@@ -39,7 +39,6 @@ module Dea
       script << @system_envs
       script << EXPORT_BUILDPACK_ENV_VARIABLES_SCRIPT
       script << @user_envs
-      script << "env > logs/env.log"
       script << START_SCRIPT % @start_command
       script.join("\n")
     end
