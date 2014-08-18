@@ -906,7 +906,8 @@ describe Dea::Instance do
           expect(Dea::StartupScriptGenerator).to receive(:new).with(
                                                      'fake_start_command.sh',
                                                      env.exported_user_environment_variables,
-                                                     env.exported_system_environment_variables
+                                                     env.exported_system_environment_variables,
+                                                     true
                                                  ).and_return(generator)
 
           instance.promise_start.resolve
