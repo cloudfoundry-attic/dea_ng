@@ -54,14 +54,14 @@ module Dea::Protocol::V1
           "mem_quota"  => instance.memory_limit_in_bytes,
           "disk_quota" => instance.disk_limit_in_bytes,
           "fds_quota"  => instance.file_descriptor_limit,
+          "container_ip"  => instance.container_ip,
+          "warden_handle" => instance.warden_handle,
           "usage"      => {
             "time" => Time.now.to_s,
             "cpu"  => instance.computed_pcpu,
             "mem"  => instance.used_memory_in_bytes,
             "disk" => instance.used_disk_in_bytes,
           },
-          "container_ip"  => instance.container_ip
-          "warden_handle" => instance.warden_handle
           # Purposefully omitted, as I'm not sure what purpose it serves.
           # cores
         }
