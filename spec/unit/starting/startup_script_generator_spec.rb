@@ -7,7 +7,7 @@ describe Dea::StartupScriptGenerator do
   let(:used_buildpack) { '' }
   let(:start_command) { 'go_nuts' }
 
-  let(:generator) { Dea::StartupScriptGenerator.new(start_command, user_envs, system_envs) }
+  let(:generator) { Dea::StartupScriptGenerator.new(start_command, user_envs, system_envs, true) }
 
   describe "#generate" do
     subject(:script) { generator.generate }
@@ -47,6 +47,15 @@ describe Dea::StartupScriptGenerator do
       it "print env to a log file after user envs" do
         script.should include "env > logs/env.log"
         script.should match /usrval1.*env\.log/m
+      end
+    end
+
+    describe "disable env log" do
+      let(:generator) { Dea::StartupScriptGenerator.new(start_command, user_envs, system_envs, false) }
+      subject(:script) { generator.generate }
+
+      it "does not generate env log" do
+        script.should_not include "env > logs/env.log"
       end
     end
 

@@ -22,6 +22,7 @@ module Dea
         "max_cpu_share_limit" => 256,
         "min_cpu_share_limit" => 1,
         "disk_inode_limit" => DEFAULT_INSTANCE_DISK_INODE_LIMIT,
+        "persist_env" => true
       },
       "staging" => {
         "cpu_limit_shares" => 512,
@@ -101,7 +102,8 @@ module Dea
             "memory_to_cpu_share_ratio" => Integer,
             "max_cpu_share_limit" => Integer,
             "min_cpu_share_limit" => Integer,
-            "disk_inode_limit" => Integer
+            "disk_inode_limit" => Integer,
+            "persist_env" => bool
           },
 
           optional("staging") => {

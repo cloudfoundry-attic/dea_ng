@@ -27,10 +27,11 @@ module Dea
       wait $STARTED
     BASH
 
-    def initialize(start_command, user_envs, system_envs)
+    def initialize(start_command, user_envs, system_envs, log_env)
       @start_command = start_command
       @user_envs = user_envs
       @system_envs = system_envs
+      @log_env = log_env
     end
 
     def generate
@@ -39,7 +40,9 @@ module Dea
       script << @system_envs
       script << EXPORT_BUILDPACK_ENV_VARIABLES_SCRIPT
       script << @user_envs
-      script << "env > logs/env.log"
+      if @log_env
+        script << "env > logs/env.log"
+      end
       script << START_SCRIPT % @start_command
       script.join("\n")
     end
