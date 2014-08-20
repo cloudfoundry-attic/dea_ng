@@ -15,7 +15,8 @@ class EgressRulesMapper
       rule_args = rule_args_for_protocol(protocol, rule)
 
       rule_args.each do |args|
-        warden_rules << ::Warden::Protocol::NetOutRequest.new(args)
+        req = ::Warden::Protocol::NetOutRequest.new(args)
+        rule['log'] ? warden_rules.unshift(req) : warden_rules << req
       end
     end
 

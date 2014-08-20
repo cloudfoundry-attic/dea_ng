@@ -84,12 +84,13 @@ describe EgressRulesMapper do
     })
   end
 
-  let(:all_rule) { {'protocol' => 'all', 'destination' => '198.41.191.47/1' } }
+  let(:all_rule) { {'protocol' => 'all', 'destination' => '198.41.191.47/1', 'log' => true } }
   let(:expected_all_rule) do
     ::Warden::Protocol::NetOutRequest.new({
       handle:    container_handle,
       protocol:  ::Warden::Protocol::NetOutRequest::Protocol::ALL,
       network:   '198.41.191.47/1',
+      log: true,
     })
   end
 
@@ -109,11 +110,15 @@ describe EgressRulesMapper do
   subject { described_class.new(rules, container_handle) }
 
   describe '#map_to_warden_rules' do
-    it 'maps hash rules to warden client rules' do
+    it 'maps hash rules to warden client rules with log enabled first' do
       warden_rules = subject.map_to_warden_rules
 
-      expect(warden_rules).to match_array([
+      expect(warden_rules[0..1]).to match_array([
+        expected_all_rule,
         expected_tcp_rule,
+      ])
+
+      expect(warden_rules[2..-1]).to match_array([
         expected_tcp_rule_range,
         expected_tcp_rule_without_port,
         expected_tcp_rule_port_list_1,
@@ -121,7 +126,6 @@ describe EgressRulesMapper do
         expected_udp_rule,
         expected_udp_rule_range,
         expected_icmp_rule,
-        expected_all_rule
       ])
     end
 
