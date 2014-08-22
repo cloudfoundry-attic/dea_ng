@@ -110,15 +110,10 @@ describe EgressRulesMapper do
   subject { described_class.new(rules, container_handle) }
 
   describe '#map_to_warden_rules' do
-    it 'maps hash rules to warden client rules with log enabled first' do
+    it 'maps hash rules to warden client rules with log enabled last' do
       warden_rules = subject.map_to_warden_rules
 
-      expect(warden_rules[0..1]).to match_array([
-        expected_all_rule,
-        expected_tcp_rule,
-      ])
-
-      expect(warden_rules[2..-1]).to match_array([
+      expect(warden_rules[0..-3]).to match_array([
         expected_tcp_rule_range,
         expected_tcp_rule_without_port,
         expected_tcp_rule_port_list_1,
@@ -127,6 +122,12 @@ describe EgressRulesMapper do
         expected_udp_rule_range,
         expected_icmp_rule,
       ])
+
+      expect(warden_rules[-2..-1]).to match_array([
+        expected_all_rule,
+        expected_tcp_rule,
+      ])
+
     end
 
     context 'when a bad protocol is provided' do
