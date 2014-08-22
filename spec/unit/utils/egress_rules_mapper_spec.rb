@@ -113,7 +113,7 @@ describe EgressRulesMapper do
     it 'maps hash rules to warden client rules with log enabled last' do
       warden_rules = subject.map_to_warden_rules
 
-      expect(warden_rules[0..-3]).to match_array([
+      expect(warden_rules[0..-3]).to eq([
         expected_tcp_rule_range,
         expected_tcp_rule_without_port,
         expected_tcp_rule_port_list_1,
@@ -123,11 +123,10 @@ describe EgressRulesMapper do
         expected_icmp_rule,
       ])
 
-      expect(warden_rules[-2..-1]).to match_array([
-        expected_all_rule,
+      expect(warden_rules[-2..-1]).to eq([
         expected_tcp_rule,
+        expected_all_rule,
       ])
-
     end
 
     context 'when a bad protocol is provided' do
@@ -146,7 +145,7 @@ describe EgressRulesMapper do
       it 'ignores the type and code' do
         warden_rules = subject.map_to_warden_rules
 
-        expect(warden_rules).to match_array([
+        expect(warden_rules).to eq([
           ::Warden::Protocol::NetOutRequest.new({
             handle:   container_handle,
             protocol: ::Warden::Protocol::NetOutRequest::Protocol::TCP,

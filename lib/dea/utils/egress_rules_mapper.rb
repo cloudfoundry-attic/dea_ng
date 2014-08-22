@@ -8,7 +8,8 @@ class EgressRulesMapper
   end
 
   def map_to_warden_rules
-    warden_rules = []
+    logging_rules = []
+    normal_rules = []
 
     rules.each do |rule|
       protocol  = warden_protocol_from_string(rule['protocol'])
@@ -16,11 +17,11 @@ class EgressRulesMapper
 
       rule_args.each do |args|
         req = ::Warden::Protocol::NetOutRequest.new(args)
-        rule['log'] ? warden_rules << req : warden_rules.unshift(req)
+        rule['log'] ? logging_rules << req : normal_rules << req
       end
     end
 
-    warden_rules
+    normal_rules | logging_rules
   end
 
   private
