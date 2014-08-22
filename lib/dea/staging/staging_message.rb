@@ -66,6 +66,22 @@ class StagingMessage
     @message["egress_network_rules"] || []
   end
 
+  def env
+    properties["environment"] || []
+  end
+
+  def services
+    properties["services"] || []
+  end
+
+  def vcap_application
+    start_message.vcap_application
+  end
+
+  def mem_limit
+    start_message.mem_limit
+  end
+
   private
 
   def logger

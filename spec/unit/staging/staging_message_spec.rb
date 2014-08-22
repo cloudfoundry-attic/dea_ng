@@ -26,11 +26,18 @@ describe StagingMessage do
         nil,
       "index" => 0,
       "egress_network_rules" => nil,
+      "vcap_application" => "vcap_app_thingy",
     }
   end
 
   let(:admin_buildpacks) { [] }
-  let(:properties) { {"some_property" => "some_value"} }
+  let(:properties) do
+    {
+      "some_property" => "some_value",
+      "services"      => ["servicethingy"],
+      "environment"   => ["KEY=val"],
+    }
+  end
   let(:egress_network_rules) { [{ 'json' => 'data' }] }
 
   let(:staging_message) do
@@ -58,11 +65,19 @@ describe StagingMessage do
   its(:buildpack_cache_download_uri) { should eq URI("http://localhost/buildpack_cache/download") }
   its(:start_message) { should be_a StartMessage }
   its(:admin_buildpacks) { should eq([]) }
-  its(:properties) { should eq({"some_property" => "some_value"}) }
+  its(:properties) { should eq({
+    "some_property" => "some_value",
+    "services"      => ["servicethingy"],
+    "environment"   => ["KEY=val"],
+  }) }
   its(:buildpack_git_url) { should be_nil }
   its(:buildpack_key) { should be_nil }
   its(:egress_rules) { should eq([{ 'json' => 'data' }]) }
   its(:to_hash) { should eq staging_message }
+  its(:env) { should eq ['KEY=val'] }
+  its(:services) { should eq ['servicethingy'] }
+  its(:vcap_application) { should eq start_message['vcap_application'] }
+  its(:mem_limit) { should eq start_message['limits']['mem'] }
 
   it "should memoize the start message" do
     expect(message.start_message).to eq(message.start_message)

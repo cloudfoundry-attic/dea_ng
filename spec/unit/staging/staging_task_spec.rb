@@ -107,7 +107,7 @@ describe Dea::StagingTask do
       end
 
       context 'when env variables need to be escaped' do
-        before { attributes['start_message']['env'] = ['PATH=x y z', "FOO=z'y\"d", 'BAR=', 'BAZ=foo=baz'] }
+        before { attributes['properties']['environment'] = ['PATH=x y z', "FOO=z'y\"d", 'BAR=', 'BAZ=foo=baz'] }
 
         it 'copes with spaces' do
           staging_task.container.should_receive(:spawn) do |cmd|

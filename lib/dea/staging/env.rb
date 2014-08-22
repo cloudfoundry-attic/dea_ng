@@ -6,7 +6,7 @@ module Dea
       attr_reader :message, :staging_task
 
       def initialize(message, staging_task)
-        @message = message.start_message
+        @message = message
         @staging_task = staging_task
       end
 
