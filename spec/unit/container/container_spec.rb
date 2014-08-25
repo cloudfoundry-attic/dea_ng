@@ -363,21 +363,21 @@ describe Container do
     it 'makes a create network request for each rule' do
       client_provider.should_receive(:get).with(:app).and_return(connection)
 
-      connection.should_receive(:call) do |request|
-        expect(request).to be_an_instance_of(::Warden::Protocol::NetOutRequest)
-        expect(request[:protocol]).to eq(::Warden::Protocol::NetOutRequest::Protocol::TCP)
-        expect(request.handle).to eq(container.handle)
-        double(:network_response)
-      end
+      protocols = []
 
-      connection.should_receive(:call) do |request|
+      expect(connection).to receive(:call).twice do |request|
+        protocols << request[:protocol]
         expect(request).to be_an_instance_of(::Warden::Protocol::NetOutRequest)
-        expect(request[:protocol]).to eq(::Warden::Protocol::NetOutRequest::Protocol::UDP)
         expect(request.handle).to eq(container.handle)
         double(:network_response)
       end
 
       container.setup_egress_rules(egress_rules)
+
+      expect(protocols).to match_array([
+        ::Warden::Protocol::NetOutRequest::Protocol::TCP,
+        ::Warden::Protocol::NetOutRequest::Protocol::UDP,
+      ])
     end
   end
 
