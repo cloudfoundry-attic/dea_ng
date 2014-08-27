@@ -1,5 +1,6 @@
 # coding: UTF-8
 
+require "dea/utils/uri_cleaner"
 require "steno"
 require "steno/core_ext"
 require "nats/client"
@@ -98,7 +99,8 @@ module Dea
     end
 
     def create_nats_client
-      logger.info("nats.connecting", servers: config["nats_servers"])
+      clean_servers = URICleaner.clean(config["nats_servers"])
+      logger.info("nats.connecting", servers: clean_servers)
 
       ::NATS.connect(
         :servers => config["nats_servers"],
