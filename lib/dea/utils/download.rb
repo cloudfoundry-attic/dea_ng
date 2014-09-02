@@ -38,8 +38,9 @@ class Download
 
     http.errback do
       begin
-        error = DownloadError.new("Response status: unknown", context)
-        logger.warn(error.message, error.data)
+        msg = "Response status: unknown, Error: #{http.error}"
+        error = DownloadError.new(msg, context)
+        logger.error("em-http-request.errored", error: error.message, data: error.data)
         blk.call(error)
       rescue => e
         logger.error("em-download.failed", error: e, backtrace: e.backtrace)

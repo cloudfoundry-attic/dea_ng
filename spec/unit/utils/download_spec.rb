@@ -58,27 +58,31 @@ describe Download do
     Download.new(from_uri, to_file, expected.hexdigest).download! { done }
   end
 
-  context "when the download causes an exception" do
-    it "catches the error but logs it (we really need an airbrake-esque thing" do
-      stub_request(:get, from_uri.to_s).to_return(body: "some body")
+  context "when the download callback causes an exception" do
+    context "and the http reqeust returned" do
+      it "logs the error and does not blow up" do
+        stub_request(:get, from_uri.to_s).to_return(body: "some body")
 
-      expect {
-        Download.new(from_uri, to_file).download! do |err|
-          raise "Some Terrible Error"
-        end
-      }.to_not raise_error
+        expect {
+          Download.new(from_uri, to_file).download! do |err|
+            raise "Some Terrible Error"
+          end
+        }.to_not raise_error
 
-      done
+        done
+      end
     end
 
-    it "copes if the errback fails" do
-      expect {
-        Download.new(from_uri, to_file).download! do |err|
-          raise "Some Terrible Error"
-        end
-      }.to_not raise_error
+    context "and the http request errors out" do
+      it "does not raise" do
+        expect {
+          Download.new(from_uri, to_file).download! do |err|
+            raise "Some Terrible Error"
+          end
+        }.to_not raise_error
 
-      done
+        done
+      end
     end
   end
 
@@ -93,6 +97,16 @@ describe Download do
         File.read(to_file).should == body
         done
       end
+    end
+  end
+
+  context "when the http request errors" do
+    it "logs the error and calls the callback with a sensible error" do
+      Download.new(from_uri, to_file).download! do |err|
+        expect(err.message).to match(/ECONNREFUSED/)
+      end
+
+      done
     end
   end
 end
