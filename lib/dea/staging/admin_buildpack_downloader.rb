@@ -7,6 +7,7 @@ class AdminBuildpackDownloader
   attr_reader :logger
 
   DOWNLOAD_MUTEX = EventMachine::Synchrony::Thread::Mutex.new
+  MAX_DOWNLOAD_ATTEMPTS = 3
 
   def initialize(buildpacks, destination_directory, custom_logger=nil)
     @buildpacks = buildpacks
@@ -20,9 +21,20 @@ class AdminBuildpackDownloader
 
     DOWNLOAD_MUTEX.synchronize do
       @buildpacks.each do |buildpack|
+        attempts = 0
+        success = false
+
         dest_dir = File.join(@destination_directory, buildpack.fetch(:key))
         unless File.exists?(dest_dir)
-          download_one_buildpack(buildpack, dest_dir).resolve
+          until success
+            begin
+              attempts += 1
+              download_one_buildpack(buildpack, dest_dir).resolve
+              success = true
+            rescue Download::DownloadError => e
+              raise e if attempts >= MAX_DOWNLOAD_ATTEMPTS
+            end
+          end
         end
       end
     end

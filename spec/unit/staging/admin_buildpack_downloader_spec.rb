@@ -74,15 +74,37 @@ describe AdminBuildpackDownloader do
       expect(Pathname.new(destination_directory).children).to have(2).items
     end
 
-    it "raises an exception if the download fails" do
-      stub_request(:any, "http://example.com/buildpacks/uri/abcdef").to_return(
-        :status => [500, "Internal Server Error"]
-      )
-      expect {
-        do_download
-      }.to raise_error
+    context "when downloading a buildpack fails" do
+      it "retries downloading up to 3 times" do
+        stub_request(:any, "http://example.com/buildpacks/uri/abcdef").to_return(
+          { :status => [500, "Internal Server Error"] },
+          { :status => [500, "Internal Server Error"] },
+          { body: File.new(zip_file) }
+        )
+        expect {
+          do_download
+        }.not_to raise_error
 
-      expect(Pathname.new(destination_directory).children).to have(0).item
+        expect(Dir.entries(File.join(destination_directory))).to include("ijgh")
+        expect(Dir.entries(File.join(destination_directory))).to include("abcdef")
+        expect(Pathname.new(destination_directory).children).to have(2).items
+      end
+
+      context "and the download failure continues" do
+        it "raises an exception after 3 failures" do
+          stub_request(:any, "http://example.com/buildpacks/uri/abcdef").to_return(
+            { :status => [500, "Internal Server Error"] },
+            { :status => [500, "Internal Server Error"] },
+            { :status => [500, "Internal Server Error"] },
+            { body: File.new(zip_file) }
+          )
+          expect {
+            do_download
+          }.to raise_error
+
+          expect(Pathname.new(destination_directory).children).to have(0).item
+        end
+      end
     end
   end
 

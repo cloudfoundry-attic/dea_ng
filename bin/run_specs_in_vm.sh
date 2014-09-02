@@ -4,7 +4,7 @@ set -e -x -u
 BUILD_TO_RUN_PATH=$1
 TEST_INFRA_PATH=$2
 
-vagrant up
+vagrant up --provider=virtualbox
 
 vagrant ssh-config > ssh_config
 rsync -arq --rsh="ssh -F ssh_config" $BUILD_TO_RUN_PATH/ default:workspace
