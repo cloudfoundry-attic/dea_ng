@@ -7,8 +7,8 @@ before_install:
   - git submodule update --init --recursive
 
 before_script:
-  - gvm install go1.2
-  - gvm use go1.2
+  - gvm install go1.3
+  - gvm use go1.3
 
 script: bin/test
 
