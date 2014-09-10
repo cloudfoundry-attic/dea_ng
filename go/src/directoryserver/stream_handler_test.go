@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	. "launchpad.net/gocheck"
 	"net"
 	"net/http"
 	"os"
 	"time"
+
+	. "launchpad.net/gocheck"
 )
 
 type StreamHandlerSuite struct {
@@ -27,7 +28,6 @@ func (s *StreamHandlerSuite) TearDownTest(c *C) {
 	os.Remove(s.FileName)
 
 	if s.Handler != nil {
-		s.Handler.File.Close()
 		s.Handler = nil
 	}
 }

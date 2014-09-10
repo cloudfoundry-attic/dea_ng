@@ -1,11 +1,12 @@
 package directoryserver
 
 import (
-	"github.com/howeyc/fsnotify"
 	"io"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/howeyc/fsnotify"
 )
 
 type StreamHandler struct {
@@ -24,6 +25,8 @@ func (handler *StreamHandler) ServeHTTP(writer http.ResponseWriter, r *http.Requ
 	}
 
 	defer func() {
+		handler.File.Close()
+
 		// Clean up
 		watcher.Close()
 
