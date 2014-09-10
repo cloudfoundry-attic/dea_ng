@@ -19,6 +19,7 @@ class AdminBuildpackDownloader
     logger.debug("admin-buildpacks.download", buildpacks: @buildpacks)
     return unless @buildpacks
 
+    FileUtils.mkdir_p(@destination_directory)
     DOWNLOAD_MUTEX.synchronize do
       @buildpacks.each do |buildpack|
         attempts = 0

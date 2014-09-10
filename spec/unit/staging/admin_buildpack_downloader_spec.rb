@@ -12,6 +12,25 @@ describe AdminBuildpackDownloader do
     AdminBuildpackDownloader.new(buildpacks, destination_directory, logger)
   end
 
+  context "with zero buildpacks" do
+    let(:buildpacks) { [] }
+
+    context "when the destination directory exists" do
+      it "does nothing" do
+        expect { subject }.not_to raise_error
+      end
+    end
+
+    context "when the destination directory does not exist" do
+      let(:destination_directory) { File.join(Dir.mktmpdir, "foo") }
+
+      it "creates it" do
+        subject.download
+        expect(Dir.exists?(destination_directory)).to be_true
+      end
+    end
+  end
+
   context "with single buildpack" do
     let(:buildpacks) do
       [
@@ -26,6 +45,15 @@ describe AdminBuildpackDownloader do
       stub_request(:any, "http://example.com/buildpacks/uri/abcdef").to_return(
           body: File.new(zip_file)
       )
+    end
+
+    context "when the destination directory does not exist" do
+      let(:destination_directory) { File.join(Dir.mktmpdir, "foo") }
+
+      it "creates it" do
+        do_download
+        expect(Dir.exists?(destination_directory)).to be_true
+      end
     end
 
     it "downloads the buildpack and unzip it" do

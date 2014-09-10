@@ -74,11 +74,6 @@ describe Dea::StagingTaskWorkspace do
       expect(File.exists?(subject.tmpdir)).to be_true
     end
 
-    it "creates the admin buildpacks dir folder" do
-      subject.prepare(buildpack_manager)
-      expect(File.exists?(subject.admin_buildpacks_dir)).to be_true
-    end
-
     it "downloads the admin buildpacks" do
       buildpack_manager.should_receive(:download)
       subject.prepare(buildpack_manager)

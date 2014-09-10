@@ -1,4 +1,5 @@
 require "dea/starting/start_message"
+require 'dea/staging/buildpacks_message'
 require "steno"
 require "steno/core_ext"
 
@@ -44,13 +45,7 @@ class StagingMessage
   end
 
   def admin_buildpacks
-    (@message["admin_buildpacks"] || []).map do |buildpack|
-      begin
-        { url: URI(buildpack["url"]), key: buildpack["key"] }
-      rescue => e
-        logger.log_exception(e)
-      end
-    end.compact
+    BuildpacksMessage.new(@message["admin_buildpacks"]).buildpacks
   end
 
   def buildpack_git_url

@@ -44,7 +44,6 @@ module Dea
 
     def prepare(buildpack_manager)
       FileUtils.mkdir_p(tmpdir)
-      FileUtils.mkdir_p(admin_buildpacks_dir)
       buildpack_manager.download
       buildpack_manager.clean
       write_config_file(buildpack_manager.buildpack_dirs)
