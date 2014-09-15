@@ -23,6 +23,7 @@ describe Dea::Responders::Staging do
       task_log: "task-log",
       detected_buildpack: nil,
       buildpack_key: buildpack_key,
+      detected_start_command: "bacofoil",
       droplet_sha1: "some-droplet-sha",
       memory_limit_mb: 1,
       disk_limit_mb: 2,
@@ -258,7 +259,10 @@ describe Dea::Responders::Staging do
               "task_id" => "task-id",
               "detected_buildpack" => nil,
               "buildpack_key" => "some_buildpack_key",
-              "droplet_sha1" => "some-droplet-sha"
+              "droplet_sha1" => "some-droplet-sha",
+              "execution_metadata" => {
+                "start_command" => "bacofoil",
+              },
             ))
             subject.handle(message)
           end
@@ -313,6 +317,9 @@ describe Dea::Responders::Staging do
               "detected_buildpack" => nil,
               "buildpack_key" => nil,
               "droplet_sha1" => nil,
+              "execution_metadata" => {
+                "start_command" => "bacofoil",
+              },
               "error" => "error-description",
               "error_info" => staging_error_info,
             ))

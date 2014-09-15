@@ -281,6 +281,21 @@ YAML
     end
   end
 
+  describe '#detected_start_command' do
+    before do
+      contents = <<YAML
+---
+start_command: bacofoil
+YAML
+      staging_info = File.join(workspace_dir, 'staging_info.yml')
+      File.open(staging_info, 'w') { |f| f.write(contents) }
+    end
+
+    it 'returns the detected start command' do
+      staging_task.detected_start_command.should eq('bacofoil')
+    end
+  end
+
   describe '#buildpack_path' do
     before do
       contents = <<YAML
