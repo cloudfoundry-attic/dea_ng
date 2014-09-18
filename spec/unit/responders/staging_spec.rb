@@ -260,9 +260,7 @@ describe Dea::Responders::Staging do
               "detected_buildpack" => nil,
               "buildpack_key" => "some_buildpack_key",
               "droplet_sha1" => "some-droplet-sha",
-              "execution_metadata" => {
-                "start_command" => "bacofoil",
-              },
+              "detected_start_command" => "bacofoil",
             ))
             subject.handle(message)
           end
@@ -317,9 +315,7 @@ describe Dea::Responders::Staging do
               "detected_buildpack" => nil,
               "buildpack_key" => nil,
               "droplet_sha1" => nil,
-              "execution_metadata" => {
-                "start_command" => "bacofoil",
-              },
+              "detected_start_command" => "bacofoil",
               "error" => "error-description",
               "error_info" => staging_error_info,
             ))
