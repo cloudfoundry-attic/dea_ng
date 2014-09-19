@@ -65,7 +65,6 @@ describe Buildpacks::Buildpack, type: :buildpack do
       # recursively (-r) while not following symlinks (-P) and preserving dir structure (-p)
       # this is why we use system copy not FileUtil
       build_pack.should_receive(:system).with("cp -a #{File.expand_path "fakesrcdir"}/. #{File.expand_path "fakedestdir/app"}")
-      FileUtils.should_receive(:chmod_R).with(0744, File.expand_path("fakedestdir/app"))
       build_pack.copy_source_files
     end
   end
