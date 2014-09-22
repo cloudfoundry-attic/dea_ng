@@ -379,7 +379,7 @@ module Dea
 
     def handle_dea_stop(message)
       instance_registry.instances_filtered_by_message(message) do |instance|
-        next unless instance.running? || instance.starting? || instance.evacuating?
+        next if instance.resuming? || instance.stopped? || instance.crashed?
 
         instance.stop do |error|
           logger.warn("Failed stopping #{instance}: #{error}") if error

@@ -13,5 +13,5 @@ fi
 echo "-----> Env variables are:"
 env
 echo "-----> End"
-
+sleep 1
 exit 0

@@ -39,12 +39,15 @@ describe "Dea::Bootstrap#handle_dea_stop" do
 
     Dea::Instance.any_instance.stub(:setup_link)
     Dea::Responders::DeaLocator.any_instance.stub(:start) # to deal with test pollution
+    Dea::Responders::StagingLocator.any_instance.stub(:start) # to deal with test pollution
     bootstrap.stub(:resource_manager).and_return(resource_manager)
     bootstrap.stub(:instance_registry).and_return(instance_registry)
+    bootstrap.stub(:send_heartbeat)
 
     instance_registry.stub(:instances_filtered_by_message).and_yield(instance_mock)
     instance_mock.stub(:promise_stop).and_return(delivering_promise)
     instance_mock.stub(:destroy)
+    instance_mock.stat_collector.stub(:start)
   end
 
   describe "filtering" do
@@ -85,6 +88,12 @@ describe "Dea::Bootstrap#handle_dea_stop" do
       end
     end
 
+    context "when the app is born" do
+      before { instance_mock.state = Dea::Instance::State::BORN }
+
+      it_stops_the_instance
+    end
+
     context "when the app is starting" do
       before { instance_mock.state = Dea::Instance::State::STARTING }
 
@@ -100,6 +109,13 @@ describe "Dea::Bootstrap#handle_dea_stop" do
 
     context "when the app is evacuating" do
       before { instance_mock.state = Dea::Instance::State::EVACUATING }
+
+      it_stops_the_instance
+      it_unregisters_with_the_router
+    end
+
+    context "when the app is stopping" do
+      before { instance_mock.state = Dea::Instance::State::STOPPING }
 
       it_stops_the_instance
       it_unregisters_with_the_router

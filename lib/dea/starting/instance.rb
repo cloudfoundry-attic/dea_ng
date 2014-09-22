@@ -86,6 +86,18 @@ module Dea
       end
     end
 
+    class Entering < Struct.new(:to)
+      def initialize(to)
+        super(to.to_s.downcase)
+      end
+    end
+
+    class Exiting < Struct.new(:from)
+      def initialize(from)
+        super(from.to_s.downcase)
+      end
+    end
+
     class TransitionError < BaseError
       attr_reader :from
       attr_reader :to
@@ -337,7 +349,10 @@ module Dea
     end
 
     def state=(state)
-      transition = Transition.new(attributes['state'], state)
+      oldState = attributes['state']
+      exiting = Exiting.new(oldState)
+      transition = Transition.new(oldState, state)
+      entering = Entering.new(state)
 
       attributes['state'] = state
       attributes['state_timestamp'] = Time.now.to_f
@@ -345,7 +360,9 @@ module Dea
       state_time = "state_#{state.to_s.downcase}_timestamp"
       attributes[state_time] = Time.now.to_f
 
+      emit(exiting)
       emit(transition)
+      emit(entering)
     end
 
     def state_timestamp
@@ -482,7 +499,7 @@ module Dea
           promise_start
         )
 
-        on(Transition.new(:starting, :crashed)) do
+        on(Exiting.new(:starting)) do
           cancel_health_check
         end
 
@@ -566,15 +583,19 @@ module Dea
       p = Promise.new do
         logger.info('droplet.stopping')
 
-        promise_exec_hook_script('before_stop').resolve
+        case self.state
+          when State::BORN
+            self.state = State::STOPPED
+          when State::STOPPED
+          else
+            promise_state([State::STARTING, State::STOPPING, State::RUNNING, State::EVACUATING], State::STOPPING).resolve
 
-        promise_state([State::STOPPING, State::RUNNING, State::EVACUATING], State::STOPPING).resolve
+            promise_exec_hook_script('before_stop').resolve
+            promise_stop.resolve
+            promise_exec_hook_script('after_stop').resolve
 
-        promise_exec_hook_script('after_stop').resolve
-
-        promise_stop.resolve
-
-        promise_state(State::STOPPING, State::STOPPED).resolve
+            promise_state([State::STOPPING, State::STOPPED], State::STOPPED).resolve
+        end
 
         p.deliver
       end
@@ -598,17 +619,7 @@ module Dea
 
     def setup_crash_handler
       # Resuming to crashed state
-      on(Transition.new(:resuming, :crashed)) do
-        crash_handler
-      end
-
-      # On crash
-      on(Transition.new(:starting, :crashed)) do
-        crash_handler
-      end
-
-      # On crash
-      on(Transition.new(:running, :crashed)) do
+      on(Entering.new(:crashed)) do
         crash_handler
       end
     end
@@ -637,11 +648,7 @@ module Dea
     end
 
     def setup_stat_collector
-      on(Transition.new(:resuming, :running)) do
-        stat_collector.start
-      end
-
-      on(Transition.new(:starting, :running)) do
+      on(Entering.new(:running)) do
         stat_collector.start
       end
 

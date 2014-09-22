@@ -339,6 +339,20 @@ describe Dea::Instance do
         end
       end
     end
+
+    describe 'when started' do
+      [
+          Dea::Instance::State::EVACUATING,
+      ].each do |state|
+        it "does not stop when the instance moves to the #{state.inspect} state" do
+          instance.stat_collector.should_not_receive(:stop)
+          instance.state = Dea::Instance::State::RUNNING
+
+          instance.state = state
+        end
+      end
+    end
+
   end
 
   describe 'attributes_and_stats from stat collector' do
@@ -1097,7 +1111,8 @@ describe Dea::Instance do
         instance.unstub(:promise_state)
       end
 
-      passing_states = [Dea::Instance::State::STOPPING, Dea::Instance::State::RUNNING, Dea::Instance::State::EVACUATING]
+      passing_states = [Dea::Instance::State::BORN, Dea::Instance::State::STOPPING, Dea::Instance::State::RUNNING,
+        Dea::Instance::State::EVACUATING, Dea::Instance::State::STARTING, Dea::Instance::State::STOPPED]
 
       passing_states.each do |state|
         it "passes when #{state.inspect}" do
@@ -1131,6 +1146,7 @@ describe Dea::Instance do
         before do
           Dea::Env.stub(:new).with(instance).and_return(env)
           bootstrap.stub(:config).and_return('hooks' => {hook => fixture("hooks/#{hook}")})
+          instance.state = Dea::Instance::State::RUNNING
         end
 
         it "executes the #{hook} script file" do
@@ -1346,10 +1362,6 @@ describe Dea::Instance do
   end
 
   describe 'destroy' do
-    subject(:instance) do
-      Dea::Instance.new(bootstrap, valid_instance_attributes)
-    end
-
     let(:connection) { double('connection', :promise_call => delivering_promise) }
 
     before do
@@ -1386,10 +1398,6 @@ describe Dea::Instance do
   end
 
   describe 'health checks' do
-    let(:instance) do
-      Dea::Instance.new(bootstrap, valid_instance_attributes)
-    end
-
     let(:manifest_path) do
       File.join(tmpdir, 'rootfs', 'home', 'vcap', 'droplet.yaml')
     end
@@ -1441,6 +1449,7 @@ describe Dea::Instance do
 
     [Dea::Instance::State::RESUMING,
      Dea::Instance::State::RUNNING,
+     Dea::Instance::State::STARTING,
     ].each do |state|
       it "is triggered link when transitioning from #{state.inspect}" do
         instance.state = state

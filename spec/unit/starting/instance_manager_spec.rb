@@ -112,6 +112,27 @@ describe Dea::InstanceManager do
                 expect(@published_messages["droplet.exited"].first["instance"]).to eq instance.instance_id
               end
             end
+
+            context "and it transitions to stopped" do
+              subject { instance.state = Dea::Instance::State::STOPPED }
+
+              before { ::EM.stub(:next_tick).and_yield }
+
+              it "unregisters from the instance registry" do
+                instance_registry.should_receive(:unregister).with(instance)
+                subject
+              end
+
+              it "saves the snapshot" do
+                bootstrap.snapshot.should_receive(:save)
+                subject
+              end
+
+              it "destroys the instance" do
+                instance.should_receive(:destroy)
+                subject
+              end
+            end
           end
 
           context "when the app is starting" do

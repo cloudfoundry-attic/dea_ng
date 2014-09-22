@@ -11,6 +11,7 @@ module Dea
   class InstanceRegistry
     DEFAULT_CRASH_LIFETIME_SECS  = 60 * 60
     CRASHES_REAPER_INTERVAL_SECS = 10
+    DEFAULT_STOPPING_LIFETIME = 60
 
     include Enumerable
     include RegistryEnumeration
@@ -30,6 +31,7 @@ module Dea
         reap_orphaned_crashes
         reap_crashes
         reap_crashes_under_disk_pressure
+        reap_stopping
       end
     end
 
@@ -118,6 +120,26 @@ module Dea
         # Reap if this instance is not referenced
         if instance.nil?
           reap_crash(instance_id, "orphaned")
+        end
+      end
+    end
+
+    def reap_stopping
+      logger.debug2("Reaping stopping")
+
+      stopping_by_app = Hash.new { |h, k| h[k] = [] }
+      select(&:stopping?).each { |i| stopping_by_app[i.application_id] << i }
+
+      now = Time.now.to_i
+
+      stopping_by_app.each do |app_id, instances|
+        instances.each_with_index do |instance, idx|
+          secs_since_stopping = now - instance.state_timestamp
+          if (secs_since_stopping > DEFAULT_STOPPING_LIFETIME)
+            instance.stop do |error|
+              logger.warn("Failed to reap stopping #{instance}: #{error}") if error
+            end
+          end
         end
       end
     end

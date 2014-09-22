@@ -427,6 +427,36 @@ describe Dea::InstanceRegistry do
     end
   end
 
+  describe "crash stopping" do
+    let(:time_of_check) { 66 }
+
+    before do
+      x = Time.now
+      x.stub(:to_i).and_return(time_of_check)
+      Time.stub(:now).and_return(x)
+    end
+
+    it "should reap stoppings that are too old" do
+      instances = [15, 5].each_with_index.map do |age, ii|
+        register_stopping_instance(instance_registry,
+                                  :application_id => ii,
+                                  :state_timestamp => age,
+                                  :promise_stop => delivering_promise)
+      end
+
+      with_event_machine do
+        instance_registry.reap_stopping
+
+        after_defers_finish do
+          instances[0].should_not be_stopped
+          instances[1].should be_stopped
+
+          done
+        end
+      end
+    end
+  end
+
   describe "#reap_crash" do
     include_context "tmpdir"
 
@@ -523,6 +553,19 @@ describe Dea::InstanceRegistry do
     end
 
     FileUtils.mkdir_p(crash_path)
+
+    instance_registry.register(instance) if instance_registry
+
+    instance
+  end
+
+  def register_stopping_instance(instance_registry, options = {})
+    instance = Dea::Instance.new(bootstrap, {})
+    instance.state = Dea::Instance::State::STOPPING
+
+    options.each do |key, value|
+      instance.stub(key).and_return(value)
+    end
 
     instance_registry.register(instance) if instance_registry
 

@@ -16,57 +16,33 @@ module Dea
       begin
         instance.validate
       rescue => error
-        logger.warn("Error validating instance: #{error.message}")
+        logger.warn("Error validating instance: ", instance: instance, error: error)
         return
-      end
-
-      instance.on(Instance::Transition.new(:born, :crashed)) do
-        send_crashed_message(instance)
-      end
-
-      resource_manager = bootstrap.resource_manager
-      unless resource_manager.could_reserve?(attributes["limits"]["mem"], attributes["limits"]["disk"])
-        constrained_resource = resource_manager.get_constrained_resource(attributes["limits"]["mem"],
-                                                                         attributes["limits"]["disk"])
-        logger.error("instance.start.insufficient-resource",
-                     app: instance.attributes["application_id"],
-                      instance: instance.attributes["instance_index"],
-                      constrained_resource: constrained_resource)
-
-        instance.exit_description = "Not enough #{constrained_resource} resource available."
-        instance.state = Instance::State::CRASHED
-        return nil
       end
 
       instance.setup
 
-      instance.on(Instance::Transition.new(:starting, :crashed)) do
+      instance.on(Instance::Entering.new(:crashed)) do
         send_crashed_message(instance)
       end
 
-      instance.on(Instance::Transition.new(:starting, :running)) do
+      instance.on(Instance::Entering.new(:running)) do
         bootstrap.send_heartbeat()
         bootstrap.router_client.register_instance(instance)
         bootstrap.snapshot.save
       end
 
       instance.on(Instance::Transition.new(:running, :crashed)) do
-        bootstrap.router_client.unregister_instance(instance)
-        send_crashed_message(instance)
-        bootstrap.snapshot.save
-      end
+         bootstrap.router_client.unregister_instance(instance)
+         bootstrap.snapshot.save
+       end
 
-      instance.on(Instance::Transition.new(:running, :stopping)) do
-        bootstrap.router_client.unregister_instance(instance)
-        bootstrap.snapshot.save
-      end
-
-      instance.on(Instance::Transition.new(:evacuating, :stopping)) do
+      instance.on(Instance::Entering.new(:stopping)) do
         bootstrap.router_client.unregister_instance(instance)
         bootstrap.snapshot.save
       end
 
-      instance.on(Instance::Transition.new(:stopping, :stopped)) do
+      instance.on(Instance::Entering.new(:stopped)) do
         bootstrap.instance_registry.unregister(instance)
         EM.next_tick do
           instance.destroy
@@ -75,6 +51,21 @@ module Dea
       end
 
       bootstrap.instance_registry.register(instance)
+
+      resource_manager = bootstrap.resource_manager
+      unless resource_manager.could_reserve?(attributes["limits"]["mem"], attributes["limits"]["disk"])
+        constrained_resource = resource_manager.get_constrained_resource(attributes["limits"]["mem"],
+                                                                         attributes["limits"]["disk"])
+        logger.error("instance.start.insufficient-resource",
+                     app: instance.attributes["application_id"],
+                     instance: instance.attributes["instance_index"],
+                     constrained_resource: constrained_resource)
+
+        instance.exit_description = "Not enough #{constrained_resource} resource available."
+        instance.state = Instance::State::CRASHED
+        return nil
+      end
+
       instance
     end
 
