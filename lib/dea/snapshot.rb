@@ -65,7 +65,12 @@ module Dea
 
           # Enter instance state via "RESUMING" to trigger the right transitions
           instance.state = Instance::State::RESUMING
-          instance.state = instance_state
+
+          if instance_state == Instance::State::STARTING
+             instance.state = Instance::State::CRASHED
+          else
+             instance.state = instance_state
+          end
         end
 
         logger.debug("Loading snapshot took: %.3fs" % [Time.now - start])
