@@ -179,4 +179,88 @@ describe Dea::Snapshot do
       snapshot.load
     end
   end
+  
+  describe "load the snapshot with STARTING state" do
+    before do
+      File.open(snapshot.path, "w") do |file|
+        saved_snapshot = {
+            "instances" => [
+                {
+                    "k1" => "v1",
+                    "k2" => "v2",
+                    "state" => "STARTING",
+                },
+            ],
+        }
+
+        file.write(::Yajl::Encoder.encode(saved_snapshot))
+      end
+    end
+
+    it "the state should be changed to CRASHED" do
+      instance = Dea::Instance.new(bootstrap, valid_instance_attributes)
+      instance.stub(:validate)
+
+      instance.
+        should_receive(:state=).
+        ordered.
+        with(Dea::Instance::State::RESUMING)
+
+      instance.
+        should_receive(:state=).
+         ordered.
+        with(Dea::Instance::State::CRASHED)
+
+      instance_manager.should_receive(:create_instance) do |attr|
+        attr.should_not include("state")
+
+        # Return mock instance
+        instance
+      end
+
+      snapshot.load
+    end
+  end
+
+  describe "load the snapshot with RUNNING state" do
+    before do
+      File.open(snapshot.path, "w") do |file|
+        saved_snapshot = {
+            "instances" => [
+                {
+                    "k1" => "v1",
+                    "k2" => "v2",
+                    "state" => "Dea::Instance::State::RUNNING",
+                },
+            ],
+        }
+
+        file.write(::Yajl::Encoder.encode(saved_snapshot))
+      end
+    end
+
+    it "the state should be kept RUNNING" do
+      instance = Dea::Instance.new(bootstrap, valid_instance_attributes)
+      instance.stub(:validate)
+
+      instance.
+          should_receive(:state=).
+          ordered.
+          with(Dea::Instance::State::RESUMING)
+
+      instance.
+          should_receive(:state=).
+          ordered.
+          with("Dea::Instance::State::RUNNING")
+
+      instance_manager.should_receive(:create_instance) do |attr|
+        attr.should_not include("state")
+
+        # Return mock instance
+        instance
+      end
+
+      snapshot.load
+    end
+  end
 end

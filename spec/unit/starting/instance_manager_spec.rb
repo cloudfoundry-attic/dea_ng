@@ -111,6 +111,11 @@ describe Dea::InstanceManager do
                 expect(@published_messages["droplet.exited"].first["reason"]).to eq "CRASHED"
                 expect(@published_messages["droplet.exited"].first["instance"]).to eq instance.instance_id
               end
+
+              it "saves the snapshot" do
+                bootstrap.snapshot.should_receive(:save)
+                subject
+              end
             end
 
             context "and it transitions to stopped" do
@@ -167,6 +172,11 @@ describe Dea::InstanceManager do
                 expect(@published_messages["droplet.exited"]).to have(1).item
                 expect(@published_messages["droplet.exited"].first["reason"]).to eq "CRASHED"
                 expect(@published_messages["droplet.exited"].first["instance"]).to eq instance.instance_id
+              end
+
+              it "saves the snapshot" do
+                bootstrap.snapshot.should_receive(:save)
+                subject
               end
             end
           end
