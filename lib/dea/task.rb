@@ -47,8 +47,12 @@ module Dea
 
           p.deliver
         rescue Exception => error
-          logger.error("task.stop.failed", error: error, backtrace: error.backtrace)
-          p.fail(error)
+          if container.list[:handles].try(:include?, container.handle)
+            logger.error("task.stop.failed", error: error, backtrace: error.backtrace)
+            p.fail(error)
+          else
+            p.deliver # if the container is no longer listed, the stop has succeeded
+          end
         end
       end
     end

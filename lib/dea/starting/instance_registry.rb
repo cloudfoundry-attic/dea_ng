@@ -11,7 +11,7 @@ module Dea
   class InstanceRegistry
     DEFAULT_CRASH_LIFETIME_SECS  = 60 * 60
     CRASHES_REAPER_INTERVAL_SECS = 10
-    DEFAULT_STOPPING_LIFETIME = 60
+    DEFAULT_STOPPING_LIFETIME_SECS = 60
 
     include Enumerable
     include RegistryEnumeration
@@ -135,7 +135,7 @@ module Dea
       stopping_by_app.each do |app_id, instances|
         instances.each_with_index do |instance, idx|
           secs_since_stopping = now - instance.state_timestamp
-          if (secs_since_stopping > DEFAULT_STOPPING_LIFETIME)
+          if (secs_since_stopping > DEFAULT_STOPPING_LIFETIME_SECS)
             instance.stop do |error|
               logger.warn("Failed to reap stopping #{instance}: #{error}") if error
             end

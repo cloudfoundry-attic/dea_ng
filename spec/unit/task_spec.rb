@@ -32,7 +32,15 @@ describe Dea::Task do
   end
 
   describe "#promise_stop -" do
-    before { task.container.stub(:handle) { "handle" } }
+    let(:handle) { "handle" }
+    let(:handles) { [handle] }
+
+    before do
+      allow(task.container).to receive(:handle).and_return handle
+      allow(task.container).to receive(:list).and_return Warden::Protocol::ListResponse.new(
+        :handles => handles
+      )
+    end
 
     it "executes a StopRequest" do
       expect(task.container).to receive(:call).and_return(double(Warden::Protocol::StopResponse))
@@ -56,7 +64,7 @@ describe Dea::Task do
       it "generates a StopRequest with kill: false" do
         expect(task.container).to receive(:call) do |connection, request|
           expect(request).to be_kind_of(::Warden::Protocol::StopRequest)
-          expect(request.handle).to eq("handle")
+          expect(request.handle).to eq(handle)
           expect(request.kill).to eq(false)
           expect(connection).to eq(:stop)
         end
@@ -69,12 +77,46 @@ describe Dea::Task do
       it "generates a StopRequest with kill: true" do
         expect(task.container).to receive(:call) do |connection, request|
           expect(request).to be_kind_of(::Warden::Protocol::StopRequest)
-          expect(request.handle).to eq("handle")
+          expect(request.handle).to eq(handle)
           expect(request.kill).to eq(true)
           expect(connection).to eq(:stop)
         end
 
         task.promise_stop(true).resolve
+      end
+    end
+
+    context "when the handle still exists" do
+      it "returns an error, causing the stop not to succeed (the container is still there)" do
+        allow(task.container).to receive(:call).and_raise "boom"
+
+        expect {
+          task.promise_stop(true).resolve
+        }.to raise_error
+      end
+    end
+
+    context "when the handle does not exist" do
+      let(:handles) { ["bogus"] }
+
+      it "cleans up the dea's knowledge of its existance" do
+        allow(task.container).to receive(:call).and_raise "boom"
+
+        expect {
+          task.promise_stop(true).resolve
+        }.not_to raise_error
+      end
+    end
+
+    context "when no handles exist" do
+      let(:handles) { nil }
+
+      it "cleans up the dea's knowledge of its existance" do
+        allow(task.container).to receive(:call).and_raise "boom"
+
+        expect {
+          task.promise_stop(true).resolve
+        }.not_to raise_error
       end
     end
 
