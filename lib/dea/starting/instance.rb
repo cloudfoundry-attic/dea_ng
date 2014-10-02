@@ -499,7 +499,7 @@ module Dea
           promise_start
         )
 
-        on(Exiting.new(:starting)) do
+        on(Transition.new(:starting, :crashed)) do
           cancel_health_check
         end
 

@@ -500,18 +500,12 @@ describe Dea::Instance do
         result.should be_true
       end
 
-      it 'fails when the port is not open' do
+      it 'fails when the port is not open and logs an error message' do
         result = execute_health_check do
           deferrable.fail
         end
 
         result.should be_false
-      end
-
-      it 'logs a message to loggregator when the port is not open' do
-        execute_health_check do
-          deferrable.fail
-        end
         expect(@emitter.error_messages[application_id][0]).to eql('Instance (index 2) failed to start accepting connections')
       end
     end
