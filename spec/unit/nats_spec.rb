@@ -16,7 +16,6 @@ describe Dea::Nats do
 
     {
       "healthmanager.start" => :handle_health_manager_start,
-      "router.start"        => :handle_router_start,
       "dea.status"          => :handle_dea_status,
       "dea.UUID.start"      => :handle_dea_directed_start,
       "dea.stop"            => :handle_dea_stop,

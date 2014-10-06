@@ -306,19 +306,12 @@ module Dea
 
       start_component
       start_nats
-      greet_router
-      register_directory_server_v2
+      setup_register_routes
       directory_server_v2.start
       setup_varz
 
       setup_signal_handlers
       start_finish
-    end
-
-    def greet_router
-      @router_client.greet do |response|
-        handle_router_start(response)
-      end
     end
 
     def reap_unreferenced_droplets
@@ -340,16 +333,12 @@ module Dea
       send_heartbeat()
     end
 
-    def handle_router_start(message)
-      interval = message.data.nil? ? nil : message.data["minimumRegisterIntervalInSeconds"]
+    def setup_register_routes
       register_routes
+      interval = config["intervals"]["router_register_in_seconds"]
 
-      if interval
-        EM.cancel_timer(@registration_timer) if @registration_timer
-
-        @registration_timer = EM.add_periodic_timer(interval) do
-          register_routes
-        end
+      @registration_timer = EM.add_periodic_timer(interval) do
+        register_routes
       end
     end
 

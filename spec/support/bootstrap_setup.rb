@@ -11,6 +11,7 @@ shared_context "bootstrap_setup" do
       "intervals" => {
         "advertise" => 0.01,
         "heartbeat" => 0.01,
+        "router_register_in_seconds" => 20,
       },
       "runtimes" => %w[test1 test2],
       "directory_server" => {
@@ -38,7 +39,6 @@ shared_context "bootstrap_setup" do
 
     bootstrap.stub(:start_component)
     bootstrap.stub(:start_directory_server)
-    bootstrap.stub(:greet_router)
     bootstrap.stub(:register_directory_server_v2)
     bootstrap.stub(:start_finish)
 

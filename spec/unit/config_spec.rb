@@ -102,5 +102,42 @@ module Dea
         end
       end
     end
+
+    describe "registration interval validation" do
+      context "when the interval is greater than zero" do
+        let(:config_hash) { { "intervals" => { "router_register_in_seconds" => 10 } } }
+
+        it "is valid" do
+          expect { config.validate_router_register_interval! }.to_not raise_error
+        end
+      end
+
+      context "when the interval is invalid" do
+        context "when the interval is zero" do
+          let(:config_hash) { { "intervals" => { "router_register_in_seconds" => 0 } } }
+
+          it "is valid" do
+            expect { config.validate_router_register_interval! }.to raise_error
+          end
+        end
+
+        context "when the interval is negative" do
+          let(:config_hash) { { "intervals" => { "router_register_in_seconds" => -5 } } }
+
+          it "is valid" do
+            expect { config.validate_router_register_interval! }.to raise_error
+          end
+        end
+      end
+
+      context "when the interval not specified" do
+        let (:config_hash) { { "intervals" => { } } }
+
+        it "is sets it to the default value" do
+          expect { config.validate_router_register_interval! }.to_not raise_error
+          expect(config["intervals"]["router_register_in_seconds"]).to eq(20)
+        end
+      end
+    end
   end
 end

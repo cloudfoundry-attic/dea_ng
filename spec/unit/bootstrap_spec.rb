@@ -627,9 +627,9 @@ describe Dea::Bootstrap do
       bootstrap.stub(:start_component)
       bootstrap.stub(:start_nats)
       bootstrap.stub(:start_directory_server)
-      bootstrap.stub(:greet_router)
       bootstrap.stub(:register_directory_server_v2)
       bootstrap.stub(:directory_server_v2) { double(:directory_server_v2, :start => nil) }
+      bootstrap.stub(:setup_register_routes)
       bootstrap.stub(:setup_varz)
       bootstrap.stub(:start_finish)
     end

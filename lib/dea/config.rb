@@ -6,9 +6,12 @@ module Dea
   class Config
     DEFAULT_STAGING_DISK_INODE_LIMIT = 200_000
     DEFAULT_INSTANCE_DISK_INODE_LIMIT = 200_000
+    DEFAULT_ROUTER_REGISTER_INTERVAL_IN_SECONDS = 20
 
     EMPTY_CONFIG = {
-      "intervals" => {},
+      "intervals" => {
+        "router_register_in_seconds" => DEFAULT_ROUTER_REGISTER_INTERVAL_IN_SECONDS,
+      },
       "status" => {},
       "resources" => {},
       "crash_lifetime_secs" => 60 * 60,
@@ -27,7 +30,7 @@ module Dea
         "cpu_limit_shares" => 512,
         "disk_inode_limit" => DEFAULT_STAGING_DISK_INODE_LIMIT,
       },
-      "default_health_check_timeout" => 60
+      "default_health_check_timeout" => 60,
     }
 
     def self.schema
@@ -72,6 +75,7 @@ module Dea
           },
 
           optional("intervals") => {
+            optional("router_register_in_seconds") => enum(Float, Integer),
             optional("heartbeat") => Integer,
             optional("advertise") => Integer,
           },
@@ -140,6 +144,12 @@ module Dea
 
     def validate
       self.class.schema.validate(@config)
+      validate_router_register_interval!
+    end
+
+    def validate_router_register_interval!
+      @config["intervals"]["router_register_in_seconds"] ||= DEFAULT_ROUTER_REGISTER_INTERVAL_IN_SECONDS
+      raise "Invalid router register interval" if @config["intervals"]["router_register_in_seconds"] <= 0
     end
 
     def crashes_path

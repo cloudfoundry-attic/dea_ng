@@ -28,7 +28,7 @@ describe "Dea::Bootstrap#handle_dea_stop" do
     manager
   end
 
-  let(:instance_registry) { double(:instance_registry, :register => nil, :unregister => nil) }
+  let(:instance_registry) { double(:instance_registry, :register => nil, :unregister => nil, :each => []) }
 
   before do
     bootstrap.unstub(:setup_router_client)

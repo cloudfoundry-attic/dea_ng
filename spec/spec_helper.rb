@@ -48,7 +48,11 @@ RSpec.configure do |config|
   end
 
   config.before(:all, type: :integration, requires_warden: true) do
-    dea_start
+    dea_start({
+      "intervals" => {
+        "router_register_in_seconds" => 0.5
+      }
+    })
   end
 
   config.after(:all, type: :integration, requires_warden: true) do

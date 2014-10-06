@@ -23,10 +23,6 @@ module Dea
         bootstrap.handle_health_manager_start(message)
       end
 
-      subscribe("router.start") do |message|
-        bootstrap.handle_router_start(message)
-      end
-
       subscribe("dea.status") do |message|
         bootstrap.handle_dea_status(message)
       end
