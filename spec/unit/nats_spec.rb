@@ -16,7 +16,6 @@ describe Dea::Nats do
 
     {
       "healthmanager.start" => :handle_health_manager_start,
-      "router.start"        => :handle_router_start,
       "dea.status"          => :handle_dea_status,
       "dea.UUID.start"      => :handle_dea_directed_start,
       "dea.stop"            => :handle_dea_stop,
@@ -33,6 +32,12 @@ describe Dea::Nats do
 
         nats_mock.receive_message(subject, data)
       end
+    end
+
+    it "subscribes to router.start" do
+      allow(bootstrap).to receive(:handle_router_start)
+      nats_mock.receive_message("router.start", "")
+      expect(bootstrap).to have_received(:handle_router_start)
     end
   end
 
