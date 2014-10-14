@@ -342,6 +342,10 @@ module Dea
       end
     end
 
+    def handle_router_start
+      register_routes
+    end
+
     def register_routes
       instance_registry.each do |instance|
         next if !(instance.running? || instance.evacuating?) || instance.application_uris.empty?

@@ -90,6 +90,28 @@ describe Dea do
     end
   end
 
+  describe "handle_router_start" do
+    it "registers its routes" do
+      bootstrap.setup
+
+      instance = create_and_register_instance(bootstrap,
+        "application_id" => "app_id",
+        "application_uris" => ["iamaroute"])
+      instance.state = Dea::Instance::State::RUNNING
+
+      allow(bootstrap.router_client).to receive(:register_instance)
+      allow(bootstrap.router_client).to receive(:register_directory_server)
+
+      bootstrap.handle_router_start
+
+      expect(bootstrap.router_client).to have_received(:register_instance).with(instance)
+
+      domain = "#{bootstrap.directory_server_v2.uuid}.#{bootstrap.config["domain"]}"
+      port = bootstrap.config["directory_server"]["v2_port"]
+      expect(bootstrap.router_client).to have_received(:register_directory_server).with(port, domain)
+    end
+  end
+
   describe "upon receipt of a message on 'dea.update'" do
     context "when updating running instances" do
       it "should register new uris" do
