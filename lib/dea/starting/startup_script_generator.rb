@@ -20,11 +20,8 @@ module Dea
     START_SCRIPT = strip_heredoc(<<-BASH).freeze
       DROPLET_BASE_DIR=$PWD
       cd app
-      (%s) &
-      STARTED=$!
-      echo "$STARTED" >> $DROPLET_BASE_DIR/run.pid
-
-      wait $STARTED
+      echo $$ >> $DROPLET_BASE_DIR/run.pid
+      exec bash -c %s
     BASH
 
     def initialize(start_command, user_envs, system_envs)
@@ -39,7 +36,7 @@ module Dea
       script << @system_envs
       script << EXPORT_BUILDPACK_ENV_VARIABLES_SCRIPT
       script << @user_envs
-      script << START_SCRIPT % @start_command
+      script << START_SCRIPT % Shellwords.shellescape(@start_command)
       script.join("\n")
     end
   end

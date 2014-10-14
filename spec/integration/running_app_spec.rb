@@ -138,7 +138,6 @@ describe "Running an app", :type => :integration, :requires_warden => true do
         stage
         wait_until_started
 
-        id = dea_id
         checked_port = false
         droplet_message = Yajl::Encoder.encode("droplet" => app_id, "states" => ["RUNNING"])
 
@@ -164,11 +163,51 @@ describe "Running an app", :type => :integration, :requires_warden => true do
               end
             end
           end
-
-          NATS.publish("dea.#{id}.start", Yajl::Encoder.encode(start_message))
         end
 
         expect(checked_port).to eq(true)
+      end
+
+      it "receives logs during graceful shutdown" do
+        setup_fake_buildpack("graceful_shutdown")
+        staging_message["properties"]["buildpack"] = fake_buildpack_url("graceful_shutdown")
+        stage
+        wait_until_started
+
+        logs = ""
+        finished = false
+        logging_thread = nil
+        droplet_message = Yajl::Encoder.encode("droplet" => app_id, "states" => ["RUNNING"])
+
+        nats.with_nats do
+          NATS.subscribe("router.register") do |_|
+            NATS.request("dea.find.droplet", droplet_message, :timeout => 5) do |response|
+              droplet_info = Yajl::Parser.parse(response)
+              instance_info = instance_snapshot(droplet_info["instance"])
+              port = instance_info["instance_host_port"]
+
+              app_socket_path = File.join(instance_info["warden_container_path"], "jobs", instance_info["warden_job_id"].to_s, "stdout.sock")
+              log_socket = UNIXSocket.open(app_socket_path)
+
+              logging_thread = Thread.new do
+                while line = log_socket.gets
+                  logs << line
+                end
+              end
+
+              NATS.publish("dea.stop", Yajl::Encoder.encode({"droplet" => app_id})) do
+                wait_until(10) { !is_port_open?(dea_host, port) }
+
+                finished = true
+                NATS.stop
+              end
+            end
+          end
+        end
+
+        logging_thread.join
+        expect(finished).to eq(true)
+        expect(logs).to include("Trapped TERM signal")
       end
     end
   end

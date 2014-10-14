@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+echo "-----> Shutdown buildpack output"
+echo "-----> Copying application to $1"
+
+DIRNAME=$(dirname $0)
+cp $DIRNAME/run.sh $1
+chmod o+x $1/run.sh
+
+echo "-----> End"
+sleep 1
+exit 0

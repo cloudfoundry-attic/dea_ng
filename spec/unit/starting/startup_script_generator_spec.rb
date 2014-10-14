@@ -5,7 +5,7 @@ describe Dea::StartupScriptGenerator do
   let(:user_envs) { %Q{export usr1="usrval1";\nexport usr2="usrval2";\nunset unset_var;\n} }
   let(:system_envs) { %Q{export usr1="sys_user_val1";\nexport sys1="sysval1";\n} }
   let(:used_buildpack) { '' }
-  let(:start_command) { 'go_nuts' }
+  let(:start_command) { "go_nuts 'man' ; echo 'wooooohooo'" }
 
   let(:generator) { Dea::StartupScriptGenerator.new(start_command, user_envs, system_envs) }
 
@@ -46,8 +46,8 @@ describe Dea::StartupScriptGenerator do
     end
 
     describe "starting app" do
-      it "includes the start command in the starting script" do
-        script.should include described_class::START_SCRIPT % start_command
+      it "includes the escaped start command in the starting script" do
+        expect(script).to include(described_class::START_SCRIPT % Shellwords.shellescape(start_command))
       end
     end
   end
