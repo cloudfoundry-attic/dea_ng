@@ -6,7 +6,7 @@ class NonBlockingUnzipper
       if status.exitstatus == 0
         move_atomically(tmp_dir, dest_dir)
       else
-        tmp_dir.unlink
+        Dir.rmdir(tmp_dir)
       end
 
       yield output, status.exitstatus
