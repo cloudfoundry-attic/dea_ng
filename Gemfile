@@ -15,8 +15,8 @@ gem 'thin'
 gem 'yajl-ruby', require: %w[yajl yajl/json_gem]
 gem 'grape', git: 'https://github.com/intridea/grape.git'
 
-gem 'vcap_common', git: 'https://github.com/cloudfoundry/vcap-common.git'
-gem 'steno', '~> 1.1.0', git: 'https://github.com/cloudfoundry/steno.git'
+gem 'vcap_common'
+gem 'steno', '~> 1.1.0'
 
 gem 'uuidtools'
 gem 'nokogiri', '~> 1.6.2'
