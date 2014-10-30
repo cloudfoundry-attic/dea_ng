@@ -27,8 +27,6 @@ func (handler *StreamHandler) ServeHTTP(writer http.ResponseWriter, r *http.Requ
 	}
 
 	defer func() {
-		handler.File.Close()
-
 		// Clean up
 		watcher.Close()
 

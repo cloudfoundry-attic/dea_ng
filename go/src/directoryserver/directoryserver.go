@@ -177,6 +177,7 @@ func (h handler) tailFile(request *http.Request, writer http.ResponseWriter,
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 
 	var offset int64
 	var seekType int
