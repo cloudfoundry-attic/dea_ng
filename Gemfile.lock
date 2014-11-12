@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/cloudfoundry/warden.git
-  revision: dd32a459c99d331789e54ba9eaef425a94b3a95c
+  revision: e3f20962481b3e3efb1cf59bec961e7db8004285
   specs:
     em-warden-client (0.1.1)
       eventmachine
@@ -79,7 +79,7 @@ GEM
     json_pure (1.8.1)
     loggregator_emitter (3.0.0)
       beefcake (~> 0.3.7)
-    membrane (0.0.2)
+    membrane (1.1.0)
     mime-types (2.1)
     mini_portile (0.6.0)
     msgpack (0.4.7)
