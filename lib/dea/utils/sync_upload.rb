@@ -1,8 +1,8 @@
 require "dea/utils/eventmachine_multipart_hack"
 
 class UploadError < StandardError
-  def initialize(msg, http)
-    super("Error uploading: (#{msg} status: #{http.response_header.status} - #{http.response})")
+  def initialize(msg)
+    super("Error uploading: (#{msg})")
   end
 end
 
@@ -47,7 +47,7 @@ class SyncUpload
   end
 
   def handle_error(http, upload_callback)
-    error = UploadError.new("Upload", http)
+    error = UploadError.new("Upload failed - status #{http.response_header.status}")
 
     open_connection_count = EM.connection_count # https://github.com/igrigorik/em-http-request/issues/190 says to check connection_count
     logger.warn("em-upload.error",

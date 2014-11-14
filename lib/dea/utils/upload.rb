@@ -34,10 +34,10 @@ class Upload
             poll(polling_destination, &upload_callback) if polling_destination
           rescue JSON::ParserError
             logger.warn("em-upload.completion.parsing-error")
-            upload_callback.call UploadError.new("invalid json", http)
+            upload_callback.call UploadError.new("invalid json")
           rescue URI::InvalidURIError => e
             logger.warn("em-upload.completion.invlid-polling-url", url: e)
-            upload_callback.call UploadError.new("invalid URL #{e}", http)
+            upload_callback.call UploadError.new("invalid URL #{e}")
           end
         else
           upload_callback.call(nil)
@@ -72,12 +72,12 @@ class Upload
           upload_callback.call nil
         when "failed"
           logger.warn("em-upload.polling.failed", response: http.response)
-          upload_callback.call UploadError.new("Polling", http)
+          upload_callback.call UploadError.new("Staging upload failed.")
         else
           @remaining_polling_time -= POLLING_INTERVAL
           if @remaining_polling_time <= 0
             logger.warn("em-upload.polling.timing-out")
-            upload_callback.call UploadError.new("Job took too long", http)
+            upload_callback.call UploadError.new("Job took too long")
           else
             logger.debug("em-upload.polling.retry")
             EM.add_timer(POLLING_INTERVAL) { poll(polling_destination, &upload_callback) }
@@ -87,11 +87,12 @@ class Upload
       handle_error(http, polling_destination, upload_callback)
     end
   rescue JSON::ParserError
-    upload_callback.call UploadError.new("polling invalid json", http)
+    logger.warn("em-upload.polling.invalid_json_response", response: http.response)
+    upload_callback.call UploadError.new("polling invalid json")
   end
 
   def handle_error(http, polling_destination, upload_callback)
-    error = UploadError.new("Polling", http)
+    error = UploadError.new("Polling failed - status #{http.response_header.status}")
 
     open_connection_count = EM.connection_count # https://github.com/igrigorik/em-http-request/issues/190 says to check connection_count
     logger.warn("em-upload.error",

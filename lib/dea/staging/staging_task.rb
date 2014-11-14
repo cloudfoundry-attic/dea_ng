@@ -167,6 +167,7 @@ module Dea
     def trigger_after_setup(error)
       @after_setup_callback.call(error) if @after_setup_callback
     end
+
     private :trigger_after_setup
 
     def after_complete_callback(&blk)

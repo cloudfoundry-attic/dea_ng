@@ -168,7 +168,7 @@ describe Upload do
 
           it "should poll the cloud controller until failed and returns failure information" do
             subject.upload! do |error|
-              expect(error.message).to include "Error uploading: (Polling status:"
+              expect(error.message).to include "Error uploading: (Staging upload failed.)"
               done
             end
           end
@@ -225,7 +225,7 @@ describe Upload do
 
           it "should poll the cloud controller until errback-ed and returns failure information" do
             subject.upload! do |error|
-              expect(error.message).to include "Error uploading: (Polling status:"
+              expect(error.message).to include "Error uploading: (Polling failed - status 500)"
               done
             end
           end
@@ -248,7 +248,7 @@ describe Upload do
           it "should poll the cloud controller until failed and returns failure information" do
             subject.upload! do |error|
               expect(error.message).not_to be_nil
-              expect(error.message).to eq "Error uploading: (Polling status: 400 - Client Error)"
+              expect(error.message).to eq "Error uploading: (Polling failed - status 400)"
               done
             end
           end
@@ -260,7 +260,7 @@ describe Upload do
       it "calls the block with the exception" do
         subject.upload! do |error|
           expect(error).to be_a(UploadError)
-          expect(error.message).to include "Error uploading: (Upload status:"
+          expect(error.message).to include "Error uploading: (Upload failed"
           done
         end
       end
@@ -276,7 +276,7 @@ describe Upload do
       it "calls the block with the exception" do
         subject.upload! do |error|
           expect(error).to be_a(UploadError)
-          expect(error.message).to match %r{Error uploading: \(Upload status: 500 - }
+          expect(error.message).to match %r{Error uploading: \(Upload failed - status 500}
           done
         end
       end
