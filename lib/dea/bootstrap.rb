@@ -44,6 +44,7 @@ module Dea
   class Bootstrap
     DEFAULT_HEARTBEAT_INTERVAL = 10 # In secs
     DROPLET_REAPER_INTERVAL_SECS = 60
+    CONTAINER_REAPER_INTERVAL_SECS = 30
 
     DISCOVER_DELAY_MS_PER_INSTANCE = 10
     DISCOVER_DELAY_MS_MEM = 100
@@ -58,6 +59,7 @@ module Dea
     def initialize(config = {})
       @config = Config.new(config)
       @log_counter = Steno::Sink::Counter.new
+      @orphaned_containers = []
     end
 
     def local_ip
@@ -234,6 +236,37 @@ module Dea
       # Remove unreferenced droplets
       EM.add_periodic_timer(DROPLET_REAPER_INTERVAL_SECS) do
         reap_unreferenced_droplets
+      end
+
+      EM.add_periodic_timer(CONTAINER_REAPER_INTERVAL_SECS) do
+        reap_orphaned_containers
+      end
+    end
+
+    def reap_orphaned_containers
+      logger.debug("Reaping orphaned containers")
+
+      promise_handles = Dea::Promise.new do |p|
+        p.deliver warden_container_lister.list.handles
+      end
+
+      Dea::Promise.resolve(promise_handles) do |error, handles|
+        if error
+          logger.error(error.message)
+        else
+          orphaned = []
+          if handles
+            known_instances = instance_registry.map(&:warden_handle)
+            known_stagers = staging_task_registry.map(&:warden_handle)
+            orphaned = handles - ( known_instances | known_stagers )
+          end
+          (@orphaned_containers & orphaned).each do |handle|
+            logger.debug("reaping orphaned container with handle #{handle}")
+            warden_container_lister.handle = handle
+            warden_container_lister.destroy!
+          end
+          @orphaned_containers = orphaned - (@orphaned_containers & orphaned)
+        end
       end
     end
 

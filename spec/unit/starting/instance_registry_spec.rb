@@ -302,6 +302,95 @@ describe Dea::InstanceRegistry do
     end
   end
 
+  describe "reap orphaned_containers" do
+    include_context "tmpdir"
+
+    let(:config) do
+      Dea::Config.new({
+        "base_dir" => tmpdir,
+      })
+    end
+
+    let(:containers) { double(:containers) }
+
+    let(:instance_registry) do
+      instance_registry = nil
+      with_event_machine do
+        instance_registry = Dea::InstanceRegistry.new(config, containers)
+        done
+      end
+      instance_registry
+    end
+
+    it "should not reap orphaned containers on the first time" do
+      instance = register_starting_instance(instance_registry, { attributes: { 'warden_handle' => 'c' } })
+      handles = ['a', 'b', 'c']
+      containers.stub_chain(:list, :handles).and_return(handles)
+
+      with_event_machine do
+        containers.should_not_receive(:handle=).with('a')
+        containers.should_not_receive(:destroy!)
+        containers.should_not_receive(:handle=).with('b')
+        containers.should_not_receive(:destroy!)
+        instance_registry.reap_orphaned_containers
+
+        after_defers_finish do
+          done
+        end
+      end
+    end
+
+    it "should reap orphaned containers if they remain orphan for two ticks" do
+      instance = register_starting_instance(instance_registry, { attributes: { 'warden_handle' => 'c' } })
+      handles = ['a', 'b', 'c']
+      containers.stub_chain(:list, :handles).and_return(handles)
+
+      with_event_machine do
+        containers.should_receive(:handle=).with('a')
+        containers.should_receive(:destroy!)
+        containers.should_not_receive(:handle=).with('b')
+        containers.should_not_receive(:destroy!)
+        instance_registry.reap_orphaned_containers
+        instance = register_starting_instance(instance_registry, { attributes: { 'warden_handle' => 'b' } })
+        instance_registry.reap_orphaned_containers
+
+        after_defers_finish do
+          done
+        end
+      end
+    end
+
+    it "should ignore referenced containers" do
+      instance = register_starting_instance(instance_registry, { attributes: { 'warden_handle' => 'a' } })
+      handles = ['a']
+      containers.stub_chain(:list, :handles).and_return(handles)
+      containers.should_not_receive(:handle=).with('a')
+      containers.should_not_receive(:destroy!)
+
+      with_event_machine do
+        instance_registry.reap_orphaned_containers
+        instance_registry.reap_orphaned_containers
+
+        after_defers_finish do
+          done
+        end
+      end
+    end
+
+    it "is resistant to errors" do
+      containers.stub_chain(:list, :handles).and_raise("error happened")
+      instance_registry.logger.should_receive(:error).with("error happened")
+
+      with_event_machine do
+        instance_registry.reap_orphaned_containers
+
+        after_defers_finish do
+          done
+        end
+      end
+    end
+  end
+
   describe "crash reaping" do
     include_context "tmpdir"
 
@@ -553,6 +642,19 @@ describe Dea::InstanceRegistry do
     end
 
     FileUtils.mkdir_p(crash_path)
+
+    instance_registry.register(instance) if instance_registry
+
+    instance
+  end
+
+  def register_starting_instance(instance_registry, options = {})
+    instance = Dea::Instance.new(bootstrap, {})
+    instance.state = Dea::Instance::State::STARTING
+
+    options.each do |key, value|
+      instance.stub(key).and_return(value)
+    end
 
     instance_registry.register(instance) if instance_registry
 

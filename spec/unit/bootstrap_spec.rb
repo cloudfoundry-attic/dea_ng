@@ -224,6 +224,90 @@ describe Dea::Bootstrap do
     end
   end
 
+  describe "reap orphaned_containers" do
+    let(:warden_containers) { bootstrap.warden_container_lister }
+    let(:list_response) do
+      Warden::Protocol::ListResponse.new(
+        :handles => ["a", "b", "c", "d"]
+      )
+    end
+
+    let(:instance_registry) do
+      instance_registry = []
+      ["a"].each do |warden_handle|
+        instance_registry << double("instance_#{warden_handle}")
+        instance_registry.last.stub(:warden_handle).and_return(warden_handle)
+      end
+      instance_registry
+    end
+
+    let(:staging_task_registry) do
+      staging_task_registry= []
+      ["c"].each do |warden_handle|
+        staging_task_registry << double("staging_task_#{warden_handle}")
+        staging_task_registry.last.stub(:warden_handle).and_return(warden_handle)
+      end
+      staging_task_registry
+    end
+
+    before do
+      bootstrap.setup_warden_container_lister
+      bootstrap.setup_warden_container_lister
+      allow(bootstrap.warden_container_lister).to receive(:list).and_return list_response
+      bootstrap.stub(:instance_registry).and_return(instance_registry)
+      bootstrap.stub(:staging_task_registry).and_return(staging_task_registry)
+    end
+
+    it "should not reap orphaned containers on the first time" do
+      with_event_machine do
+        warden_containers.should_not_receive(:handle=).with('a')
+        warden_containers.should_not_receive(:handle=).with('b')
+        warden_containers.should_not_receive(:handle=).with('c')
+        warden_containers.should_not_receive(:handle=).with('d')
+        warden_containers.should_not_receive(:destroy!)
+        bootstrap.reap_orphaned_containers
+
+        after_defers_finish do
+          done
+        end
+      end
+    end
+
+    it "should reap orphaned containers if they remain orphan for two ticks" do
+      with_event_machine do
+        warden_containers.should_not_receive(:handle=).with('a')
+        warden_containers.should_not_receive(:handle=).with('c')
+        warden_containers.should_not_receive(:handle=).with('d')
+        warden_containers.should_receive(:handle=).with('b')
+        warden_containers.should_receive(:destroy!)
+        bootstrap.reap_orphaned_containers
+        instance_registry << double("instance_d")
+        instance_registry.last.stub(:warden_handle).and_return("d")
+        bootstrap.reap_orphaned_containers
+
+        after_defers_finish do
+          done
+        end
+      end
+    end
+
+    it "is resistant to errors" do
+      warden_containers.stub(:list).and_raise("error happened")
+      logger = double("logger")
+      bootstrap.should_receive(:logger).at_least(:once).and_return(logger)
+      allow(logger).to receive(:debug)
+      logger.should_receive(:error).with("error happened")
+
+      with_event_machine do
+        bootstrap.reap_orphaned_containers
+
+        after_defers_finish do
+          done
+        end
+      end
+    end
+  end
+
   describe "start_component" do
     it "adds stacks to varz" do
       @config["stacks"] = ["Linux"]
