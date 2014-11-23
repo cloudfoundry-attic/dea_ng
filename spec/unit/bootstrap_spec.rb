@@ -88,7 +88,7 @@ describe Dea::Bootstrap do
     end
 
     it "should validate host" do
-      @config = { "index" => 0, "loggregator" => { "router" => "null:5432", "shared_secret" => "secret" } }
+      @config = { "index" => 0, "loggregator" => { "router" => ":5432", "shared_secret" => "secret" } }
 
       expect {
         bootstrap.setup_loggregator

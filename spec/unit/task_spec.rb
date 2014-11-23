@@ -86,6 +86,15 @@ describe Dea::Task do
       end
     end
 
+    context "when the handle is empty" do
+      let(:handle) { nil }
+
+      it "skips the stop request" do
+        expect(task.container).to_not receive(:call)
+        task.promise_stop(true).resolve
+      end
+    end
+
     context "when the handle still exists" do
       it "returns an error, causing the stop not to succeed (the container is still there)" do
         allow(task.container).to receive(:call).and_raise "boom"
