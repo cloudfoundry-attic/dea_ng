@@ -23,7 +23,7 @@ module Dea::Responders
 
     def handle(message)
       buildpacks = BuildpacksMessage.new(message.data).buildpacks
-      logger.debug('buildpacks.handle.start', request: message.inspect)
+      logger.debug('buildpacks.handle.start', request: message.data)
 
       Dea::Promise.resolve(promise_download_buildpacks(buildpacks)) do |error, _|
         if error
