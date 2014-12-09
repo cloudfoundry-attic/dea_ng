@@ -46,7 +46,37 @@ class Upload
     end
   end
 
+  def handle_error(http, polling_destination, upload_callback)
+    error = UploadError.new("Polling failed - status #{http.response_header.status}")
+
+    open_connection_count = EM.connection_count # https://github.com/igrigorik/em-http-request/issues/190 says to check connection_count
+    logger.warn("em-upload.error",
+      destination: @destination,
+      connection_count: open_connection_count,
+      message: error.message,
+      http_error: http.error,
+      http_status: http.response_header.status,
+      http_response: http.response)
+
+    if http.error == Errno::ETIMEDOUT
+      retry_if_time_left(polling_destination, upload_callback)
+    else
+      upload_callback.call(error)
+    end
+  end
+
   private
+
+  def retry_if_time_left(polling_destination, callback)
+    @remaining_polling_time -= POLLING_INTERVAL
+    if @remaining_polling_time <= 0
+      logger.warn("em-upload.polling.timing-out")
+      callback.call UploadError.new("Job took too long")
+    else
+      logger.debug("em-upload.polling.retry")
+      EM.add_timer(POLLING_INTERVAL) { poll(polling_destination, &callback) }
+    end
+  end
 
   def poll(polling_destination, &upload_callback)
     logger.debug("em-upload.polling", polling_destination: polling_destination)
@@ -74,14 +104,7 @@ class Upload
           logger.warn("em-upload.polling.failed", response: http.response)
           upload_callback.call UploadError.new("Staging upload failed.")
         else
-          @remaining_polling_time -= POLLING_INTERVAL
-          if @remaining_polling_time <= 0
-            logger.warn("em-upload.polling.timing-out")
-            upload_callback.call UploadError.new("Job took too long")
-          else
-            logger.debug("em-upload.polling.retry")
-            EM.add_timer(POLLING_INTERVAL) { poll(polling_destination, &upload_callback) }
-          end
+          retry_if_time_left(polling_destination, upload_callback)
       end
     else
       handle_error(http, polling_destination, upload_callback)
@@ -90,20 +113,4 @@ class Upload
     logger.warn("em-upload.polling.invalid_json_response", response: http.response)
     upload_callback.call UploadError.new("polling invalid json")
   end
-
-  def handle_error(http, polling_destination, upload_callback)
-    error = UploadError.new("Polling failed - status #{http.response_header.status}")
-
-    open_connection_count = EM.connection_count # https://github.com/igrigorik/em-http-request/issues/190 says to check connection_count
-    logger.warn("em-upload.error",
-                destination: @destination,
-                connection_count: open_connection_count,
-                message: error.message,
-                http_error: http.error,
-                http_status: http.response_header.status,
-                http_response: http.response)
-
-    upload_callback.call(error)
-  end
 end
-

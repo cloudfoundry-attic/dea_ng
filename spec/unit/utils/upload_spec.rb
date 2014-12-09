@@ -46,7 +46,9 @@ describe Upload do
 
     it "requests an async upload of the droplet" do
       stub_request(:post, "http://127.0.0.1:12345/").with(query: {async: "true"})
-      subject.upload! {}
+      ran = false
+      subject.upload! { ran = true }
+      expect(ran).to be_false
       done
     end
 
@@ -251,6 +253,30 @@ describe Upload do
               expect(error.message).to eq "Error uploading: (Polling failed - status 400)"
               done
             end
+          end
+        end
+      end
+
+      describe "#handle_error" do
+        context "when a Errno::ETIMEDOUT occured" do
+          it "does not call the upload callbback" do
+            http = double(:http, error: Errno::ETIMEDOUT).as_null_object
+            upload_callback = double(:upload_callback)
+            subject.instance_variable_set(:@remaining_polling_time, 120)
+            expect(upload_callback).not_to receive(:call)
+            expect(subject).to receive(:retry_if_time_left)
+            subject.handle_error(http, "", upload_callback)
+            done
+          end
+        end
+
+        context "when another type of error ocurred" do
+          it "calls the upload callback with that error" do
+            http = double(:http).as_null_object
+            upload_callback = double(:upload_callback)
+            expect(upload_callback).to receive(:call).with(kind_of(UploadError))
+            subject.handle_error(http, "", upload_callback)
+            done
           end
         end
       end
