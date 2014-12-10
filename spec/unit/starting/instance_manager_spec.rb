@@ -4,22 +4,21 @@ require "dea/bootstrap"
 describe Dea::InstanceManager do
   describe "#create_instance" do
     let(:state) { Dea::Instance::State::BORN }
-    let(:attributes) { valid_instance_attributes.merge("state" => state) }
+    let(:requested_memory) { 512 }
+    let(:memory_limit) { 512 }
+    let(:resource_limits) do
+      { "mem" => requested_memory, "disk" => 128, "fds" => 5000 }
+    end
+    let(:attributes) { valid_instance_attributes.merge("state" => state, "limits" => resource_limits) }
     let(:instance) { Dea::Instance.new(bootstrap, attributes) }
     before do
       Dea::Instance.stub(:new => instance)
       instance.stub(:setup => nil)
     end
 
-    let(:could_reserve) { true }
-    let(:constrained_resource) { nil }
-    let(:resource_manager) do
-      double(:resource_manager, :could_reserve? => could_reserve, :get_constrained_resource => constrained_resource)
-    end
-
-    let(:instance_registry) do
-      double(:instance_registry, :register => nil, :unregister => nil)
-    end
+    let(:staging_task_registry) { Dea::StagingTaskRegistry.new }
+    let(:instance_registry) { Dea::InstanceRegistry.new }
+    let(:resource_manager) { Dea::ResourceManager.new(instance_registry, staging_task_registry, {"memory_mb" => memory_limit}) }
 
     let(:snapshot) { double(:snapshot, :save => nil) }
 
@@ -52,9 +51,7 @@ describe Dea::InstanceManager do
 
     context "when it successfully validates" do
       context "when there are not enough resources available" do
-        let(:could_reserve) { false }
-
-        let(:constrained_resource) { "memory" }
+        let(:requested_memory) { 1024 }
 
         it "logs error indicating not enough resource available" do
           instance_manager.logger.should_receive(:error).with(

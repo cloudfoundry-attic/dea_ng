@@ -50,12 +50,14 @@ module Dea
         end
       end
 
-      bootstrap.instance_registry.register(instance)
-
       resource_manager = bootstrap.resource_manager
-      unless resource_manager.could_reserve?(attributes["limits"]["mem"], attributes["limits"]["disk"])
+      if resource_manager.could_reserve?(attributes["limits"]["mem"], attributes["limits"]["disk"])
+        bootstrap.instance_registry.register(instance)
+      else
         constrained_resource = resource_manager.get_constrained_resource(attributes["limits"]["mem"],
                                                                          attributes["limits"]["disk"])
+        bootstrap.instance_registry.register(instance)
+
         logger.error("instance.start.insufficient-resource",
                      app: instance.attributes["application_id"],
                      instance: instance.attributes["instance_index"],

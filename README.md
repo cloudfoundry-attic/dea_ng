@@ -91,6 +91,9 @@ git clone https://github.com/cloudfoundry/dea_ng
 # Verify that Vagrant version is at least 1.5
 vagrant --version
 
+# Ensure the guest additions plugin is installed
+vagrant plugin install vagrant-vbguest
+
 # Run test suite in Vagrant vm
 bin/test_in_vm
 ```
