@@ -590,9 +590,7 @@ describe Dea::Bootstrap do
       Steno::Sink::Counter.should_receive(:new).once.and_return(log_counter)
 
       VCAP::Component.stub(:uuid)
-      nats_mock = double("nats")
-      nats_mock.stub(:client)
-      subject.stub(:nats).and_return(nats_mock)
+      bootstrap.stub(:nats).and_return(nats_client_mock)
 
       Steno.should_receive(:init) do |steno_config|
         expect(steno_config.sinks).to include log_counter
@@ -728,6 +726,24 @@ describe Dea::Bootstrap do
 
         bootstrap.setup_snapshot
         bootstrap.start
+      end
+    end
+  end
+
+  describe "send_heartbeat" do
+    before do
+      EM.stub(:add_periodic_timer => nil, :add_timer => nil)
+      bootstrap.setup_nats
+      bootstrap.start_nats
+    end
+
+    context "when there are no registered instances" do
+      it "publishes an empty dea.heartbeat" do
+        allow(nats_mock).to receive(:publish)
+
+        bootstrap.send_heartbeat
+
+        expect(nats_mock).to have_received(:publish).with("dea.heartbeat", anything)
       end
     end
   end

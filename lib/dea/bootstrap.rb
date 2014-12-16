@@ -460,8 +460,6 @@ module Dea
         instance.starting? || instance.running? || instance.crashed? || instance.evacuating?
       end
 
-      return if instances.empty?
-
       hbs = Dea::Protocol::V1::HeartbeatResponse.generate(self, instances)
       nats.publish("dea.heartbeat", hbs)
 

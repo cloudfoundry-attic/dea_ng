@@ -126,7 +126,7 @@ describe Dea do
             instance.state = state
           end
 
-          expect(heartbeat).to be_nil, "expected #{state} not to be included in heartbeat"
+          expect(heartbeat["droplets"]).to be_empty, "expected #{state} not to be included in heartbeat"
         end
       end
     end
