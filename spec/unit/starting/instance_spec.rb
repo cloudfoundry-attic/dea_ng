@@ -9,7 +9,7 @@ describe Dea::Instance do
     double('snapshot', :save => {})
   end
   let(:bootstrap) do
-    double('bootstrap', :config => config, :snapshot => snapshot)
+    double('bootstrap', :config => config, :snapshot => snapshot, local_ip: '1.1.1.1')
   end
   let(:config) do
     Dea::Config.new({})

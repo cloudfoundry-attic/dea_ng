@@ -11,12 +11,18 @@ module Dea
       end
 
       def system_environment_variables
+        prefix = @instance.bootstrap.config["environment_variable_prefix"]
         [
           ["HOME", "$PWD/app"],
           ["TMPDIR", "$PWD/tmp"],
           ["VCAP_APP_HOST", "0.0.0.0"],
           ["VCAP_APP_PORT", @instance.instance_container_port],
-          ["PORT", "$VCAP_APP_PORT"]
+          ["PORT", "$VCAP_APP_PORT"],
+          ["#{prefix}INSTANCE_INDEX", @message.index],
+          ["#{prefix}INSTANCE_IP", @instance.bootstrap.local_ip],
+          ["#{prefix}INSTANCE_PORT", @instance.instance_container_port],
+          ["#{prefix}INSTANCE_ADDR", "#{@instance.bootstrap.local_ip}:#{@instance.instance_container_port}"],
+          ["#{prefix}INSTANCE_PORTS", %([{"external":#{@instance.instance_host_port},"internal":#{@instance.instance_container_port}}])]
         ]
       end
 
