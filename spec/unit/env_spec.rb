@@ -50,7 +50,7 @@ describe Dea::Env do
       instance_container_port: 4567,
       state_starting_timestamp: Time.now.to_f,
       instance_host_port: "fake_external_port",
-      bootstrap: double(:bootstrap, local_ip: "fake_ip", config: { "environment_variable_prefix" => "CF_" })
+      bootstrap: double(:bootstrap, local_ip: "fake_ip")
     )
   end
 

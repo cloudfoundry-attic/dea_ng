@@ -12,7 +12,7 @@ module Dea::Starting
         "Dea::Instance",
         instance_container_port: "fake_port",
         instance_host_port: "fake_external_port",
-        bootstrap: double(:bootstrap, local_ip: "fake_ip", config: { "environment_variable_prefix" => "CONTAINER_" })
+        bootstrap: double(:bootstrap, local_ip: "fake_ip")
       )
     end
 
@@ -26,11 +26,11 @@ module Dea::Starting
                                                       %w(VCAP_APP_HOST 0.0.0.0),
                                                       %w(VCAP_APP_PORT fake_port),
                                                       %w(PORT $VCAP_APP_PORT),
-                                                      %w(CONTAINER_INSTANCE_INDEX fake_index),
-                                                      %w(CONTAINER_INSTANCE_IP fake_ip),
-                                                      %w(CONTAINER_INSTANCE_PORT fake_port),
-                                                      %w(CONTAINER_INSTANCE_ADDR fake_ip:fake_port),
-                                                      %w(CONTAINER_INSTANCE_PORTS [{"external":fake_external_port,"internal":fake_port}])
+                                                      %w(CF_INSTANCE_INDEX fake_index),
+                                                      %w(CF_INSTANCE_IP fake_ip),
+                                                      %w(CF_INSTANCE_PORT fake_port),
+                                                      %w(CF_INSTANCE_ADDR fake_ip:fake_port),
+                                                      %w(CF_INSTANCE_PORTS [{"external":fake_external_port,"internal":fake_port}])
                                                     ])
       end
     end

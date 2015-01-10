@@ -29,7 +29,6 @@ default_health_check_timeout: 60 # 1 minute
 
 index: 0
 domain: "localhost.xip.io"
-environment_variable_prefix: "CF_"
 
 staging:
   enabled: true

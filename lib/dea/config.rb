@@ -47,7 +47,6 @@ module Dea
           "nats_servers" => [String],
           "pid_filename" => String,
           "warden_socket" => String,
-          "environment_variable_prefix" => String,
           "index" => Integer,
 
           "directory_server" => {
