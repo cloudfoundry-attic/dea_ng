@@ -49,6 +49,7 @@ module StagingHelpers
             yield out
           end
         rescue Timeout::Error
+          puts "Timed out waiting for logs"
         end
       end
     end
@@ -57,28 +58,16 @@ module StagingHelpers
   def stream_url(url, &blk)
     uri = URI.parse(url)
 
-    opts = {}
-
-    if uri.scheme == "https"
-      opts[:use_ssl] = true
-      opts[:verify_mode] = OpenSSL::SSL::VERIFY_NONE
-    end
-
-    Net::HTTP.start(uri.host, uri.port, opts) do |http|
-      http.read_timeout = 5
-
-      req = Net::HTTP::Get.new(uri.request_uri)
-
-      http.request(req) do |response|
-        case response
-        when Net::HTTPOK
-          response.read_body(&blk)
-        when Net::HTTPNotFound
-          throw(:log_completed)
-        else
-          raise "Bad response from streaming log: #{response.code}: #{response.body}"
-        end
-      end
+    client = HTTPClient.new
+    client.ssl_config.verify_mode = nil if uri.scheme == "https"
+    response = client.get(url)
+    case response.status
+      when 200
+        blk.call(response.content)
+      when 404
+        throw(:log_completed)
+      else
+        raise "Bad response from streaming log: #{response.code}: #{response.body}"
     end
   end
 end

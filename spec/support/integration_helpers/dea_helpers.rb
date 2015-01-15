@@ -10,7 +10,7 @@ require "dea/config"
 module DeaHelpers
   def is_port_open?(ip, port)
     begin
-      Timeout::timeout(5) do
+      Timeout::timeout(15) do
         begin
           s = TCPSocket.new(ip, port)
           s.close

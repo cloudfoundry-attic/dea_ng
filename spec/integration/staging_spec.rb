@@ -316,12 +316,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
     end
 
     it "unregisters the staging task" do
-      begin
-        Timeout::timeout(10) do
-          perform_stage_request(staging_message)
-        end
-      rescue Timeout::Error
-      end
+      perform_stage_request(staging_message)
       expect(instances_json["staging_tasks"]).to be_empty
     end
   end
@@ -343,12 +338,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
     end
 
     it "unregisters the staging task" do
-      begin
-        Timeout::timeout(10) do
-          perform_stage_request(staging_message)
-        end
-      rescue Timeout::Error
-      end
+      perform_stage_request(staging_message)
       expect(instances_json["staging_tasks"]).to be_empty
     end
   end
