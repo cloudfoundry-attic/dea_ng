@@ -1,6 +1,16 @@
 require "spec_helper"
 require "dea/loggregator"
 
+class ThrowingEmitter
+  def initialize(err)
+    @err = err
+  end
+
+  def emit(*args)
+    raise @err
+  end
+end
+
 describe Dea::Loggregator do
   before(:each) do
     @emitter = FakeEmitter.new
@@ -10,6 +20,19 @@ describe Dea::Loggregator do
   end
 
   describe "dea emitter" do
+    describe "emitting when emitter throws Errno::ENETUNREACH" do
+      it "doesn't raise" do
+        @emitter = ThrowingEmitter.new(Errno::ENETUNREACH)
+        @staging_emitter = ThrowingEmitter.new(Errno::ENETUNREACH)
+        Dea::Loggregator.emitter = @emitter
+        Dea::Loggregator.staging_emitter = @staging_emitter
+
+        expect {
+        Dea::Loggregator.emit("my_app_id", "important log message")
+        Dea::Loggregator.staging_emit("my_app_id", "important log message")
+        }.to_not raise_error
+      end
+    end
     describe ".emit" do
       it "emits to the loggregator" do
         Dea::Loggregator.emit("my_app_id", "important log message")
@@ -48,7 +71,7 @@ describe Dea::Loggregator do
       end
     end
   end
-  
+
   describe "staging emitter" do
     describe ".emit" do
       it "emits to the loggregator" do
