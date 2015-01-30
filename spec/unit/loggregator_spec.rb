@@ -28,8 +28,8 @@ describe Dea::Loggregator do
         Dea::Loggregator.staging_emitter = @staging_emitter
 
         expect {
-        Dea::Loggregator.emit("my_app_id", "important log message")
-        Dea::Loggregator.staging_emit("my_app_id", "important log message")
+          Dea::Loggregator.emit("my_app_id", "important log message")
+          Dea::Loggregator.staging_emit("my_app_id", "important log message")
         }.to_not raise_error
       end
     end
