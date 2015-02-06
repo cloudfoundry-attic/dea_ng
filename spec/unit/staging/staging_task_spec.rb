@@ -89,11 +89,11 @@ describe Dea::StagingTask do
     describe 'assembles staging command correctly' do
       it 'calls the container#spawn with the staging command' do
         expect(staging_task.container).to receive(:spawn) do |cmd|
-          expect(cmd).to include 'export FOO="BAR";'
-          expect(cmd).to include 'export BUILDPACK_CACHE="buildpack_cache_url";'
-          expect(cmd).to include 'export STAGING_TIMEOUT="900.0";'
-          expect(cmd).to include 'export MEMORY_LIMIT="512m";' # the user assiged 512 should overwrite the system 256
-          expect(cmd).to include 'export VCAP_SERVICES="'
+          expect(cmd).to include 'export FOO=BAR;'
+          expect(cmd).to include 'export BUILDPACK_CACHE=buildpack_cache_url;'
+          expect(cmd).to include 'export STAGING_TIMEOUT=900.0;'
+          expect(cmd).to include 'export MEMORY_LIMIT=512m;' # the user assiged 512 should overwrite the system 256
+          expect(cmd).to include 'export VCAP_SERVICES='
 
           expect(cmd).to match %r{.*/bin/run .*/plugin_config | tee -a}
 
@@ -111,7 +111,7 @@ describe Dea::StagingTask do
 
         it 'copes with spaces' do
           staging_task.container.should_receive(:spawn) do |cmd|
-            expect(cmd).to include('export PATH="x y z";')
+            expect(cmd).to include('export PATH=x\\ y\\ z;')
 
             spawn_response
           end
@@ -124,7 +124,7 @@ describe Dea::StagingTask do
 
         it 'copes with quotes' do
           staging_task.container.should_receive(:spawn) do |cmd|
-            expect(cmd).to include(%Q{export FOO="z'y\\"d";})
+            expect(cmd).to include(%Q{export FOO=z\\'y\\"d;})
           end.and_return(spawn_response)
 
           with_event_machine do
@@ -135,7 +135,7 @@ describe Dea::StagingTask do
 
         it 'copes with blank' do
           staging_task.container.should_receive(:spawn) do |cmd|
-            expect(cmd).to include('export BAR="";')
+            expect(cmd).to include("export BAR='';")
 
             spawn_response
           end
@@ -148,7 +148,7 @@ describe Dea::StagingTask do
 
         it 'copes with equal sign' do
           staging_task.container.should_receive(:spawn) do |cmd|
-            expect(cmd).to include('export BAZ="foo=baz";')
+            expect(cmd).to include('export BAZ=foo\\=baz;')
           end.and_return(spawn_response)
 
           with_event_machine do
