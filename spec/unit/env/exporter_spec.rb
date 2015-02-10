@@ -14,6 +14,30 @@ module Dea
         end
       end
 
+      context "with a dollar signs" do
+        let(:variables) { [[:a, '$potato']] }
+
+        it "doesn't escape them" do
+          expect(env_exporter.export).to eql(%Q{export a="$potato";\n})
+        end
+      end
+
+      context "with a dollar signs on VCAP_SERVICES" do
+        let(:variables) { [[:VCAP_SERVICES, '$potato']] }
+
+        it "escapes them" do
+          expect(env_exporter.export).to eql(%Q{export VCAP_SERVICES="\$potato";\n})
+        end
+      end
+
+      context "with a dollar signs on VCAP_APPLICATION" do
+        let(:variables) { [[:VCAP_APPLICATION, '$potato']] }
+
+        it "escapes them" do
+          expect(env_exporter.export).to eql(%Q{export VCAP_APPLICATION="\$potato";\n})
+        end
+      end
+
       context "with multiple values" do
         let(:variables) { [["a", 1], ["b", 2]] }
 

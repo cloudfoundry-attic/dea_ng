@@ -93,7 +93,7 @@ describe Dea::StagingTask do
           expect(cmd).to include 'export BUILDPACK_CACHE="buildpack_cache_url";'
           expect(cmd).to include 'export STAGING_TIMEOUT="900.0";'
           expect(cmd).to include 'export MEMORY_LIMIT="512m";' # the user assiged 512 should overwrite the system 256
-          expect(cmd).to include 'export VCAP_SERVICES="'
+          expect(cmd).to include 'export VCAP_SERVICES=\\{\\}'
 
           expect(cmd).to match %r{.*/bin/run .*/plugin_config | tee -a}
 
