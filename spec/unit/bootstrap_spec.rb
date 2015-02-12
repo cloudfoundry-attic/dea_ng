@@ -310,7 +310,7 @@ describe Dea::Bootstrap do
 
   describe "start_component" do
     it "adds stacks to varz" do
-      @config["stacks"] = ["Linux"]
+      @config["stacks"] = [{ "name" => "Linux" }]
 
       bootstrap.stub(:nats).and_return(nats_client_mock)
 

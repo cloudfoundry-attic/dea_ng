@@ -32,7 +32,7 @@ module Dea::Responders
       # is not accurate since it only account for running apps.
       nats.publish("staging.advertise", {
         "id" => dea_id,
-        "stacks" => config["stacks"],
+        "stacks" => config["stacks"].map { |stack| stack['name'] },
         "available_memory" => resource_manager.remaining_memory,
         "available_disk" => resource_manager.remaining_disk,
       })

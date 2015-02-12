@@ -26,6 +26,7 @@ module Dea
         "min_cpu_share_limit" => 1,
         "disk_inode_limit" => DEFAULT_INSTANCE_DISK_INODE_LIMIT,
       },
+      "stacks" => {},
       "staging" => {
         "cpu_limit_shares" => 512,
         "disk_inode_limit" => DEFAULT_STAGING_DISK_INODE_LIMIT,
@@ -55,7 +56,13 @@ module Dea
             "file_api_port" => Integer,
           },
 
-          "stacks" => [String],
+          "stacks" => [
+            {
+              "name" => String,
+              "package_path" => String,
+            }
+          ],
+
           "placement_properties" => {
             "zone" => String
           },
@@ -88,11 +95,13 @@ module Dea
             optional("disk_overcommit_factor") => enum(Float, Integer),
           },
 
-          optional("bind_mounts") => [{
-                                        "src_path" => String,
-                                        optional("dst_path") => String,
-                                        optional("mode") => enum("ro", "rw"),
-                                      }],
+          optional("bind_mounts") => [
+            {
+              "src_path" => String,
+              optional("dst_path") => String,
+              optional("mode") => enum("ro", "rw"),
+            }
+          ],
 
           optional("hooks") => {
             optional("before_start") => String,

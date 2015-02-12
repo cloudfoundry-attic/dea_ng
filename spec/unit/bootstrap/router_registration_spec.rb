@@ -51,7 +51,7 @@ describe Dea do
       "uris" => instances[0].application_uris,
       "host" => bootstrap.local_ip,
       "port" => instances[0].instance_host_port,
-      "tags" => { "component" => "dea-#{bootstrap.uuid}" },
+      "tags" => { "component" => "dea-#{bootstrap.config['index']}" },
       "private_instance_id" => instances[0].private_instance_id,
     }
 
@@ -59,7 +59,7 @@ describe Dea do
       "host" => bootstrap.local_ip,
       "port" => bootstrap.config["directory_server"]["v2_port"],
       "uris" => ["#{bootstrap.directory_server_v2.uuid}.#{bootstrap.config["domain"]}"],
-      "tags" => { "component" => "directory-server-#{bootstrap.uuid}" },
+      "tags" => { "component" => "directory-server-#{bootstrap.config['index']}" },
     }
 
     # The directory server is registered at startup, thus we expect two

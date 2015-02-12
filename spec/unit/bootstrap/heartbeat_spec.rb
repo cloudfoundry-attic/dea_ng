@@ -23,6 +23,10 @@ describe Dea do
     end
 
     with_event_machine(:timeout => 1) do
+      # Hack to not have the test take too long because heartbeat interval is defined
+      # as an Integer in the schema.
+      bootstrap.config['intervals']['heartbeat'] = 0.01
+
       bootstrap.setup
       bootstrap.start
 

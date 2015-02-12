@@ -59,7 +59,10 @@ directory_server:
     level: info
 
 stacks:
-  - lucid64
+  - name: lucid64
+    package_path: /var/vcap/packages/rootfs_lucid64
+  - name: trusty64
+    package_path: /var/vcap/packages/rootfs_trusty64
 
 # Hook scripts for droplet start/stop
 # hooks:

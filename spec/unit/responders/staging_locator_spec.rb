@@ -98,7 +98,7 @@ describe Dea::Responders::StagingLocator do
 
   describe "#advertise" do
     it "publishes 'staging.advertise' message" do
-      config["stacks"] = ["lucid64"]
+      config["stacks"] = [{"name" => "lucid64"}]
       resource_manager.stub(:remaining_memory => 45678)
       resource_manager.stub(:remaining_disk => 12345)
 
@@ -113,7 +113,7 @@ describe Dea::Responders::StagingLocator do
 
     context "when a failure happens" do
       it "catches the error since this is the top level" do
-        config["stacks"] = ["lucid64"]
+        config["stacks"] = [{"name" => "lucid64"}]
         resource_manager.stub(:remaining_memory => 45678)
 
         nats_mock.stub(:publish).and_raise(RuntimeError, "somethingTerrible")

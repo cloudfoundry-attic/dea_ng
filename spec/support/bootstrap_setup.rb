@@ -9,8 +9,8 @@ shared_context "bootstrap_setup" do
     config = {
       "base_dir" => Dir.mktmpdir,
       "intervals" => {
-        "advertise" => 0.01,
-        "heartbeat" => 0.01,
+        "advertise" => 1,
+        "heartbeat" => 1,
         "router_register_in_seconds" => 20,
       },
       "runtimes" => %w[test1 test2],
@@ -18,9 +18,31 @@ shared_context "bootstrap_setup" do
         "v2_port" => 23456,
       },
       "domain" => "default",
+      "logging" => {
+        "level" => "debug"
+      },
+      "nats_servers" => [],
+      "pid_filename" => "/var/vcap/jobs/dea_next/pid",
+      "warden_socket" => "/var/vcap/jobs/warden/socket",
+      "index" => 0,
+      "directory_server" => {
+        "protocol" => "https",
+        "v2_port" => 20230303,
+        "file_api_port" => 23413412,
+      },
+      "stacks" => [
+        {
+          "name" => "lucid64",
+          "package_path" => "/tmp/rootfs_lucid64"
+        }
+      ],
+      "placement_properties" => {
+        "zone" => "z1"
+      }
     }
 
     bootstrap = Dea::Bootstrap.new(config)
+    bootstrap.validate_config
 
     bootstrap.stub(:validate_config)
 

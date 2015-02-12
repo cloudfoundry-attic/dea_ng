@@ -98,7 +98,7 @@ describe Dea::Responders::DeaLocator do
   end
 
   describe "#advertise" do
-    let(:config_overrides) { { "stacks" => ["stack-1", "stack-2"] } }
+    let(:config_overrides) { { "stacks" => [{"name" =>"stack-1"},{"name" =>"stack-2"}] } }
     let(:available_disk) { 12345 }
     let(:available_memory) { 45678 }
     before do
