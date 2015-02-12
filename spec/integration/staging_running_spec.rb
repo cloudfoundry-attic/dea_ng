@@ -30,6 +30,7 @@ describe "Running an app immediately after staging", :type => :integration, :req
       },
       "services" => [],
       "egress_network_rules" => [],
+      "env" => env
     }
   end
 
@@ -48,6 +49,9 @@ describe "Running an app immediately after staging", :type => :integration, :req
   end
 
   let(:uploaded_droplet) { File.join(FILE_SERVER_DIR, "sinatra") }
+  let(:env) do
+    ["VERIFYING_VARIABLE_DECLARATION_ORDER=FIRST"]
+  end
 
   before do
     FileUtils.rm_rf(uploaded_droplet)
@@ -55,15 +59,15 @@ describe "Running an app immediately after staging", :type => :integration, :req
 
   it "works" do
     by "staging the app" do
-      response, log = perform_stage_request(staging_running_message)
-
+      response, staging_log = perform_stage_request(staging_running_message)
       expect(response["task_id"]).to eq("some-task-id")
       expect(response["error"]).to be_nil
 
-      expect(log).to include("-----> Downloaded app package")
-      expect(log).to include("-----> Uploading droplet")
+      expect(staging_log).to include("-----> Downloaded app package")
+      expect(staging_log).to include("-----> Uploading droplet")
     end
 
+    port = nil
     and_by "starting the app" do
       response = wait_until_instance_started(app_id)
       instance_info = instance_snapshot(response["instance"])
@@ -73,6 +77,11 @@ describe "Running an app immediately after staging", :type => :integration, :req
 
     and_by "uploading the droplet" do
       expect(File.exist?(uploaded_droplet)).to be_true
+    end
+
+    and_by "exports user variables before .profile.d" do
+      output = `curl -s http://#{dea_server.host}:#{port}/`
+      expect(output).to include('VERIFYING_VARIABLE_DECLARATION_ORDER=SECOND')
     end
   end
 end

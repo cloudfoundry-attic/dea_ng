@@ -34,8 +34,8 @@ module Dea
       script = []
       script << "umask 077"
       script << @system_envs
-      script << EXPORT_BUILDPACK_ENV_VARIABLES_SCRIPT
       script << @user_envs
+      script << EXPORT_BUILDPACK_ENV_VARIABLES_SCRIPT
       script << START_SCRIPT % Shellwords.shellescape(@start_command)
       script.join("\n")
     end
