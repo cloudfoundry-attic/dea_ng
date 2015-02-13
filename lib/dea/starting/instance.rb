@@ -119,6 +119,8 @@ module Dea
       end
     end
 
+    class StackNotFoundError < BaseError; end
+
     class AttributesLoggingFilter
       FILTER = %w[services environment droplet_uri]
 
@@ -534,6 +536,10 @@ module Dea
       Promise.new do |p|
         bind_mounts = [{'src_path' => droplet.droplet_dirname, 'dst_path' => droplet.droplet_dirname}]
         with_network = true
+
+        rootfs = config.rootfs_path(attributes['stack'])
+        raise StackNotFoundError.new("Stack #{stack} does not exist") if rootfs.nil?
+
         container.create_container(
           bind_mounts: bind_mounts + config['bind_mounts'],
           limit_cpu: cpu_shares,
@@ -541,7 +547,8 @@ module Dea
           inode: config.instance_disk_inode_limit,
           limit_memory: memory_limit_in_bytes,
           setup_inbound_network: with_network,
-          egress_rules: egress_network_rules)
+          egress_rules: egress_network_rules,
+          rootfs: rootfs)
 
         attributes['warden_handle'] = container.handle
 

@@ -26,7 +26,7 @@ module Dea
         "min_cpu_share_limit" => 1,
         "disk_inode_limit" => DEFAULT_INSTANCE_DISK_INODE_LIMIT,
       },
-      "stacks" => {},
+      "stacks" => [],
       "staging" => {
         "cpu_limit_shares" => 512,
         "disk_inode_limit" => DEFAULT_STAGING_DISK_INODE_LIMIT,
@@ -187,6 +187,11 @@ module Dea
 
     def instance_disk_inode_limit
       @config.fetch("instance", {}).fetch("disk_inode_limit", DEFAULT_INSTANCE_DISK_INODE_LIMIT)
+    end
+
+    def rootfs_path(stack_name)
+      stack = @config['stacks'].find { |stack_hash| stack_hash['name'] == stack_name }
+      stack['package_path'] unless stack.nil?
     end
   end
 end

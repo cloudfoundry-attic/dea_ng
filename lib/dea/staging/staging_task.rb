@@ -29,6 +29,8 @@ module Dea
       end
     end
 
+    class StagingStackNotFoundError < StagingError; end
+
     attr_reader :bootstrap, :dir_server, :staging_message, :task_id, :droplet_sha1
 
     def initialize(bootstrap, dir_server, staging_message, buildpacks_in_use, custom_logger=nil)
@@ -529,6 +531,11 @@ module Dea
     def resolve_staging_setup
       workspace.prepare(buildpack_manager)
       with_network = false
+
+      stack = staging_message.stack
+      rootfs = config.rootfs_path(stack)
+      raise StagingStackNotFoundError.new("Stack #{stack} does not exist") if rootfs.nil?
+
       container.create_container(
         bind_mounts: bind_mounts,
         limit_cpu: staging_config['cpu_limit_shares'],
@@ -537,6 +544,7 @@ module Dea
         limit_memory: memory_limit_in_bytes,
         setup_inbound_network: with_network,
         egress_rules: staging_message.egress_rules,
+        rootfs: rootfs,
       )
       promises = [promise_app_download]
       promises << promise_buildpack_cache_download if staging_message.buildpack_cache_download_uri

@@ -30,7 +30,8 @@ describe "Running an app immediately after staging", :type => :integration, :req
       },
       "services" => [],
       "egress_network_rules" => [],
-      "env" => env
+      "env" => env,
+      "stack" => "lucid64",
     }
   end
 
@@ -45,6 +46,7 @@ describe "Running an app immediately after staging", :type => :integration, :req
       "buildpack_cache_download_uri" => buildpack_cache_download_uri,
       "egress_network_rules" => [],
       "start_message" => start_message,
+      "stack" => "lucid64",
     }
   end
 

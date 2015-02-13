@@ -91,6 +91,10 @@ class StartMessage
     message["egress_network_rules"] || []
   end
 
+  def stack
+    message["stack"]
+  end
+
   def message
     @message || {}
   end

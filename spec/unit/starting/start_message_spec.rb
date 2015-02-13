@@ -7,6 +7,7 @@ describe StartMessage do
   let(:console) { false }
   let(:debug) { true }
   let(:services) { ["a_service"] }
+  let(:stack) { 'my-stack' }
   let(:egress_network_rules) { ["a" => "rule"] }
 
   let(:start_message) do
@@ -29,6 +30,7 @@ describe StartMessage do
       "index" => 1,
       "vcap_application" => "message vcap_application",
       "egress_network_rules" => egress_network_rules,
+      "stack" => stack,
     }
   end
 
@@ -56,6 +58,7 @@ describe StartMessage do
   its(:vcap_application) { should eq "message vcap_application" }
   its(:to_hash) { should eq start_message }
   its(:egress_network_rules) { should eq(["a" => "rule"]) }
+  its(:stack) { should eq stack }
 
   context "when there is no limits" do
     before { start_message.delete("limits") }

@@ -11,8 +11,18 @@ describe Dea::Instance do
   let(:bootstrap) do
     double('bootstrap', :config => config, :snapshot => snapshot, local_ip: '1.1.1.1')
   end
+  let(:rootfs) { '/path/to/rootfs' }
+  let(:stack_name) { 'my-stack' }
+  let(:stacks) do
+    [
+      {
+        'name' => stack_name,
+        'package_path' => rootfs,
+      }
+    ]
+  end
   let(:config) do
-    Dea::Config.new({})
+    Dea::Config.new({ 'stacks' => stacks })
   end
   before do
     bootstrap.config.stub(:crashes_path).and_return('crashes/path')
@@ -664,9 +674,19 @@ describe Dea::Instance do
                  inode: instance.config.instance_disk_inode_limit,
                  limit_memory: instance.memory_limit_in_bytes,
                  setup_inbound_network: with_network,
-                 egress_rules: instance.egress_network_rules)
+                 egress_rules: instance.egress_network_rules,
+                rootfs: rootfs)
         expect_start.to_not raise_error
         instance.exit_description.should be_empty
+      end
+
+      context "no rootfs" do
+        before do
+          config['stacks'] = []
+        end
+        it 'fails when the rootfs does not exist' do
+          expect_start.to raise_error
+        end
       end
 
       it 'fails when the call fails' do

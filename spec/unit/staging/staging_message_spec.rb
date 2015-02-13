@@ -51,6 +51,7 @@ describe StagingMessage do
       "buildpack_cache_upload_uri" => "http://localhost/buildpack_cache/upload",
       "admin_buildpacks" => admin_buildpacks,
       "start_message" => start_message,
+      "stack" => 'my-stack',
       "egress_network_rules" => egress_network_rules,
     }
   end
@@ -78,6 +79,7 @@ describe StagingMessage do
   its(:services) { should eq ['servicethingy'] }
   its(:vcap_application) { should eq start_message['vcap_application'] }
   its(:mem_limit) { should eq start_message['limits']['mem'] }
+  its(:stack) { should eq staging_message['stack'] }
 
   it "should memoize the start message" do
     expect(message.start_message).to eq(message.start_message)

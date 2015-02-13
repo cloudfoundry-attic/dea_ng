@@ -32,7 +32,8 @@ describe "Running an app", :type => :integration, :requires_warden => true do
         "disk" => 128,
         "fds" => 32
       },
-      "services" => [valid_provided_service]
+      "services" => [valid_provided_service],
+      "stack" => "trusty64",
     }
   end
 
@@ -44,7 +45,8 @@ describe "Running an app", :type => :integration, :requires_warden => true do
       "upload_uri" => staged_url,
       "buildpack_cache_upload_uri" => buildpack_cache_upload_uri,
       "buildpack_cache_download_uri" => buildpack_cache_download_uri,
-      "start_message" => start_message
+      "start_message" => start_message,
+      "stack" => "trusty64",
     }
   end
 

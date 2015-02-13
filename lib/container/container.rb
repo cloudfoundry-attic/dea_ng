@@ -112,12 +112,12 @@ class Container
   end
 
   def create_container(params)
-    [:bind_mounts, :limit_cpu, :byte, :inode, :limit_memory, :setup_inbound_network].each do |param|
+    [:bind_mounts, :limit_cpu, :byte, :inode, :limit_memory, :setup_inbound_network, :rootfs].each do |param|
       raise ArgumentError, "expecting #{param.to_s} parameter to create container" if params[param].nil?
     end
 
     with_em do
-      new_container_with_bind_mounts(params[:bind_mounts])
+      new_container_with_bind_mounts_and_rootfs(params[:bind_mounts], params[:rootfs])
       limit_cpu(params[:limit_cpu])
       limit_disk(byte: params[:byte], inode: params[:inode])
       limit_memory(params[:limit_memory])
@@ -133,7 +133,7 @@ class Container
     end
   end
 
-  def new_container_with_bind_mounts(bind_mounts)
+  def new_container_with_bind_mounts_and_rootfs(bind_mounts, rootfs)
     with_em do
       bind_mount_requests =
           bind_mounts.map do |bm|
@@ -150,7 +150,7 @@ class Container
             ::Warden::Protocol::CreateRequest::BindMount.new(bind_mount_params)
           end
 
-      response = call(:app, ::Warden::Protocol::CreateRequest.new(bind_mounts: bind_mount_requests))
+      response = call(:app, ::Warden::Protocol::CreateRequest.new(bind_mounts: bind_mount_requests, rootfs: rootfs))
 
       @handle = response.handle
     end

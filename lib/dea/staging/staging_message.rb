@@ -77,6 +77,10 @@ class StagingMessage
     start_message.mem_limit
   end
 
+  def stack
+    @message['stack']
+  end
+
   private
 
   def logger

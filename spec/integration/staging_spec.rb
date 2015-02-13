@@ -36,7 +36,8 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
       "cc_partition" => "foo",
       "limits" => limits,
       "services" => [],
-      "env" => env
+      "env" => env,
+      "stack" => "lucid64",
     }
   end
 
@@ -50,7 +51,8 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
       "buildpack_cache_upload_uri" => buildpack_cache_upload_uri,
       "buildpack_cache_download_uri" => buildpack_cache_download_uri,
       "start_message" => start_message,
-      "admin_buildpacks" => admin_buildpacks
+      "admin_buildpacks" => admin_buildpacks,
+      "stack" => "lucid64",
     }
   end
 

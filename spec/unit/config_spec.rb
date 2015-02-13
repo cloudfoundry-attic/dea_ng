@@ -81,6 +81,31 @@ module Dea
       end
     end
 
+    describe '#rootfs_path' do
+      let(:stacks) do
+        [
+          {
+            'name' => 'my-stack',
+            'package_path' => '/path/to/rootfs',
+          }
+        ]
+      end
+      let(:config_hash) { { 'stacks' => stacks } }
+
+      context 'when the stack name exists in the config' do
+        let(:stack_name) { 'my-stack' }
+        it 'returns the associated rootfs path' do
+          expect(config.rootfs_path(stack_name)).to eq('/path/to/rootfs')
+        end
+      end
+
+      context 'when the stack name does not exist in the config' do
+        it 'raises an error' do
+          expect(config.rootfs_path('not-exist')).to be_nil
+        end
+      end
+    end
+
     describe "#instance_disk_inode_limit" do
       context "when the config hash has no key for instance disk inode limit" do
         let(:config_hash) { { "instance" => { } } }

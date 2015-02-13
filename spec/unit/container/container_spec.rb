@@ -399,6 +399,7 @@ describe Container do
 
   describe '#create_container' do
     let(:bind_mounts) { double('mounts') }
+    let(:rootfs) {  '/var/path/to/rootfs' }
     let(:params) { {
       bind_mounts: bind_mounts,
       limit_cpu: 300,
@@ -406,11 +407,12 @@ describe Container do
       inode: 100,
       limit_memory: 200,
       setup_inbound_network: true,
-      egress_rules: [{ 'protocol' => 'tcp', 'port' => '80', 'destination' => '198.41.191.47/1' }]
+      egress_rules: [{ 'protocol' => 'tcp', 'port' => '80', 'destination' => '198.41.191.47/1' }],
+      rootfs: rootfs,
     } }
 
     it 'raises an error when a required parameter is missing' do
-      required_params = [:bind_mounts, :limit_cpu, :byte, :inode, :limit_memory, :setup_inbound_network]
+      required_params = [:bind_mounts, :limit_cpu, :byte, :inode, :limit_memory, :setup_inbound_network, :rootfs]
 
       required_params.each do |key|
         params_copy = params.dup
@@ -422,7 +424,7 @@ describe Container do
     end
 
     it 'creates a new container with cpu, disk size in byte, disk inode limit, memory limit, and egress rules' do
-      container.should_receive(:new_container_with_bind_mounts).with(bind_mounts)
+      container.should_receive(:new_container_with_bind_mounts_and_rootfs).with(bind_mounts, rootfs)
       container.should_receive(:limit_cpu).with(params[:limit_cpu])
       container.should_receive(:limit_disk).with(byte: params[:byte], inode: params[:inode])
       container.should_receive(:limit_memory).with(params[:limit_memory])
@@ -435,7 +437,7 @@ describe Container do
     it 'does not create the network if not required' do
       params[:setup_inbound_network] = false
 
-      container.stub(:new_container_with_bind_mounts)
+      container.stub(:new_container_with_bind_mounts_and_rootfs)
       container.stub(:limit_cpu)
       container.stub(:limit_disk)
       container.stub(:limit_memory)
@@ -454,6 +456,8 @@ describe Container do
       ]
     end
 
+    let(:rootfs) {  '/var/path/to/rootfs' }
+
     let(:response) { double('response').as_null_object }
 
     before do
@@ -464,7 +468,7 @@ describe Container do
       container.handle = nil
     end
 
-    it 'makes a CreateRequest with the provide paths_to_bind' do
+    it 'makes a CreateRequest with the provide paths_to_bind and rootfs' do
       create_response = double('response', handle: handle)
       connection.should_receive(:call) do |request|
         #expect(request.name).to eq(:app)
@@ -480,11 +484,14 @@ describe Container do
         expect(request.bind_mounts[0].dst_path).to eq('/path/dst')
         expect(request.bind_mounts[1].src_path).to eq('/path/a')
         expect(request.bind_mounts[1].dst_path).to eq('/path/b')
+
+        expect(request.rootfs).to eq(rootfs)
+
         create_response
       end
 
       expect(container.handle).to_not eq(handle)
-      container.new_container_with_bind_mounts(bind_mounts)
+      container.new_container_with_bind_mounts_and_rootfs(bind_mounts, rootfs)
     end
   end
 

@@ -19,6 +19,7 @@ describe Dea::StagingTask do
   end
 
   let(:max_staging_duration) { 900 }
+  let(:rootfs) { '/var/path/to/rootfs' }
 
   let(:config) do
     {
@@ -26,6 +27,16 @@ describe Dea::StagingTask do
       'directory_server' => {
         'file_api_port' => 1234
       },
+      'stacks' => [
+        {
+          'name' => attributes['stack'],
+          'package_path' => rootfs,
+        },
+        {
+          'name' => 'not-my-stack',
+          'package_path' => 'where_is_this',
+        }
+      ],
       'staging' => {
         'environment' => { 'BUILDPACK_CACHE' => 'buildpack_cache_url'},
         'cpu_limit_shares' => 512,
@@ -647,7 +658,8 @@ YAML
              inode: staging_task.disk_inode_limit,
              limit_memory: staging_task.memory_limit_in_bytes,
              setup_inbound_network: with_network,
-             egress_rules: staging_task.staging_message.egress_rules).ordered
+             egress_rules: staging_task.staging_message.egress_rules,
+             rootfs: rootfs).ordered
       %w(
         promise_app_download
         promise_prepare_staging_log
@@ -727,6 +739,24 @@ YAML
       staging_task.should_receive(:trigger_after_complete).ordered
 
       staging_task.start
+    end
+
+    context 'when the rootfs does not exist' do
+      before do
+        config['stacks'][0]['name'] = 'wrong-name'
+      end
+
+      it 'raises an error' do
+        response = nil
+        staging_task.after_complete_callback do |callback_response|
+          response = callback_response
+        end
+
+        stub_staging
+        stub_staging_upload
+        expect { staging_task.start }.to raise_error
+        expect(response.message).to match(/Stack my-stack does not exist/)
+      end
     end
 
     context 'when the upload fails' do

@@ -46,6 +46,7 @@ module Helpers
           [valid_service_attributes("syslog://log.example.com"), valid_service_attributes, valid_service_attributes("syslog://log2.example.com")] :
           [valid_service_attributes],
       "egress_network_rules" => [],
+      "stack" => "my-stack",
     }
   end
 
@@ -68,6 +69,7 @@ module Helpers
       "start_message" => valid_instance_attributes,
       "admin_buildpacks" => [],
       "egress_network_rules" => [],
+      "stack" => "my-stack",
     }
   end
 end
