@@ -23,18 +23,34 @@ module Dea
       end
 
       context "with a dollar signs on VCAP_SERVICES" do
-        let(:variables) { [[:VCAP_SERVICES, '$potato']] }
+        let(:variables) { [["VCAP_SERVICES", '$potato']] }
 
         it "escapes them" do
-          expect(env_exporter.export).to eql(%Q{export VCAP_SERVICES="\$potato";\n})
+          expect(env_exporter.export).to eql(%Q{export VCAP_SERVICES=\\$potato;\n})
         end
       end
 
       context "with a dollar signs on VCAP_APPLICATION" do
-        let(:variables) { [[:VCAP_APPLICATION, '$potato']] }
+        let(:variables) { [["VCAP_APPLICATION", '$potato']] }
 
         it "escapes them" do
-          expect(env_exporter.export).to eql(%Q{export VCAP_APPLICATION="\$potato";\n})
+          expect(env_exporter.export).to eql(%Q{export VCAP_APPLICATION=\\$potato;\n})
+        end
+      end
+
+      context "with a dollar signs on DATABASE_URL" do
+        let(:variables) { [["DATABASE_URL", 'postgres://jim:$uper@database.com']] }
+
+        it "escapes them" do
+          expect(env_exporter.export).to eq(%Q{export DATABASE_URL=postgres://jim:\\$uper@database.com;\n})
+        end
+      end
+
+      context 'with a nil value for DATABASE_URL, VCAP_SERVICES, or VCAP_APPLICATION' do
+        let(:variables) { [["DATABASE_URL", nil], ["VCAP_APPLICATION", nil], ["VCAP_SERVICES", nil]] }
+
+        it 'does not export any variables' do
+          expect(env_exporter.export).to eq(%Q{export DATABASE_URL='';\nexport VCAP_APPLICATION='';\nexport VCAP_SERVICES='';\n})
         end
       end
 
@@ -91,6 +107,5 @@ module Dea
         end
       end
     end
-
   end
 end
