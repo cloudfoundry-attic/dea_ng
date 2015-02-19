@@ -7,6 +7,8 @@ before_install:
   - git submodule update --init --recursive
 
 before_script:
+  - bash < <(curl -s -S -L https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer)
+  - source /home/travis/.gvm/scripts/gvm
   - gvm install go1.3
   - gvm use go1.3
 
