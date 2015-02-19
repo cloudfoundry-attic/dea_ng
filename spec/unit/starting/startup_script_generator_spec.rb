@@ -40,8 +40,8 @@ describe Dea::StartupScriptGenerator do
         script.should match /"sysval1".*\.profile\.d/m
       end
 
-      it "sets user variables after buildpack variables" do
-        script.should match /\.profile\.d.*usrval1/m
+      it "exports build pack variables after user variables" do
+        script.should match /usrval1.*\.profile\.d/m
       end
     end
 

@@ -178,7 +178,7 @@ describe Buildpacks::Buildpack, type: :buildpack do
         let(:buildpack_dirs) { ["#{fake_buildpacks_dir}/start_command"] }
 
         it "uses the default start command" do
-          expect(buildpack_info["start_command"]).to eq("while true; do (echo hi | nc -l $PORT); done")
+          expect(buildpack_info["start_command"]).to eq("while true; do (echo $(env) | nc -l $PORT); done")
         end
       end
 
