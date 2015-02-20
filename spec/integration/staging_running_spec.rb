@@ -9,13 +9,14 @@ describe "Running an app immediately after staging", :type => :integration, :req
     setup_fake_buildpack("start_command")
     fake_buildpack_url("start_command")
   end
+  let(:stack) { 'lucid64' }
 
   let(:app_id) { "some-app-id" }
 
   let(:start_message) do
     {
       "index" => 1,
-      "droplet" => "some-app-id",
+      "droplet" => app_id,
       "version" => "some-version",
       "name" => "some-app-name",
       "uris" => [],
@@ -31,7 +32,7 @@ describe "Running an app immediately after staging", :type => :integration, :req
       "services" => [],
       "egress_network_rules" => [],
       "env" => env,
-      "stack" => "lucid64",
+      "stack" => stack,
     }
   end
 
@@ -46,7 +47,7 @@ describe "Running an app immediately after staging", :type => :integration, :req
       "buildpack_cache_download_uri" => buildpack_cache_download_uri,
       "egress_network_rules" => [],
       "start_message" => start_message,
-      "stack" => "lucid64",
+      "stack" => stack,
     }
   end
 
@@ -57,6 +58,56 @@ describe "Running an app immediately after staging", :type => :integration, :req
 
   before do
     FileUtils.rm_rf(uploaded_droplet)
+  end
+
+  context 'when specifying a stack' do
+    let(:buildpack_url) do
+      setup_fake_buildpack("graceful_shutdown")
+      fake_buildpack_url("graceful_shutdown")
+    end
+    let(:stack) { 'trusty64' }
+    let(:app_id) { 'trusty_app_id' }
+
+    it 'runs on that stack' do
+      response, _ = perform_stage_request(staging_running_message)
+
+      expect(response["task_id"]).to eq("some-task-id")
+      expect(response["error"]).to be_nil
+
+      response = wait_until_instance_started(app_id)
+
+      instance_info = instance_snapshot(response["instance"])
+      port = instance_info["instance_host_port"]
+      expect(is_port_open?(dea_host, port)).to eq(true)
+
+      expect(File.exist?(uploaded_droplet)).to be_true
+
+      finished = false
+      droplet_message = Yajl::Encoder.encode("droplet" => app_id, "states" => ["RUNNING"])
+
+      nats.with_nats do
+        NATS.subscribe("router.register") do |_|
+          NATS.request("dea.find.droplet", droplet_message, :timeout => 5) do |resp|
+            droplet_info = Yajl::Parser.parse(resp)
+            instance_info = instance_snapshot(droplet_info["instance"])
+            port = instance_info["instance_host_port"]
+
+            Dir.chdir("#{instance_info['warden_container_path']}") do
+              expect(`echo "cat /etc/lsb-release" | sudo ./bin/wsh`).to include('trusty')
+            end
+
+            NATS.publish("dea.stop", Yajl::Encoder.encode({"droplet" => app_id})) do
+              wait_until(10) { !is_port_open?(dea_host, port) }
+
+              finished = true
+              NATS.stop
+            end
+          end
+        end
+      end
+
+      expect(finished).to eq(true)
+    end
   end
 
   it "works" do
@@ -84,6 +135,26 @@ describe "Running an app immediately after staging", :type => :integration, :req
     and_by "exports user variables before .profile.d" do
       output = `curl -s http://#{dea_server.host}:#{port}/`
       expect(output).to include('VERIFYING_VARIABLE_DECLARATION_ORDER=SECOND')
+    end
+
+    and_by "running on lucid" do
+      droplet_message = Yajl::Encoder.encode("droplet" => app_id, "states" => ["RUNNING"])
+
+      nats.with_nats do
+        NATS.subscribe("router.register") do |_|
+          NATS.request("dea.find.droplet", droplet_message, :timeout => 5) do |response|
+            droplet_info = Yajl::Parser.parse(response)
+            instance_info = instance_snapshot(droplet_info["instance"])
+            port = instance_info["instance_host_port"]
+
+            Dir.chdir("#{instance_info['warden_container_path']}") do
+              expect(`echo "cat /etc/lsb-release" | sudo ./bin/wsh`).to include('lucid')
+            end
+
+            NATS.stop
+          end
+        end
+      end
     end
   end
 end

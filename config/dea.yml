@@ -60,9 +60,9 @@ directory_server:
 
 stacks:
   - name: lucid64
-    package_path: /var/warden/rootfs
+    package_path: /var/warden/rootfs_lucid
   - name: trusty64
-    package_path: /var/warden/rootfs
+    package_path: /var/warden/rootfs_trusty
 # Hook scripts for droplet start/stop
 # hooks:
 #   before_start: path/to/script

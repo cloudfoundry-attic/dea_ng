@@ -37,7 +37,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
       "limits" => limits,
       "services" => [],
       "env" => env,
-      "stack" => "lucid64",
+      "stack" => "trusty64",
     }
   end
 
@@ -52,7 +52,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
       "buildpack_cache_download_uri" => buildpack_cache_download_uri,
       "start_message" => start_message,
       "admin_buildpacks" => admin_buildpacks,
-      "stack" => "lucid64",
+      "stack" => "trusty64",
     }
   end
 
@@ -210,6 +210,32 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
   def admin_buildpack_dir_size
     admin_buildpack_dir = File.join(dea_config["base_dir"], "admin_buildpacks")
     (dea_server.directory_entries(admin_buildpack_dir) - %w[. ..]).size
+  end
+
+  context 'when choosing a specific stack' do
+    before { setup_fake_buildpack("start_command") }
+
+    let(:buildpack_url) { fake_buildpack_url("start_command")}
+    let(:properties) { {"buildpack" => buildpack_url, "environment" => env, "resources" => limits} }
+
+    it 'compiles on trusty stack' do
+      buildpack_cache_file = File.join(FILE_SERVER_DIR, "buildpack_cache.tgz")
+      FileUtils.rm_rf(buildpack_cache_file)
+
+      response, staging_log = perform_stage_request(staging_message)
+      expect(response["error"]).to be_nil
+      expect(staging_log).to include("DISTRIB_CODENAME=trusty")
+    end
+
+    it 'compiles on lucid stack' do
+      staging_message['stack'] = 'lucid64'
+      buildpack_cache_file = File.join(FILE_SERVER_DIR, "buildpack_cache.tgz")
+      FileUtils.rm_rf(buildpack_cache_file)
+
+      response, staging_log = perform_stage_request(staging_message)
+      expect(response["error"]).to be_nil
+      expect(staging_log).to include("DISTRIB_CODENAME=lucid")
+    end
   end
 
   describe "when a buildpack url is specified" do
