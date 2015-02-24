@@ -65,8 +65,8 @@ describe "Running an app immediately after staging", :type => :integration, :req
       setup_fake_buildpack("graceful_shutdown")
       fake_buildpack_url("graceful_shutdown")
     end
-    let(:stack) { 'trusty64' }
-    let(:app_id) { 'trusty_app_id' }
+    let(:stack) { 'cflinuxfs2' }
+    let(:app_id) { 'cflinuxfs2_app_id' }
 
     it 'runs on that stack' do
       response, _ = perform_stage_request(staging_running_message)

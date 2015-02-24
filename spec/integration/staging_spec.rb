@@ -37,7 +37,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
       "limits" => limits,
       "services" => [],
       "env" => env,
-      "stack" => "trusty64",
+      "stack" => "cflinuxfs2",
     }
   end
 
@@ -52,7 +52,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
       "buildpack_cache_download_uri" => buildpack_cache_download_uri,
       "start_message" => start_message,
       "admin_buildpacks" => admin_buildpacks,
-      "stack" => "trusty64",
+      "stack" => "cflinuxfs2",
     }
   end
 
