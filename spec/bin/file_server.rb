@@ -81,4 +81,4 @@ app = Rack::Builder.new do
 end
 
 $stdout.sync = true
-Rack::Handler::Thin.run(app, :Port => 10197) # ea in decimal
+Rack::Handler::Thin.run(app, :Port => 10197, :Host => "0.0.0.0") # ea in decimal

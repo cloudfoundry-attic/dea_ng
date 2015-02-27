@@ -1,7 +1,7 @@
 require 'eventmachine'
 require 'em-http'
 require 'em-http/version'
-require 'backports'
+require 'active_support/core_ext/module/aliasing'
 
 raise "Upgrade hack if necessary" if EM::HttpRequest::VERSION != "1.0.3"
 

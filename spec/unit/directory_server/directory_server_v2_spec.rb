@@ -46,19 +46,15 @@ describe Dea::DirectoryServerV2 do
     end
 
     it "configures instance paths resource endpoints" do
-      Dea::DirectoryServerV2::InstancePaths.settings.tap do |s|
-        s[:directory_server].should == subject
-        s[:instance_registry].should == instance_registry
-        s[:max_url_age_secs].should == 3600
-      end
+      expect(Dea::DirectoryServerV2::InstancePaths.global_setting(:directory_server)).to eq(subject)
+      expect(Dea::DirectoryServerV2::InstancePaths.global_setting(:instance_registry)).to eq(instance_registry)
+      expect(Dea::DirectoryServerV2::InstancePaths.global_setting(:max_url_age_secs)).to eq(3600)
     end
 
     it "configures staging tasks resource endpoints" do
-      Dea::DirectoryServerV2::StagingTasks.settings.tap do |s|
-        s[:directory_server].should == subject
-        s[:staging_task_registry].should == staging_task_registry
-        s[:max_url_age_secs].should == 3600
-      end
+      expect(Dea::DirectoryServerV2::StagingTasks.global_setting(:directory_server)).to eq(subject)
+      expect(Dea::DirectoryServerV2::StagingTasks.global_setting(:staging_task_registry)).to eq(staging_task_registry)
+      expect(Dea::DirectoryServerV2::StagingTasks.global_setting(:max_url_age_secs)).to eq(3600)
     end
   end
 

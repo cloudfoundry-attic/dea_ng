@@ -24,7 +24,7 @@ describe Dea::DirectoryServerV2::StagingTasks do
   describe "GET /staging_tasks/<task_id>/file_path" do
     context "when hmac is missing" do
       it "returns a 401" do
-        get staging_task_file_path(staging_task.task_id, "file-path", :hmac => "")
+        get staging_task_file_path(staging_task.task_id, "file-path", :hmac => "") + "&path=application&timestamp=0"
         last_response.status.should == 401
         last_error.should == "Invalid HMAC"
       end
@@ -32,7 +32,7 @@ describe Dea::DirectoryServerV2::StagingTasks do
 
     context "when hmac is invalid" do
       it "returns a 401" do
-        get staging_task_file_path(staging_task.task_id, "file-path", :hmac => "some-other-hmac")
+        get staging_task_file_path(staging_task.task_id, "file-path", :hmac => "some-other-hmac") + "&path=application&timestamp=0"
         last_response.status.should == 401
         last_error.should == "Invalid HMAC"
       end

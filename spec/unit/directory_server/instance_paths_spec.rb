@@ -28,7 +28,7 @@ describe Dea::DirectoryServerV2::InstancePaths do
 
   describe "GET /instance_paths/<instance_id>" do
     it "returns a 401 if the hmac is missing" do
-      get instance_path(instance.instance_id, "/path", :hmac => "")
+      get instance_path(instance.instance_id, "/path", :hmac => "") + "&path=application&timestamp=0"
       last_response.status.should == 401
       last_error.should == "Invalid HMAC"
     end

@@ -1,6 +1,6 @@
 source 'https://rubygems.org'
 
-gem 'eventmachine'
+gem 'eventmachine', '1.0.3'
 gem 'em-http-request'
 gem 'em-synchrony'
 
@@ -29,7 +29,6 @@ gem 'sys-filesystem'
 group :test do
   gem 'codeclimate-test-reporter', require: false
   gem 'ci_reporter'
-  gem 'debugger'
   gem 'foreman'
   gem 'net-ssh'
   gem 'patron'
