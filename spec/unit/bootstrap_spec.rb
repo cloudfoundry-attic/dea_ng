@@ -404,6 +404,18 @@ describe Dea::Bootstrap do
           VCAP::Component.varz[:warden_containers].should == ["ahandle", "anotherhandle"]
         end
       end
+
+      context 'when the warden client is disconnected' do
+        before do
+          allow(bootstrap.warden_container_lister).to receive(:list).and_raise(::EM::Warden::Client::ConnectionError.new)
+        end
+
+        it 'should not explode' do
+          expect {
+            bootstrap.periodic_varz_update
+          }.not_to raise_error
+        end
+      end
     end
 
     describe "instance_registry" do

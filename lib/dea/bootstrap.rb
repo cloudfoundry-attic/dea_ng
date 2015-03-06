@@ -482,6 +482,8 @@ module Dea
         VCAP::Component.varz[:instance_registry] = instance_registry.to_hash
         VCAP::Component.varz[:warden_containers] = warden_containers
       end
+    rescue => e
+      logger.error('period.varz.failed', error: e)
     end
 
     private
