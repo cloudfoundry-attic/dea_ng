@@ -483,7 +483,7 @@ module Dea
         VCAP::Component.varz[:warden_containers] = warden_containers
       end
     rescue => e
-      logger.error('period.varz.failed', error: e)
+      logger.error('periodic.varz.failure', error: e, backtrace: e.backtrace)
     end
 
     private
