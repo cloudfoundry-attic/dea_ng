@@ -53,33 +53,67 @@ describe StagingMessage do
       "start_message" => start_message,
       "stack" => 'my-stack',
       "egress_network_rules" => egress_network_rules,
+      "memory_limit" => 1024,
+      "disk_limit" => 1024
     }
   end
 
   subject(:message) { StagingMessage.new(staging_message) }
 
-  its(:app_id) { should eq "some-node-app-id" }
-  its(:task_id) { should eq "task-id" }
-  its(:download_uri) { should eq URI("http://localhost/unstaged/rails3_with_db") }
-  its(:upload_uri) { should eq URI("http://localhost/upload/rails3_with_db") }
-  its(:buildpack_cache_upload_uri) { should eq URI("http://localhost/buildpack_cache/upload") }
-  its(:buildpack_cache_download_uri) { should eq URI("http://localhost/buildpack_cache/download") }
-  its(:start_message) { should be_a StartMessage }
-  its(:admin_buildpacks) { should eq([]) }
-  its(:properties) { should eq({
-    "some_property" => "some_value",
-    "services"      => ["servicethingy"],
-    "environment"   => ["KEY=val"],
-  }) }
-  its(:buildpack_git_url) { should be_nil }
-  its(:buildpack_key) { should be_nil }
-  its(:egress_rules) { should eq([{ 'json' => 'data' }]) }
-  its(:to_hash) { should eq staging_message }
-  its(:env) { should eq ['KEY=val'] }
-  its(:services) { should eq ['servicethingy'] }
-  its(:vcap_application) { should eq start_message['vcap_application'] }
-  its(:mem_limit) { should eq start_message['limits']['mem'] }
-  its(:stack) { should eq staging_message['stack'] }
+  context "when the staging_message has memory_limit and disk_limit" do
+    it "returns those values" do
+      expect(message.mem_limit).to eq(staging_message['memory_limit'])
+      expect(message.disk_limit).to eq(staging_message['disk_limit'])
+    end
+  end
+
+  context "when the staging_message does not have memory_limit and disk_limit" do
+    let(:staging_message) do
+      {
+        "app_id" => "some-node-app-id",
+        "task_id" => "task-id",
+        "properties" => properties,
+        "download_uri" => "http://localhost/unstaged/rails3_with_db",
+        "upload_uri" => "http://localhost/upload/rails3_with_db",
+        "buildpack_cache_download_uri" => "http://localhost/buildpack_cache/download",
+        "buildpack_cache_upload_uri" => "http://localhost/buildpack_cache/upload",
+        "admin_buildpacks" => admin_buildpacks,
+        "start_message" => start_message,
+        "stack" => 'my-stack',
+        "egress_network_rules" => egress_network_rules
+      }
+    end
+
+    it "returns the limit values from the start message" do
+      expect(message.mem_limit).to eq(start_message['limits']['mem'])
+      expect(message.disk_limit).to eq(start_message['limits']['disk'])
+    end
+  end
+
+  it "has the correct properties" do
+    expect(message.app_id).to eq("some-node-app-id")
+    expect(message.task_id).to eq("task-id")
+    expect(message.download_uri).to eq(URI("http://localhost/unstaged/rails3_with_db"))
+    expect(message.upload_uri).to eq(URI("http://localhost/upload/rails3_with_db"))
+    expect(message.buildpack_cache_upload_uri).to eq(URI("http://localhost/buildpack_cache/upload"))
+    expect(message.buildpack_cache_download_uri).to eq(URI("http://localhost/buildpack_cache/download"))
+    expect(message.start_message).to be_a(StartMessage)
+    expect(message.admin_buildpacks).to eq([])
+    expect(message.properties).to eq({
+        "some_property" => "some_value",
+        "services"      => ["servicethingy"],
+        "environment"   => ["KEY=val"],
+    })
+    expect(message.buildpack_git_url).to be_nil
+    expect(message.buildpack_key).to be_nil
+    expect(message.egress_rules).to eq([{ 'json' => 'data' }])
+    expect(message.to_hash).to eq(staging_message)
+    expect(message.env).to eq(['KEY=val'])
+    expect(message.services).to eq(['servicethingy'])
+    expect(message.vcap_application).to eq(start_message['vcap_application'])
+    expect(message.stack).to eq(staging_message['stack'])
+  end
+
 
   it "should memoize the start message" do
     expect(message.start_message).to eq(message.start_message)

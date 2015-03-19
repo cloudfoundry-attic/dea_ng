@@ -884,6 +884,35 @@ YAML
     end
   end
 
+  describe '#disk_limit_mb and #mem_limit_mb' do
+    context 'when specified in the staging message' do
+      let(:mem_limit) { 1024 }
+      let(:disk_limit) { 2048 }
+
+      let(:attributes) do
+        valid_staging_attributes.merge({
+          "memory_limit" => mem_limit,
+          "disk_limit" => disk_limit
+        })
+      end
+
+      it 'returns the staging messages limit values' do
+        expect(staging_task.disk_limit_mb).to eq(disk_limit)
+        expect(staging_task.memory_limit_mb).to eq(mem_limit)
+      end
+    end
+
+    context 'when unspecified' do
+      let(:disk_limit_mb) { 3333 } # default staging disk limit of config object
+      let(:memory_limit_mb) { 1234 }
+
+      it 'returns the defaults' do
+        expect(staging_task.disk_limit_mb).to eq(disk_limit_mb)
+        expect(staging_task.memory_limit_mb).to eq(memory_limit_mb)
+      end
+    end
+  end
+
   describe '#disk_inode_limit' do
     it 'exports disk with set inode as specified in the config file' do
       staging_task.disk_inode_limit.should eq(disk_inode_limit)

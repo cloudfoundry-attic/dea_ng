@@ -74,7 +74,11 @@ class StagingMessage
   end
 
   def mem_limit
-    start_message.mem_limit
+    @message["memory_limit"] ||  start_message.mem_limit
+  end
+
+  def disk_limit
+    @message["disk_limit"] || start_message.disk_limit
   end
 
   def stack
