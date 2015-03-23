@@ -12,7 +12,6 @@ module Dea
 
       def system_environment_variables
         [
-          ["BUILDPACK_CACHE", staging_task.staging_config["environment"]["BUILDPACK_CACHE"]],
           ["STAGING_TIMEOUT", staging_task.staging_timeout],
           ["MEMORY_LIMIT", "#{message.mem_limit}m"]
         ]

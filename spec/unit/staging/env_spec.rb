@@ -4,10 +4,7 @@ require 'dea/staging/env'
 module Dea::Staging
   describe Env do
     let(:staging_message) { double(:staging_message, mem_limit: 'fake_mem_limit') }
-    let(:staging_config) {
-      { 'environment' => { 'BUILDPACK_CACHE' => 'fake_buildpack_cache' } }
-    }
-    let(:task) { double('task', staging_config: staging_config, staging_timeout: 'fake_timeout') }
+    let(:task) { double('task', staging_config: {}, staging_timeout: 'fake_timeout') }
 
     subject(:env) {Env.new(staging_message, task)}
 
@@ -16,7 +13,6 @@ module Dea::Staging
 
       it 'has the correct values' do
         expect(system_environment_variables).to eql([
-                                                      %w(BUILDPACK_CACHE fake_buildpack_cache),
                                                       %w(STAGING_TIMEOUT fake_timeout),
                                                       %w(MEMORY_LIMIT fake_mem_limitm),
                                                     ])

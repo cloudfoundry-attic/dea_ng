@@ -38,7 +38,6 @@ describe Dea::StagingTask do
         }
       ],
       'staging' => {
-        'environment' => { 'BUILDPACK_CACHE' => 'buildpack_cache_url'},
         'cpu_limit_shares' => 512,
         'memory_limit_mb' => memory_limit_mb,
         'disk_limit_mb' => disk_limit_mb,
@@ -101,7 +100,6 @@ describe Dea::StagingTask do
       it 'calls the container#spawn with the staging command' do
         expect(staging_task.container).to receive(:spawn) do |cmd|
           expect(cmd).to include 'export FOO="BAR";'
-          expect(cmd).to include 'export BUILDPACK_CACHE="buildpack_cache_url";'
           expect(cmd).to include 'export STAGING_TIMEOUT="900.0";'
           expect(cmd).to include 'export MEMORY_LIMIT="512m";' # the user assiged 512 should overwrite the system 256
           expect(cmd).to include 'export VCAP_SERVICES=\{\}'
