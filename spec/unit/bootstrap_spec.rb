@@ -648,7 +648,8 @@ describe Dea::Bootstrap do
     end
 
     let(:instance) { double("instance", :start => nil, :running? => true, :application_version => app_version) }
-    let(:instance_registry) { double("isntance_registry") }
+    let(:instance2) { double("instance2", :start => nil, :running? => true, :application_version => app_version) }
+    let(:instance_registry) { double("instance_registry") }
     let(:snapshot) { double("snapshot") }
 
     before do
@@ -663,14 +664,16 @@ describe Dea::Bootstrap do
           expect(bootstrap).to receive(:instance_registry).at_least(:once).and_return(instance_registry)
           expect(bootstrap).to receive(:snapshot).and_return(snapshot)
           instance_updater = double(:instance_updater)
-          expect(Dea::InstanceUriUpdater).to receive(:new).with(instance, instance_data["uris"]).and_return(instance_updater)
+          expect(Dea::InstanceUriUpdater).to receive(:new).with(instance, instance_data["uris"]).ordered.and_return(instance_updater)
+          expect(Dea::InstanceUriUpdater).to receive(:new).with(instance2, instance_data["uris"]).ordered.and_return(instance_updater)
 
-          expect(instance_updater).to receive(:update).and_return(true)
+          expect(instance_updater).to receive(:update).twice.and_return(true)
 
           expect(instance).not_to receive(:application_version=).with(new_version)
 
-          expect(instance_registry).to receive(:instances_for_application).and_return({ "myinstanceid" => instance })
+          expect(instance_registry).to receive(:instances_for_application).and_return({ "myinstanceid" => instance, "mysecondinstanceid" => instance2 })
           expect(instance_registry).not_to receive(:change_instance_id).with(instance)
+          expect(instance_registry).not_to receive(:change_instance_id).with(instance2)
 
           expect(bootstrap).to receive(:send_heartbeat)
           expect(snapshot).to receive(:save)

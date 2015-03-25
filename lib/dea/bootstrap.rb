@@ -418,18 +418,19 @@ module Dea
       uris = message.data["uris"]
       app_version = message.data["version"]
 
-      updated = false
+      updated = []
       instance_registry.instances_for_application(app_id).dup.each do |_, instance|
         next unless instance.running? || instance.evacuating?
-        updated ||= InstanceUriUpdater.new(instance, uris).update(router_client)
+        instance_updated = InstanceUriUpdater.new(instance, uris).update(router_client)
         if app_version != instance.application_version
           instance.application_version = app_version
           instance_registry.change_instance_id(instance)
-          updated = true
+          instance_updated = true
         end
+        updated << instance_updated
       end
 
-      if updated
+      if updated.reduce { |value, next_value| value && next_value }
         send_heartbeat
         snapshot.save
       end
