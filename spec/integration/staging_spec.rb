@@ -70,6 +70,9 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
       response, staging_log = perform_stage_request(staging_message)
       expect(staging_log).to include("-----> Some admin compilation output")
       expect(response["error"]).to be_nil
+      expect(response["procfile"]).to eq({
+        "web" => 'while true; do (echo "hi from admin buildpack" | nc -l $PORT); done'
+      })
     end
 
     context "when having 2 admin buildpacks" do

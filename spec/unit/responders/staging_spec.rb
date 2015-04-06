@@ -21,6 +21,7 @@ describe Dea::Responders::Staging do
       staging_message: staging_message,
       task_id: "task-id",
       task_log: "task-log",
+      procfile: {"web" => "npm start"},
       detected_buildpack: nil,
       buildpack_key: buildpack_key,
       detected_start_command: "bacofoil",
@@ -261,6 +262,9 @@ describe Dea::Responders::Staging do
               "buildpack_key" => "some_buildpack_key",
               "droplet_sha1" => "some-droplet-sha",
               "detected_start_command" => "bacofoil",
+              "procfile" => {
+                "web" => "npm start"
+              }
             ))
             subject.handle(message)
           end
@@ -316,6 +320,9 @@ describe Dea::Responders::Staging do
               "buildpack_key" => nil,
               "droplet_sha1" => nil,
               "detected_start_command" => "bacofoil",
+              "procfile" => {
+                "web" => "npm start"
+              },
               "error" => "error-description",
               "error_info" => staging_error_info,
             ))

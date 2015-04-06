@@ -91,12 +91,17 @@ module Buildpacks
       buildpack_info = {
         "buildpack_path" => build_pack.path,
         "detected_buildpack" => build_pack.name,
-        "start_command" => start_command
+        "start_command" => start_command,
+        "effective_procfile" => effective_procfile
       }
 
       File.open(staging_info_path, 'w') do |f|
         YAML.dump(buildpack_info, f)
       end
+    end
+
+    def effective_procfile
+      procfile.contents || release_info.fetch("default_process_types", {})
     end
 
     def save_error_info(error)

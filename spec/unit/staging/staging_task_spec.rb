@@ -275,6 +275,22 @@ YAML
     end
   end
 
+  describe 'procfile' do
+    before do
+      contents = <<YAML
+---
+effective_procfile:
+  web: npm start
+YAML
+      staging_info = File.join(workspace_dir, 'staging_info.yml')
+      File.open(staging_info, 'w') { |f| f.write(contents) }
+    end
+
+    it 'returns the detected buildpack' do
+      staging_task.procfile.should eq({"web" => "npm start"})
+    end
+  end
+
   describe '#detected_buildpack' do
     before do
       contents = <<YAML

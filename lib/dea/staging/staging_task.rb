@@ -114,6 +114,10 @@ module Dea
       task_info['start_command']
     end
 
+    def procfile
+      task_info['effective_procfile']
+    end
+
     def buildpack_path
       task_info['buildpack_path']
     end

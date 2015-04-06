@@ -165,8 +165,30 @@ describe Buildpacks::Buildpack, type: :buildpack do
       end
 
       context "when the application has a procfile" do
+        let(:buildpack_dirs) { ["#{fake_buildpacks_dir}/admin_buildpack"] }
+
         it "uses the start command specified by the 'web' key in the procfile" do
           expect(buildpack_info["start_command"]).to eq("node app.js --from-procfile=true")
+        end
+
+        it 'returns saves the procfile into the staging info' do
+          expected_procfile = {
+            "web" => "node app.js --from-procfile=true"
+          }
+          expect(buildpack_info['effective_procfile']).to eq(expected_procfile)
+        end
+      end
+
+      context 'when the application does not have a procfile' do
+        let(:buildpack_dirs) { ["#{fake_buildpacks_dir}/admin_buildpack"] }
+
+        before { app_fixture :node_without_procfile }
+
+        it 'returns the default procfile from the buildpack release metadata' do
+          expected_procfile = {
+            "web" => 'while true; do (echo "hi from admin buildpack" | nc -l $PORT); done'
+          }
+          expect(buildpack_info['effective_procfile']).to eq(expected_procfile)
         end
       end
     end

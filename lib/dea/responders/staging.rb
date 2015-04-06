@@ -128,6 +128,7 @@ module Dea::Responders
           buildpack_key: task.buildpack_key,
           droplet_sha1: task.droplet_sha1,
           detected_start_command: task.detected_start_command,
+          procfile: task.procfile
         }
         data[:error] = error.to_s if error
         data[:error_info] = task.error_info if task.error_info
