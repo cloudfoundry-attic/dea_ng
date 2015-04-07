@@ -2,7 +2,6 @@
   "name" : "node_native_dependecies",
   "version": "0.1.0",
   "dependencies" : {
-    "bcrypt" : ""
   },
   "engines": {
     "node": "0.10.1",
