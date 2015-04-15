@@ -822,9 +822,9 @@ describe Dea::Instance do
         instance.exit_description.should be_empty
       end
 
-      it 'should symlink the app dir' do
+      it 'should remove existing and then symlink the app dir' do
         instance.container.stub(:run_script) do |_, script|
-          script.should =~ %r{ln -s home/vcap/app /app}
+          script.should =~ %r{rm -rf /app && ln -s home/vcap/app /app}
         end
 
         expect_start.to_not raise_error
