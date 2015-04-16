@@ -306,6 +306,7 @@ module Dea
         :type => "DEA",
         :host => local_ip,
         :index => config["index"],
+        :job_name => config["name"],
         :nats => self.nats.client,
         :port => config["status"]["port"],
         :user => config["status"]["user"],

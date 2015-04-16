@@ -14,7 +14,8 @@ describe Dea::Bootstrap do
       "base_dir" => tmpdir,
       "directory_server" => {},
       "domain" => "default",
-      "logging" => {}
+      "logging" => {},
+      "name" => 'dea_z1'
     }
   end
 
@@ -608,7 +609,7 @@ describe Dea::Bootstrap do
         expect(steno_config.sinks).to include log_counter
       end
 
-      VCAP::Component.should_receive(:register).with(hash_including(:log_counter => log_counter))
+      VCAP::Component.should_receive(:register).with(hash_including(:log_counter => log_counter, :job_name => 'dea_z1'))
       subject.setup_logging
       subject.start_component
     end
