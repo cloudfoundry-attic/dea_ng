@@ -15,7 +15,7 @@ describe Dea::InstanceRegistry do
     end
     instance_registry
   end
-  let(:instance) { Dea::Instance.new(bootstrap, {"application_id" => 1, "warden_handle" => "handle1", "index" => 0}) }
+  let(:instance) { Dea::Instance.new(bootstrap, {"application_id" => 1, "warden_handle" => "handle1", "index" => 0, "services" => []}) }
 
   let(:instance1) { Dea::Instance.new(bootstrap, {"application_id" => 1, "warden_handle" => "handle2"}) }
 
@@ -535,6 +535,20 @@ describe Dea::InstanceRegistry do
       Sys::Filesystem.should_receive(:stat).and_return(stat)
 
       instance_registry.disk_pressure?.should be_true
+    end
+  end
+
+  describe "to_hash" do
+    before do
+      instance_registry.register(instance)
+    end
+
+    it "excludes environment variables" do
+      expect(instance_registry.to_hash.to_s).to_not include("environment")
+    end
+
+    it "excludes services" do
+      expect(instance_registry.to_hash.to_s).to_not include("services")
     end
   end
 

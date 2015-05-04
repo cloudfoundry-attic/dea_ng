@@ -2,7 +2,6 @@
 set -e -x -u
 
 BUILD_TO_RUN_PATH=$1
-TEST_INFRA_PATH=$2
 
 vagrant up --provider=virtualbox
 

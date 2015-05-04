@@ -121,7 +121,7 @@ module Dea
 
     class StackNotFoundError < BaseError; end
 
-    class AttributesLoggingFilter
+    class ProtectedAttributesFilter
       FILTER = %w[services environment droplet_uri]
 
       def initialize(attributes)
@@ -285,7 +285,7 @@ module Dea
       @exit_status = -1
       @exit_description = ''
 
-      logger.user_data[:attributes] = AttributesLoggingFilter.new(@attributes)
+      logger.user_data[:attributes] = ProtectedAttributesFilter.new(@attributes)
 
       setup_container_from_snapshot
     end
@@ -803,7 +803,7 @@ module Dea
     end
 
     def attributes_and_stats
-      @attributes.merge({
+      ProtectedAttributesFilter.new(@attributes).to_hash.merge({
           'used_memory_in_bytes' => used_memory_in_bytes,
           'used_disk_in_bytes' => used_disk_in_bytes,
           'computed_pcpu' => computed_pcpu

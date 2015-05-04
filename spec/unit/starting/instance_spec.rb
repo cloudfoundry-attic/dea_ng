@@ -380,6 +380,11 @@ describe Dea::Instance do
       instance.stat_collector.stub(:computed_pcpu).and_return(0.123)
       instance.attributes_and_stats.should include('computed_pcpu' => 0.123)
     end
+
+    it 'does not include protected attributes' do
+      expect(instance.attributes_and_stats.keys).to_not include('environment')
+      expect(instance.attributes_and_stats.keys).to_not include('services')
+    end
   end
 
   describe '#promise_health_check unit test' do
