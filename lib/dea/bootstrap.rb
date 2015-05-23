@@ -262,11 +262,18 @@ module Dea
           end
           (@orphaned_containers & orphaned).each do |handle|
             logger.debug("reaping orphaned container with handle #{handle}")
-            warden_container_lister.handle = handle
-            warden_container_lister.destroy!
+            destroy_container(handle)
           end
           @orphaned_containers = orphaned - (@orphaned_containers & orphaned)
         end
+      end
+    end
+
+    def destroy_container(handle)
+      EM.defer do
+        orphaned_container = Container.new(WardenClientProvider.new(config["warden_socket"]))
+        orphaned_container.handle = handle
+        orphaned_container.destroy!
       end
     end
 

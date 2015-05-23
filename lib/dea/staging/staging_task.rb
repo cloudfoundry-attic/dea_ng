@@ -512,6 +512,10 @@ module Dea
       }
     end
 
+    def warden_handle
+      container.handle
+    end
+
     private
 
     def staging_command
