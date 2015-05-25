@@ -224,29 +224,6 @@ describe Dea::Bootstrap do
     end
   end
 
-  describe "#destroy_container" do
-    let(:container_to_destroy) { double(:container) }
-    let(:handle) { 'asdf' }
-
-    before do
-      allow(Container).to receive(:new).and_return(container_to_destroy)
-      allow(container_to_destroy).to receive(:handle=)
-      allow(container_to_destroy).to receive(:destroy!)
-    end
-
-    it "destroys the container" do
-      with_event_machine do
-        bootstrap.destroy_container(handle)
-
-        after_defers_finish do
-          expect(container_to_destroy).to have_received(:handle=).with(handle)
-          expect(container_to_destroy).to have_received(:destroy!)
-          done
-        end
-      end
-    end
-  end
-
   describe "reap orphaned_containers" do
     let(:warden_containers) { bootstrap.warden_container_lister }
     let(:list_response) do
@@ -275,18 +252,19 @@ describe Dea::Bootstrap do
 
     before do
       bootstrap.setup_warden_container_lister
+      bootstrap.setup_warden_container_lister
       allow(bootstrap.warden_container_lister).to receive(:list).and_return list_response
       bootstrap.stub(:instance_registry).and_return(instance_registry)
       bootstrap.stub(:staging_task_registry).and_return(staging_task_registry)
-      bootstrap.stub(:destroy_container).and_return(nil)
     end
 
     it "should not reap orphaned containers on the first time" do
       with_event_machine do
-        bootstrap.should_not_receive(:destroy_container).with('a')
-        bootstrap.should_not_receive(:destroy_container).with('b')
-        bootstrap.should_not_receive(:destroy_container).with('c')
-        bootstrap.should_not_receive(:destroy_container).with('d')
+        warden_containers.should_not_receive(:handle=).with('a')
+        warden_containers.should_not_receive(:handle=).with('b')
+        warden_containers.should_not_receive(:handle=).with('c')
+        warden_containers.should_not_receive(:handle=).with('d')
+        warden_containers.should_not_receive(:destroy!)
         bootstrap.reap_orphaned_containers
 
         after_defers_finish do
@@ -297,13 +275,12 @@ describe Dea::Bootstrap do
 
     it "should reap orphaned containers if they remain orphan for two ticks" do
       with_event_machine do
-        bootstrap.should_not_receive(:destroy_container).with('a')
-        bootstrap.should_not_receive(:destroy_container).with('c')
-        bootstrap.should_not_receive(:destroy_container).with('d')
-        bootstrap.should_receive(:destroy_container).with('b')
-
+        warden_containers.should_not_receive(:handle=).with('a')
+        warden_containers.should_not_receive(:handle=).with('c')
+        warden_containers.should_not_receive(:handle=).with('d')
+        warden_containers.should_receive(:handle=).with('b')
+        warden_containers.should_receive(:destroy!)
         bootstrap.reap_orphaned_containers
-
         instance_registry << double("instance_d")
         instance_registry.last.stub(:warden_handle).and_return("d")
         bootstrap.reap_orphaned_containers
