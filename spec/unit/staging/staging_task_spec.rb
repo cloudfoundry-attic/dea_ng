@@ -1282,6 +1282,13 @@ YAML
     end
   end
 
+  describe '#warden_handle' do
+    it 'gets the warden container handle' do
+      expect(staging_task.container).to receive(:handle).and_return('container_handle')
+      expect(staging_task.warden_handle).to eq('container_handle')
+    end
+  end
+
   def normalize_whitespace(script)
     script.gsub(/\s+/, ' ')
   end
