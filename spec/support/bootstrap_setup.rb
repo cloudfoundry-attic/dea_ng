@@ -32,8 +32,8 @@ shared_context "bootstrap_setup" do
       },
       "stacks" => [
         {
-          "name" => "lucid64",
-          "package_path" => "/tmp/rootfs_lucid64"
+          "name" => "cflinuxfs2",
+          "package_path" => "/tmp/rootfs_cflinuxfs2"
         }
       ],
       "placement_properties" => {

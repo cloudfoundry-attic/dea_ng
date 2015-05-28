@@ -229,16 +229,6 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
       expect(response["error"]).to be_nil
       expect(staging_log).to include("DISTRIB_CODENAME=trusty")
     end
-
-    it 'compiles on lucid stack' do
-      staging_message['stack'] = 'lucid64'
-      buildpack_cache_file = File.join(FILE_SERVER_DIR, "buildpack_cache.tgz")
-      FileUtils.rm_rf(buildpack_cache_file)
-
-      response, staging_log = perform_stage_request(staging_message)
-      expect(response["error"]).to be_nil
-      expect(staging_log).to include("DISTRIB_CODENAME=lucid")
-    end
   end
 
   describe "when a buildpack url is specified" do

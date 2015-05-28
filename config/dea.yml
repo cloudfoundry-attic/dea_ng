@@ -59,8 +59,6 @@ directory_server:
     level: info
 
 stacks:
-  - name: lucid64
-    package_path: /var/warden/rootfs_lucid
   - name: cflinuxfs2
     package_path: /var/warden/rootfs_cflinuxfs2
 # Hook scripts for droplet start/stop

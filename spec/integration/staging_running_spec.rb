@@ -9,7 +9,7 @@ describe "Running an app immediately after staging", :type => :integration, :req
     setup_fake_buildpack("start_command")
     fake_buildpack_url("start_command")
   end
-  let(:stack) { 'lucid64' }
+  let(:stack) { 'cflinuxfs2' }
 
   let(:app_id) { "some-app-id" }
 
@@ -60,56 +60,6 @@ describe "Running an app immediately after staging", :type => :integration, :req
     FileUtils.rm_rf(uploaded_droplet)
   end
 
-  context 'when specifying a stack' do
-    let(:buildpack_url) do
-      setup_fake_buildpack("graceful_shutdown")
-      fake_buildpack_url("graceful_shutdown")
-    end
-    let(:stack) { 'cflinuxfs2' }
-    let(:app_id) { 'cflinuxfs2_app_id' }
-
-    it 'runs on that stack' do
-      response, _ = perform_stage_request(staging_running_message)
-
-      expect(response["task_id"]).to eq("some-task-id")
-      expect(response["error"]).to be_nil
-
-      response = wait_until_instance_started(app_id)
-
-      instance_info = instance_snapshot(response["instance"])
-      port = instance_info["instance_host_port"]
-      expect(is_port_open?(dea_host, port)).to eq(true)
-
-      expect(File.exist?(uploaded_droplet)).to be_true
-
-      finished = false
-      droplet_message = Yajl::Encoder.encode("droplet" => app_id, "states" => ["RUNNING"])
-
-      nats.with_nats do
-        NATS.subscribe("router.register") do |_|
-          NATS.request("dea.find.droplet", droplet_message, :timeout => 5) do |resp|
-            droplet_info = Yajl::Parser.parse(resp)
-            instance_info = instance_snapshot(droplet_info["instance"])
-            port = instance_info["instance_host_port"]
-
-            Dir.chdir("#{instance_info['warden_container_path']}") do
-              expect(`echo "cat /etc/lsb-release" | sudo ./bin/wsh`).to include('trusty')
-            end
-
-            NATS.publish("dea.stop", Yajl::Encoder.encode({"droplet" => app_id})) do
-              wait_until(10) { !is_port_open?(dea_host, port) }
-
-              finished = true
-              NATS.stop
-            end
-          end
-        end
-      end
-
-      expect(finished).to eq(true)
-    end
-  end
-
   it "works" do
     by "staging the app" do
       response, staging_log = perform_stage_request(staging_running_message)
@@ -137,7 +87,7 @@ describe "Running an app immediately after staging", :type => :integration, :req
       expect(output).to include('VERIFYING_VARIABLE_DECLARATION_ORDER=SECOND')
     end
 
-    and_by "running on lucid" do
+    and_by "running on cflinuxfs2" do
       droplet_message = Yajl::Encoder.encode("droplet" => app_id, "states" => ["RUNNING"])
 
       nats.with_nats do
@@ -148,7 +98,7 @@ describe "Running an app immediately after staging", :type => :integration, :req
             port = instance_info["instance_host_port"]
 
             Dir.chdir("#{instance_info['warden_container_path']}") do
-              expect(`echo "cat /etc/lsb-release" | sudo ./bin/wsh`).to include('lucid')
+              expect(`echo "cat /etc/lsb-release" | sudo ./bin/wsh`).to include('trusty')
             end
 
             NATS.stop

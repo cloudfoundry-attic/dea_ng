@@ -98,13 +98,13 @@ describe Dea::Responders::StagingLocator do
 
   describe "#advertise" do
     it "publishes 'staging.advertise' message" do
-      config["stacks"] = [{"name" => "lucid64"}]
+      config["stacks"] = [{"name" => "cflinuxfs2"}]
       resource_manager.stub(:remaining_memory => 45678)
       resource_manager.stub(:remaining_disk => 12345)
 
       nats_mock.should_receive(:publish).with("staging.advertise", JSON.dump(
         "id" => dea_id,
-        "stacks" => ["lucid64"],
+        "stacks" => ["cflinuxfs2"],
         "available_memory" => 45678,
         "available_disk" => 12345,
       ))
@@ -113,7 +113,7 @@ describe Dea::Responders::StagingLocator do
 
     context "when a failure happens" do
       it "catches the error since this is the top level" do
-        config["stacks"] = [{"name" => "lucid64"}]
+        config["stacks"] = [{"name" => "cflinuxfs2"}]
         resource_manager.stub(:remaining_memory => 45678)
 
         nats_mock.stub(:publish).and_raise(RuntimeError, "somethingTerrible")
