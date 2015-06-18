@@ -223,7 +223,7 @@ module Dea
     def promise_stage
       Promise.new do |p|
         script = staging_command
-        logger.debug('staging.task.execute-staging', script: script)
+        logger.debug('staging.task.execute-staging')
 
         spawn_response = container.spawn(script)
         @warden_job_id = spawn_response.job_id
