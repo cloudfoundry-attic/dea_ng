@@ -722,6 +722,7 @@ describe Dea::Bootstrap do
     before do
       bootstrap.stub(:snapshot) { double(:snapshot, :load => nil) }
       bootstrap.stub(:start_component)
+      bootstrap.stub(:setup_sweepers)
       bootstrap.stub(:start_nats)
       bootstrap.stub(:start_directory_server)
       bootstrap.stub(:register_directory_server_v2)

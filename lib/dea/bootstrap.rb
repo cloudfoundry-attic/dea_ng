@@ -91,7 +91,6 @@ module Dea
       setup_directory_server_v2
       setup_directories
       setup_pid_file
-      setup_sweepers
     end
 
     def setup_varz
@@ -225,24 +224,6 @@ module Dea
       end
     end
 
-    def setup_sweepers
-      # Heartbeats of instances we're managing
-      hb_interval = config["intervals"]["heartbeat"] || DEFAULT_HEARTBEAT_INTERVAL
-      @heartbeat_timer = EM.add_periodic_timer(hb_interval) { send_heartbeat }
-
-      # Ensure we keep around only the most recent crash for short amount of time
-      instance_registry.start_reaper
-
-      # Remove unreferenced droplets
-      EM.add_periodic_timer(DROPLET_REAPER_INTERVAL_SECS) do
-        reap_unreferenced_droplets
-      end
-
-      EM.add_periodic_timer(CONTAINER_REAPER_INTERVAL_SECS) do
-        reap_orphaned_containers
-      end
-    end
-
     def reap_orphaned_containers
       logger.debug("Reaping orphaned containers")
 
@@ -291,7 +272,7 @@ module Dea
       ].each(&:start)
     end
 
-### /Setup_Stuff
+### /Start_Stuff
 
     def locator_responders
       return [] unless @responders
@@ -317,6 +298,24 @@ module Dea
       @uuid = VCAP::Component.uuid
     end
 
+    def setup_sweepers
+      # Heartbeats of instances we're managing
+      hb_interval = config["intervals"]["heartbeat"] || DEFAULT_HEARTBEAT_INTERVAL
+      @heartbeat_timer = EM.add_periodic_timer(hb_interval) { send_heartbeat }
+
+      # Ensure we keep around only the most recent crash for short amount of time
+      instance_registry.start_reaper
+
+      # Remove unreferenced droplets
+      EM.add_periodic_timer(DROPLET_REAPER_INTERVAL_SECS) do
+        reap_unreferenced_droplets
+      end
+
+      EM.add_periodic_timer(CONTAINER_REAPER_INTERVAL_SECS) do
+        reap_orphaned_containers
+      end
+    end
+
     def start_finish
       nats.publish("dea.start", Dea::Protocol::V1::HelloMessage.generate(self))
       locator_responders.map(&:advertise)
@@ -338,6 +337,7 @@ module Dea
       snapshot.load
 
       start_component
+      setup_sweepers
       start_nats
       setup_register_routes
       directory_server_v2.start
