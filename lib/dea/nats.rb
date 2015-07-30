@@ -104,7 +104,7 @@ module Dea
 
       ::NATS.connect(
         :servers => config["nats_servers"],
-        :max_reconnect_attempts => Float::INFINITY,
+        :max_reconnect_attempts => -1,
         :dont_randomize_servers => false,
       )
     end

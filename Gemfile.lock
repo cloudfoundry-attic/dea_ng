@@ -51,7 +51,7 @@ GEM
     cookiejar (0.3.0)
     crack (0.4.1)
       safe_yaml (~> 0.9.0)
-    daemons (1.1.9)
+    daemons (1.2.3)
     descendants_tracker (0.0.4)
       thread_safe (~> 0.3, >= 0.3.1)
     diff-lcs (1.2.4)
@@ -67,7 +67,7 @@ GEM
     em-synchrony (1.0.3)
       eventmachine (>= 1.0.0.beta.1)
     equalizer (0.0.9)
-    eventmachine (1.0.3)
+    eventmachine (1.0.8)
     ffi (1.0.11)
     fluent-logger (0.4.5)
       msgpack (= 0.4.7)
@@ -80,7 +80,7 @@ GEM
     i18n (0.7.0)
     ice_nine (0.11.1)
     json (1.8.1)
-    json_pure (1.8.1)
+    json_pure (1.8.2)
     loggregator_emitter (3.0.0)
       beefcake (~> 0.3.7)
     membrane (1.1.0)
@@ -91,9 +91,9 @@ GEM
     multi_json (1.10.1)
     multi_xml (0.5.5)
     multipart-post (2.0.0)
-    nats (0.5.0.beta.16)
-      daemons (~> 1.1, >= 1.1.9)
-      eventmachine (~> 1.0, >= 1.0.3)
+    nats (0.5.1)
+      daemons (~> 1.1, >= 1.2.2)
+      eventmachine (~> 1.0, >= 1.0.7)
       json_pure (~> 1.8, >= 1.8.1)
       thin (~> 1.6, >= 1.6.3)
     net-ssh (2.2.2)
@@ -101,7 +101,7 @@ GEM
       mini_portile (= 0.6.0)
     patron (0.4.18)
     posix-spawn (0.3.8)
-    rack (1.6.0)
+    rack (1.6.4)
     rack-accept (0.4.5)
       rack (>= 0.4)
     rack-mount (0.8.3)
@@ -188,11 +188,11 @@ DEPENDENCIES
   em-http-request
   em-synchrony
   em-warden-client!
-  eventmachine (= 1.0.3)
+  eventmachine (~> 1.0.3)
   foreman
   grape!
   loggregator_emitter
-  nats (>= 0.5.0.beta.12, < 0.6)
+  nats (>= 0.5.0, < 0.6)
   net-ssh
   nokogiri (~> 1.6.2)
   patron
@@ -214,3 +214,6 @@ DEPENDENCIES
   warden-protocol!
   webmock
   yajl-ruby
+
+BUNDLED WITH
+   1.10.6
