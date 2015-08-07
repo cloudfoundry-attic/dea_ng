@@ -1,7 +1,3 @@
-[![Build Status](https://travis-ci.org/cloudfoundry/dea_ng.png)](https://travis-ci.org/cloudfoundry/dea_ng)
-[![Code Climate](https://codeclimate.com/github/cloudfoundry/dea_ng.png)](https://codeclimate.com/github/cloudfoundry/dea_ng)
-[![Test Coverage](https://codeclimate.com/repos/51c35c4789af7e02e60135f8/badges/e623cae17f1ebc8e875e/coverage.png)](https://codeclimate.com/repos/51c35c4789af7e02e60135f8/feed)
-
 # dea_ng
 
 This repository contains the code for the Droplet Execution Agent (DEA)
