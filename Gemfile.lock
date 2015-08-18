@@ -1,8 +1,8 @@
 GIT
   remote: https://github.com/cloudfoundry/warden.git
-  revision: ad18bff7dc56acbc55ff10bcc6045ebdf0b20c97
+  revision: 686e4b133bba5c8a5c397e02f067d8baf6dd354f
   specs:
-    em-warden-client (0.1.1)
+    em-warden-client (0.1.2)
       eventmachine
       warden-client
       warden-protocol (>= 0.0.9)
