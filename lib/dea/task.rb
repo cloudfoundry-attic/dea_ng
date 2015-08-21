@@ -89,6 +89,7 @@ module Dea
 
       resolve_and_log(promise, "task.destroy") do |error, _|
         callback.call(error) unless callback.nil?
+        @container.close_all_connections if @container
       end
     end
 
