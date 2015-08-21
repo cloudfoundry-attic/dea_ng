@@ -138,6 +138,14 @@ describe Dea::Task do
     end
   end
 
+  describe "#destroy" do
+    it "closes all connections" do
+      expect(task.container).to receive(:close_all_connections)
+
+      task.destroy
+    end
+  end
+
   describe "#consuming_memory?" do
     it "returns true" do
       expect(task.consuming_memory?).to be_true
