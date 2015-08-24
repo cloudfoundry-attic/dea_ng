@@ -19,7 +19,7 @@ echo "warden is ready"
 # Start foreman (directory server & nats)
 
 sudo bundle install --without development
-sudo foreman start &
+sudo bundle exec foreman start &
 
 # Run specs
 
