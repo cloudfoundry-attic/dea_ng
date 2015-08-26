@@ -74,6 +74,7 @@ module Dea
           raise(error) if error
         ensure
           promise_destroy.resolve
+          @container.close_all_connections if @container
           FileUtils.rm_rf(workspace.workspace_dir)
         end
       end

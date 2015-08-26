@@ -599,6 +599,19 @@ YAML
       :callback_failure_cleanup_assertions => true
     }
 
+    context 'when finished' do
+      before do
+        stub_staging_setup
+        staging_task.should_receive(:resolve_staging)
+        stub_staging_upload
+      end
+
+      it 'should close all connections' do
+        expect(staging_task.container).to receive(:close_all_connections)
+        staging_task.start
+      end
+    end
+
     it 'should clean up after itself' do
       staging_task.workspace.stub(:prepare).and_raise('Error')
       stub_staging_upload
