@@ -69,9 +69,11 @@ module Dea
             end
           end
 
-          trigger_after_complete(error)
-
-          raise(error) if error
+          begin
+            trigger_after_complete(error)
+          rescue => e
+            logger.warn('staging.task.after_complete-failed', error: e, backtrace: e.backtrace)
+          end
         ensure
           promise_destroy.resolve
           @container.close_all_connections if @container
