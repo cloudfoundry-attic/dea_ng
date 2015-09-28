@@ -69,11 +69,9 @@ module Dea
             end
           end
 
-          begin
-            trigger_after_complete(error)
-          rescue => e
-            logger.warn('staging.task.after_complete-failed', error: e, backtrace: e.backtrace)
-          end
+          trigger_after_complete(error)
+
+          raise(error) if error
         ensure
           promise_destroy.resolve
           FileUtils.rm_rf(workspace.workspace_dir)

@@ -25,11 +25,7 @@ bootstrap = Dea::Bootstrap.new(config)
 
 EM.epoll
 
-begin
-  EM.run do
-    bootstrap.setup
-    bootstrap.start
-  end
-rescue => e
-  STDERR.puts "Encountered error: #{e}\n#{e.backtrace.join("\n")}"
+EM.run do
+  bootstrap.setup
+  bootstrap.start
 end
