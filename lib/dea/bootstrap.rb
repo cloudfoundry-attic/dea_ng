@@ -268,7 +268,6 @@ module Dea
         Dea::Responders::DeaLocator.new(nats, uuid, resource_manager, config),
         Dea::Responders::StagingLocator.new(nats, uuid, resource_manager, config),
         Dea::Responders::Staging.new(nats, uuid, self, staging_task_registry, directory_server_v2, resource_manager, config),
-        Dea::Responders::BuildpackDownloader.new(nats, config),
       ].each(&:start)
     end
 
@@ -334,6 +333,8 @@ module Dea
     end
 
     def start
+      download_buildpacks
+
       snapshot.load
 
       start_component
@@ -485,6 +486,33 @@ module Dea
       end
     rescue => e
       logger.error('periodic.varz.failure', error: e, backtrace: e.backtrace)
+    end
+
+    def download_buildpacks
+      return unless config['staging'] && config['staging']['enabled']
+
+      buildpacks_url = URI::join(config['cc_url'], '/internal/buildpacks')
+      http = EM::HttpRequest.new(buildpacks_url, :connect_timeout => 5).get
+      http.errback do
+        logger.error("buildpacks-request.error", error: http.error)
+      end
+
+      http.callback do
+        begin
+          http_status = http.response_header.status
+          if http_status == 200
+            workspace = StagingTaskWorkspace.new(config['base_dir'], nil)
+            Fiber.new do
+              AdminBuildpackDownloader.new(BuildpacksMessage.new(MultiJson.load(http.response)).buildpacks, workspace.admin_buildpacks_dir).download
+            end.resume
+            logger.info('buildpacks-downloaded.success')
+          else
+            logger.warn('buildpacks-request.failed', status: http_status)
+          end
+        rescue => e
+          logger.error("em-download.failed", error: e, backtrace: e.backtrace)
+        end
+      end
     end
 
     private

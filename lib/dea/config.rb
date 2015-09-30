@@ -67,6 +67,8 @@ module Dea
             "zone" => String
           },
 
+          "cc_url" => String,
+
           optional("crash_lifetime_secs") => Integer,
           optional("crash_block_usage_ratio_threshold") => Float,
           optional("crash_inode_usage_ratio_threshold") => Float,

@@ -70,3 +70,5 @@ stacks:
 
 placement_properties:
   zone: "CRAZY_TOWN"
+
+cc_url: https://user:password@api.localhost.xip.io
