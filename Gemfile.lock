@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/cloudfoundry/warden.git
-  revision: d9065ba9df3261517a2ababdb66ca22345d4b94d
+  revision: 181b550918c8c5354d3989ca557e64bc7a0b30c5
   specs:
     em-warden-client (0.1.2)
       eventmachine
@@ -9,7 +9,7 @@ GIT
     warden-client (0.1.0)
       warden-protocol (~> 0.1.0)
     warden-protocol (0.1.5)
-      beefcake (~> 0.3.0)
+      beefcake (~> 1.0.0)
 
 GIT
   remote: https://github.com/intridea/grape.git
@@ -40,7 +40,7 @@ GEM
       descendants_tracker (~> 0.0.4)
       ice_nine (~> 0.11.0)
       thread_safe (~> 0.3, >= 0.3.1)
-    beefcake (0.3.7)
+    beefcake (1.0.0)
     builder (3.2.2)
     ci_reporter (1.7.0)
       builder (>= 2.1.2)
@@ -81,8 +81,8 @@ GEM
     ice_nine (0.11.1)
     json (1.8.1)
     json_pure (1.8.2)
-    loggregator_emitter (3.0.0)
-      beefcake (~> 0.3.7)
+    loggregator_emitter (5.0.1)
+      beefcake (~> 1.0.0)
     membrane (1.1.0)
     mime-types (2.1)
     mini_portile (0.6.0)

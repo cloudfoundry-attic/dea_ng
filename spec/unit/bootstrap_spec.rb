@@ -80,15 +80,15 @@ describe Dea::Bootstrap do
   describe "loggregator setup" do
 
     it "should configure when router is valid" do
-      @config = { "index" => 0, "loggregator" => { "router" => "localhost:5432", "shared_secret" => "secret" } }
+      @config = { "index" => 0, "loggregator" => { "router" => "localhost:5432" } }
 
-      LoggregatorEmitter::Emitter.should_receive(:new).with("localhost:5432", "DEA", 0, "secret")
-      LoggregatorEmitter::Emitter.should_receive(:new).with("localhost:5432", "STG", 0, "secret")
+      LoggregatorEmitter::Emitter.should_receive(:new).with("localhost:5432", "DEA", "DEA", 0)
+      LoggregatorEmitter::Emitter.should_receive(:new).with("localhost:5432", "DEA", "STG", 0)
       bootstrap.setup_loggregator
     end
 
     it "should validate host" do
-      @config = { "index" => 0, "loggregator" => { "router" => ":5432", "shared_secret" => "secret" } }
+      @config = { "index" => 0, "loggregator" => { "router" => ":5432" } }
 
       expect {
         bootstrap.setup_loggregator
