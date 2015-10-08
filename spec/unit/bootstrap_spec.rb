@@ -720,6 +720,7 @@ describe Dea::Bootstrap do
 
   describe "start" do
     before do
+      bootstrap.stub(:download_buildpacks)
       bootstrap.stub(:snapshot) { double(:snapshot, :load => nil) }
       bootstrap.stub(:start_component)
       bootstrap.stub(:setup_sweepers)
@@ -760,6 +761,45 @@ describe Dea::Bootstrap do
         bootstrap.send_heartbeat
 
         expect(nats_mock).to have_received(:publish).with("dea.heartbeat", anything)
+      end
+    end
+  end
+
+  describe 'download_buildpacks' do
+    let(:buildpack_uri) { URI::join(@config['cc_url'], '/internal/buildpacks').to_s }
+
+    before do
+      @config['staging'] = { 'enabled' => true }
+      @config['cc_url'] = 'https://user:password@api.localhost.xip.io'
+    end
+
+    context 'when staging is disabled' do
+      before { @config.delete('staging') }
+
+      it 'does not download' do
+        expect(EM::HttpRequest).to_not receive(:new)
+        with_event_machine { bootstrap.download_buildpacks }
+      end
+    end
+
+    context 'when get returns with a non-200' do
+      it 'does not create an AdminBuildpacksDownloader' do
+        expect(AdminBuildpackDownloader).not_to receive(:new)
+
+        stub_request(:get, buildpack_uri).to_return(status: 500)
+        with_event_machine { bootstrap.download_buildpacks }
+      end
+    end
+
+    context 'when it retrieves the buildpacks' do
+      it 'downloads the buildpacks' do
+        stub_request(:get, buildpack_uri).to_return(status: 200, body: '[{ "key": "first-buildpack", "url": "first-url"}, {"key": "second-buildpack", "url": "second-url"}]')
+
+        expect(AdminBuildpackDownloader).to receive(:new).with(
+          [{key: 'first-buildpack', url: URI('first-url')},{key:'second-buildpack',url: URI('second-url')}],
+          File.join(@config['base_dir'], "admin_buildpacks"))
+
+        with_event_machine { bootstrap.download_buildpacks }
       end
     end
   end

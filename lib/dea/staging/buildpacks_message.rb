@@ -1,7 +1,3 @@
-require "dea/starting/start_message"
-require "steno"
-require "steno/core_ext"
-
 class BuildpacksMessage
   def initialize(message)
     @message = message
