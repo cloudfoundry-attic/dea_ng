@@ -14,6 +14,7 @@ shared_context "bootstrap_setup" do
         "router_register_in_seconds" => 20,
       },
       "runtimes" => %w[test1 test2],
+      "cc_url" => "cc.example.com",
       "directory_server" => {
         "v2_port" => 23456,
       },
