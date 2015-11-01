@@ -666,11 +666,13 @@ describe Dea::Instance do
 
       it 'succeeds when the call succeeds' do
         instance.config['bind_mounts'] = [{'src_path' => '/var/src/', 'dst_path' => '/var/dst'}]
+        instance.config['instance']['bandwidth_limit'] = { 'rate' => 1_000_000, 'burst' => 5_000_000 }
 
         expected_bind_mounts = [
             {'src_path' => droplet.droplet_dirname, 'dst_path' => droplet.droplet_dirname},
             {'src_path' => '/var/src/', 'dst_path' => '/var/dst'}
         ]
+        expected_bandwidth_limit = { rate: 1_000_000, burst: 5_000_000 }
         with_network = true
         instance.container.should_receive(:create_container).
             with(bind_mounts: expected_bind_mounts,
@@ -680,7 +682,8 @@ describe Dea::Instance do
                  limit_memory: instance.memory_limit_in_bytes,
                  setup_inbound_network: with_network,
                  egress_rules: instance.egress_network_rules,
-                rootfs: rootfs)
+                 rootfs: rootfs,
+                 limit_bandwidth: expected_bandwidth_limit)
         expect_start.to_not raise_error
         instance.exit_description.should be_empty
       end
@@ -713,38 +716,6 @@ describe Dea::Instance do
           instance.attributes['warden_handle']
         }.from(nil).to('some-handle')
       end
-
-      # context "when stop is called during STARTING" do
-      #   it "transitions to stopping AFTER it starts" do
-      #     instance.class.send(:alias_method, :original_state=, :state=)
-      #     allow(instance).to receive(:state=).with(Dea::Instance::State::STARTING) do |state|
-      #       instance.original_state = state
-      #
-      #       instance.hook('after_stop') { mutex.release }
-      #       Thread.new do
-      #         instance.stop()
-      #       end
-      #       mutex.wait
-      #     end
-      #
-      #     instance.unstub(:promise_exec_hook_script)
-      #
-      #
-      #     instance.should_receive(:state=).with(Dea::Instance::State::STARTING).ordered
-      #     instance.should_receive(:state=).with(Dea::Instance::State::RUNNING).ordered
-      #     instance.should_receive(:state=).with(Dea::Instance::State::STOPPING).ordered
-      #     instance.should_receive(:state=).with(Dea::Instance::State::STOPPED).ordered
-      #
-      #     # original_set_state = instance.method(:state=)
-      #     # allow(instance).to receive(:state=).with(Dea::Instance::State::STARTING) do |state|
-      #     #   original_set_state.call(state)
-      #     #   instance.stop()
-      #     # end
-      #     #
-      #     # expect(instance).to receive(:state=).with(Dea::Instance::State::STARTING)
-      #     expect_start.to_not raise_error
-      #   end
-      # end
     end
 
     describe 'cpu_shares' do
@@ -754,7 +725,7 @@ describe Dea::Instance do
         instance.config['instance']['memory_to_cpu_share_ratio'] = 8
       end
 
-      it 'is calcuted from app memory divided by share_factor' do
+      it 'is calculated from app memory divided by share_factor' do
         # app memory (512MB) / share factor (8)
         expect(instance.cpu_shares).to eq(64)
       end

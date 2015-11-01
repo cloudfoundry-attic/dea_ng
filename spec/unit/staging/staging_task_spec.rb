@@ -42,7 +42,8 @@ describe Dea::StagingTask do
         'memory_limit_mb' => memory_limit_mb,
         'disk_limit_mb' => disk_limit_mb,
         'disk_inode_limit' => disk_inode_limit,
-        'max_staging_duration' => max_staging_duration
+        'max_staging_duration' => max_staging_duration,
+        'bandwidth_limit' => { 'rate' => 20_000_000, 'burst' => 100_000_000 },
       },
     }
   end
@@ -668,6 +669,7 @@ YAML
 
     it 'performs staging setup operations in correct order' do
       with_network = false
+      expected_bandwidth = { rate: 20_000_000, burst: 100_000_000 }
       staging_task.workspace.should_receive(:prepare).ordered
       staging_task.workspace.workspace_dir
       staging_task.container.should_receive(:create_container).
@@ -678,7 +680,8 @@ YAML
              limit_memory: staging_task.memory_limit_in_bytes,
              setup_inbound_network: with_network,
              egress_rules: staging_task.staging_message.egress_rules,
-             rootfs: rootfs).ordered
+             rootfs: rootfs,
+             limit_bandwidth: expected_bandwidth).ordered
       %w(
         promise_app_download
         promise_prepare_staging_log

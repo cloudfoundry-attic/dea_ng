@@ -539,6 +539,13 @@ module Dea
       services.map { |svc_hash| svc_hash['syslog_drain_url'] }.compact
     end
 
+    def bandwidth_limit
+      limit = config.staging_bandwidth_limit
+      return nil unless limit
+
+      { rate: limit['rate'], burst: limit['burst'] }
+    end
+
     def resolve_staging_setup
       workspace.prepare(buildpack_manager)
       with_network = false
@@ -556,6 +563,7 @@ module Dea
         setup_inbound_network: with_network,
         egress_rules: staging_message.egress_rules,
         rootfs: rootfs,
+        limit_bandwidth: bandwidth_limit,
       )
       promises = [promise_app_download]
       promises << promise_buildpack_cache_download if staging_message.buildpack_cache_download_uri

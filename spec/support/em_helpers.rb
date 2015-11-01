@@ -7,7 +7,7 @@ module Helpers
     raise "no block given" unless block_given?
     timeout = options[:timeout] ||= 10
 
-    ::EM.epoll
+    ::EM.epoll if ::EM.epoll?
 
     ::EM.run do
       quantum = 0.005

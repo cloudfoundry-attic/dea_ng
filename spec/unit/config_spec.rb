@@ -59,6 +59,25 @@ module Dea
       end
     end
 
+    describe '#rootfs_path' do
+      let(:stacks) { [{ 'name' => 'my-stack', 'package_path' => '/path/to/rootfs' }] }
+      let(:config_hash) { { 'stacks' => stacks } }
+
+      context 'when the stack name exists in the config' do
+        let(:stack_name) { 'my-stack' }
+
+        it 'returns the associated rootfs path' do
+          expect(config.rootfs_path(stack_name)).to eq('/path/to/rootfs')
+        end
+      end
+
+      context 'when the stack name does not exist in the config' do
+        it 'returns nil' do
+          expect(config.rootfs_path('not-exist')).to be_nil
+        end
+      end
+    end
+
     describe "#staging_disk_inode_limit" do
       context "when the config hash has no key for staging disk inode limit" do
         let(:config_hash) { { "staging" => { } } }
@@ -81,31 +100,6 @@ module Dea
       end
     end
 
-    describe '#rootfs_path' do
-      let(:stacks) do
-        [
-          {
-            'name' => 'my-stack',
-            'package_path' => '/path/to/rootfs',
-          }
-        ]
-      end
-      let(:config_hash) { { 'stacks' => stacks } }
-
-      context 'when the stack name exists in the config' do
-        let(:stack_name) { 'my-stack' }
-        it 'returns the associated rootfs path' do
-          expect(config.rootfs_path(stack_name)).to eq('/path/to/rootfs')
-        end
-      end
-
-      context 'when the stack name does not exist in the config' do
-        it 'raises an error' do
-          expect(config.rootfs_path('not-exist')).to be_nil
-        end
-      end
-    end
-
     describe "#instance_disk_inode_limit" do
       context "when the config hash has no key for instance disk inode limit" do
         let(:config_hash) { { "instance" => { } } }
@@ -124,6 +118,44 @@ module Dea
 
         it "provides a reasonable default" do
           expect(config.instance_disk_inode_limit).to eq(disk_inode_limit)
+        end
+      end
+    end
+
+    describe "#staging_bandwidth_limit" do
+      context "when the config hash does not have a staging bandwidth limit" do
+        let(:config_hash) { { "staging" => {} } }
+
+        it "returns nil" do
+          expect(config.staging_bandwidth_limit).to be_nil
+        end
+      end
+
+      context "when the config hash has a staging_bandwidth_limit defined" do
+        let(:bandwidth) { { "rate" => 1000000, "burst" => 2000000 } }
+        let(:config_hash) { { "staging" => { "bandwidth_limit" => bandwidth } } }
+
+        it "returns the staging bandwidth limit" do
+          expect(config.staging_bandwidth_limit).to eq(bandwidth)
+        end
+      end
+    end
+
+    describe "#instance_bandwidth_limit" do
+      context "when the config hash does not have an instance bandwidth limit" do
+        let(:config_hash) { { "instance" => {} } }
+
+        it "returns nil" do
+          expect(config.instance_bandwidth_limit).to be_nil
+        end
+      end
+
+      context "when the config hash has an instance_bandwidth_limit defined" do
+        let(:bandwidth) { { "rate" => 1000000, "burst" => 2000000 } }
+        let(:config_hash) { { "instance" => { "bandwidth_limit" => bandwidth } } }
+
+        it "returns the instance bandwidth limit" do
+          expect(config.instance_bandwidth_limit).to eq(bandwidth)
         end
       end
     end

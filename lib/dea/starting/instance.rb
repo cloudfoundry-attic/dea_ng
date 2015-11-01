@@ -548,7 +548,9 @@ module Dea
           limit_memory: memory_limit_in_bytes,
           setup_inbound_network: with_network,
           egress_rules: egress_network_rules,
-          rootfs: rootfs)
+          rootfs: rootfs,
+          limit_bandwidth: bandwidth_limit,
+        )
 
         attributes['warden_handle'] = container.handle
 
@@ -935,6 +937,13 @@ module Dea
 
     def default_health_check_timeout
       config['default_health_check_timeout']
+    end
+
+    def bandwidth_limit
+      limit = config.instance_bandwidth_limit
+      return nil unless limit
+
+      { rate: limit['rate'], burst: limit['burst'] }
     end
 
     def logger

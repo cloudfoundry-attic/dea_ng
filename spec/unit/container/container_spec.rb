@@ -409,6 +409,7 @@ describe Container do
       setup_inbound_network: true,
       egress_rules: [{ 'protocol' => 'tcp', 'port' => '80', 'destination' => '198.41.191.47/1' }],
       rootfs: rootfs,
+      limit_bandwidth: { rate: 1_000_000, burst: 5_000_000 },
     } }
 
     it 'raises an error when a required parameter is missing' do
@@ -423,11 +424,12 @@ describe Container do
       end
     end
 
-    it 'creates a new container with cpu, disk size in byte, disk inode limit, memory limit, and egress rules' do
+    it 'creates a new container with cpu, disk size in byte, disk inode limit, memory limit, bandwidth limit, and egress rules' do
       container.should_receive(:new_container_with_bind_mounts_and_rootfs).with(bind_mounts, rootfs)
       container.should_receive(:limit_cpu).with(params[:limit_cpu])
       container.should_receive(:limit_disk).with(byte: params[:byte], inode: params[:inode])
       container.should_receive(:limit_memory).with(params[:limit_memory])
+      container.should_receive(:limit_bandwidth).with(params[:limit_bandwidth])
       container.should_receive(:setup_inbound_network)
       container.should_receive(:setup_egress_rules).with(params[:egress_rules])
 
@@ -441,10 +443,25 @@ describe Container do
       container.stub(:limit_cpu)
       container.stub(:limit_disk)
       container.stub(:limit_memory)
+      container.stub(:limit_bandwidth)
       container.stub(:setup_egress_rules)
 
       container.should_not_receive(:setup_inbound_network)
       container.create_container(params)
+    end
+
+    it 'does not limit bandwidth if the parameter is missing' do
+      container.stub(:new_container_with_bind_mounts_and_rootfs)
+      container.stub(:limit_cpu)
+      container.stub(:limit_disk)
+      container.stub(:limit_memory)
+      container.stub(:setup_inbound_network)
+      container.stub(:setup_egress_rules)
+
+      container.should_not_receive(:limit_bandwidth)
+
+      params_without_limit_bandwidth = params.reject { |k, _| k == :limit_bandwidth }
+      container.create_container(params_without_limit_bandwidth)
     end
   end
 
@@ -591,6 +608,22 @@ describe Container do
         disk_inodes_limit_response
       end
       container.limit_disk(inode: disk_inodes_limit)
+    end
+  end
+
+  describe 'bandwidth limiting' do
+    context 'when a bandwidth limit is provided' do
+      it 'sets the limit' do
+        limit = { rate: 1_000_000, burst: 5_000_000 }
+        connection.should_receive(:call) do |request|
+          expect(request).to be_an_instance_of(::Warden::Protocol::LimitBandwidthRequest)
+          expect(request.rate).to eq(limit[:rate])
+          expect(request.burst).to eq(limit[:burst])
+
+          double('limit bandwidth response', resolve: nil)
+        end
+        container.limit_bandwidth(limit)
+      end
     end
   end
 
