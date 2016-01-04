@@ -38,7 +38,7 @@ describe Buildpacks::Git, type: :buildpack do
 
   describe "#clone" do
     it "clones a URL" do
-      Buildpacks::Git.should_receive(:system)
+      allow(Buildpacks::Git).to receive(:system)
         .with(*"git clone --depth 1 --recursive #{simple_url} /tmp/buildpacks/heroku-buildpack-java".split)
         .and_return(true)
 
@@ -48,7 +48,7 @@ describe Buildpacks::Git, type: :buildpack do
     end
 
     it "clones a URL with a branch" do
-      Buildpacks::Git.should_receive(:system)
+      allow(Buildpacks::Git).to receive(:system)
         .with(*"git clone --depth 1 -b #{branch} --recursive #{simple_url} /tmp/buildpacks/heroku-buildpack-java".split)
         .and_return(true)
 
@@ -56,13 +56,13 @@ describe Buildpacks::Git, type: :buildpack do
     end
 
     it "clones a URL with a lighweight tag" do
-      Buildpacks::Git.should_receive(:system)
+      allow(Buildpacks::Git).to receive(:system)
         .with(*"git clone --depth 1 -b #{branch} --recursive #{simple_url} /tmp/buildpacks/heroku-buildpack-java".split)
         .and_return(false)
-      Buildpacks::Git.should_receive(:system)
+      allow(Buildpacks::Git).to receive(:system)
         .with(*"git clone --recursive #{simple_url} /tmp/buildpacks/heroku-buildpack-java".split)
         .and_return(true)
-      Buildpacks::Git.should_receive(:checkout)
+      allow(Buildpacks::Git).to receive(:checkout)
         .with(branch, "#{destination}/heroku-buildpack-java")
         .and_return(true)
 
@@ -71,12 +71,12 @@ describe Buildpacks::Git, type: :buildpack do
 
     context "when the deep cloning fails" do
       it "raises an error" do
-        Buildpacks::Git.should_receive(:system)
+        allow(Buildpacks::Git).to receive(:system)
           .with(*"git clone --depth 1 -b #{branch} --recursive #{simple_url} /tmp/buildpacks/heroku-buildpack-java".split)
           .and_return(false)
 
         cmd = "git clone --recursive #{simple_url} /tmp/buildpacks/heroku-buildpack-java"
-        Buildpacks::Git.should_receive(:system)
+        allow(Buildpacks::Git).to receive(:system)
           .with(*cmd.split)
           .and_return(false)
 
@@ -91,7 +91,7 @@ describe Buildpacks::Git, type: :buildpack do
     let(:git_dir) { "#{destination}/heroku-buildpack-java"}
 
     it "performs a checkout" do
-      Buildpacks::Git.should_receive(:system)
+      allow(Buildpacks::Git).to receive(:system)
         .with(*"git --git-dir=#{git_dir}/.git --work-tree=#{git_dir} checkout #{branch}".split)
         .and_return(true)
 
@@ -101,7 +101,7 @@ describe Buildpacks::Git, type: :buildpack do
     context "when checkout fails" do
       it "raises an error" do
         cmd = "git --git-dir=#{git_dir}/.git --work-tree=#{git_dir} checkout #{branch}"
-        Buildpacks::Git.should_receive(:system)
+        allow(Buildpacks::Git).to receive(:system)
           .with(*cmd.split)
           .and_return(false)
 

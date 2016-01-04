@@ -7,7 +7,7 @@ describe Dea do
   include_context "bootstrap_setup"
 
   it "should periodically send out heartbeats on 'dea.heartbeat' for all instances" do
-    bootstrap.unstub(:setup_sweepers)
+    allow(bootstrap).to receive(:setup_sweepers).and_call_original
 
     instances = []
     heartbeats = []
@@ -42,10 +42,10 @@ describe Dea do
       end
     end
 
-    heartbeats.size.should == instances.size
+    expect(heartbeats.size).to eq(instances.size)
     instances.size.times do |ii|
-      heartbeats[ii].has_key?("dea").should be_true
-      heartbeats[ii]["droplets"].size.should == (instances.size - ii)
+      expect(heartbeats[ii].has_key?("dea")).to be true
+      expect(heartbeats[ii]["droplets"].size).to eq((instances.size - ii))
 
       # Check that we received the correct heartbeats
       heartbeats[ii]["droplets"].each_with_index do |hb, jj|
@@ -76,8 +76,8 @@ describe Dea do
 
     # Being a bit lazy here by not validating message returned, however,
     # that codepath is exercised by the periodic heartbeat tests.
-    heartbeat.should_not be_nil
-    heartbeat["droplets"].size.should == 2
+    expect(heartbeat).to_not be_nil
+    expect(heartbeat["droplets"].size).to eq(2)
   end
 
   describe "instance state filtering" do
@@ -138,12 +138,12 @@ describe Dea do
 
   def verify_instance_heartbeat(hb, instance)
     hb_keys = %w[cc_partition droplet version instance index state state_timestamp]
-    hb.keys.should == hb_keys
-    hb["cc_partition"].should == instance.cc_partition
-    hb["droplet"].should == instance.application_id
-    hb["version"].should == instance.application_version
-    hb["instance"].should == instance.instance_id
-    hb["index"].should == instance.instance_index
-    hb["state"].should == instance.state
+    expect(hb.keys).to eq(hb_keys)
+    expect(hb["cc_partition"]).to eq(instance.cc_partition)
+    expect(hb["droplet"]).to eq(instance.application_id)
+    expect(hb["version"]).to eq(instance.application_version)
+    expect(hb["instance"]).to eq(instance.instance_id)
+    expect(hb["index"]).to eq(instance.instance_index)
+    expect(hb["state"]).to eq(instance.state)
   end
 end

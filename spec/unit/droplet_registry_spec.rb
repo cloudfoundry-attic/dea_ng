@@ -19,10 +19,12 @@ describe Dea::DropletRegistry do
     Dea::DropletRegistry.new(tmpdir)
   end
 
-  it { should be_kind_of(Hash) }
+  it 'is a hash' do
+    expect(droplet_registry).to be_a(Hash)
+  end
 
   it "should create Droplet objects when indexed" do
-    droplet_registry[sha1].should be_kind_of(Dea::Droplet)
+    expect(droplet_registry[sha1]).to be_kind_of(Dea::Droplet)
   end
 
   it "should initialize with existing droplets" do
@@ -33,8 +35,8 @@ describe Dea::DropletRegistry do
     end
 
     droplet_registry = Dea::DropletRegistry.new(tmpdir)
-    droplet_registry.should have(3).droplets
-    droplet_registry.keys.sort.should == sha1s.sort
+    expect(droplet_registry.size).to eq(3)
+    expect(droplet_registry.keys.sort).to eq(sha1s.sort)
   end
 
   it "raises when the sha is nil" do

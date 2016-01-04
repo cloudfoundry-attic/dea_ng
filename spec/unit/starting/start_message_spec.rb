@@ -15,7 +15,6 @@ describe StartMessage do
       "droplet" => "some-app-id",
       "name" => "some-app-name",
       "uris" => uris,
-      "prod" => false,
       "sha1" => "foobar",
       "executableFile" => "deprecated",
       "executableUri" => "http://www.someuri.com",
@@ -36,113 +35,142 @@ describe StartMessage do
 
   subject(:message) { StartMessage.new(start_message) }
 
-  its(:index) { should eq 1 }
-  its(:droplet) { should eq "some-app-id" }
-  its(:version) { should eq "some-version" }
-  its(:name) { should eq "some-app-name" }
-  its(:uris) { should eq [URI("http://www.someuri.com")] }
-  its(:prod) { should be_false }
-  its(:executable_uri) { should eq URI("http://www.someuri.com") }
-  its(:executable_file) { should eq "deprecated" }
-  its(:cc_partition) { should eq "default" }
-  its(:limits) { should eq limits }
-  its(:mem_limit) { should eq 64 }
-  its(:disk_limit) { should eq 128 }
-  its(:fds_limit) { should eq 32 }
-  its(:sha1) { should eq "foobar" }
-  its(:services) { should eq(["a_service"]) }
-  its(:env) { should eq([]) }
-  its(:console) { should be_false }
-  its(:debug) { should be_true }
-  its(:start_command) { should eq "rails s -s $PORT" }
-  its(:vcap_application) { should eq "message vcap_application" }
-  its(:to_hash) { should eq start_message }
-  its(:egress_network_rules) { should eq(["a" => "rule"]) }
-  its(:stack) { should eq stack }
+  it "has attributes" do
+    expect(message.index).to eq 1
+    expect(message.droplet).to eq "some-app-id"
+    expect(message.version).to eq "some-version"
+    expect(message.name).to eq "some-app-name"
+    expect(message.uris).to eq [URI("http://www.someuri.com")]
+    expect(message.executable_uri).to eq URI("http://www.someuri.com")
+    expect(message.executable_file).to eq "deprecated"
+    expect(message.cc_partition).to eq "default"
+    expect(message.limits).to eq limits
+    expect(message.mem_limit).to eq 64
+    expect(message.disk_limit).to eq 128
+    expect(message.fds_limit).to eq 32
+    expect(message.sha1).to eq "foobar"
+    expect(message.services).to eq(["a_service"])
+    expect(message.env).to eq([])
+    expect(message.console).to be false
+    expect(message.debug).to be true
+    expect(message.start_command).to eq "rails s -s $PORT"
+    expect(message.vcap_application).to eq "message vcap_application"
+    expect(message.to_hash).to eq start_message
+    expect(message.egress_network_rules).to eq(["a" => "rule"])
+    expect(message.stack).to eq stack
+    end
 
   context "when there is no limits" do
     before { start_message.delete("limits") }
 
-    its(:mem_limit) { should be_nil }
-    its(:disk_limit) { should be_nil }
-    its(:fds_limit) { should be_nil }
+    it "has no limits" do
+      expect(message.mem_limit).to be_nil
+      expect(message.disk_limit).to be_nil
+      expect(message.fds_limit).to be_nil
+    end
   end
 
   context "when the limits are nil" do
     let(:limits) { nil }
 
-    its(:mem_limit) { should be_nil }
-    its(:disk_limit) { should be_nil }
-    its(:fds_limit) { should be_nil }
+    it "has no limits" do
+      expect(message.mem_limit).to be_nil
+      expect(message.disk_limit).to be_nil
+      expect(message.fds_limit).to be_nil
+    end
   end
 
   context "when the limits is empty" do
     let(:limits) { {} }
 
-    its(:mem_limit) { should be_nil }
-    its(:disk_limit) { should be_nil }
-    its(:fds_limit) { should be_nil }
+    it "has no limits" do
+      expect(message.mem_limit).to be_nil
+      expect(message.disk_limit).to be_nil
+      expect(message.fds_limit).to be_nil
+    end
   end
 
   context "when there are nil uris" do
     let(:uris) { nil }
-    its(:uris) { should eq([]) }
+
+    it 'has no uris' do
+      expect(message.uris).to eq([])
+    end
   end
 
   context "when there are no uris" do
     before { start_message.delete("uris") }
-    its(:uris) { should eq([]) }
+
+    it 'has no uris' do
+      expect(message.uris).to eq([])
+    end
   end
 
   context "when the list of uris is empty" do
     let(:uris) { [] }
-    its(:uris) { should eq([]) }
+
+    it 'has no uris' do
+      expect(message.uris).to eq([])
+    end
   end
 
   context "when the debug option is not present" do
     let(:debug) { nil }
-    its(:debug) { should be_false }
+
+    it 'should be false' do
+      expect(message.debug).to be false
+    end
   end
 
-  context "when the debug option is not present" do
+  context "when the console option is not present" do
     let(:console) { nil }
-    its(:console) { should be_false }
+
+    it 'should be false' do
+      expect(message.console).to be false
+    end
   end
 
   context "when there are no services" do
     let(:services) { nil }
-    its(:services) { should eq([]) }
+
+    it 'should be empty' do
+      expect(message.services).to eq([])
+    end
   end
 
   context "when there are no egress network rules" do
     let(:egress_network_rules) { nil }
-    its(:egress_network_rules) { should eq([]) }
+
+    it 'should be empty' do
+      expect(message.egress_network_rules).to eq([])
+    end
   end
 
-  context "since start messages are nested in staging messages, its possible to have an empty start message" do
+  context "when there is no start message" do
     let(:start_message) { nil }
 
-    its(:index) { should be_nil }
-    its(:droplet) { should be_nil }
-    its(:version) { should be_nil }
-    its(:name) { should be_nil }
-    its(:uris) { should eq([]) }
-    its(:prod) { should be_false }
-    its(:executable_uri) { should be_nil }
-    its(:executable_file) { should be_nil }
-    its(:cc_partition) { should be_nil }
-    its(:limits) { should eq({}) }
-    its(:mem_limit) { should be_nil }
-    its(:disk_limit) { should be_nil }
-    its(:fds_limit) { should be_nil }
-    its(:sha1) { should be_nil }
-    its(:services) { should eq([]) }
-    its(:env) { should eq([]) }
-    its(:console) { should be_false }
-    its(:debug) { should be_false }
-    its(:start_command) { should be_nil }
-    its(:to_hash) { should eq({})}
-    its(:vcap_application) { should eq({})}
-    its(:egress_network_rules) { should eq([]) }
+    it 'has no values' do
+      expect(message.index).to be_nil
+      expect(message.droplet).to be_nil
+      expect(message.version).to be_nil
+      expect(message.name).to be_nil
+      expect(message.uris).to eq([])
+      expect(message.executable_uri).to be_nil
+      expect(message.executable_file).to be_nil
+      expect(message.cc_partition).to be_nil
+      expect(message.limits).to eq({})
+      expect(message.mem_limit).to be_nil
+      expect(message.disk_limit).to be_nil
+      expect(message.fds_limit).to be_nil
+      expect(message.sha1).to be_nil
+      expect(message.services).to eq([])
+      expect(message.env).to eq([])
+      expect(message.console).to be false
+      expect(message.debug).to be false
+      expect(message.start_command).to be_nil
+      expect(message.to_hash).to eq({})
+      expect(message.vcap_application).to eq({})
+      expect(message.egress_network_rules).to eq([])
+    end
   end
 end

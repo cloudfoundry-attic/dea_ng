@@ -12,7 +12,7 @@ describe Buildpacks::Procfile, :type => :buildpack do
 
   describe "#contents" do
     it "should only read the file contents once" do
-      YAML.should_receive(:load).with(anything).once.and_call_original
+      allow(YAML).to receive(:load).with(anything).once.and_call_original
       file = Buildpacks::Procfile.new(path)
       file.contents
       file.contents

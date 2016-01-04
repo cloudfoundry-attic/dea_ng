@@ -7,10 +7,10 @@ describe Dea do
   include_context "bootstrap_setup"
 
   before do
-    bootstrap.unstub(:setup_router_client)
-    bootstrap.unstub(:setup_directory_server_v2)
-    bootstrap.unstub(:directory_server_v2)
-    bootstrap.unstub(:register_directory_server_v2)
+    allow(bootstrap).to receive(:setup_router_client).and_call_original
+    allow(bootstrap).to receive(:setup_directory_server_v2).and_call_original
+    allow(bootstrap).to receive(:directory_server_v2).and_call_original
+    allow(bootstrap).to receive(:register_directory_server_v2).and_call_original
   end
 
   it "registers the directory server and instances on a time interval" do
@@ -39,8 +39,8 @@ describe Dea do
         instances << instance
       end
 
+      expect(EM).to receive(:add_periodic_timer).with(20)
       bootstrap.start
-      expect(EM).to have_received(:add_periodic_timer).with(20)
 
       done
     end
@@ -74,17 +74,17 @@ describe Dea do
       nats = double
       instance = double
 
-      bs.stub(:nats).and_return(nats)
-      bs.stub(:uuid).and_return("1-deadbeef")
-      bs.stub(:config).and_return({ "index" => 1 })
+      allow(bs).to receive(:nats).and_return(nats)
+      allow(bs).to receive(:uuid).and_return("1-deadbeef")
+      allow(bs).to receive(:config).and_return({ "index" => 1 })
 
-      instance.stub(:application_id)
-      instance.stub(:application_uris)
-      bs.stub(:local_ip)
-      instance.stub(:instance_host_port)
-      instance.stub(:private_instance_id)
+      allow(instance).to receive(:application_id)
+      allow(instance).to receive(:application_uris)
+      allow(bs).to receive(:local_ip)
+      allow(instance).to receive(:instance_host_port)
+      allow(instance).to receive(:private_instance_id)
 
-      nats.should_receive(:publish).with(anything, hash_including("tags" => hash_including("component" => "dea-1")))
+      allow(nats).to receive(:publish).with(anything, hash_including("tags" => hash_including("component" => "dea-1")))
       client = Dea::RouterClient.new(bs)
       client.register_instance(instance)
     end
@@ -150,8 +150,8 @@ describe Dea do
         end
 
         2.times do |ii|
-          reqs[ii.to_s].should_not be_nil
-          reqs[ii.to_s]["uris"].should == new_uris[ii]
+          expect(reqs[ii.to_s]).to_not be_nil
+          expect(reqs[ii.to_s]["uris"]).to eq(new_uris[ii])
         end
       end
 
@@ -190,8 +190,8 @@ describe Dea do
 
         bootstrap.instance_registry.each do |instance|
           app_id = instance.application_id
-          reqs[app_id.to_s].should_not be_nil
-          reqs[app_id.to_s]["uris"].should == (old_uris[app_id] - new_uris[app_id])
+          expect(reqs[app_id.to_s]).to_not be_nil
+          expect(reqs[app_id.to_s]["uris"]).to eq((old_uris[app_id] - new_uris[app_id]))
         end
       end
 
@@ -229,7 +229,7 @@ describe Dea do
           end
 
           it "changes the instance's id" do
-            bootstrap.instance_registry.lookup_instance(instance.instance_id).should == instance
+            expect(bootstrap.instance_registry.lookup_instance(instance.instance_id)).to eq(instance)
 
             expect {
               with_event_machine do
@@ -245,7 +245,7 @@ describe Dea do
               end
             }.to change { instance.instance_id }
 
-            bootstrap.instance_registry.lookup_instance(instance.instance_id).should == instance
+            expect(bootstrap.instance_registry.lookup_instance(instance.instance_id)).to eq(instance)
           end
         end
       end
@@ -284,7 +284,7 @@ describe Dea do
       end
 
       it "should not change the instance's id" do
-        bootstrap.instance_registry.lookup_instance(instance.instance_id).should == instance
+        expect(bootstrap.instance_registry.lookup_instance(instance.instance_id)).to eq(instance)
 
         expect {
           with_event_machine do
@@ -302,7 +302,7 @@ describe Dea do
           instance.instance_id
         }
 
-        bootstrap.instance_registry.lookup_instance(instance.instance_id).should == instance
+        expect(bootstrap.instance_registry.lookup_instance(instance.instance_id)).to eq(instance)
       end
     end
   end

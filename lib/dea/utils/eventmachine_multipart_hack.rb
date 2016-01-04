@@ -3,7 +3,7 @@ require 'em-http'
 require 'em-http/version'
 require 'active_support/core_ext/module/aliasing'
 
-raise "Upgrade hack if necessary" if EM::HttpRequest::VERSION != "1.0.3"
+raise "Upgrade hack if necessary" if EM::HttpRequest::VERSION != "1.1.3"
 
 EventMachine::HttpClient::MULTIPART_HACK = "x-cf-multipart".freeze
 
@@ -49,7 +49,7 @@ EventMachine::HttpClient.class_eval do
 
   def http_header(file, head, multipart_header)
     [
-      encode_request(@req.method, @req.uri, @req.query, @conn.connopts.proxy),
+      encode_request(@req.method, @req.uri, @req.query, @conn.connopts),
       encode_headers(head.merge(
         "content-type" => "multipart/form-data; boundary=#{boundary}",
         "content-length" => File.size(file) + multipart_header.length

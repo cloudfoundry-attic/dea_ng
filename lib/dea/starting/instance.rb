@@ -537,7 +537,8 @@ module Dea
         bind_mounts = [{'src_path' => droplet.droplet_dirname, 'dst_path' => droplet.droplet_dirname}]
         with_network = true
 
-        rootfs = config.rootfs_path(attributes['stack'])
+        stack = attributes['stack']
+        rootfs = config.rootfs_path(stack)
         raise StackNotFoundError.new("Stack #{stack} does not exist") if rootfs.nil?
 
         container.create_container(

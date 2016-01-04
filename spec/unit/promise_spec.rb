@@ -63,7 +63,7 @@ describe Dea::Promise do
 
   it "should yield itself" do
     p = Dea::Promise.new do |*args|
-      args.should == [p]
+      expect(args).to eq([p])
       p.deliver
     end
 
@@ -85,7 +85,7 @@ describe Dea::Promise do
       Dea::Promise.resolve(p, &b)
     }.to yield_control
 
-    p.elapsed_time.should be_within(0.01).of(5)
+    expect(p.elapsed_time).to be_within(0.01).of(5)
   end
 
   it "can run without resolve" do

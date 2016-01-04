@@ -27,10 +27,6 @@ class StartMessage
     (message["uris"] || []).map { |uri| URI(uri) }
   end
 
-  def prod
-    message["prod"]
-  end
-
   def executable_uri
     URI(message["executableUri"]) if message["executableUri"]
   end

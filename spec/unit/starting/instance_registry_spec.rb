@@ -29,18 +29,18 @@ describe Dea::InstanceRegistry do
     end
 
     it "should change the instance_id on the instance" do
-      instance.instance_id.should_not == @old_instance_id
+      expect(instance.instance_id).to_not eq(@old_instance_id)
     end
 
     it "should return the instance when querying against the new instance_id" do
-      instance_registry.lookup_instance(@old_instance_id).should be_nil
-      instance_registry.lookup_instance(instance.instance_id).should == instance
+      expect(instance_registry.lookup_instance(@old_instance_id)).to be_nil
+      expect(instance_registry.lookup_instance(instance.instance_id)).to eq(instance)
     end
 
     context "when looking up by application_id, the instances have the correct changed id" do
       it "should rearrange the by_application cache" do
         instances = instance_registry.instances_for_application(instance.application_id)
-        instances.should == { instance.instance_id => instance }
+        expect(instances).to eq({ instance.instance_id => instance })
       end
     end
   end
@@ -48,13 +48,13 @@ describe Dea::InstanceRegistry do
   describe "#register" do
     it "should allow one to lookup the instance by id" do
       instance_registry.register(instance)
-      instance_registry.lookup_instance(instance.instance_id).should == instance
+      expect(instance_registry.lookup_instance(instance.instance_id)).to eq(instance)
     end
 
     it "should allow one to lookup the instance by application id" do
       instance_registry.register(instance)
       instances = instance_registry.instances_for_application(instance.application_id)
-      instances.should == { instance.instance_id => instance }
+      expect(instances).to eq({ instance.instance_id => instance })
     end
 
     it "should log to the loggregator" do
@@ -74,12 +74,12 @@ describe Dea::InstanceRegistry do
 
     it "should ensure the instance cannot be looked up by id" do
       instance_registry.unregister(instance)
-      instance_registry.lookup_instance(instance.instance_id).should be_nil
+      expect(instance_registry.lookup_instance(instance.instance_id)).to be_nil
     end
 
     it "should ensure the instance cannot be looked up by application id" do
       instance_registry.unregister(instance)
-      instance_registry.instances_for_application(instance.application_id).should == {}
+      expect(instance_registry.instances_for_application(instance.application_id)).to eq({})
     end
 
     it "should log to the loggregator" do
@@ -101,10 +101,10 @@ describe Dea::InstanceRegistry do
 
     it "should return all registered instances for the supplied application id" do
       instances = instance_registry.instances_for_application(instance.application_id)
-      instances.should == {
+      expect(instances).to eq({
         instance.instance_id => instance,
         instance1.instance_id => instance1,
-      }
+      })
     end
   end
 
@@ -138,18 +138,18 @@ describe Dea::InstanceRegistry do
     it "should iterate over all registered instances" do
       seen = []
       instance_registry.each { |instance| seen << instance }
-      seen.should == [instance, instance1]
+      expect(seen).to eq([instance, instance1])
     end
   end
 
   describe "#empty?" do
     it "should return true if no instances are registered" do
-      instance_registry.empty?.should be_true
+      expect(instance_registry.empty?).to be true
     end
 
     it "should return false if any instances are registered" do
       instance_registry.register(instance)
-      instance_registry.empty?.should be_false
+      expect(instance_registry.empty?).to be false
     end
   end
 
@@ -160,7 +160,7 @@ describe Dea::InstanceRegistry do
     end
 
     it "should return all registered instances" do
-      instance_registry.instances.should =~ [instance1, instance]
+      expect(instance_registry.instances).to include(instance1, instance)
     end
   end
 
@@ -280,7 +280,7 @@ describe Dea::InstanceRegistry do
         instance_registry.reap_orphaned_crashes
 
         after_defers_finish do
-          instance.should be_reaped
+          expect(instance).to be_reaped
 
           done
         end
@@ -294,7 +294,7 @@ describe Dea::InstanceRegistry do
         instance_registry.reap_orphaned_crashes
 
         after_defers_finish do
-          instance.should_not be_reaped
+          expect(instance).to_not be_reaped
 
           done
         end
@@ -325,8 +325,8 @@ describe Dea::InstanceRegistry do
 
     before do
       x = Time.now
-      x.stub(:to_i).and_return(time_of_check)
-      Time.stub(:now).and_return(x)
+      allow(x).to receive(:to_i).and_return(time_of_check)
+      allow(Time).to receive(:now).and_return(x)
     end
 
     it "should reap crashes that are too old" do
@@ -340,8 +340,8 @@ describe Dea::InstanceRegistry do
         instance_registry.reap_crashes
 
         after_defers_finish do
-          instances[0].should_not be_reaped
-          instances[1].should be_reaped
+          expect(instances[0]).to_not be_reaped
+          expect(instances[1]).to be_reaped
 
           done
         end
@@ -359,9 +359,9 @@ describe Dea::InstanceRegistry do
         instance_registry.reap_crashes
 
         after_defers_finish do
-          instances[0].should_not be_reaped
-          instances[1].should be_reaped
-          instances[2].should be_reaped
+          expect(instances[0]).to_not be_reaped
+          expect(instances[1]).to be_reaped
+          expect(instances[2]).to be_reaped
 
           done
         end
@@ -387,7 +387,7 @@ describe Dea::InstanceRegistry do
     end
 
     it "should reap under disk pressure" do
-      instance_registry.should_receive(:disk_pressure?).and_return(true, false)
+      expect(instance_registry).to receive(:disk_pressure?).and_return(true, false)
 
       instances = 2.times.map do |i|
         register_crashed_instance(instance_registry,
@@ -398,8 +398,8 @@ describe Dea::InstanceRegistry do
         instance_registry.reap_crashes_under_disk_pressure
 
         after_defers_finish do
-          instances[0].should be_reaped
-          instances[1].should_not be_reaped
+          expect(instances[0]).to be_reaped
+          expect(instances[1]).to_not be_reaped
 
           done
         end
@@ -407,7 +407,7 @@ describe Dea::InstanceRegistry do
     end
 
     it "should continue reaping while under disk pressure" do
-      instance_registry.stub(:disk_pressure?).and_return(true)
+      allow(instance_registry).to receive(:disk_pressure?).and_return(true)
 
       instances = 2.times.map do |i|
         register_crashed_instance(instance_registry,
@@ -418,8 +418,8 @@ describe Dea::InstanceRegistry do
         instance_registry.reap_crashes_under_disk_pressure
 
         after_defers_finish do
-          instances[0].should be_reaped
-          instances[1].should be_reaped
+          expect(instances[0]).to be_reaped
+          expect(instances[1]).to be_reaped
 
           done
         end
@@ -432,8 +432,8 @@ describe Dea::InstanceRegistry do
 
     before do
       x = Time.now
-      x.stub(:to_i).and_return(time_of_check)
-      Time.stub(:now).and_return(x)
+      allow(x).to receive(:to_i).and_return(time_of_check)
+      allow(Time).to receive(:now).and_return(x)
     end
 
     it "should reap stoppings that are too old" do
@@ -448,8 +448,8 @@ describe Dea::InstanceRegistry do
         instance_registry.reap_stopping
 
         after_defers_finish do
-          instances[0].should_not be_stopped
-          instances[1].should be_stopped
+          expect(instances[0]).to_not be_stopped
+          expect(instances[1]).to be_stopped
 
           done
         end
@@ -502,39 +502,30 @@ describe Dea::InstanceRegistry do
     end
 
     it "should return false when #stat raises" do
-      Sys::Filesystem.should_receive(:stat).and_raise("error")
+      expect(Sys::Filesystem).to receive(:stat).and_raise("error")
 
-      instance_registry.disk_pressure?.should be_false
+      expect(instance_registry.disk_pressure?).to be false
     end
 
     it "should return false when thresholds are not reached" do
-      stat = double
-      stat.stub(:blocks => 10, :blocks_free => 8)
-      stat.stub(:files => 10, :files_free => 8)
+      stat = double(:blocks => 10, :blocks_free => 8, :files => 10, :files_free => 8)
+      expect(Sys::Filesystem).to receive(:stat).and_return(stat)
 
-      Sys::Filesystem.should_receive(:stat).and_return(stat)
-
-      instance_registry.disk_pressure?.should be_false
+      expect(instance_registry.disk_pressure?).to be false
     end
 
     it "should return true when block threshold is reached" do
-      stat = double
-      stat.stub(:blocks => 10, :blocks_free => 2)
-      stat.stub(:files => 10, :files_free => 8)
+      stat = double(:blocks => 10, :blocks_free => 2, :files => 10, :files_free => 8)
+      expect(Sys::Filesystem).to receive(:stat).and_return(stat)
 
-      Sys::Filesystem.should_receive(:stat).and_return(stat)
-
-      instance_registry.disk_pressure?.should be_true
+      expect(instance_registry.disk_pressure?).to be true
     end
 
     it "should return true when inode threshold is reached" do
-      stat = double
-      stat.stub(:blocks => 10, :blocks_free => 8)
-      stat.stub(:files => 10, :files_free => 2)
+      stat = double(:blocks => 10, :blocks_free => 8, :files => 10, :files_free => 2)
+      expect(Sys::Filesystem).to receive(:stat).and_return(stat)
 
-      Sys::Filesystem.should_receive(:stat).and_return(stat)
-
-      instance_registry.disk_pressure?.should be_true
+      expect(instance_registry.disk_pressure?).to be true
     end
   end
 
@@ -557,12 +548,12 @@ describe Dea::InstanceRegistry do
     instance.state = Dea::Instance::State::CRASHED
 
     options.each do |key, value|
-      instance.stub(key).and_return(value)
+      allow(instance).to receive(key).and_return(value)
     end
 
     crash_path = File.join(config.crashes_path, instance.instance_id)
 
-    instance.stub(:reaped?) do
+    allow(instance).to receive(:reaped?) do
       File.directory?(crash_path) == false
     end
 
@@ -578,7 +569,7 @@ describe Dea::InstanceRegistry do
     instance.state = Dea::Instance::State::STARTING
 
     options.each do |key, value|
-      instance.stub(key).and_return(value)
+      allow(instance).to receive(key).and_return(value)
     end
 
     instance_registry.register(instance) if instance_registry
@@ -591,7 +582,7 @@ describe Dea::InstanceRegistry do
     instance.state = Dea::Instance::State::STOPPING
 
     options.each do |key, value|
-      instance.stub(key).and_return(value)
+      allow(instance).to receive(key).and_return(value)
     end
 
     instance_registry.register(instance) if instance_registry

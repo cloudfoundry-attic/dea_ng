@@ -17,20 +17,20 @@ describe HMACHelper do
 
   describe "#create" do
     it "returns sha1 hmac value" do
-      subject.create("value").should == VALUE_HMAC
+      expect(subject.create("value")).to eq(VALUE_HMAC)
     end
   end
 
   describe "#compare" do
     context "when string hmac matches given hmac" do
       it "returns true" do
-        subject.compare(VALUE_HMAC, "value").should be_true
+        expect(subject.compare(VALUE_HMAC, "value")).to be true
       end
     end
 
     context "when string hmac does not given hmac" do
       it "returns false" do
-        subject.compare(VALUE_HMAC, "value1").should be_false
+        expect(subject.compare(VALUE_HMAC, "value1")).to be false
       end
     end
   end

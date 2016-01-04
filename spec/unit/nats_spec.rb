@@ -11,7 +11,7 @@ describe Dea::Nats do
   subject(:nats) { Dea::Nats.new(bootstrap, config) }
 
   describe "subscription setup" do
-    before { bootstrap.stub(:uuid).and_return("UUID") }
+    before { allow(bootstrap).to receive(:uuid).and_return("UUID") }
     before { nats.start }
 
     {
@@ -25,9 +25,9 @@ describe Dea::Nats do
       it "should subscribe to #{subject.inspect}" do
         data = { "subject" => subject }
 
-        bootstrap.should_receive(method).with(kind_of(Dea::Nats::Message)) do |message|
-          message.subject.should == subject
-          message.data.should == data
+        allow(bootstrap).to receive(method).with(kind_of(Dea::Nats::Message)) do |message|
+          expect(message.subject).to eq(subject)
+          expect(message.data).to eq(data)
         end
 
         nats_mock.receive_message(subject, data)
@@ -35,9 +35,8 @@ describe Dea::Nats do
     end
 
     it "subscribes to router.start" do
-      allow(bootstrap).to receive(:handle_router_start)
+      expect(bootstrap).to receive(:handle_router_start)
       nats_mock.receive_message("router.start", "")
-      expect(bootstrap).to have_received(:handle_router_start)
     end
   end
 
@@ -70,7 +69,7 @@ describe Dea::Nats do
 
   describe "subscription teardown" do
     it "should unsubscribe from everything when stop is called" do
-      nats.sids.each { |_, sid| nats_mock.should_receive(:unsubscribe).with(sid) }
+      nats.sids.each { |_, sid| expect(nats_mock).to receive(:unsubscribe).with(sid) }
 
       nats.stop
     end
@@ -82,7 +81,7 @@ describe Dea::Nats do
         message.respond(message.data)
       end
 
-      nats_mock.should_receive(:publish).with("echo.reply", %{{"hello":"world"}})
+      expect(nats_mock).to receive(:publish).with("echo.reply", %{{"hello":"world"}})
       nats_mock.receive_message("echo", { "hello" => "world" }, "echo.reply")
     end
 
@@ -102,12 +101,12 @@ describe Dea::Nats do
   describe "#subscribe" do
     it "returns subscription id" do
       sids = [nats.subscribe("subject-2"), nats.subscribe("subject-1")]
-      sids.uniq.should == sids
+      expect(sids.uniq).to eq(sids)
     end
 
     it "does not unsubscribe if subscribed with do-not-track-subscription option" do
       nats.subscribe("subject-1", :do_not_track_subscription => true)
-      nats_mock.should_not_receive(:unsubscribe)
+      expect(nats_mock).to_not receive(:unsubscribe)
       nats.stop
     end
 

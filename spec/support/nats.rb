@@ -80,7 +80,7 @@ module NatsClientMockHelpers
     before do
       @nats_mock = NatsClientMock.new({})
       allow(NATS).to receive(:connect) do |opts|
-        opts[:max_reconnect_attempts].should == -1
+        expect(opts[:max_reconnect_attempts]).to eq(-1)
         nats_mock
       end
     end

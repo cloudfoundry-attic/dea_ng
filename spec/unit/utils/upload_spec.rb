@@ -48,7 +48,7 @@ describe Upload do
       stub_request(:post, "http://127.0.0.1:12345/").with(query: {async: "true"})
       ran = false
       subject.upload! { ran = true }
-      expect(ran).to be_false
+      expect(ran).to be false
       done
     end
 
@@ -75,8 +75,8 @@ describe Upload do
 
       it "uploads a file" do
         subject.upload! do |error|
-          error.should be_nil
-          uploaded_contents.should match(/.*multipart-boundary-.*Content-Disposition.*This is the file contents.*multipart-boundary-.*/m)
+          expect(error).to be_nil
+          expect(uploaded_contents).to match(/.*multipart-boundary-.*Content-Disposition.*This is the file contents.*multipart-boundary-.*/m)
           done
         end
       end

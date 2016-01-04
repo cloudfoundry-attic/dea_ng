@@ -34,7 +34,7 @@ describe Dea::ResourceManager do
   describe "#remaining_memory" do
     context "when no instances or staging tasks are registered" do
       it "returns the full memory capacity" do
-        manager.remaining_memory.should eql(memory_mb * memory_overcommit_factor)
+        expect(manager.remaining_memory).to eql(memory_mb * memory_overcommit_factor)
       end
     end
 
@@ -52,7 +52,7 @@ describe Dea::ResourceManager do
       end
 
       it "returns the correct remaining memory" do
-        manager.remaining_memory.should eql(nominal_memory_capacity - (1 + 2 + 4 + 8 + 1024))
+        expect(manager.remaining_memory).to eql(nominal_memory_capacity - (1 + 2 + 4 + 8 + 1024))
       end
     end
   end
@@ -63,7 +63,7 @@ describe Dea::ResourceManager do
       let(:reserved_staging_disk) { 0 }
 
       it "returns the full disk capacity" do
-        manager.remaining_disk.should eql(nominal_disk_capacity)
+        expect(manager.remaining_disk).to eql(nominal_disk_capacity)
       end
     end
 
@@ -81,7 +81,7 @@ describe Dea::ResourceManager do
       end
 
       it "returns the correct remaining disk" do
-        manager.remaining_disk.should eql(nominal_disk_capacity - (1 + 2 + 4 + 8 + 32 + 2048))
+        expect(manager.remaining_disk).to eql(nominal_disk_capacity - (1 + 2 + 4 + 8 + 32 + 2048))
       end
     end
   end
@@ -101,7 +101,7 @@ describe Dea::ResourceManager do
     end
 
     it "should return all registered instances regardless of state" do
-      manager.app_id_to_count.should == {
+      expect(manager.app_id_to_count).to eq({
         "a" => 1,
         "b" => 2,
         "c" => 3,
@@ -109,7 +109,7 @@ describe Dea::ResourceManager do
         "e" => 1,
         "f" => 1,
         "g" => 1,
-      }
+      })
     end
   end
 
@@ -121,32 +121,32 @@ describe Dea::ResourceManager do
 
     context "when there is not enough memory to reserve any" do
       it "is 0" do
-        manager.number_reservable(10_000, 1).should == 0
+        expect(manager.number_reservable(10_000, 1)).to eq(0)
       end
     end
 
     context "when there is not enough disk to reserve any" do
       it "is 0" do
-        manager.number_reservable(1, 10_000).should == 0
+        expect(manager.number_reservable(1, 10_000)).to eq(0)
       end
     end
 
     context "when there are enough resources for a single reservation" do
       it "is 1" do
-        manager.number_reservable(500, 3000).should == 1
+        expect(manager.number_reservable(500, 3000)).to eq(1)
       end
     end
 
     context "when there are enough resources for many reservations" do
       it "is correct" do
-        manager.number_reservable(200, 1500).should == 2
-        manager.number_reservable(200, 1000).should == 3
+        expect(manager.number_reservable(200, 1500)).to eq(2)
+        expect(manager.number_reservable(200, 1000)).to eq(3)
       end
     end
 
     context "when 0 resources are requested" do
       it "returns 0" do
-        manager.number_reservable(0, 0).should == 0
+        expect(manager.number_reservable(0, 0)).to eq(0)
       end
     end
   end
@@ -158,7 +158,7 @@ describe Dea::ResourceManager do
     end
 
     it "is the ratio of available memory to total memory" do
-      manager.available_memory_ratio.should == 1 - (512.0 + 1024.0) / nominal_memory_capacity
+      expect(manager.available_memory_ratio).to eq(1 - (512.0 + 1024.0) / nominal_memory_capacity)
     end
   end
 
@@ -169,7 +169,7 @@ describe Dea::ResourceManager do
     end
 
     it "is the ratio of available disk to total disk" do
-      manager.available_disk_ratio.should == 1 - (512.0 + 2048.0) / nominal_disk_capacity
+      expect(manager.available_disk_ratio).to eq(1 - (512.0 + 2048.0) / nominal_disk_capacity)
     end
   end
 
@@ -185,19 +185,19 @@ describe Dea::ResourceManager do
     describe "could_reserve?" do
       context "when the given amounts of memory and disk are available (including extra 'headroom' memory)" do
         it "can reserve" do
-          manager.could_reserve?(@remaining_memory - 1, @remaining_disk - 1).should be_true
+          expect(manager.could_reserve?(@remaining_memory - 1, @remaining_disk - 1)).to be true
         end
       end
 
       context "when too much memory is being used" do
         it "can't reserve" do
-          manager.could_reserve?(@remaining_memory + 1, 1).should be_false
+          expect(manager.could_reserve?(@remaining_memory + 1, 1)).to be false
         end
       end
 
       context "when too much disk is being used" do
         it "can't reserve" do
-          manager.could_reserve?(1, @remaining_disk + 1).should be_false
+          expect(manager.could_reserve?(1, @remaining_disk + 1)).to be false
         end
       end
     end
@@ -205,13 +205,13 @@ describe Dea::ResourceManager do
     describe "could_reserve_memory?" do
       context "with enough memory" do
         it "can reserve memory" do
-          manager.could_reserve_memory?(@remaining_memory).should be_true
+          expect(manager.could_reserve_memory?(@remaining_memory)).to be true
         end
       end
 
       context "when too much memory is being used" do
         it "can't reserve" do
-          manager.could_reserve_memory?(@remaining_memory + 1).should be_false
+          expect(manager.could_reserve_memory?(@remaining_memory + 1)).to be false
         end
       end
     end
@@ -219,13 +219,13 @@ describe Dea::ResourceManager do
     describe "could_reserve_disk?" do
       context "with enough disk" do
         it "can reserve disk" do
-          manager.could_reserve_disk?(@remaining_disk).should be_true
+          expect(manager.could_reserve_disk?(@remaining_disk)).to be true
         end
       end
 
       context "when too much disk is being used" do
         it "can't reserve" do
-          manager.could_reserve_disk?(@remaining_disk + 1).should be_false
+          expect(manager.could_reserve_disk?(@remaining_disk + 1)).to be false
         end
       end
     end

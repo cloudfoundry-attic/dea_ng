@@ -39,8 +39,8 @@ describe Dea::Responders::Staging do
   let(:config) { {"directory_server" => {"file_api_port" => 2345}} }
 
   before do
-    config.stub(:minimum_staging_memory_mb) { 1 }
-    config.stub(:minimum_staging_disk_mb) { 2 }
+    allow(config).to receive(:minimum_staging_memory_mb).and_return(1)
+    allow(config).to receive(:minimum_staging_disk_mb).and_return(2)
   end
 
   subject { described_class.new(nats, dea_id, bootstrap, staging_task_registry, dir_server, resource_manager, config) }
@@ -51,7 +51,7 @@ describe Dea::Responders::Staging do
 
       it "does not listen to staging" do
         subject.start
-        subject.should_not_receive(:handle)
+        expect(subject).to_not receive(:handle)
         nats_mock.publish("staging")
       end
     end
@@ -61,35 +61,35 @@ describe Dea::Responders::Staging do
 
       it "subscribes to 'staging' message" do
         subject.start
-        subject.should_receive(:handle)
+        allow(subject).to receive(:handle)
         nats_mock.publish("staging")
       end
 
       it "subscribes to 'staging.<dea-id>.start' message" do
         subject.start
-        subject.should_receive(:handle)
+        allow(subject).to receive(:handle)
         nats_mock.publish("staging.#{dea_id}.start")
       end
 
       it "subscribes to 'staging.stop' message" do
         subject.start
-        subject.should_receive(:handle_stop)
+        allow(subject).to receive(:handle_stop)
         nats_mock.publish("staging.stop")
       end
 
       it "subscribes to staging message as part of the queue group" do
-        nats_mock.should_receive(:subscribe).with("staging", :queue => "staging")
-        nats_mock.should_receive(:subscribe).with("staging.#{dea_id}.start", {})
-        nats_mock.should_receive(:subscribe).with("staging.stop", {})
+        allow(nats_mock).to receive(:subscribe).with("staging", :queue => "staging")
+        allow(nats_mock).to receive(:subscribe).with("staging.#{dea_id}.start", {})
+        allow(nats_mock).to receive(:subscribe).with("staging.stop", {})
         subject.start
       end
 
       it "subscribes to staging message but manually tracks the subscription" do
-        nats.should_receive(:subscribe).with(
+        allow(nats).to receive(:subscribe).with(
           "staging", hash_including(:do_not_track_subscription => true))
-        nats.should_receive(:subscribe).with(
+        allow(nats).to receive(:subscribe).with(
           "staging.#{dea_id}.start", hash_including(:do_not_track_subscription => true))
-        nats.should_receive(:subscribe).with(
+        allow(nats).to receive(:subscribe).with(
           "staging.stop", hash_including(:do_not_track_subscription => true))
         subject.start
       end
@@ -103,36 +103,36 @@ describe Dea::Responders::Staging do
       before { subject.start }
 
       it "unsubscribes from 'staging' message" do
-        subject.should_receive(:handle) # sanity check
+        allow(subject).to receive(:handle) # sanity check
         nats_mock.publish("staging")
 
         subject.stop
-        subject.should_not_receive(:handle)
+        expect(subject).to_not receive(:handle)
         nats_mock.publish("staging")
       end
 
       it "unsubscribes from 'staging.stop' message" do
-        subject.should_receive(:handle_stop) # sanity check
+        allow(subject).to receive(:handle_stop) # sanity check
         nats_mock.publish("staging.stop")
 
         subject.stop
-        subject.should_not_receive(:handle_stop)
+        expect(subject).to_not receive(:handle_stop)
         nats_mock.publish("staging.stop")
       end
 
       it "unsubscribes from 'staging.<dea-id>.start' message" do
-        subject.should_receive(:handle) # sanity check
+        allow(subject).to receive(:handle) # sanity check
         nats_mock.publish("staging.#{dea_id}.start")
 
         subject.stop
-        subject.should_not_receive(:handle)
+        expect(subject).to_not receive(:handle)
         nats_mock.publish("staging.#{dea_id}.start")
       end
     end
 
     context "when subscription was not made" do
       it "does not unsubscribe" do
-        nats.should_not_receive(:unsubscribe)
+        expect(nats).to_not receive(:unsubscribe)
         subject.stop
       end
     end
@@ -140,11 +140,11 @@ describe Dea::Responders::Staging do
 
   describe "#handle" do
     before do
-      Dea::StagingTask.stub(:new => staging_task)
-      staging_task.stub(:after_setup_callback)
-      staging_task.stub(:after_complete_callback)
-      staging_task.stub(:after_stop_callback)
-      staging_task.stub(:start)
+      allow(Dea::StagingTask).to receive(:new).and_return(staging_task)
+      allow(staging_task).to receive(:after_setup_callback)
+      allow(staging_task).to receive(:after_complete_callback)
+      allow(staging_task).to receive(:after_stop_callback)
+      allow(staging_task).to receive(:start)
     end
 
     def self.it_registers_task
@@ -169,14 +169,13 @@ describe Dea::Responders::Staging do
 
     context "staging async" do
       it "starts staging task with registered callbacks" do
-        Dea::StagingTask
-          .should_receive(:new)
+        allow(Dea::StagingTask).to receive(:new)
           .with(bootstrap, dir_server, instance_of(StagingMessage), [], an_instance_of(Steno::TaggedLogger))
           .and_return(staging_task)
 
-        staging_task.should_receive(:after_setup_callback).ordered
-        staging_task.should_receive(:after_complete_callback).ordered
-        staging_task.should_receive(:start).ordered
+        allow(staging_task).to receive(:after_setup_callback).ordered
+        allow(staging_task).to receive(:after_complete_callback).ordered
+        allow(staging_task).to receive(:start).ordered
 
         subject.handle(message)
       end
@@ -191,8 +190,7 @@ describe Dea::Responders::Staging do
           { url: URI("http://www.goolge.com"), key: key }
         end
 
-        Dea::StagingTask
-          .should_receive(:new)
+        allow(Dea::StagingTask).to receive(:new)
           .with(bootstrap, dir_server, instance_of(StagingMessage), buildpacks_in_use, an_instance_of(Steno::TaggedLogger))
           .and_return(staging_task)
 
@@ -212,18 +210,18 @@ describe Dea::Responders::Staging do
       it_registers_task
 
       it "saves snapshot" do
-        bootstrap.snapshot.should_receive(:save)
+        allow(bootstrap.snapshot).to receive(:save)
         subject.handle(message)
       end
 
       describe "after staging container setup" do
-        before { staging_task.stub(:streaming_log_url).and_return("streaming-log-url") }
+        before { allow(staging_task).to receive(:streaming_log_url).and_return("streaming-log-url") }
 
         context "when staging succeeds setting up staging container" do
-          before { staging_task.stub(:after_setup_callback).and_yield(nil) }
+          before { allow(staging_task).to receive(:after_setup_callback).and_yield(nil) }
 
           it "responds with successful message" do
-            nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
+            allow(nats_mock).to receive(:publish).with("respond-to", JSON.dump(
               "task_id" => "task-id",
               "task_streaming_log_url" => "streaming-log-url",
               "error" => nil,
@@ -233,10 +231,10 @@ describe Dea::Responders::Staging do
         end
 
         context "when staging fails to set up staging container" do
-          before { staging_task.stub(:after_setup_callback).and_yield(RuntimeError.new("error-description")) }
+          before { allow(staging_task).to receive(:after_setup_callback).and_yield(RuntimeError.new("error-description")) }
 
           it "responds with error message" do
-            nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
+            allow(nats_mock).to receive(:publish).with("respond-to", JSON.dump(
               "task_id" => "task-id",
               "task_streaming_log_url" => "streaming-log-url",
               "error" => "error-description",
@@ -251,12 +249,12 @@ describe Dea::Responders::Staging do
           let(:buildpack_key) { "some_buildpack_key" }
 
           before do
-            staging_task.stub(:after_complete_callback).and_yield(nil)
-            bootstrap.stub(:start_app)
+            allow(staging_task).to receive(:after_complete_callback).and_yield(nil)
+            allow(bootstrap).to receive(:start_app)
           end
 
           it "responds successful message" do
-            nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
+            allow(nats_mock).to receive(:publish).with("respond-to", JSON.dump(
               "task_id" => "task-id",
               "detected_buildpack" => nil,
               "buildpack_key" => "some_buildpack_key",
@@ -274,15 +272,15 @@ describe Dea::Responders::Staging do
           it "saves snapshot" do
             called = false
 
-            staging_task.should_receive(:after_complete_callback) do |&blk|
-              bootstrap.snapshot.should_receive(:save)
+            allow(staging_task).to receive(:after_complete_callback) do |&blk|
+              allow(bootstrap.snapshot).to receive(:save)
               blk.call
               called = true
             end
 
             subject.handle(message)
 
-            expect(called).to be_true
+            expect(called).to be true
           end
 
           it "logs to the loggregator" do
@@ -298,7 +296,7 @@ describe Dea::Responders::Staging do
             let(:message) { Dea::Nats::Message.new(nats, nil, {"app_id" => app_id, "start_message" => start_message}, "respond-to") }
 
             it "handles instance start with updated droplet sha" do
-              bootstrap.should_receive(:start_app).with(start_message)
+              allow(bootstrap).to receive(:start_app).with(start_message)
               subject.handle(message)
             end
           end
@@ -307,14 +305,14 @@ describe Dea::Responders::Staging do
         context "when failed" do
           let(:staging_error_info) {{ "type" => "NoAppDetectedError", "message" => "oh noes" }}
           before do
-            staging_task.stub(:after_complete_callback) do |&blk|
-              staging_task.stub(:droplet_sha1) { nil }
+            allow(staging_task).to receive(:after_complete_callback) do |&blk|
+              allow(staging_task).to receive(:droplet_sha1).and_return(nil)
               blk.call(RuntimeError.new("error-description"))
             end
           end
 
           it "responds with error message" do
-            nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
+            allow(nats_mock).to receive(:publish).with("respond-to", JSON.dump(
               "task_id" => "task-id",
               "detected_buildpack" => nil,
               "buildpack_key" => nil,
@@ -334,28 +332,28 @@ describe Dea::Responders::Staging do
           it "saves snapshot" do
             called = false
 
-            staging_task.should_receive(:after_complete_callback) do |&blk|
-              bootstrap.snapshot.should_receive(:save)
+            allow(staging_task).to receive(:after_complete_callback) do |&blk|
+              allow(bootstrap.snapshot).to receive(:save)
               blk.call(RuntimeError.new("error-description"))
               called = true
             end
 
             subject.handle(message)
 
-            expect(called).to be_true
+            expect(called).to be true
           end
 
           it "does not start an instance" do
-            bootstrap.should_not_receive(:start_app)
+            expect(bootstrap).to_not receive(:start_app)
             subject.handle(message)
           end
         end
 
         context "when stopped" do
-          before { staging_task.stub(:after_stop_callback).and_yield(Dea::StagingTask::StagingTaskStoppedError.new) }
+          before { allow(staging_task).to receive(:after_stop_callback).and_yield(Dea::StagingTask::StagingTaskStoppedError.new) }
 
           it "responds with error message" do
-            nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
+            allow(nats_mock).to receive(:publish).with("respond-to", JSON.dump(
               "task_id" => "task-id",
               "error" => "Error staging: task stopped",
             ))
@@ -367,15 +365,15 @@ describe Dea::Responders::Staging do
           it "saves snapshot" do
             called = false
 
-            staging_task.should_receive(:after_stop_callback) do |&blk|
-              bootstrap.snapshot.should_receive(:save)
+            allow(staging_task).to receive(:after_stop_callback) do |&blk|
+              allow(bootstrap.snapshot).to receive(:save)
               blk.call
               called = true
             end
 
             subject.handle(message)
 
-            expect(called).to be_true
+            expect(called).to be true
           end
         end
       end
@@ -383,29 +381,29 @@ describe Dea::Responders::Staging do
 
     context "when an error occurs during staging" do
       it "catches the error since this is the top level" do
-        Dea::StagingTask.stub(:new).and_raise(RuntimeError, "Some Horrible thing happened")
+        allow(Dea::StagingTask).to receive(:new).and_raise(RuntimeError, "Some Horrible thing happened")
         expect { subject.handle(message) }.to_not raise_error
       end
     end
 
     context "when not enough resources available" do
       before do
-        resource_manager.stub(:could_reserve?) { false }
-        resource_manager.stub(:get_constrained_resource) { "memory" }
+        allow(resource_manager).to receive(:could_reserve?).and_return(false)
+        allow(resource_manager).to receive(:get_constrained_resource).and_return("memory")
       end
 
       it "does not register staging task" do
-        staging_task_registry.should_not_receive(:register)
+        expect(staging_task_registry).to_not receive(:register)
         subject.handle(message)
       end
 
       it "does not start staging task" do
-        staging_task.should_not_receive(:start)
+        expect(staging_task).to_not receive(:start)
         subject.handle(message)
       end
 
       it "responds to staging request with the error" do
-        nats_mock.should_receive(:publish).with("respond-to", JSON.dump(
+        allow(nats_mock).to receive(:publish).with("respond-to", JSON.dump(
           "task_id" => staging_task.task_id,
           "error" => "Not enough memory resources available",
         ))
@@ -422,13 +420,13 @@ describe Dea::Responders::Staging do
     end
 
     it "stops all staging tasks with the given id" do
-      staging_task.should_receive(:stop)
+      allow(staging_task).to receive(:stop)
       subject.handle_stop(message)
     end
 
     describe "when an error occurs" do
       it "catches the error since this is the top level" do
-        staging_task.stub(:stop).and_raise(RuntimeError, "Some Terrible Error")
+        allow(staging_task).to receive(:stop).and_raise(RuntimeError, "Some Terrible Error")
         expect { subject.handle_stop(message) }.to_not raise_error
       end
     end

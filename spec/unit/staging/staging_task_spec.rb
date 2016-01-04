@@ -54,7 +54,7 @@ describe Dea::StagingTask do
 
   let(:logger) do
     double('logger').tap do |l|
-      %w(debug debug2 info warn log_exception error).each { |m| l.stub(m) }
+      %w(debug debug2 info warn log_exception error).each { |m| allow(l).to receive(m) }
     end
   end
 
@@ -79,11 +79,11 @@ describe Dea::StagingTask do
   after { FileUtils.rm_rf(workspace_dir) if File.exists?(workspace_dir) }
 
   before do
-    staging_task.stub(:workspace_dir) { workspace_dir }
-    staging_task.stub(:staged_droplet_path) { __FILE__ }
-    staging_task.stub(:downloaded_app_package_path) { '/path/to/downloaded/droplet' }
-    staging_task.stub(:logger) { logger }
-    staging_task.stub(:container_exists?) { true }
+    allow(staging_task).to receive(:workspace_dir) { workspace_dir }
+    allow(staging_task).to receive(:staged_droplet_path) { __FILE__ }
+    allow(staging_task).to receive(:downloaded_app_package_path) { '/path/to/downloaded/droplet' }
+    allow(staging_task).to receive(:logger) { logger }
+    allow(staging_task).to receive(:container_exists?) { true }
 
     Dea::Loggregator.staging_emitter = loggregator_emitter
   end
@@ -120,7 +120,7 @@ describe Dea::StagingTask do
         before { attributes['properties']['environment'] = ['PATH=x y z', "FOO=z'y\"d", 'BAR=', 'BAZ=foo=baz'] }
 
         it 'copes with spaces' do
-          staging_task.container.should_receive(:spawn) do |cmd|
+          allow(staging_task.container).to receive(:spawn) do |cmd|
             expect(cmd).to include('export PATH="x y z";')
 
             spawn_response
@@ -133,7 +133,7 @@ describe Dea::StagingTask do
         end
 
         it 'copes with quotes' do
-          staging_task.container.should_receive(:spawn) do |cmd|
+          allow(staging_task.container).to receive(:spawn) do |cmd|
             expect(cmd).to include(%Q{export FOO="z'y\\"d";})
           end.and_return(spawn_response)
 
@@ -144,7 +144,7 @@ describe Dea::StagingTask do
         end
 
         it 'copes with blank' do
-          staging_task.container.should_receive(:spawn) do |cmd|
+          allow(staging_task.container).to receive(:spawn) do |cmd|
             expect(cmd).to include('export BAR="";')
 
             spawn_response
@@ -157,7 +157,7 @@ describe Dea::StagingTask do
         end
 
         it 'copes with equal sign' do
-          staging_task.container.should_receive(:spawn) do |cmd|
+          allow(staging_task.container).to receive(:spawn) do |cmd|
             expect(cmd).to include('export BAZ="foo=baz";')
           end.and_return(spawn_response)
 
@@ -195,7 +195,7 @@ describe Dea::StagingTask do
       let (:staging_result) { double(:stdout => 'stdout message', :stderr => 'stderr message') }
       let (:staging_error) { Container::WardenError.new('Failed to stage', staging_result) }
 
-      before { staging_task.container.should_receive(:link_or_raise).and_raise(staging_error) }
+      before { allow(staging_task.container).to receive(:link_or_raise).and_raise(staging_error) }
 
       it 'raises Container::WardenError' do
 
@@ -237,7 +237,9 @@ describe Dea::StagingTask do
   describe '#task_log' do
     describe 'when staging has not yet started' do
       subject { staging_task.task_log }
-      it { should be_nil }
+      it 'is nil' do
+        expect(subject).to be_nil
+      end
     end
 
     describe 'once staging has started' do
@@ -248,7 +250,7 @@ describe Dea::StagingTask do
       end
 
       it 'reads the staging_task log file' do
-        staging_task.task_log.should == 'some log content'
+        expect(staging_task.task_log).to eq('some log content')
       end
     end
   end
@@ -265,13 +267,13 @@ YAML
       end
 
       it 'parses staging info file' do
-        staging_task.task_info['detected_buildpack'].should eq('Ruby/Rack')
+        expect(staging_task.task_info['detected_buildpack']).to eq('Ruby/Rack')
       end
     end
 
     context 'when staging info file does not exist' do
       it 'returns empty hash if' do
-        staging_task.task_info.should be_empty
+        expect(staging_task.task_info).to be_empty
       end
     end
   end
@@ -288,7 +290,7 @@ YAML
     end
 
     it 'returns the detected buildpack' do
-      staging_task.procfile.should eq({"web" => "npm start"})
+      expect(staging_task.procfile).to eq({"web" => "npm start"})
     end
   end
 
@@ -303,7 +305,7 @@ YAML
     end
 
     it 'returns the detected buildpack' do
-      staging_task.detected_buildpack.should eq('Ruby/Rack')
+      expect(staging_task.detected_buildpack).to eq('Ruby/Rack')
     end
   end
 
@@ -318,7 +320,7 @@ YAML
     end
 
     it 'returns the detected start command' do
-      staging_task.detected_start_command.should eq('bacofoil')
+      expect(staging_task.detected_start_command).to eq('bacofoil')
     end
   end
 
@@ -333,7 +335,7 @@ YAML
     end
 
     it 'returns the buildpack path' do
-      staging_task.buildpack_path.should eq('some/buildpack/path')
+      expect(staging_task.buildpack_path).to eq('some/buildpack/path')
     end
   end
 
@@ -353,7 +355,7 @@ YAML
 
     context 'when an admin buildpack is detected' do
       it 'returns the correct buildpack key' do
-        staging_task.buildpack_key.should eq('admin_key')
+        expect(staging_task.buildpack_key).to eq('admin_key')
       end
     end
 
@@ -366,7 +368,7 @@ YAML
       end
 
       it 'returns the specified admin key' do
-        staging_task.buildpack_key.should eq('specified_admin_key')
+        expect(staging_task.buildpack_key).to eq('specified_admin_key')
       end
     end
 
@@ -374,7 +376,7 @@ YAML
       let(:buildpack_path) { "#{staging_task.workspace.system_buildpacks_dir}/java" }
 
       it 'returns a nil buildpack key' do
-        staging_task.buildpack_key.should be_nil
+        expect(staging_task.buildpack_key).to be_nil
       end
     end
   end
@@ -396,14 +398,14 @@ YAML
       end
 
       it 'returns a hash with the error type and message' do
-        staging_task.error_info['type'].should eq(error_type)
-        staging_task.error_info['message'].should eq(error_message)
+        expect(staging_task.error_info['type']).to eq(error_type)
+        expect(staging_task.error_info['message']).to eq(error_message)
       end
     end
 
     context 'when a staging error is not present' do
       it 'returns returns nil' do
-        staging_task.error_info.should be_nil
+        expect(staging_task.error_info).to be_nil
       end
     end
   end
@@ -412,15 +414,15 @@ YAML
     let(:url) { staging_task.streaming_log_url }
 
     it 'returns url for staging log' do
-      url.should include("/staging_tasks/#{staging_task.task_id}/file_path",)
+      expect(url).to include("/staging_tasks/#{staging_task.task_id}/file_path",)
     end
 
     it 'includes path to staging task output' do
-      url.should include 'path=%2Ftmp%2Fstaged%2Flogs%2Fstaging_task.log'
+      expect(url).to include 'path=%2Ftmp%2Fstaged%2Flogs%2Fstaging_task.log'
     end
 
     it 'hmacs url' do
-      url.should match(/hmac=.*/)
+      expect(url).to match(/hmac=.*/)
     end
   end
 
@@ -428,19 +430,19 @@ YAML
     context 'when given path is not nil' do
       context 'when container path is set' do
         before do
-          staging_task.container.stub(:path).and_return('/container/path')
+          allow(staging_task.container).to receive(:path).and_return('/container/path')
         end
 
         it 'returns path inside warden container root file system' do
-          staging_task.path_in_container('path/to/file').should == '/container/path/tmp/rootfs/path/to/file'
+          expect(staging_task.path_in_container('path/to/file')).to eq('/container/path/tmp/rootfs/path/to/file')
         end
       end
 
       context 'when container path is not set' do
-        before { staging_task.container.stub(:path => nil) }
+        before { allow(staging_task.container).to receive(:path).and_return(nil) }
 
         it 'returns nil' do
-          staging_task.path_in_container('path/to/file').should be_nil
+          expect(staging_task.path_in_container('path/to/file')).to be_nil
         end
       end
     end
@@ -448,19 +450,19 @@ YAML
     context 'when given path is nil' do
       context 'when container path is set' do
         before do
-          staging_task.container.stub(:path).and_return('/container/path')
+          allow(staging_task.container).to receive(:path).and_return('/container/path')
         end
 
         it 'returns path inside warden container root file system' do
-          staging_task.path_in_container(nil).should == '/container/path/tmp/rootfs/'
+          expect(staging_task.path_in_container(nil)).to eq('/container/path/tmp/rootfs/')
         end
       end
 
       context 'when container path is not set' do
-        before { staging_task.stub(:container_path => nil) }
+        before { allow(staging_task).to receive(:container_path).and_return(nil) }
 
         it 'returns nil' do
-          staging_task.path_in_container('path/to/file').should be_nil
+          expect(staging_task.path_in_container('path/to/file')).to be_nil
         end
       end
     end
@@ -474,10 +476,10 @@ YAML
          prepare_staging_log
          app_dir
       ).each do |step|
-        staging_task.stub("promise_#{step}").and_return(successful_promise)
+        allow(staging_task).to receive("promise_#{step}").and_return(successful_promise)
       end
-      staging_task.container.stub(:create_container)
-      staging_task.container.stub(:update_path_and_ip)
+      allow(staging_task.container).to receive(:create_container)
+      allow(staging_task.container).to receive(:update_path_and_ip)
     end
 
     def stub_staging
@@ -496,7 +498,7 @@ YAML
          task_log
          destroy
       ).each do |step|
-        staging_task.stub("promise_#{step}").and_return(successful_promise)
+        allow(staging_task).to receive("promise_#{step}").and_return(successful_promise)
       end
     end
 
@@ -506,7 +508,7 @@ YAML
       save_buildpack_cache
       destroy
       ).each do |step|
-        staging_task.stub("promise_#{step}").and_return(successful_promise)
+        allow(staging_task).to receive("promise_#{step}").and_return(successful_promise)
       end
     end
 
@@ -537,18 +539,18 @@ YAML
           context "and staging task succeeds finishing #{callback_name}" do
             it 'calls registered callback without an error' do
               staging_task.start
-              @received_count.should == 1
-              @received_error.should be_nil
+              expect(@received_count).to eq(1)
+              expect(@received_error).to be_nil
             end
           end
 
           context "and staging task fails before finishing #{callback_name}" do
-            before { staging_task.stub(options[:failure_cause]).and_return(failing_promise) }
+            before { allow(staging_task).to receive(options[:failure_cause]).and_return(failing_promise) }
 
             it 'calls registered callback with an error' do
               staging_task.start rescue nil
-              @received_count.should == 1
-              @received_error.to_s.should == 'failing promise'
+              expect(@received_count).to eq(1)
+              expect(@received_error.to_s).to eq('failing promise')
             end
           end
 
@@ -568,7 +570,7 @@ YAML
 
             it 'calls registered callback exactly once' do
               staging_task.start
-              @received_count.should == 1
+              expect(@received_count).to eq(1)
             end
 
             context 'and there is no error from staging' do
@@ -578,7 +580,7 @@ YAML
             end
 
             context 'and there is an error from staging' do
-              before { staging_task.stub(options[:failure_cause]).and_return(failing_promise) }
+              before { allow(staging_task).to receive(options[:failure_cause]).and_return(failing_promise) }
 
               it 'does not raise the staging error' do
                 staging_task.start
@@ -599,7 +601,7 @@ YAML
     context 'when finished' do
       before do
         stub_staging_setup
-        staging_task.should_receive(:resolve_staging)
+        allow(staging_task).to receive(:resolve_staging)
         stub_staging_upload
       end
 
@@ -610,22 +612,22 @@ YAML
     end
 
     it 'should clean up after itself' do
-      staging_task.workspace.stub(:prepare).and_raise('Error')
+      allow(staging_task.workspace).to receive(:prepare).and_raise('Error')
       stub_staging_upload
 
       staging_task.start
-      File.exists?(workspace_dir).should be_false
+      expect(File.exists?(workspace_dir)).to be false
     end
 
     context 'when a script fails' do
       before do
         stub_staging_setup
         stub_staging
-        staging_task.stub(:promise_stage).and_raise('Script Failed')
+        allow(staging_task).to receive(:promise_stage).and_raise('Script Failed')
       end
 
       it 'still copies out the task log' do
-        staging_task.should_receive(:promise_task_log) { double('promise', :resolve => nil) }
+        allow(staging_task).to receive(:promise_task_log) { double('promise', :resolve => nil) }
         staging_task.start rescue nil
       end
 
@@ -641,19 +643,19 @@ YAML
       end
 
       it 'does not uploads droplet' do
-        staging_task.should_not_receive(:resolve_staging_upload)
+        expect(staging_task).to_not receive(:resolve_staging_upload)
         staging_task.start rescue nil
       end
     end
 
     describe '#bind_mounts' do
       it 'includes the workspace dir' do
-        staging_task.bind_mounts.should include('src_path' => staging_task.workspace.workspace_dir,
+        expect(staging_task.bind_mounts).to include('src_path' => staging_task.workspace.workspace_dir,
                                               'dst_path' => staging_task.workspace.workspace_dir)
       end
 
       it 'includes the build pack url' do
-        staging_task.bind_mounts.should include('src_path' => staging_task.workspace.buildpack_dir,
+        expect(staging_task.bind_mounts).to include('src_path' => staging_task.workspace.buildpack_dir,
                                            'dst_path' => staging_task.workspace.buildpack_dir)
       end
 
@@ -663,16 +665,16 @@ YAML
           'dst_path' => 'b'
         }
         staging_task.config['bind_mounts'] = [mount]
-        staging_task.bind_mounts.should include(mount)
+        expect(staging_task.bind_mounts).to include(mount)
       end
     end
 
     it 'performs staging setup operations in correct order' do
       with_network = false
       expected_bandwidth = { rate: 20_000_000, burst: 100_000_000 }
-      staging_task.workspace.should_receive(:prepare).ordered
+      allow(staging_task.workspace).to receive(:prepare).ordered
       staging_task.workspace.workspace_dir
-      staging_task.container.should_receive(:create_container).
+      allow(staging_task.container).to receive(:create_container).
         with(bind_mounts: staging_task.bind_mounts,
              limit_cpu: staging_task.staging_config['cpu_limit_shares'],
              byte: staging_task.disk_limit_in_bytes,
@@ -687,9 +689,9 @@ YAML
         promise_prepare_staging_log
         promise_app_dir
       ).each do |step|
-        staging_task.should_receive(step).ordered.and_return(successful_promise)
+        allow(staging_task).to receive(step).ordered.and_return(successful_promise)
       end
-      staging_task.container.should_receive(:update_path_and_ip).ordered
+      allow(staging_task.container).to receive(:update_path_and_ip).ordered
 
       stub_staging
       stub_staging_upload
@@ -707,7 +709,7 @@ YAML
       end
 
       it 'downloads buildpack cache' do
-        staging_task.should_receive(:promise_buildpack_cache_download)
+        allow(staging_task).to receive(:promise_buildpack_cache_download)
 
         stub_staging
         stub_staging_setup
@@ -727,7 +729,7 @@ YAML
          staging_info
          task_log
          ).each do |step|
-        staging_task.should_receive("promise_#{step}").ordered.and_return(successful_promise)
+        allow(staging_task).to receive("promise_#{step}").ordered.and_return(successful_promise)
       end
 
       stub_staging_setup
@@ -741,7 +743,7 @@ YAML
       save_buildpack_cache
       destroy
       ).each do |step|
-        staging_task.should_receive("promise_#{step}").ordered.and_return(successful_promise)
+        allow(staging_task).to receive("promise_#{step}").ordered.and_return(successful_promise)
       end
 
       stub_staging_setup
@@ -754,11 +756,11 @@ YAML
       stub_staging
       stub_staging_upload
 
-      staging_task.should_receive(:resolve_staging).ordered
-      staging_task.should_receive(:resolve_staging_upload).ordered.and_call_original
-      staging_task.should_receive(:promise_app_upload).ordered
-      staging_task.should_receive(:promise_save_buildpack_cache).ordered
-      staging_task.should_receive(:trigger_after_complete).ordered
+      allow(staging_task).to receive(:resolve_staging).ordered
+      allow(staging_task).to receive(:resolve_staging_upload).ordered.and_call_original
+      allow(staging_task).to receive(:promise_app_upload).ordered
+      allow(staging_task).to receive(:promise_save_buildpack_cache).ordered
+      allow(staging_task).to receive(:trigger_after_complete).ordered
 
       staging_task.start
     end
@@ -800,13 +802,13 @@ YAML
       end
 
       it 'copes with uploading errors' do
-        staging_task.stub(:promise_app_upload).and_raise(some_terrible_error)
+        allow(staging_task).to receive(:promise_app_upload).and_raise(some_terrible_error)
 
         it_raises_an_error
       end
 
       it 'copes with buildpack cache errors' do
-        staging_task.stub(:promise_save_buildpack_cache).and_raise(some_terrible_error)
+        allow(staging_task).to receive(:promise_save_buildpack_cache).and_raise(some_terrible_error)
 
         it_raises_an_error
       end
@@ -815,40 +817,40 @@ YAML
 
   describe '#stop' do
     context 'if container exists' do
-      before { staging_task.container.stub(:handle) { 'maria' } }
+      before { allow(staging_task.container).to receive(:handle) { 'maria' } }
       it 'sends stop request to warden container' do
-        staging_task.should_receive(:promise_stop).and_return(successful_promise)
+        allow(staging_task).to receive(:promise_stop).and_return(successful_promise)
         staging_task.stop
       end
     end
 
     context 'if container does not exist' do
-      before { staging_task.container.stub(:handle) { nil } }
+      before { allow(staging_task.container).to receive(:handle) { nil } }
       it 'does NOT send stop request to warden container' do
-        staging_task.should_not_receive(:promise_stop)
+        expect(staging_task).to_not receive(:promise_stop)
         staging_task.stop
       end
     end
 
     it 'calls the callback' do
       callback = lambda {}
-      callback.should_receive(:call)
+      allow(callback).to receive(:call)
       staging_task.stop(&callback)
     end
 
     it 'triggers after stop callback' do
-      staging_task.should_receive(:trigger_after_stop)
+      allow(staging_task).to receive(:trigger_after_stop)
       staging_task.stop
     end
 
     it 'unregisters after complete callback' do
-      staging_task.stub(:resolve_staging_setup)
-      staging_task.stub(:resolve_staging_upload)
-      staging_task.stub(:promise_destroy).and_return(successful_promise)
+      allow(staging_task).to receive(:resolve_staging_setup)
+      allow(staging_task).to receive(:resolve_staging_upload)
+      allow(staging_task).to receive(:promise_destroy).and_return(successful_promise)
       # Emulate staging stop while running staging_task
-      staging_task.stub(:resolve_staging) { staging_task.stop }
+      allow(staging_task).to receive(:resolve_staging) { staging_task.stop }
 
-      staging_task.should_not_receive(:after_complete_callback)
+      expect(staging_task).to_not receive(:after_complete_callback)
       staging_task.start
     end
   end
@@ -860,7 +862,7 @@ YAML
       end
 
       it 'uses 1GB as a default' do
-        staging_task.memory_limit_in_bytes.should eq(1024*1024*1024)
+        expect(staging_task.memory_limit_in_bytes).to eq(1024*1024*1024)
       end
     end
 
@@ -889,7 +891,7 @@ YAML
 
   describe '#disk_limit_in_bytes' do
     it 'exports disk in bytes as specified in the config file' do
-      staging_task.disk_limit_in_bytes.should eq(1024 * 1024 * disk_limit_mb)
+      expect(staging_task.disk_limit_in_bytes).to eq(1024 * 1024 * disk_limit_mb)
     end
 
     context 'when unspecified' do
@@ -898,7 +900,7 @@ YAML
       end
 
       it 'uses 2GB as a default' do
-        staging_task.disk_limit_in_bytes.should eq(2*1024*1024*1024)
+        expect(staging_task.disk_limit_in_bytes).to eq(2*1024*1024*1024)
       end
     end
   end
@@ -934,14 +936,14 @@ YAML
 
   describe '#disk_inode_limit' do
     it 'exports disk with set inode as specified in the config file' do
-      staging_task.disk_inode_limit.should eq(disk_inode_limit)
+      expect(staging_task.disk_inode_limit).to eq(disk_inode_limit)
     end
   end
 
   describe '#promise_prepare_staging_log' do
     it 'assembles a shell command that creates staging_task.log file for tailing it' do
-      staging_task.container.should_receive(:run_script) do |connection_name, cmd|
-        cmd.should match 'mkdir -p /tmp/staged/logs && touch /tmp/staged/logs/staging_task.log'
+      allow(staging_task.container).to receive(:run_script) do |connection_name, cmd|
+        expect(cmd).to match 'mkdir -p /tmp/staged/logs && touch /tmp/staged/logs/staging_task.log'
       end
       staging_task.promise_prepare_staging_log.resolve
     end
@@ -958,7 +960,7 @@ YAML
 
     context 'when there is an error' do
       before do
-        Download.any_instance.stub(:download!).and_yield(
+        allow_any_instance_of(Download).to receive(:download!).and_yield(
           RuntimeError.new('This is an error'))
       end
 
@@ -966,20 +968,23 @@ YAML
 
       it 'should not create an app file' do
         subject rescue nil
-        expect(File.exists?(staging_task.workspace.downloaded_app_package_path)).to be_false
+        expect(File.exists?(staging_task.workspace.downloaded_app_package_path)).to be false
       end
     end
 
     context 'when there is no error' do
       before do
-        Download.any_instance.stub(:download!).and_yield(nil)
+        allow_any_instance_of(Download).to receive(:download!).and_yield(nil)
       end
 
-      its(:result) { should == [:deliver, nil] }
+
+      it "should deliver a nil" do
+        expect(subject.result).to eq([:deliver, nil])
+      end
 
       it 'should rename the file' do
         subject
-        expect(File.exists?(staging_app_file_path)).to be_true
+        expect(File.exists?(staging_app_file_path)).to be true
         expect(sprintf('%o', File.stat(staging_app_file_path).mode)).to eq '100744'
       end
     end
@@ -997,26 +1002,30 @@ YAML
 
     context 'when there is an error' do
       before do
-        Download.any_instance.stub(:download!).and_yield(
+        allow_any_instance_of(Download).to receive(:download!).and_yield(
           RuntimeError.new('This is an error'))
       end
 
-      its(:result) { should eq([:deliver, nil]) }
+      it "should not raise an error" do
+        expect(subject.result).to eq([:deliver, nil])
+      end
 
       it 'does not create the buildpack cache tarball' do
         subject
-        expect(File.exists?(buildpack_cache_dest)).to be_false
+        expect(File.exists?(buildpack_cache_dest)).to be false
       end
     end
 
     context 'when there is no error' do
-      before { Download.any_instance.stub(:download!).and_yield(nil) }
+      before { allow_any_instance_of(Download).to receive(:download!).and_yield(nil) }
 
-      its(:result) { should eq([:deliver, nil]) }
+      it "should return nil" do
+        expect(subject.result).to eq([:deliver, nil])
+      end
 
       it 'should rename the file' do
         subject
-        expect(File.exists?(buildpack_cache_dest)).to be_true
+        expect(File.exists?(buildpack_cache_dest)).to be true
         expect(sprintf('%o', File.stat(buildpack_cache_dest).mode)).to eq '100744'
       end
     end
@@ -1024,8 +1033,8 @@ YAML
 
   describe '#promise_unpack_app' do
     it 'assembles a shell command' do
-      staging_task.container.should_receive(:run_script) do |connection_name, cmd|
-        cmd.should include("unzip -q #{workspace_dir}/app.zip -d /tmp/unstaged")
+      allow(staging_task.container).to receive(:run_script) do |connection_name, cmd|
+        expect(cmd).to include("unzip -q #{workspace_dir}/app.zip -d /tmp/unstaged")
 
         empty_streams
       end
@@ -1033,7 +1042,7 @@ YAML
     end
 
     it 'logs to loggregator' do
-      staging_task.container.should_receive(:run_script).and_return(double(:stdout => 'stdout message', :stderr => 'stderr message'))
+      allow(staging_task.container).to receive(:run_script).and_return(double(:stdout => 'stdout message', :stderr => 'stderr message'))
       staging_task.promise_unpack_app.resolve
       app_id = staging_task.staging_message.app_id
       expect(loggregator_emitter.messages.size).to eql(1)
@@ -1046,7 +1055,7 @@ YAML
   describe '#promise_unpack_buildpack_cache' do
     context 'when buildpack cache does not exist' do
       it 'does not run a warden command' do
-        staging_task.container.should_not_receive(:run_script)
+        expect(staging_task.container).to_not receive(:run_script)
         staging_task.promise_unpack_buildpack_cache.resolve
       end
     end
@@ -1057,8 +1066,8 @@ YAML
       end
 
       it 'assembles a shell command' do
-        staging_task.container.should_receive(:run_script) do |_, cmd|
-          cmd.should include("tar xfz #{workspace_dir}/buildpack_cache.tgz -C /tmp/cache")
+        allow(staging_task.container).to receive(:run_script) do |_, cmd|
+          expect(cmd).to include("tar xfz #{workspace_dir}/buildpack_cache.tgz -C /tmp/cache")
 
           empty_streams
         end
@@ -1066,7 +1075,7 @@ YAML
       end
 
       it 'logs to loggregator' do
-        staging_task.container.should_receive(:run_script).and_return(double(:stdout => 'stdout message', :stderr => 'stderr message'))
+        allow(staging_task.container).to receive(:run_script).and_return(double(:stdout => 'stdout message', :stderr => 'stderr message'))
         staging_task.promise_unpack_buildpack_cache.resolve
         app_id = staging_task.staging_message.app_id
         expect(loggregator_emitter.messages.size).to eql(1)
@@ -1079,8 +1088,8 @@ YAML
 
   describe '#promise_pack_app' do
     it 'assembles a shell command' do
-      staging_task.container.should_receive(:run_script) do |connection_name, cmd|
-        normalize_whitespace(cmd).should include('cd /tmp/staged && COPYFILE_DISABLE=true tar -czf /tmp/droplet.tgz .')
+      allow(staging_task.container).to receive(:run_script) do |connection_name, cmd|
+        expect(normalize_whitespace(cmd)).to include('cd /tmp/staged && COPYFILE_DISABLE=true tar -czf /tmp/droplet.tgz .')
       end
 
       staging_task.promise_pack_app.resolve
@@ -1089,8 +1098,8 @@ YAML
 
   describe '#promise_pack_buildpack_cache' do
     it 'assembles a shell command' do
-      staging_task.container.should_receive(:run_script) do |_, cmd|
-        normalize_whitespace(cmd).should include('cd /tmp/cache && COPYFILE_DISABLE=true tar -czf /tmp/buildpack_cache.tgz .')
+      allow(staging_task.container).to receive(:run_script) do |_, cmd|
+        expect(normalize_whitespace(cmd)).to include('cd /tmp/cache && COPYFILE_DISABLE=true tar -czf /tmp/buildpack_cache.tgz .')
       end
 
       staging_task.promise_pack_buildpack_cache.resolve
@@ -1102,33 +1111,33 @@ YAML
     context 'when packing succeeds' do
 
       before do
-        staging_task.stub(:promise_pack_buildpack_cache).and_return(successful_promise)
-        staging_task.stub(:promise_copy_out_buildpack_cache).and_return(successful_promise)
-        staging_task.stub(:promise_buildpack_cache_upload).and_return(successful_promise)
+        allow(staging_task).to receive(:promise_pack_buildpack_cache).and_return(successful_promise)
+        allow(staging_task).to receive(:promise_copy_out_buildpack_cache).and_return(successful_promise)
+        allow(staging_task).to receive(:promise_buildpack_cache_upload).and_return(successful_promise)
       end
 
       it 'copies out the buildpack cache' do
-        staging_task.should_receive(:promise_copy_out_buildpack_cache).and_return(successful_promise)
+        allow(staging_task).to receive(:promise_copy_out_buildpack_cache).and_return(successful_promise)
         staging_task.promise_save_buildpack_cache.resolve
       end
 
       it 'uploads the buildpack cache' do
-        staging_task.should_receive(:promise_buildpack_cache_upload).and_return(successful_promise)
+        allow(staging_task).to receive(:promise_buildpack_cache_upload).and_return(successful_promise)
         staging_task.promise_save_buildpack_cache.resolve
       end
     end
 
     context 'when packing fails' do
 
-      before { staging_task.stub(:promise_pack_buildpack_cache).and_return(failing_promise) }
+      before { allow(staging_task).to receive(:promise_pack_buildpack_cache).and_return(failing_promise) }
 
       it 'does not copy out the buildpack cache' do
-        staging_task.should_not_receive :promise_copy_out_buildpack_cache
+        expect(staging_task).to_not receive :promise_copy_out_buildpack_cache
         staging_task.promise_save_buildpack_cache.resolve rescue nil
       end
 
       it 'does not upload the buildpack cache' do
-        staging_task.should_not_receive :promise_buildpack_cache_upload
+        expect(staging_task).to_not receive :promise_buildpack_cache_upload
         staging_task.promise_save_buildpack_cache.resolve rescue nil
       end
 
@@ -1144,7 +1153,7 @@ YAML
 
     context 'when there is an error' do
       before do
-        Upload.any_instance.stub(:upload!).and_yield(
+        allow_any_instance_of(Upload).to receive(:upload!).and_yield(
           RuntimeError.new('This is an error'))
       end
 
@@ -1152,8 +1161,11 @@ YAML
     end
 
     context 'when there is no error' do
-      before { Upload.any_instance.stub(:upload!).and_yield(nil) }
-      its(:result) { should == [:deliver, nil] }
+      before { allow_any_instance_of(Upload).to receive(:upload!).and_yield(nil) }
+
+      it "should return nil" do
+        expect(subject.result).to eq([:deliver, nil])
+      end
     end
   end
 
@@ -1166,7 +1178,7 @@ YAML
 
     context 'when there is an error' do
       before do
-        Upload.any_instance.stub(:upload!).and_yield(
+        allow_any_instance_of(Upload).to receive(:upload!).and_yield(
           RuntimeError.new('This is an error'))
       end
 
@@ -1174,8 +1186,11 @@ YAML
     end
 
     context 'when there is no error' do
-      before { Upload.any_instance.stub(:upload!).and_yield(nil) }
-      its(:result) { should == [:deliver, nil] }
+      before { allow_any_instance_of(Upload).to receive(:upload!).and_yield(nil) }
+
+      it "should return nil" do
+        expect(subject.result).to eq([:deliver, nil])
+      end
     end
   end
 
@@ -1187,7 +1202,7 @@ YAML
     end
 
     it 'should send copying out request' do
-      staging_task.should_receive(:copy_out_request).with('/tmp/droplet.tgz', /.{5,}/)
+      allow(staging_task).to receive(:copy_out_request).with('/tmp/droplet.tgz', /.{5,}/)
       subject
     end
   end
@@ -1203,8 +1218,8 @@ YAML
     let(:droplet_sha) { Digest::SHA1.file(__FILE__).hexdigest }
 
     before do
-      staging_task.workspace.stub(:staged_droplet_path) { __FILE__ }
-      bootstrap.stub(:droplet_registry) do
+      allow(staging_task.workspace).to receive(:staged_droplet_path) { __FILE__ }
+      allow(bootstrap).to receive(:droplet_registry) do
         {
           droplet_sha => droplet
         }
@@ -1212,9 +1227,9 @@ YAML
     end
 
     it 'saves droplet and droplet sha' do
-      droplet.should_receive(:local_copy).and_yield(nil)
+      allow(droplet).to receive(:local_copy).and_yield(nil)
       subject
-      staging_task.droplet_sha1.should eq (droplet_sha)
+      expect(staging_task.droplet_sha1).to eq (droplet_sha)
     end
   end
 
@@ -1226,7 +1241,7 @@ YAML
     end
 
     it 'should send copying out request' do
-      staging_task.should_receive(:copy_out_request).with('/tmp/buildpack_cache.tgz', /.{5,}/)
+      allow(staging_task).to receive(:copy_out_request).with('/tmp/buildpack_cache.tgz', /.{5,}/)
       subject
     end
   end
@@ -1239,7 +1254,7 @@ YAML
     end
 
     it 'should send copying out request' do
-      staging_task.should_receive(:copy_out_request).with('/tmp/staged/logs/staging_task.log', /#{workspace_dir}/)
+      allow(staging_task).to receive(:copy_out_request).with('/tmp/staged/logs/staging_task.log', /#{workspace_dir}/)
       subject
     end
   end
@@ -1252,7 +1267,7 @@ YAML
     end
 
     it 'should send copying out request' do
-      staging_task.should_receive(:copy_out_request).with('/tmp/staged/staging_info.yml', /#{workspace_dir}/)
+      allow(staging_task).to receive(:copy_out_request).with('/tmp/staged/staging_info.yml', /#{workspace_dir}/)
       subject
     end
   end
