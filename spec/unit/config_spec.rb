@@ -5,6 +5,24 @@ module Dea
   describe Config do
 
     subject(:config) { described_class.new(config_hash) }
+    let(:config_hash) do
+      {
+        "base_dir" => "dir",
+        "logging" => {
+          "level" => "level"
+        },
+        "nats_servers" => ["nats_server1"],
+        "pid_filename" => "pid_filename",
+        "warden_socket" => "socket",
+        "index" => 0,
+        "directory_server" => {
+          "protocol" => "protocol",
+          "v2_port" => 7,
+          "file_api_port" => 8
+        },
+        "cc_url" => "cc.example.com"
+      }
+    end
     let(:disk_inode_limit) { 123456 }
 
     describe ".from_file" do
@@ -173,7 +191,7 @@ module Dea
         context "when the interval is zero" do
           let(:config_hash) { { "intervals" => { "router_register_in_seconds" => 0 } } }
 
-          it "is valid" do
+          it "is not valid" do
             expect { config.validate_router_register_interval! }.to raise_error
           end
         end
@@ -181,7 +199,7 @@ module Dea
         context "when the interval is negative" do
           let(:config_hash) { { "intervals" => { "router_register_in_seconds" => -5 } } }
 
-          it "is valid" do
+          it "is not valid" do
             expect { config.validate_router_register_interval! }.to raise_error
           end
         end
@@ -193,6 +211,27 @@ module Dea
         it "is sets it to the default value" do
           expect { config.validate_router_register_interval! }.to_not raise_error
           expect(config["intervals"]["router_register_in_seconds"]).to eq(20)
+        end
+      end
+    end
+
+    describe "post_setup_hook" do
+      it 'returns nil when not set' do
+        expect(config.post_setup_hook).to be_nil
+      end
+
+      it 'returns the value when set' do
+        config_hash["post_setup_hook"] = 'the-value'
+        expect(config.post_setup_hook).to eq('the-value')
+      end
+
+      context "when it is not a string" do
+        before do
+          config_hash["post_setup_hook"] = 7
+        end
+
+        it "is not valid" do
+          expect { config.validate }.to raise_error
         end
       end
     end

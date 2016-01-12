@@ -446,7 +446,8 @@ module Dea
             Dea::StartupScriptGenerator.new(
               command,
               env.exported_user_environment_variables,
-              env.exported_system_environment_variables
+              env.exported_system_environment_variables,
+              bootstrap.config.post_setup_hook
             ).generate
         else
           start_script = env.exported_environment_variables + "./startup;\nexit"
