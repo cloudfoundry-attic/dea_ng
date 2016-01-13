@@ -7,9 +7,9 @@ describe Dea do
   include_context "bootstrap_setup"
 
   before do
-    bootstrap.unstub(:setup_directory_server)
-    bootstrap.unstub(:setup_directory_server_v2)
-    bootstrap.unstub(:directory_server_v2)
+    allow(bootstrap).to receive(:setup_directory_server).and_call_original
+    allow(bootstrap).to receive(:setup_directory_server_v2).and_call_original
+    allow(bootstrap).to receive(:directory_server_v2).and_call_original
   end
 
   describe "responses to messages received on 'dea.find.droplet'" do
@@ -86,8 +86,8 @@ describe Dea do
         "state_timestamp" => first_instance.state_timestamp,
       }
 
-      responses.size.should == 1
-      responses[0].should include(expected)
+      expect(responses.size).to eq(1)
+      expect(responses[0]).to include(expected)
     end
 
     it "should include a v2 url if the path key is present" do
@@ -102,8 +102,8 @@ describe Dea do
         end
       end
 
-      responses.size.should == 1
-      responses[0]["file_uri_v2"].should_not be_nil
+      expect(responses.size).to eq(1)
+      expect(responses[0]["file_uri_v2"]).to_not be_nil
     end
 
     it "should include 'stats' if requested" do
@@ -115,7 +115,7 @@ describe Dea do
 
         # Stub time for uptime and usage calculations
         frozen_time = Time.now
-        Time.stub(:now).and_return(frozen_time)
+        allow(Time).to receive(:now).and_return(frozen_time)
 
         expected = {
           "name"       => first_instance.application_name,
@@ -135,15 +135,15 @@ describe Dea do
         }
 
         # Port
-        first_instance.stub(:instance_host_port).and_return(expected["port"])
+        allow(first_instance).to receive(:instance_host_port).and_return(expected["port"])
 
         # Limits
-        first_instance.stub(:memory_limit_in_bytes).and_return(expected["mem_quota"])
-        first_instance.stub(:disk_limit_in_bytes).and_return(expected["disk_quota"])
-        first_instance.stub(:file_descriptor_limit).and_return(expected["fds_quota"])
+        allow(first_instance).to receive(:memory_limit_in_bytes).and_return(expected["mem_quota"])
+        allow(first_instance).to receive(:disk_limit_in_bytes).and_return(expected["disk_quota"])
+        allow(first_instance).to receive(:file_descriptor_limit).and_return(expected["fds_quota"])
 
         # Uptime
-        first_instance.stub(:state_starting_timestamp).and_return(frozen_time - 1)
+        allow(first_instance).to receive(:state_starting_timestamp).and_return(frozen_time - 1)
 
         responses = find_droplet(:count => 1) do
           {
@@ -153,9 +153,9 @@ describe Dea do
         end
       end
 
-      responses.size.should == 1
-      responses[0]["stats"].should_not be_nil
-      responses[0]["stats"].should == expected
+      expect(responses.size).to eq(1)
+      expect(responses[0]["stats"]).to_not be_nil
+      expect(responses[0]["stats"]).to eq(expected)
     end
 
     it "should support filtering by application version" do
@@ -170,8 +170,8 @@ describe Dea do
         end
       end
 
-      responses.size.should == 1
-      responses[0]["instance"].should == @instances[1].instance_id
+      expect(responses.size).to eq(1)
+      expect(responses[0]["instance"]).to eq(@instances[1].instance_id)
     end
 
     it "should support filtering by instance index" do
@@ -186,8 +186,8 @@ describe Dea do
         end
       end
 
-      responses.size.should == 1
-      responses[0]["instance"].should == @instances[2].instance_id
+      expect(responses.size).to eq(1)
+      expect(responses[0]["instance"]).to eq(@instances[2].instance_id)
     end
 
     it "should support filtering by state" do
@@ -202,8 +202,8 @@ describe Dea do
         end
       end
 
-      responses.size.should == 1
-      responses[0]["instance"].should == @instances[2].instance_id
+      expect(responses.size).to eq(1)
+      expect(responses[0]["instance"]).to eq(@instances[2].instance_id)
     end
 
     it "should support filtering with multiple values" do
@@ -219,10 +219,10 @@ describe Dea do
             }
           end
 
-          responses.size.should == 2
+          expect(responses.size).to eq(2)
           ids = responses.map { |r| r["instance"] }
-          ids.include?(@instances[1].instance_id).should be_true
-          ids.include?(@instances[2].instance_id).should be_true
+          expect(ids.include?(@instances[1].instance_id)).to be true
+          expect(ids.include?(@instances[2].instance_id)).to be true
         end
       end
     end

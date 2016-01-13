@@ -33,7 +33,7 @@ HEREDOC
 
   describe "detect" do
     it "returns true if detect script exits with 0" do
-      expect(subject.detect).to be_true
+      expect(subject.detect).to be true
     end
 
     context "when detect script exits with non 0" do
@@ -44,8 +44,8 @@ HEREDOC
       end
 
       it "returns false" do
-        Open3.stub(:capture2).and_return(["", 1])
-        expect(subject.detect).to be_false
+        allow(Open3).to receive(:capture2).and_return(["", 1])
+        expect(subject.detect).to be false
       end
     end
 
@@ -55,12 +55,12 @@ HEREDOC
       end
 
       it "returns false if detect script raises any error" do
-        expect(subject.detect).to be_false
+        expect(subject.detect).to be false
       end
 
       it "writes an error message to $stdout" do
         expect($stdout).to receive(:puts).with(/Failed to run buildpack detection script with error/)
-        expect(subject.detect).to be_false
+        expect(subject.detect).to be false
       end
     end
   end

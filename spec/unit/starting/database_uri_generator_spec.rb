@@ -12,32 +12,44 @@ describe Dea::DatabaseUriGenerator do
       context "and there uri is for mysql" do
         let(:services_env) { [{"credentials" => {"uri" => "mysql://username:password@host/db"}}] }
 
-        it { should eq "mysql2://username:password@host/db" }
+        it 'should have a uri' do
+          expect(database_uri).to eq("mysql2://username:password@host/db")
+        end
       end
 
       context "and there uri is for mysql2" do
         let(:services_env) { [{"credentials" => {"uri" => "mysql2://username:password@host/db"}}] }
-        it { should eq "mysql2://username:password@host/db" }
+        it 'should have a uri' do
+          expect(database_uri).to eq("mysql2://username:password@host/db")
+        end
       end
 
       context "and there uri is for postgres" do
         let(:services_env) { [{"credentials" => {"uri" => "postgres://username:password@host/db"}}] }
-        it { should eq "postgres://username:password@host/db" }
+        it 'should have a uri' do
+          expect(database_uri).to eq("postgres://username:password@host/db")
+        end
       end
 
       context "and there uri is for postgresql" do
         let(:services_env) { [{"credentials" => {"uri" => "postgresql://username:password@host/db"}}] }
-        it { should eq "postgres://username:password@host/db" }
+        it 'should have a uri' do
+          expect(database_uri).to eq("postgres://username:password@host/db")
+        end
       end
 
       context "and there uri is for db2" do
         let(:services_env) { [{"credentials" => {"uri" => "db2://username:password@host/db"}}] }
-        it { should eq "ibmdb://username:password@host/db" }
+        it 'should have a uri' do
+          expect(database_uri).to eq("ibmdb://username:password@host/db")
+        end
       end
 
       context "and there uri is for informix" do
         let(:services_env) { [{"credentials" => {"uri" => "informix://username:password@host/db"}}] }
-        it { should eq "ibmdb://username:password@host/db" }
+        it 'should have a uri' do
+          expect(database_uri).to eq("ibmdb://username:password@host/db")
+        end
       end
 
       context "and there are more than one production relational database" do
@@ -48,7 +60,9 @@ describe Dea::DatabaseUriGenerator do
           ]
         end
 
-        it { should eq "postgres://username:password@host/db1" }
+        it 'should have a uri' do
+          expect(database_uri).to eq("postgres://username:password@host/db1")
+        end
       end
 
       context "and the uri is invalid" do
@@ -59,7 +73,7 @@ describe Dea::DatabaseUriGenerator do
         end
 
         it "still sets the url" do
-          expect(subject).to eq "postgres:///inva\\:password@host/db"
+          expect(subject).to eq("postgres:///inva\\:password@host/db")
         end
       end
     end

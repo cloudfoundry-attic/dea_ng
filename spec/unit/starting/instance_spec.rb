@@ -25,7 +25,7 @@ describe Dea::Instance do
     Dea::Config.new({ 'stacks' => stacks, 'post_setup_hook' => 'post-setup-hook' })
   end
   before do
-    bootstrap.config.stub(:crashes_path).and_return('crashes/path')
+    allow(bootstrap.config).to receive(:crashes_path).and_return('crashes/path')
   end
 
   subject(:instance) do
@@ -48,7 +48,7 @@ describe Dea::Instance do
           'droplet' => 1,
       }
 
-      message.stub(:data).and_return(defaults.merge(start_message_data))
+      allow(message).to receive(:data).and_return(defaults.merge(start_message_data))
       message
     end
 
@@ -63,8 +63,13 @@ describe Dea::Instance do
         }
       end
 
-      its(:instance_id) { should be }
-      its(:instance_index) { should == 37 }
+      it "has an instance_id" do
+        expect(instance.instance_id).to_not be_nil
+      end
+
+      it "has an instance index" do
+        expect(instance.instance_index).to eq(37)
+      end
     end
 
     describe 'application attributes' do
@@ -78,20 +83,12 @@ describe Dea::Instance do
         }
       end
 
-      its(:application_id) { should == '37' }
-      its(:application_version) { should == 'some_version' }
-      its(:application_name) { should == 'my_application' }
-      its(:application_uris) { should == ['foo.com', 'bar.com'] }
-    end
-
-    describe 'instance data from message data' do
-      let(:start_message_data) do
-        {
-            'droplet' => 37
-        }
+      it "has application attributes" do
+        expect(instance.application_id).to eq('37')
+        expect(instance.application_version).to eq('some_version')
+        expect(instance.application_name).to eq('my_application')
+        expect(instance.application_uris).to eq(['foo.com', 'bar.com'])
       end
-
-      its(:application_id) { should == '37' }
     end
 
     describe 'droplet attributes' do
@@ -102,8 +99,10 @@ describe Dea::Instance do
         }
       end
 
-      its(:droplet_sha1) { should == 'deadbeef' }
-      its(:droplet_uri) { should == 'http://foo.com/file.ext' }
+      it "has droplet attributes" do
+        expect(instance.droplet_sha1).to eq('deadbeef')
+        expect(instance.droplet_uri).to eq('http://foo.com/file.ext')
+      end
     end
 
     describe 'start_command from message data' do
@@ -113,7 +112,9 @@ describe Dea::Instance do
         }
       end
 
-      its(:start_command) { should == 'start command' }
+      it "has a start command" do
+        expect(instance.start_command).to eq('start command')
+      end
 
       context 'when the value is nil' do
         let(:start_message_data) do
@@ -122,7 +123,9 @@ describe Dea::Instance do
           }
         end
 
-        its(:start_command) { should be_nil }
+        it "has a nil start command" do
+          expect(instance.start_command).to be_nil
+        end
       end
 
       context 'when the key is not present' do
@@ -131,7 +134,9 @@ describe Dea::Instance do
           }
         end
 
-        its(:start_command) { should be_nil }
+        it "has a nil start command" do
+          expect(instance.start_command).to be_nil
+        end
       end
     end
 
@@ -139,7 +144,9 @@ describe Dea::Instance do
       context 'when egress network rules are missing' do
         let(:start_message_data) { {} }
 
-        its(:egress_network_rules) { should eq([]) }
+        it "has a no egress rule" do
+          expect(instance.egress_network_rules).to eq([])
+        end
       end
 
       context 'when egress network rules are present' do
@@ -152,8 +159,8 @@ describe Dea::Instance do
           }
         end
 
-        its(:egress_network_rules) do
-          should match_array([{ 'protocol' => 'tcp' },{ 'port_range' => '80-443' }])
+        it "has an egress rule" do
+          expect(instance.egress_network_rules).to match_array([{ 'protocol' => 'tcp' },{ 'port_range' => '80-443' }])
         end
       end
     end
@@ -167,9 +174,11 @@ describe Dea::Instance do
         }
       end
 
-      its(:limits) { should == {'mem' => 1, 'disk' => 2, 'fds' => 3} }
-      its(:environment) { should == {'FOO' => 'BAR', 'BAR' => '', 'QUX' => ''} }
-      its(:services) { should == {'name' => 'redis', 'type' => 'redis'} }
+      it "has other attributes" do
+        expect(instance.limits).to eq({'mem' => 1, 'disk' => 2, 'fds' => 3})
+        expect(instance.environment).to eq({'FOO' => 'BAR', 'BAR' => '', 'QUX' => ''})
+        expect(instance.services).to eq({'name' => 'redis', 'type' => 'redis'})
+      end
     end
   end
 
@@ -185,9 +194,11 @@ describe Dea::Instance do
 
       subject { described_class.new(bootstrap, attributes) }
 
-      its(:warden_handle) { should == 'abc' }
-      its(:instance_host_port) { should == 1234 }
-      its(:instance_container_port) { should == 5678 }
+      it "has container attributes" do
+        expect(subject.warden_handle).to eq('abc')
+        expect(subject.instance_host_port).to eq(1234)
+        expect(subject.instance_container_port).to eq(5678)
+      end
     end
   end
 
@@ -203,15 +214,15 @@ describe Dea::Instance do
 
   describe 'resource limits' do
     it 'exports the memory limit in bytes' do
-      instance.memory_limit_in_bytes.should == 512 * 1024 * 1024
+      expect(instance.memory_limit_in_bytes).to eq(512 * 1024 * 1024)
     end
 
     it 'exports the disk limit in bytes' do
-      instance.disk_limit_in_bytes.should == 128 * 1024 * 1024
+      expect(instance.disk_limit_in_bytes).to eq(128 * 1024 * 1024)
     end
 
     it 'exports the file descriptor limit' do
-      instance.file_descriptor_limit.should == 5000
+      expect(instance.file_descriptor_limit).to eq(5000)
     end
   end
 
@@ -228,7 +239,7 @@ describe Dea::Instance do
       attributes.delete('droplet')
       instance = Dea::Instance.new(bootstrap, attributes)
 
-      expect { instance.validate }.to raise_error
+      expect { instance.validate }.to raise_error Membrane::SchemaValidationError
     end
 
     it 'should raise when attributes are invalid' do
@@ -236,7 +247,7 @@ describe Dea::Instance do
       attributes['application_id'] = attributes['application_id'].to_i
       instance = Dea::Instance.new(bootstrap, attributes)
 
-      expect { instance.validate }.to raise_error
+      expect { instance.validate }.to raise_error Membrane::SchemaValidationError
     end
   end
 
@@ -244,7 +255,7 @@ describe Dea::Instance do
     it 'should set state_timestamp when invoked' do
       old_timestamp = instance.state_timestamp
       instance.state = Dea::Instance::State::RUNNING
-      instance.state_timestamp.should > old_timestamp
+      expect(instance.state_timestamp).to be > old_timestamp
     end
   end
 
@@ -257,7 +268,7 @@ describe Dea::Instance do
         before { instance.state = state }
 
         it 'returns true' do
-          instance.consuming_memory?.should be_true
+          expect(instance.consuming_memory?).to be true
         end
       end
     end
@@ -268,7 +279,7 @@ describe Dea::Instance do
         before { instance.state = state }
 
         it 'returns false' do
-          instance.consuming_memory?.should be_false
+          expect(instance.consuming_memory?).to be false
         end
       end
     end
@@ -283,7 +294,7 @@ describe Dea::Instance do
         before { instance.state = state }
 
         it 'returns true' do
-          instance.consuming_disk?.should be_true
+          expect(instance.consuming_disk?).to be true
         end
       end
     end
@@ -293,7 +304,7 @@ describe Dea::Instance do
         before { instance.state = state }
 
         it 'returns false' do
-          instance.consuming_disk?.should be_false
+          expect(instance.consuming_disk?).to be false
         end
       end
     end
@@ -307,9 +318,9 @@ describe Dea::Instance do
       Dea::Instance::State.constants do |state|
         predicate = "#{state.downcase.to_s}?"
 
-        instance.send(predicate).should be_false
+        expect(instance.send(predicate)).to be false
         instance.state = Dea::Instance::State.const_get(state)
-        instance.send(predicate).should be_true
+        expect(instance.send(predicate)).to be true
       end
     end
   end
@@ -318,8 +329,8 @@ describe Dea::Instance do
     before do
       instance.setup_stat_collector
 
-      instance.stat_collector.stub(:start)
-      instance.stat_collector.stub(:stop)
+      allow(instance.stat_collector).to receive(:start)
+      allow(instance.stat_collector).to receive(:stop)
 
       instance.state = Dea::Instance::State::STARTING
     end
@@ -329,7 +340,7 @@ describe Dea::Instance do
         Dea::Instance::State::STARTING,
     ].each do |state|
       it "starts when moving from #{state.inspect} to #{Dea::Instance::State::RUNNING.inspect}" do
-        instance.stat_collector.should_receive(:start)
+        expect(instance.stat_collector).to receive(:start)
         instance.state = state
 
         instance.state = Dea::Instance::State::RUNNING
@@ -342,7 +353,7 @@ describe Dea::Instance do
           Dea::Instance::State::CRASHED,
       ].each do |state|
         it "stops when the instance moves to the #{state.inspect} state" do
-          instance.stat_collector.should_receive(:stop)
+          expect(instance.stat_collector).to receive(:stop)
           instance.state = Dea::Instance::State::RUNNING
 
           instance.state = state
@@ -355,7 +366,7 @@ describe Dea::Instance do
           Dea::Instance::State::EVACUATING,
       ].each do |state|
         it "does not stop when the instance moves to the #{state.inspect} state" do
-          instance.stat_collector.should_not_receive(:stop)
+          expect(instance.stat_collector).to_not receive(:stop)
           instance.state = Dea::Instance::State::RUNNING
 
           instance.state = state
@@ -367,18 +378,18 @@ describe Dea::Instance do
 
   describe 'attributes_and_stats from stat collector' do
     it 'returns the used_memory_in_bytes stat in the attributes_and_stats hash' do
-      instance.stat_collector.stub(:used_memory_in_bytes).and_return(999)
-      instance.attributes_and_stats.should include('used_memory_in_bytes' => 999)
+      allow(instance.stat_collector).to receive(:used_memory_in_bytes).and_return(999)
+      expect(instance.attributes_and_stats).to include('used_memory_in_bytes' => 999)
     end
 
     it 'returns the used_disk_in_bytes stat in the attributes_and_stats hash' do
-      instance.stat_collector.stub(:used_disk_in_bytes).and_return(40)
-      instance.attributes_and_stats.should include('used_disk_in_bytes' => 40)
+      allow(instance.stat_collector).to receive(:used_disk_in_bytes).and_return(40)
+      expect(instance.attributes_and_stats).to include('used_disk_in_bytes' => 40)
     end
 
     it 'returns the computed_pcpu stat in the attributes_and_stats hash' do
-      instance.stat_collector.stub(:computed_pcpu).and_return(0.123)
-      instance.attributes_and_stats.should include('computed_pcpu' => 0.123)
+      allow(instance.stat_collector).to receive(:computed_pcpu).and_return(0.123)
+      expect(instance.attributes_and_stats).to include('computed_pcpu' => 0.123)
     end
 
     it 'does not include protected attributes' do
@@ -388,13 +399,6 @@ describe Dea::Instance do
   end
 
   describe '#promise_health_check unit test' do
-    #let(:info_response) do
-    #  info_response = double("InfoResponse")
-    #  info_response.stub(:container_path).and_return("fake/container/path")
-    #  info_response.stub(:host_ip).and_return("fancy ip")
-    #  info_response
-    #end
-
     let(:container_path) { 'fake/container/path' }
 
     before do
@@ -403,11 +407,11 @@ describe Dea::Instance do
     end
 
     it 'updates the path and host ip' do
-      instance.container.should_receive(:update_path_and_ip) do
-        instance.container.stub(path: container_path)
-        instance.container.stub(host_ip: 'fancy ip')
+      expect(instance.container).to receive(:update_path_and_ip) do
+        allow(instance.container).to receive(:path).and_return(container_path)
+        allow(instance.container).to receive(:host_ip).and_return('fancy ip')
       end
-      instance.should_receive(:promise_read_instance_manifest).with(container_path).and_return(delivering_promise(nil))
+      expect(instance).to receive(:promise_read_instance_manifest).with(container_path).and_return(delivering_promise(nil))
 
       instance.promise_health_check.resolve
       expect(instance.container.path).to eq(container_path)
@@ -418,8 +422,8 @@ describe Dea::Instance do
   describe '#promise_health_check' do
     let(:info_response) do
       info_response = double('InfoResponse')
-      info_response.stub(:container_path).and_return('/')
-      info_response.stub(:host_ip).and_return('127.0.0.1')
+      allow(info_response).to receive(:container_path).and_return('/')
+      allow(info_response).to receive(:host_ip).and_return('127.0.0.1')
       info_response
     end
 
@@ -428,12 +432,12 @@ describe Dea::Instance do
     end
 
     before do
-      bootstrap.stub(:local_ip).and_return('127.0.0.1')
-      instance.container.stub(:update_path_and_ip)
-      instance.container.stub(:host_ip).and_return(info_response.host_ip)
-      instance.container.stub(:path).and_return(info_response.container_path)
-      instance.stub(:promise_read_instance_manifest).and_return(delivering_promise({}))
-      instance.stub(:instance_host_port).and_return(1234)
+      allow(bootstrap).to receive(:local_ip).and_return('127.0.0.1')
+      allow(instance.container).to receive(:update_path_and_ip)
+      allow(instance.container).to receive(:host_ip).and_return(info_response.host_ip)
+      allow(instance.container).to receive(:path).and_return(info_response.container_path)
+      allow(instance).to receive(:promise_read_instance_manifest).and_return(delivering_promise({}))
+      allow(instance).to receive(:instance_host_port).and_return(1234)
     end
 
     def execute_health_check
@@ -457,7 +461,7 @@ describe Dea::Instance do
 
     shared_examples 'sets timeout' do
       it 'sets timeout' do
-        deferrable.should_receive(:timeout)
+        expect(deferrable).to receive(:timeout)
         execute_health_check do
           deferrable.succeed
         end
@@ -466,12 +470,12 @@ describe Dea::Instance do
 
     describe 'via state file' do
       before do
-        instance.stub(:promise_read_instance_manifest).and_return(delivering_promise({'state_file' => 'state_file.yml'}))
-        Dea::HealthCheck::StateFileReady.stub(:new).and_yield(deferrable)
+        allow(instance).to receive(:promise_read_instance_manifest).and_return(delivering_promise({'state_file' => 'state_file.yml'}))
+        allow(Dea::HealthCheck::StateFileReady).to receive(:new).and_yield(deferrable)
       end
 
       it 'sets a timeout of 5 minutes' do
-        deferrable.should_receive(:timeout).with(60 * 5)
+        expect(deferrable).to receive(:timeout).with(60 * 5)
         execute_health_check do
           deferrable.succeed
         end
@@ -482,7 +486,7 @@ describe Dea::Instance do
           deferrable.succeed
         end
 
-        result.should be_true
+        expect(result).to be true
       end
 
       it 'can fail' do
@@ -490,7 +494,7 @@ describe Dea::Instance do
           deferrable.fail
         end
 
-        result.should be_false
+        expect(result).to be false
       end
     end
 
@@ -501,7 +505,7 @@ describe Dea::Instance do
         instance.attributes['application_id'] = application_id
         instance.attributes['application_uris'] = ['some-test-app.my-cloudfoundry.com']
         instance.attributes['instance_index'] = 2
-        Dea::HealthCheck::PortOpen.stub(:new).and_yield(deferrable)
+        allow(Dea::HealthCheck::PortOpen).to receive(:new).and_yield(deferrable)
 
         @emitter = FakeEmitter.new
         Dea::Loggregator.emitter = @emitter
@@ -512,7 +516,7 @@ describe Dea::Instance do
           deferrable.succeed
         end
 
-        result.should be_true
+        expect(result).to be true
       end
 
       it 'fails when the port is not open and logs an error message' do
@@ -520,7 +524,7 @@ describe Dea::Instance do
           deferrable.fail
         end
 
-        result.should be_false
+        expect(result).to be false
         expect(@emitter.error_messages[application_id][0]).to eql('Instance (index 2) failed to start accepting connections')
       end
     end
@@ -530,14 +534,14 @@ describe Dea::Instance do
 
       it 'should succeed' do
         result = execute_health_check
-        result.should be_true
+        expect(result).to be true
       end
     end
 
     context 'when failing to check the health' do
       let(:error) { RuntimeError.new('Some Error in warden') }
 
-      before { instance.container.stub(:update_path_and_ip).and_raise(error) }
+      before { allow(instance.container).to receive(:update_path_and_ip).and_raise(error) }
 
       subject { Dea::Promise.resolve(instance.promise_health_check) }
 
@@ -548,18 +552,18 @@ describe Dea::Instance do
       end
 
       it 'should log the failure' do
-        instance.instance_variable_get(:@logger).should_receive(:error)
+        expect(instance.instance_variable_get(:@logger)).to receive(:error)
         subject
       end
     end
 
     context 'when health_check_timeout is specified in start request' do
-      before { Dea::HealthCheck::PortOpen.stub(:new).and_yield(deferrable) }
+      before { allow(Dea::HealthCheck::PortOpen).to receive(:new).and_yield(deferrable) }
 
       it 'should wait for specified timeout' do
         bootstrap.config['default_health_check_timeout'] = 100
         instance.attributes['health_check_timeout'] = 200
-        deferrable.should_receive(:timeout).with(200)
+        expect(deferrable).to receive(:timeout).with(200)
         execute_health_check do
           deferrable.succeed
         end
@@ -567,11 +571,11 @@ describe Dea::Instance do
     end
 
     context 'when health_check_timeout is not specified' do
-      before { Dea::HealthCheck::PortOpen.stub(:new).and_yield(deferrable) }
+      before { allow(Dea::HealthCheck::PortOpen).to receive(:new).and_yield(deferrable) }
 
       it 'should use default' do
         bootstrap.config['default_health_check_timeout'] = 100
-        deferrable.should_receive(:timeout).with(100)
+        expect(deferrable).to receive(:timeout).with(100)
         execute_health_check do
           deferrable.succeed
         end
@@ -582,28 +586,28 @@ describe Dea::Instance do
   describe 'start transition' do
     let(:droplet) do
       droplet = double('droplet')
-      droplet.stub(:droplet_dirname).and_return(File.join(tmpdir, 'droplet', 'some_sha1'))
-      droplet.stub(:droplet_basename).and_return('droplet.tgz')
-      droplet.stub(:droplet_path).and_return(File.join(droplet.droplet_dirname, droplet.droplet_basename))
+      allow(droplet).to receive(:droplet_dirname).and_return(File.join(tmpdir, 'droplet', 'some_sha1'))
+      allow(droplet).to receive(:droplet_basename).and_return('droplet.tgz')
+      allow(droplet).to receive(:droplet_path).and_return(File.join(droplet.droplet_dirname, droplet.droplet_basename))
       droplet
     end
 
     let(:warden_connection) { double('warden_connection') }
 
     before do
-      instance.stub(:promise_droplet).and_return(delivering_promise)
-      instance.container.stub(:get_connection).and_raise('bad connection bad')
-      instance.container.stub(:create_container)
-      instance.stub(:promise_setup_environment).and_return(delivering_promise)
-      instance.stub(:promise_extract_droplet).and_return(delivering_promise)
-      instance.stub(:promise_prepare_start_script).and_return(delivering_promise)
-      instance.stub(:promise_exec_hook_script).with('before_start').and_return(delivering_promise)
-      instance.stub(:promise_start).and_return(delivering_promise)
-      instance.stub(:promise_exec_hook_script).with('after_start').and_return(delivering_promise)
-      instance.stub(:promise_health_check).and_return(delivering_promise(true))
-      instance.stub(:droplet).and_return(droplet)
-      instance.stub(:start_stat_collector)
-      instance.stub(:link)
+      allow(instance).to receive(:promise_droplet).and_return(delivering_promise)
+      allow(instance.container).to receive(:get_connection).and_raise('bad connection bad')
+      allow(instance.container).to receive(:create_container)
+      allow(instance).to receive(:promise_setup_environment).and_return(delivering_promise)
+      allow(instance).to receive(:promise_extract_droplet).and_return(delivering_promise)
+      allow(instance).to receive(:promise_prepare_start_script).and_return(delivering_promise)
+      allow(instance).to receive(:promise_exec_hook_script).with('before_start').and_return(delivering_promise)
+      allow(instance).to receive(:promise_start).and_return(delivering_promise)
+      allow(instance).to receive(:promise_exec_hook_script).with('after_start').and_return(delivering_promise)
+      allow(instance).to receive(:promise_health_check).and_return(delivering_promise(true))
+      allow(instance).to receive(:droplet).and_return(droplet)
+      allow(instance).to receive(:start_stat_collector)
+      allow(instance).to receive(:link)
     end
 
     def expect_start
@@ -616,9 +620,7 @@ describe Dea::Instance do
         end
       end
 
-      expect do
-        raise error if error
-      end
+      raise error if error
     end
 
     describe 'checking source state' do
@@ -627,7 +629,7 @@ describe Dea::Instance do
       passing_states.each do |state|
         it "passes when #{state.inspect}" do
           instance.state = state
-          expect_start.to_not raise_error
+          expect { expect_start }.to_not raise_error
         end
       end
 
@@ -638,26 +640,26 @@ describe Dea::Instance do
 
         it "fails when #{state.inspect}" do
           instance.state = state
-          expect_start.to raise_error(Dea::Instance::BaseError, /transition/)
+          expect { expect_start }.to raise_error(Dea::Instance::BaseError, /transition/)
         end
       end
     end
 
     describe 'downloading droplet' do
-      before { instance.unstub(:promise_droplet) }
+      before { allow(instance).to receive(:promise_droplet).and_call_original }
 
       it 'succeeds when #download succeeds' do
-        droplet.stub(:download).and_yield(nil)
+        allow(droplet).to receive(:download).and_yield(nil)
 
-        expect_start.to_not raise_error
-        instance.exit_description.should be_empty
+        expect { expect_start }.to_not raise_error
+        expect(instance.exit_description).to be_empty
       end
 
       it 'fails when #download fails' do
         msg = 'download failed'
-        droplet.stub(:download).and_yield(Dea::Instance::BaseError.new(msg))
+        allow(droplet).to receive(:download).and_yield(Dea::Instance::BaseError.new(msg))
 
-        expect_start.to raise_error(Dea::Instance::BaseError, msg)
+        expect { expect_start }.to raise_error(Dea::Instance::BaseError, msg)
       end
     end
 
@@ -674,7 +676,7 @@ describe Dea::Instance do
         ]
         expected_bandwidth_limit = { rate: 1_000_000, burst: 5_000_000 }
         with_network = true
-        instance.container.should_receive(:create_container).
+        expect(instance.container).to receive(:create_container).
             with(bind_mounts: expected_bind_mounts,
                  limit_cpu: instance.cpu_shares,
                  byte: instance.disk_limit_in_bytes,
@@ -684,8 +686,8 @@ describe Dea::Instance do
                  egress_rules: instance.egress_network_rules,
                  rootfs: rootfs,
                  limit_bandwidth: expected_bandwidth_limit)
-        expect_start.to_not raise_error
-        instance.exit_description.should be_empty
+        expect { expect_start }.to_not raise_error
+        expect(instance.exit_description).to be_empty
       end
 
       context "no rootfs" do
@@ -693,25 +695,25 @@ describe Dea::Instance do
           config['stacks'] = []
         end
         it 'fails when the rootfs does not exist' do
-          expect_start.to raise_error
+          expect { expect_start }.to raise_error Dea::Instance::StackNotFoundError
         end
       end
 
       it 'fails when the call fails' do
         msg = 'promise warden call error for container creation'
 
-        instance.container.should_receive(:create_container).and_raise(RuntimeError.new(msg))
+        expect(instance.container).to receive(:create_container).and_raise(RuntimeError.new(msg))
 
-        expect_start.to raise_error(RuntimeError, /error/i)
+        expect { expect_start }.to raise_error(RuntimeError, /error/i)
       end
 
       it "saves the created container's handle on attributes" do
-        instance.container.stub(:create_container) do
+        allow(instance.container).to receive(:create_container) do
           instance.container.handle = 'some-handle'
         end
 
         expect {
-          expect_start.to_not raise_error
+          expect { expect_start }.to_not raise_error
         }.to change {
           instance.attributes['warden_handle']
         }.from(nil).to('some-handle')
@@ -753,68 +755,68 @@ describe Dea::Instance do
 
     describe 'extracting the droplet' do
       before do
-        instance.unstub(:promise_extract_droplet)
+        allow(instance).to receive(:promise_extract_droplet).and_call_original
       end
 
       it 'should run tar' do
-        instance.container.stub(:run_script) do |_, script|
-          script.should =~ /tar zxf/
+        allow(instance.container).to receive(:run_script) do |_, script|
+          expect(script).to include 'tar zxf'
         end
 
-        expect_start.to_not raise_error
-        instance.exit_description.should be_empty
+        expect { expect_start }.to_not raise_error
+        expect(instance.exit_description).to be_empty
       end
 
       it 'can fail by run failing' do
         msg = 'droplet extraction failure'
-        instance.container.stub(:run_script) do |*_|
+        allow(instance.container).to receive(:run_script) do |*_|
           raise RuntimeError.new(msg)
         end
 
-        expect_start.to raise_error(msg)
+        expect { expect_start }.to raise_error(msg)
       end
     end
 
     describe 'setting up environment' do
       before do
-        instance.unstub(:promise_setup_environment)
+        allow(instance).to receive(:promise_setup_environment).and_call_original
       end
 
       it 'should create the app dir' do
-        instance.container.stub(:run_script) do |_, script|
-          script.should =~ %r{mkdir -p home/vcap/app}
+        allow(instance.container).to receive(:run_script) do |_, script|
+          expect(script).to include 'mkdir -p home/vcap/app'
         end
 
-        expect_start.to_not raise_error
-        instance.exit_description.should be_empty
+        expect { expect_start }.to_not raise_error
+        expect(instance.exit_description).to be_empty
       end
 
       it 'should chown the app dir' do
-        instance.container.stub(:run_script) do |_, script|
-          script.should =~ %r{chown vcap:vcap home/vcap/app}
+        allow(instance.container).to receive(:run_script) do |_, script|
+          expect(script).to include 'chown vcap:vcap home/vcap/app'
         end
 
-        expect_start.to_not raise_error
-        instance.exit_description.should be_empty
+        expect { expect_start }.to_not raise_error
+        expect(instance.exit_description).to be_empty
       end
 
       it 'should remove existing and then symlink the app dir' do
-        instance.container.stub(:run_script) do |_, script|
-          script.should =~ %r{rm -rf /app && ln -s home/vcap/app /app}
+        allow(instance.container).to receive(:run_script) do |_, script|
+          expect(script).to include 'rm -rf /app && ln -s home/vcap/app /app'
         end
 
-        expect_start.to_not raise_error
-        instance.exit_description.should be_empty
+        expect { expect_start }.to_not raise_error
+        expect(instance.exit_description).to be_empty
       end
 
       it 'can fail by run failing' do
         msg = 'environment setup failure'
 
-        instance.container.stub(:run_script) do |*_|
+        allow(instance.container).to receive(:run_script) do |*_|
           raise RuntimeError.new(msg)
         end
 
-        expect_start.to raise_error(msg)
+        expect { expect_start }.to raise_error(msg)
       end
     end
 
@@ -822,38 +824,38 @@ describe Dea::Instance do
       describe "#{hook} hook" do
         let(:runtime) do
           runtime = double(:runtime)
-          runtime.stub(:environment).and_return({})
+          allow(runtime).to receive(:environment).and_return({})
           runtime
         end
 
         before do
-          bootstrap.stub(:config).and_return('hooks' => {hook => fixture("hooks/#{hook}")})
-          instance.stub(:runtime).and_return(runtime)
-          instance.unstub(:promise_exec_hook_script)
+          allow(bootstrap).to receive(:config).and_return('hooks' => {hook => fixture("hooks/#{hook}")})
+          allow(instance).to receive(:runtime).and_return(runtime)
+          allow(instance).to receive(:promise_exec_hook_script).and_call_original
         end
 
         it 'should execute script file' do
           script_content = nil
-          instance.container.stub(:run_script) do |_, script|
-            script.should_not be_empty
+          allow(instance.container).to receive(:run_script) do |_, script|
+            expect(script).to_not be_empty
             lines = script.split("\n")
             script_content = lines[-2]
           end
 
-          expect_start.to_not raise_error
-          instance.exit_description.should be_empty
+          expect { expect_start }.to_not raise_error
+          expect(instance.exit_description).to be_empty
 
-          script_content.should == "echo \"#{hook}\""
+          expect(script_content).to eq("echo \"#{hook}\"")
         end
 
         it 'should raise error when script execution fails' do
           msg = 'script execution failed'
 
-          instance.container.stub(:run_script) do |_, script|
+          allow(instance.container).to receive(:run_script) do |_, script|
             raise RuntimeError.new(msg)
           end
 
-          expect_start.to raise_error(msg)
+          expect { expect_start }.to raise_error(msg)
         end
       end
     end
@@ -873,7 +875,7 @@ describe Dea::Instance do
       let(:generator) { double('script generator', generate: 'dostuffscript') }
 
       before do
-        instance.unstub(:promise_start)
+        allow(instance).to receive(:promise_start).and_call_original
         allow(instance).to receive(:staged_info)
         instance.attributes['warden_handle'] = 'handle'
         allow(Dea::Env).to receive(:new).and_return(env)
@@ -927,7 +929,7 @@ describe Dea::Instance do
         end
 
         it 'generates the correct script and calls promise spawn' do
-          instance.container.should_receive(:spawn)
+          expect(instance.container).to receive(:spawn)
           .with('dostuffscript', 'FAKE_RESOURCE_LIMIT_MESSAGE')
           .and_return(response)
 
@@ -970,7 +972,7 @@ describe Dea::Instance do
 
         context 'and the buildpack provides one' do
           before do
-            instance.stub(:staged_info).and_return('start_command' => 'foo')
+            allow(instance).to receive(:staged_info).and_return('start_command' => 'foo')
           end
 
           it_behaves_like 'an instance with a custom start command'
@@ -1015,56 +1017,50 @@ describe Dea::Instance do
 
     describe 'checking application health' do
       before :each do
-        instance.
-            should_receive(:promise_state).
-            with(Dea::Instance::State::BORN, Dea::Instance::State::STARTING).
-            and_return(delivering_promise)
+        allow(instance).to receive(:promise_state).with(Dea::Instance::State::BORN, Dea::Instance::State::STARTING).and_return(delivering_promise)
       end
 
       it 'transitions from starting to running if healthy' do
-        instance.stub(:promise_health_check).and_return(delivering_promise(true))
+        allow(instance).to receive(:promise_health_check).and_return(delivering_promise(true))
 
-        instance.
-            should_receive(:promise_state).
-            with(Dea::Instance::State::STARTING, Dea::Instance::State::RUNNING).
-            and_return(delivering_promise)
+        allow(instance).to receive(:promise_state).with(Dea::Instance::State::STARTING, Dea::Instance::State::RUNNING).and_return(delivering_promise)
 
-        expect_start.to_not raise_error
-        instance.exit_description.should be_empty
+        expect { expect_start }.to_not raise_error
+        expect(instance.exit_description).to be_empty
       end
 
       it 'fails if the instance is unhealthy' do
-        instance.stub(:promise_health_check).and_return(delivering_promise(false))
+        allow(instance).to receive(:promise_health_check).and_return(delivering_promise(false))
 
-        expect_start.to raise_error
+        expect { expect_start }.to raise_error Dea::HealthCheckFailed
 
         # Instance exit description should be set to the failure message
-        instance.exit_description.should == Dea::HealthCheckFailed.new.to_s
+        expect(instance.exit_description).to eq(Dea::HealthCheckFailed.new.to_s)
       end
     end
 
     context 'when link fails' do
       before do
-        instance.unstub(:link)
-        instance.container.stub(:call_with_retry).with(:link, anything) do
+        allow(instance).to receive(:link).and_call_original
+        allow(instance.container).to receive(:call_with_retry).with(:link, anything) do
           double('response', :exit_status => 255, :info => double('info', :events => ['out of memory']))
         end
 
-        instance.stub(:promise_state).and_return(delivering_promise)
+        allow(instance).to receive(:promise_state).and_return(delivering_promise)
       end
 
       it 'sets exit description based on link response' do
         instance.start
-        instance.exit_description.should == 'out of memory'
+        expect(instance.exit_description).to eq('out of memory')
       end
     end
 
     context 'when an arbitrary error occurs' do
-      before { instance.stub(:link) { raise 'heck' } }
+      before { allow(instance).to receive(:link) { raise 'heck' } }
 
       it 'sets a generic exit description' do
         instance.start
-        instance.exit_description.should == 'failed to start'
+        expect(instance.exit_description).to eq('failed to start')
       end
     end
   end
@@ -1075,11 +1071,11 @@ describe Dea::Instance do
     let(:env) { double('environment').as_null_object }
 
     before do
-      bootstrap.stub(:config).and_return({})
-      instance.stub(:promise_state).and_return(delivering_promise)
-      instance.container.stub(:get_connection).and_return(connection)
-      instance.stub(:promise_stop).and_return(delivering_promise)
-      Dea::Env.stub(:new).and_return(env)
+      allow(bootstrap).to receive(:config).and_return({})
+      allow(instance).to receive(:promise_state).and_return(delivering_promise)
+      allow(instance.container).to receive(:get_connection).and_return(connection)
+      allow(instance).to receive(:promise_stop).and_return(delivering_promise)
+      allow(Dea::Env).to receive(:new).and_return(env)
     end
 
     def expect_stop
@@ -1099,7 +1095,7 @@ describe Dea::Instance do
 
     describe 'checking source state' do
       before do
-        instance.unstub(:promise_state)
+        allow(instance).to receive(:promise_state).and_call_original
       end
 
       passing_states = [Dea::Instance::State::BORN, Dea::Instance::State::STOPPING, Dea::Instance::State::RUNNING,
@@ -1128,35 +1124,35 @@ describe Dea::Instance do
       describe 'script hook' do
         let(:runtime) do
           runtime = double(:runtime)
-          runtime.stub(:environment).and_return({})
+          allow(runtime).to receive(:environment).and_return({})
           runtime
         end
 
         let(:env) { double('environment', exported_environment_variables: "export A=B;\n") }
 
         before do
-          Dea::Env.stub(:new).with(instance).and_return(env)
-          bootstrap.stub(:config).and_return('hooks' => {hook => fixture("hooks/#{hook}")})
+          allow(Dea::Env).to receive(:new).with(instance).and_return(env)
+          allow(bootstrap).to receive(:config).and_return('hooks' => {hook => fixture("hooks/#{hook}")})
           instance.state = Dea::Instance::State::RUNNING
         end
 
         it "executes the #{hook} script file" do
           script_content = nil
-          instance.container.stub(:run_script) do |_, script|
+          allow(instance.container).to receive(:run_script) do |_, script|
             lines = script.split("\n")
             script_content = lines[-2]
           end
           expect_stop.to_not raise_error
-          script_content.should == "echo \"#{hook}\""
+          expect(script_content).to eq("echo \"#{hook}\"")
         end
 
         it 'exports the variables in the hook files' do
           actual_script_content = nil
-          instance.container.stub(:run_script) do |_, script|
+          allow(instance.container).to receive(:run_script) do |_, script|
             actual_script_content = script
           end
           expect_stop.to_not raise_error
-          actual_script_content.should match /export A=B/
+          expect(actual_script_content).to match /export A=B/
         end
       end
     end
@@ -1171,20 +1167,20 @@ describe Dea::Instance do
 
     let(:info_response) do
       double('Warden::Protocol::InfoResponse').tap do |info|
-        info.stub(:events).and_return(info_events)
+        allow(info).to receive(:events).and_return(info_events)
       end
     end
 
     let(:response) do
       response = double('Warden::Protocol::LinkResponse')
-      response.stub(:exit_status).and_return(exit_status)
-      response.stub(:info).and_return(info_response)
+      allow(response).to receive(:exit_status).and_return(exit_status)
+      allow(response).to receive(:info).and_return(info_response)
       response
     end
 
     describe 'when the LinkRequest fails' do
       it 'propagates the exception' do
-        instance.container.should_receive(:call_with_retry).and_raise(RuntimeError, /error/i)
+        expect(instance.container).to receive(:call_with_retry).and_raise(RuntimeError, /error/i)
 
         expect {
           instance.promise_link.resolve
@@ -1192,7 +1188,7 @@ describe Dea::Instance do
       end
 
       it 'causes the promise to fail, for the resolver of the promise (sanity check)' do
-        instance.container.should_receive(:call_with_retry).and_raise(RuntimeError.new('error'))
+        expect(instance.container).to receive(:call_with_retry).and_raise(RuntimeError.new('error'))
         instance.link
         expect(instance.exit_status).to eq(-1)
       end
@@ -1202,13 +1198,13 @@ describe Dea::Instance do
       let(:exit_status) { 42 }
 
       before do
-        instance.container.stub(:call_with_retry).and_return(response)
+        allow(instance.container).to receive(:call_with_retry).and_return(response)
       end
 
       it 'executes a LinkRequest with the warden handle and job ID and returns response' do
         instance.container.handle = 'handle'
         instance.attributes['warden_job_id'] = '1'
-        instance.container.should_receive(:call_with_retry) do |name, request|
+        expect(instance.container).to receive(:call_with_retry) do |name, request|
           expect(name).to eq(:link)
           expect(request).to be_kind_of(::Warden::Protocol::LinkRequest)
           expect(request.handle).to eq('handle')
@@ -1242,21 +1238,21 @@ describe Dea::Instance do
 
     let(:info_response) do
       double('Warden::Protocol::InfoResponse').tap do |info|
-        info.stub(:events).and_return(info_events)
+        allow(info).to receive(:events).and_return(info_events)
       end
     end
 
     let(:response) do
       response = double('Warden::Protocol::LinkResponse')
-      response.stub(:exit_status).and_return(exit_status)
-      response.stub(:info).and_return(info_response)
+      allow(response).to receive(:exit_status).and_return(exit_status)
+      allow(response).to receive(:info).and_return(info_response)
       response
     end
 
     before do
       instance.state = Dea::Instance::State::RUNNING
-      instance.container.stub(:get_connection).and_return(connection)
-      instance.stub(:promise_link).and_return(delivering_promise(response))
+      allow(instance.container).to receive(:get_connection).and_return(connection)
+      allow(instance).to receive(:promise_link).and_return(delivering_promise(response))
       expect(instance.exit_status).to eq(-1)
       expect(instance.exit_description).to eq('')
     end
@@ -1268,7 +1264,7 @@ describe Dea::Instance do
         instance.state = state
         instance.setup_link
 
-        instance.should_receive(:link)
+        expect(instance).to receive(:link)
         instance.state = Dea::Instance::State::RUNNING
       end
     end
@@ -1307,7 +1303,7 @@ describe Dea::Instance do
 
     context 'when the #promise_link fails' do
       before do
-        instance.should_receive(:promise_link).and_return(failing_promise(RuntimeError.new('error')))
+        expect(instance).to receive(:promise_link).and_return(failing_promise(RuntimeError.new('error')))
       end
 
       it 'sets exit status of the instance to -1' do
@@ -1356,7 +1352,7 @@ describe Dea::Instance do
     let(:connection) { double('connection', :promise_call => delivering_promise) }
 
     before do
-      instance.container.stub(:get_connection).and_return(connection)
+      allow(instance.container).to receive(:get_connection).and_return(connection)
     end
 
     def expect_destroy
@@ -1378,9 +1374,9 @@ describe Dea::Instance do
       it 'executes a DestroyRequest' do
         instance.container.handle = 'handle'
 
-        instance.container.should_receive(:call_with_retry) do |_, request|
-          request.should be_kind_of(::Warden::Protocol::DestroyRequest)
-          request.handle.should == 'handle'
+        expect(instance.container).to receive(:call_with_retry) do |_, request|
+          expect(request).to be_kind_of(::Warden::Protocol::DestroyRequest)
+          expect(request.handle).to eq('handle')
         end
 
         expect_destroy.to_not raise_error
@@ -1399,18 +1395,18 @@ describe Dea::Instance do
 
     describe '#promise_read_instance_manifest' do
       it 'delivers {} if no container path is returned' do
-        instance.promise_read_instance_manifest(nil).resolve.should == {}
+        expect(instance.promise_read_instance_manifest(nil).resolve).to eq({})
       end
 
       it "delivers {} if the manifest path doesn't exist" do
-        instance.promise_read_instance_manifest(tmpdir).resolve.should == {}
+        expect(instance.promise_read_instance_manifest(tmpdir).resolve).to eq({})
       end
 
       it 'delivers the parsed manifest if the path exists' do
         manifest = {'test' => 'manifest'}
         File.open(manifest_path, 'w+') { |f| YAML.dump(manifest, f) }
 
-        instance.promise_read_instance_manifest(tmpdir).resolve.should == manifest
+        expect(instance.promise_read_instance_manifest(tmpdir).resolve).to eq(manifest)
       end
     end
   end
@@ -1419,8 +1415,8 @@ describe Dea::Instance do
     before do
       instance.setup_crash_handler
       instance.state = Dea::Instance::State::RUNNING
-      instance.stub(:promise_copy_out).and_return(delivering_promise)
-      instance.stub(:promise_destroy).and_return(delivering_promise)
+      allow(instance).to receive(:promise_copy_out).and_return(delivering_promise)
+      allow(instance).to receive(:promise_destroy).and_return(delivering_promise)
     end
 
     def expect_crash_handler
@@ -1445,7 +1441,7 @@ describe Dea::Instance do
       it "is triggered link when transitioning from #{state.inspect}" do
         instance.state = state
 
-        instance.should_receive(:crash_handler)
+        expect(instance).to receive(:crash_handler)
         instance.state = Dea::Instance::State::CRASHED
       end
     end
@@ -1456,17 +1452,17 @@ describe Dea::Instance do
       end
 
       it 'should resolve #promise_copy_out' do
-        instance.should_receive(:promise_copy_out).and_return(delivering_promise)
+        expect(instance).to receive(:promise_copy_out).and_return(delivering_promise)
         expect_crash_handler.to_not raise_error
       end
 
       it 'should resolve #promise_destroy' do
-        instance.should_receive(:promise_destroy).and_return(delivering_promise)
+        expect(instance).to receive(:promise_destroy).and_return(delivering_promise)
         expect_crash_handler.to_not raise_error
       end
 
       it 'should close warden connections' do
-        instance.container.should_receive(:close_all_connections)
+        expect(instance.container).to receive(:close_all_connections)
 
         expect_crash_handler.to_not raise_error
       end
@@ -1474,13 +1470,13 @@ describe Dea::Instance do
 
     describe '#promise_copy_out' do
       before do
-        instance.unstub(:promise_copy_out)
+        allow(instance).to receive(:promise_copy_out).and_call_original
       end
 
       it 'should copy the contents of a logs directory' do
-        instance.container.should_receive(:call_with_retry) do |_, request|
-          request.src_path.should =~ %r!/logs/$!
-          request.dst_path.should =~ %r!/crashes/path/.*/logs$!
+        expect(instance.container).to receive(:call_with_retry) do |_, request|
+          expect(request.src_path).to match %r!/logs/$!
+          expect(request.dst_path).to match %r!/crashes/path/.*/logs$!
         end
 
         instance.promise_copy_out.resolve
@@ -1490,29 +1486,29 @@ describe Dea::Instance do
 
   describe '#staged_info' do
     before do
-      instance.stub(:copy_out_request)
+      allow(instance).to receive(:copy_out_request)
     end
 
     context 'when the files does exist' do
       before do
-        YAML.stub(:load_file).and_return(a: 1)
-        File.stub(:exists?).
+        allow(YAML).to receive(:load_file).and_return(a: 1)
+        allow(File).to receive(:exists?).
             with(match(/staging_info\.yml/)).
             and_return(true)
       end
 
       it 'sends copying out request' do
-        instance.should_receive(:copy_out_request).with('/home/vcap/staging_info.yml', instance_of(String))
+        expect(instance).to receive(:copy_out_request).with('/home/vcap/staging_info.yml', instance_of(String))
         instance.staged_info
       end
 
       it 'reads the file from the copy out' do
-        YAML.should_receive(:load_file).with(/.+staging_info\.yml/)
+        expect(YAML).to receive(:load_file).with(/.+staging_info\.yml/)
         expect(instance.staged_info).to eq(a: 1)
       end
 
       it 'should only be called once' do
-        YAML.should_receive(:load_file).once
+        expect(YAML).to receive(:load_file).once
         instance.staged_info
         instance.staged_info
       end
@@ -1539,7 +1535,7 @@ describe Dea::Instance do
       before { instance.state = Dea::Instance::State::CRASHED }
 
       context 'when warden_container_path is set' do
-        before { instance.container.stub(:path => '/root/dir') }
+        before { allow(instance.container).to receive(:path).and_return('/root/dir') }
 
         it 'returns container path' do
           expect(instance.instance_path).to eq('/root/dir/tmp/rootfs/home/vcap')
@@ -1558,7 +1554,7 @@ describe Dea::Instance do
     context 'when state is RUNNING' do
       before { instance.state = Dea::Instance::State::RUNNING }
       context 'when warden_container_path is set' do
-        before { instance.container.stub(:path => '/root/dir') }
+        before { allow(instance.container).to receive(:path).and_return('/root/dir') }
 
         it 'returns container path' do
           expect(instance.instance_path).to eq('/root/dir/tmp/rootfs/home/vcap')
@@ -1600,8 +1596,8 @@ describe Dea::Instance do
                                          'instance_host_port' => 1234,
                                          'instance_container_port' => 5678))
 
-      instance.instance_host_port.should == 1234
-      instance.instance_container_port.should == 5678
+      expect(instance.instance_host_port).to eq(1234)
+      expect(instance.instance_container_port).to eq(5678)
     end
   end
 

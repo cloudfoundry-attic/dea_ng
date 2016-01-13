@@ -26,9 +26,9 @@ describe Dea::StagingTaskWorkspace do
 
   let(:buildpack_manager) do
     buildpack_manager = instance_double("Dea::BuildpackManager")
-    buildpack_manager.stub(:buildpack_dirs => buildpack_dirs)
-    buildpack_manager.stub(:clean)
-    buildpack_manager.stub(:download)
+    allow(buildpack_manager).to receive(:buildpack_dirs).and_return(buildpack_dirs)
+    allow(buildpack_manager).to receive(:clean)
+    allow(buildpack_manager).to receive(:download)
     buildpack_manager
   end
 
@@ -49,16 +49,16 @@ describe Dea::StagingTaskWorkspace do
     let(:staging_dir) { Pathname.new(base_dir).join("staging") }
 
     it "should create the staging directory" do
-      expect(staging_dir.exist?).to be_false
+      expect(staging_dir.exist?).to be false
       subject.workspace_dir
-      expect(staging_dir.exist?).to be_true
-      expect(staging_dir.directory?).to be_true
+      expect(staging_dir.exist?).to be true
+      expect(staging_dir.directory?).to be true
     end
 
     it "should create the workspace directory under the staging directory with the expected permissions" do
       workspace_path = Pathname.new(subject.workspace_dir)
-      expect(workspace_path.exist?).to be_true
-      expect(workspace_path.directory?).to be_true
+      expect(workspace_path.exist?).to be true
+      expect(workspace_path.directory?).to be true
       expect(workspace_path.parent).to eq(staging_dir)
       expect(workspace_path.stat.mode.to_s(8)).to end_with("0755")
     end
@@ -71,22 +71,22 @@ describe Dea::StagingTaskWorkspace do
   describe "#prepare" do
     it "creates the tmp folder" do
       subject.prepare(buildpack_manager)
-      expect(File.exists?(subject.tmpdir)).to be_true
+      expect(File.exists?(subject.tmpdir)).to be true
     end
 
     it "downloads the admin buildpacks" do
-      buildpack_manager.should_receive(:download)
+      allow(buildpack_manager).to receive(:download)
       subject.prepare(buildpack_manager)
     end
 
     it "deletes stale admin buildpacks" do
-      buildpack_manager.should_receive(:clean)
+      allow(buildpack_manager).to receive(:clean)
       subject.prepare(buildpack_manager)
     end
 
     it "creates the plugin config file" do
       subject.prepare(buildpack_manager)
-      expect(File.exists?(subject.plugin_config_path)).to be_true
+      expect(File.exists?(subject.plugin_config_path)).to be true
     end
   end
 

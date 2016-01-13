@@ -28,8 +28,8 @@ describe Dea::BuildpackManager do
   describe "#download" do
     it "calls AdminBuildpackDownloader" do
       downloader_mock = double(:downloader)
-      downloader_mock.should_receive(:download)
-      AdminBuildpackDownloader.should_receive(:new).with(admin_buildpacks, admin_buildpacks_dir) { downloader_mock }
+      allow(downloader_mock).to receive(:download)
+      allow(AdminBuildpackDownloader).to receive(:new).with(admin_buildpacks, admin_buildpacks_dir) { downloader_mock }
 
       manager.download
     end
@@ -53,7 +53,7 @@ describe Dea::BuildpackManager do
           File.exists? file_to_delete
         }.from(true).to(false)
 
-        expect(File.exists? file_to_keep).to be_true
+        expect(File.exists? file_to_keep).to be true
       end
     end
 
@@ -72,8 +72,8 @@ describe Dea::BuildpackManager do
         }.to change {
           File.exists? file_to_delete
         }.from(true).to(false)
-        expect(File.exists? file_to_keep).to be_true
-        expect(File.exists? file_in_use).to be_true
+        expect(File.exists? file_to_keep).to be true
+        expect(File.exists? file_in_use).to be true
       end
     end
   end
@@ -104,7 +104,7 @@ describe Dea::BuildpackManager do
       end
 
       it "has an item for every buildpack that's both in the staging message and on disk" do
-        expect(manager.buildpack_dirs).to have(3).item
+        expect(manager.buildpack_dirs.size).to eq(3)
       end
 
       it "returns the buildpacks in the same order as the staging message" do
@@ -116,7 +116,7 @@ describe Dea::BuildpackManager do
       context "when stale admin buildpacks still exist on disk" do
         it "only returns buildpacks specified in staging message" do
           create_populated_directory(File.join(admin_buildpacks_dir, "not_in_staging_message"))
-          expect(manager.buildpack_dirs).to have(3).item
+          expect(manager.buildpack_dirs.size).to eq(3)
         end
       end
 

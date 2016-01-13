@@ -14,7 +14,7 @@ describe Download do
     stub_request(:get, from_uri.to_s).to_return(status: 404)
 
     Download.new(from_uri, to_file, ).download! do |error|
-      error.message.should match(/status: 404/)
+      expect(error.message).to match(/status: 404/)
       done
     end
   end
@@ -23,7 +23,7 @@ describe Download do
     stub_request(:get, from_uri.to_s).to_return(body: "fooz")
 
     Download.new(from_uri, to_file, sha).download! do |err|
-      err.message.should match(/SHA1 mismatch/)
+      expect(err.message).to match(/SHA1 mismatch/)
       done
     end
   end
@@ -37,8 +37,8 @@ describe Download do
     expected << body
 
     Download.new(from_uri, to_file, expected.hexdigest).download! do |err|
-      err.should be_nil
-      File.read(to_file).should == body
+      expect(err).to be_nil
+      expect(File.read(to_file)).to eq(body)
       done
     end
   end
@@ -51,10 +51,7 @@ describe Download do
     expected = Digest::SHA1.new
     expected << body
 
-    the_tempfile = double("tempfile").as_null_object
-    Tempfile.stub(:new => the_tempfile)
-    Tempfile.should_receive(:new).once
-    the_tempfile.should_receive(:binmode).once
+    expect(to_file).to receive(:binmode).once
     Download.new(from_uri, to_file, expected.hexdigest).download! { done }
   end
 
@@ -93,8 +90,8 @@ describe Download do
       stub_request(:get, from_uri.to_s).to_return(body: body)
 
       Download.new(from_uri, to_file).download! do |err|
-        err.should be_nil
-        File.read(to_file).should == body
+        expect(err).to be_nil
+        expect(File.read(to_file)).to eq(body)
         done
       end
     end
@@ -118,19 +115,19 @@ describe Download::DownloadError do
   let(:error) { Download::DownloadError.new(msg, data) }
 
   it "should not contain credentials in the message" do
-    error.message.should_not match(/user/)
-    error.message.should_not match(/password/)
+    expect(error.message).to_not match(/user/)
+    expect(error.message).to_not match(/password/)
   end
 
   it "should not contain credentials when inspected" do
-    error.inspect.should_not match(/user/)
-    error.inspect.should_not match(/password/)
+    expect(error.inspect).to_not match(/user/)
+    expect(error.inspect).to_not match(/password/)
   end
 
   describe "#uri" do
     context "when data contains droplet_uri" do
       it "should return the uri" do
-        error.uri.should be(uri)
+        expect(error.uri).to eq(uri)
       end
     end
 
@@ -138,7 +135,7 @@ describe Download::DownloadError do
       let (:data) { {} }
 
       it "should return '(unknown)'" do
-        error.uri.should eq("(unknown)")
+        expect(error.uri).to eq("(unknown)")
       end
     end
   end

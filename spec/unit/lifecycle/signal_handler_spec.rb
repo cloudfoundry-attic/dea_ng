@@ -52,7 +52,7 @@ describe SignalHandler do
 
   describe "signal handler behavior" do
     before do
-      Thread.stub(:new) do |&block|
+      allow(Thread).to receive(:new) do |&block|
         block.call
       end
     end
@@ -62,7 +62,7 @@ describe SignalHandler do
         expect(message_bus).to receive(:stop)
 
         @signal_handlers["TERM"].call
-        expect(@published_messages["dea.shutdown"]).to have(1).item
+        expect(@published_messages["dea.shutdown"].size).to eq(1)
         done
       end
     end
@@ -72,7 +72,7 @@ describe SignalHandler do
         expect(message_bus).to receive(:stop)
 
         @signal_handlers["INT"].call
-        expect(@published_messages["dea.shutdown"]).to have(1).item
+        expect(@published_messages["dea.shutdown"].size).to eq(1)
         done
       end
     end
@@ -82,7 +82,7 @@ describe SignalHandler do
         expect(message_bus).to receive(:stop)
 
         @signal_handlers["QUIT"].call
-        expect(@published_messages["dea.shutdown"]).to have(1).item
+        expect(@published_messages["dea.shutdown"].size).to eq(1)
         done
       end
     end
@@ -115,8 +115,8 @@ describe SignalHandler do
       end
 
       it "evacuates the system, and does not shut it down" do
-        expect(@published_messages["droplet.exited"]).to have(1).item
-        expect(@published_messages["dea.shutdown"]).to have(1).item
+        expect(@published_messages["droplet.exited"].size).to eq(1)
+        expect(@published_messages["dea.shutdown"].size).to eq(1)
       end
 
       context "when the evacuation is finished" do
@@ -127,7 +127,7 @@ describe SignalHandler do
         it "shutsdown the system" do
           expect(message_bus).to receive(:stop)
           @signal_handlers["USR2"].call
-          expect(@published_messages["dea.shutdown"]).to have(2).items
+          expect(@published_messages["dea.shutdown"].size).to eq(2)
           done
         end
       end
@@ -136,12 +136,12 @@ describe SignalHandler do
 
   describe "scheduling signal handler execution" do
     it "spawns a thread to schedule the handler to event machine" do
-      handler.stub(:trap_quit) do
+      allow(handler).to receive(:trap_quit) do
         done
       end
 
-      Thread.should_receive(:new).and_yield
-      EM.should_receive(:schedule).and_call_original
+      allow(Thread).to receive(:new).and_yield
+      allow(EM).to receive(:schedule).and_call_original
       @signal_handlers["QUIT"].call
     end
   end

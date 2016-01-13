@@ -10,22 +10,22 @@ describe Dea::HealthCheck::StateFileReady do
   let(:state_file_path) { File.join(tmpdir, "state.json") }
 
   it "fails if the file never exists" do
-    run_health_check(state_file_path, 0.1).should == "failure"
+    expect(run_health_check(state_file_path, 0.1)).to eq("failure")
   end
 
   it "fails if the file exists but the state is never 'RUNNING'" do
     write_state_file(state_file_path, "CRASHED")
-    run_health_check(state_file_path, 0.1).should == "failure"
+    expect(run_health_check(state_file_path, 0.1)).to eq("failure")
   end
 
   it "fails if the state file is corrupted" do
     File.open(state_file_path, "w+") { |f| f.write("{{{") }
-    run_health_check(state_file_path, 0.1).should == "failure"
+    expect(run_health_check(state_file_path, 0.1)).to eq("failure")
   end
 
   it "succeeds if the file exists prior to starting the health check" do
     write_state_file(state_file_path, "RUNNING")
-    run_health_check(state_file_path, 0.1).should == "success"
+    expect(run_health_check(state_file_path, 0.1)).to eq("success")
   end
 
   it "succeeds if the file exists before the timeout" do
@@ -34,7 +34,7 @@ describe Dea::HealthCheck::StateFileReady do
         write_state_file(state_file_path, "RUNNING")
       end
     end
-    run_health_check(state_file_path, 0.1, &create_file).should == "success"
+    expect(run_health_check(state_file_path, 0.1, &create_file)).to eq("success")
   end
 
   def run_health_check(path, timeout, &before_health_check)

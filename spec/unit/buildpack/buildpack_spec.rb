@@ -19,15 +19,15 @@ describe Buildpacks::Buildpack, type: :buildpack do
   describe "#stage_application" do
     let(:buildpack_name) { "Not Rubby" }
 
-    before { build_pack.stub(:build_pack) { double(:build_pack, name: buildpack_name) } }
+    before { allow(build_pack).to receive(:build_pack) { double(:build_pack, name: buildpack_name) } }
 
     it "runs from the correct folder" do
-      Dir.should_receive(:chdir).with(File.expand_path "fakedestdir").and_yield
-      build_pack.should_receive(:create_app_directories).ordered
-      build_pack.should_receive(:copy_source_files).ordered
-      build_pack.should_receive(:compile_with_timeout).ordered
-      build_pack.should_receive(:save_buildpack_info).ordered
-      build_pack.should_not_receive(:save_error_info)
+      allow(Dir).to receive(:chdir).with(File.expand_path "fakedestdir").and_yield
+      allow(build_pack).to receive(:create_app_directories).ordered
+      allow(build_pack).to receive(:copy_source_files).ordered
+      allow(build_pack).to receive(:compile_with_timeout).ordered
+      allow(build_pack).to receive(:save_buildpack_info).ordered
+      expect(build_pack).to_not receive(:save_error_info)
       build_pack.stage_application
     end
 
@@ -35,14 +35,14 @@ describe Buildpacks::Buildpack, type: :buildpack do
       let(:staging_error) { Buildpacks::NoAppDetectedError.new("no buildpacks") }
 
       it "saves the error information and exits with failure" do
-        Dir.should_receive(:chdir).with(File.expand_path "fakedestdir").and_yield
-        build_pack.should_receive(:create_app_directories).ordered
-        build_pack.should_receive(:copy_source_files).ordered
-        build_pack.should_receive(:compile_with_timeout).ordered.and_raise(staging_error)
-        build_pack.should_not_receive(:save_buildpack_info)
+        allow(Dir).to receive(:chdir).with(File.expand_path "fakedestdir").and_yield
+        allow(build_pack).to receive(:create_app_directories).ordered
+        allow(build_pack).to receive(:copy_source_files).ordered
+        allow(build_pack).to receive(:compile_with_timeout).ordered.and_raise(staging_error)
+        expect(build_pack).to_not receive(:save_buildpack_info)
 
-        build_pack.should_receive(:save_error_info).ordered.with(staging_error)
-        $stdout.should_receive(:puts).with("Staging failed: #{staging_error.message}")
+        allow(build_pack).to receive(:save_error_info).ordered.with(staging_error)
+        allow($stdout).to receive(:puts).with("Staging failed: #{staging_error.message}")
         expect {
           build_pack.stage_application
         }.to raise_exception(SystemExit)
@@ -52,9 +52,9 @@ describe Buildpacks::Buildpack, type: :buildpack do
 
   describe "#create_app_directories" do
     it "should make the correct directories" do
-      FileUtils.should_receive(:mkdir_p).with(File.expand_path "fakedestdir/app")
-      FileUtils.should_receive(:mkdir_p).with(File.expand_path "fakedestdir/logs")
-      FileUtils.should_receive(:mkdir_p).with(File.expand_path "fakedestdir/tmp")
+      allow(FileUtils).to receive(:mkdir_p).with(File.expand_path "fakedestdir/app")
+      allow(FileUtils).to receive(:mkdir_p).with(File.expand_path "fakedestdir/logs")
+      allow(FileUtils).to receive(:mkdir_p).with(File.expand_path "fakedestdir/tmp")
 
       build_pack.create_app_directories
     end
@@ -64,14 +64,14 @@ describe Buildpacks::Buildpack, type: :buildpack do
     it "Copy all the files from the source dir into the dest dir" do
       # recursively (-r) while not following symlinks (-P) and preserving dir structure (-p)
       # this is why we use system copy not FileUtil
-      build_pack.should_receive(:system).with("cp -a #{File.expand_path "fakesrcdir"}/. #{File.expand_path "fakedestdir/app"}")
-      FileUtils.should_receive(:chmod_R).with(0744, File.expand_path("fakedestdir/app"))
+      allow(build_pack).to receive(:system).with("cp -a #{File.expand_path "fakesrcdir"}/. #{File.expand_path "fakedestdir/app"}")
+      allow(FileUtils).to receive(:chmod_R).with(0744, File.expand_path("fakedestdir/app"))
       build_pack.copy_source_files
     end
   end
 
   describe "#compile_with_timeout" do
-    before { build_pack.stub_chain(:build_pack, :compile) { sleep duration } }
+    before { allow(build_pack).to receive_message_chain(:build_pack, :compile) { sleep duration } }
 
     context "when the staging takes too long" do
       let(:duration) { 1 }
@@ -233,9 +233,9 @@ describe Buildpacks::Buildpack, type: :buildpack do
     after { FileUtils.rm_rf @destination_dir }
 
     it "saves the error information in the approprate directory" do
-      expect(File.exists?(staging_info_file)).to be_false
+      expect(File.exists?(staging_info_file)).to be false
       buildpack.save_error_info(StandardError.new("my error"))
-      expect(File.exists?(staging_info_file)).to be_true
+      expect(File.exists?(staging_info_file)).to be true
     end
 
     it "saves the base class name without module or namesapce" do
@@ -259,7 +259,7 @@ describe Buildpacks::Buildpack, type: :buildpack do
     subject { build_pack.build_pack }
 
     it "returns the buildpack with the right key from the buildpack cache" do
-      Buildpacks::Installer.stub(:new)
+      allow(Buildpacks::Installer).to receive(:new)
         .with("#{fake_buildpacks_dir}/fail_to_detect", anything, anything)
         .and_return("the right buildpack")
 
@@ -267,10 +267,10 @@ describe Buildpacks::Buildpack, type: :buildpack do
     end
 
     it "does not try to detect the buildpack" do
-      build_pack.stub(:system).with(anything) { true }
+      allow(build_pack).to receive(:system).with(anything) { true }
 
       build_pack.send(:installers).each do |i|
-        i.should_not_receive(:detect)
+        expect(i).to_not receive(:detect)
       end
 
       subject
@@ -290,7 +290,7 @@ describe Buildpacks::Buildpack, type: :buildpack do
       subject { build_pack.build_pack }
 
       it "clones the buildpack URL" do
-        Buildpacks::Git.should_receive(:clone).with(buildpack_url, destination).and_return(buildpack_dir)
+        allow(Buildpacks::Git).to receive(:clone).with(buildpack_url, destination).and_return(buildpack_dir)
 
         subject
       end
@@ -299,17 +299,17 @@ describe Buildpacks::Buildpack, type: :buildpack do
         let(:buildpack_url) { "git://github.com/heroku/heroku-buildpack-java.git#branch" }
 
         it "clones the buildpack" do
-          Buildpacks::Git.should_receive(:clone).with(buildpack_url, destination).and_return(buildpack_dir)
+          allow(Buildpacks::Git).to receive(:clone).with(buildpack_url, destination).and_return(buildpack_dir)
 
           subject
         end
       end
 
       it "does not try to detect the buildpack" do
-        Buildpacks::Git.stub(:clone) { buildpack_dir }
+        allow(Buildpacks::Git).to receive(:clone) { buildpack_dir }
 
         build_pack.send(:installers).each do |i|
-          i.should_not_receive(:detect)
+          expect(i).to_not receive(:detect)
         end
 
         subject

@@ -25,30 +25,30 @@ describe Dea do
     let(:resource_manager) { double(:resource_manager, :could_reserve? => true, :remaining_memory => nil, :remaining_disk => nil, :app_id_to_count => {}) }
 
     before do
-      bootstrap.stub(:resource_manager).and_return(resource_manager)
+      allow(bootstrap).to receive(:resource_manager).and_return(resource_manager)
 
       @instance_mock = Dea::Instance.new(bootstrap, valid_instance_attributes)
-      @instance_mock.stub(:validate)
-      @instance_mock.stub(:start) do
+      allow(@instance_mock).to receive(:validate)
+      allow(@instance_mock).to receive(:start) do
         @instance_mock.state = Dea::Instance::State::STARTING
         @instance_mock.state = Dea::Instance::State::RUNNING
       end
 
-      Dea::Instance.should_receive(:new).and_return(@instance_mock)
+      allow(Dea::Instance).to receive(:new).and_return(@instance_mock)
 
-      bootstrap.unstub(:setup_router_client)
+      allow(bootstrap).to receive(:setup_router_client).and_call_original
     end
 
     it "doesn't call #start when the instance is invalid" do
-      instance_mock.should_receive(:validate).and_raise("Validation error")
-      instance_mock.should_not_receive(:start)
+      allow(instance_mock).to receive(:validate).and_raise("Validation error")
+      expect(instance_mock).to_not receive(:start)
 
       publish
     end
 
     it "calls #start" do
-      instance_mock.should_receive(:validate)
-      instance_mock.should_receive(:start)
+      allow(instance_mock).to receive(:validate)
+      allow(instance_mock).to receive(:start)
 
       publish
     end
@@ -56,7 +56,7 @@ describe Dea do
     describe "when start completes" do
       describe "with failure" do
         before do
-          instance_mock.stub(:start) do
+          allow(instance_mock).to receive(:start) do
             instance_mock.state = Dea::Instance::State::STARTING
             instance_mock.state = Dea::Instance::State::CRASHED
           end
@@ -70,7 +70,7 @@ describe Dea do
 
           publish
 
-          received_heartbeat.should be_false
+          expect(received_heartbeat).to be false
         end
 
         it "does not register with router" do
@@ -81,19 +81,19 @@ describe Dea do
 
           publish
 
-          sent_router_register.should be_false
+          expect(sent_router_register).to be false
         end
 
         it "should be registered with the instance registry" do
           publish
 
-          bootstrap.instance_registry.should_not be_empty
+          expect(bootstrap.instance_registry).to_not be_empty
         end
       end
 
       describe "with success" do
         before do
-          instance_mock.stub(:start) do
+          allow(instance_mock).to receive(:start) do
             instance_mock.state = Dea::Instance::State::STARTING
             instance_mock.state = Dea::Instance::State::RUNNING
           end
@@ -107,7 +107,7 @@ describe Dea do
 
           publish
 
-          received_heartbeat.should be_true
+          expect(received_heartbeat).to be true
         end
 
         it "registers with the router" do
@@ -118,13 +118,13 @@ describe Dea do
 
           publish
 
-          sent_router_register.should be_true
+          expect(sent_router_register).to be true
         end
 
         it "should be registered with the instance registry" do
           publish
 
-          bootstrap.instance_registry.should_not be_empty
+          expect(bootstrap.instance_registry).to_not be_empty
         end
       end
     end
