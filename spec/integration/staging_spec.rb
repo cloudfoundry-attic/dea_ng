@@ -211,14 +211,14 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
         end
 
         and_by "uploading buildpack cache after staging" do
-          expect(File.exist?(buildpack_cache_file)).to be true
+          expect(File.exist?(buildpack_cache_file)).to be_true
         end
 
         and_by "downloading buildpack cache before staging" do
           Dir.mktmpdir do |tmp|
             Dir.chdir(tmp) do
               `curl -s #{staged_url} | tar xfz -`
-              expect(File.exist?(File.join("app", "cached_file"))).to be true
+              expect(File.exist?(File.join("app", "cached_file"))).to be_true
             end
           end
         end
@@ -228,8 +228,8 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
             Dir.chdir(tmp) do
               buildpack_cache_file = File.join(FILE_SERVER_DIR, "buildpack_cache.tgz")
               `tar -zxf #{buildpack_cache_file}`
-              expect(File.exist?("new_cached_file")).to be true
-              expect(File.exist?("cached_file")).to_not be true
+              expect(File.exist?("new_cached_file")).to be_true
+              expect(File.exist?("cached_file")).to_not be_true
             end
           end
         end

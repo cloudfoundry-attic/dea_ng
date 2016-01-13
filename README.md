@@ -88,7 +88,7 @@ git clone https://github.com/cloudfoundry/dea_ng
 vagrant --version
 
 # Ensure the guest additions plugin is installed
-# NOTE: On mac, we had to
+# NOTE: On mac, we had to 
 # export NOKOGIRI_USE_SYSTEM_LIBRARIES=true
 
 vagrant plugin install vagrant-vbguest
@@ -102,24 +102,19 @@ They take 5-10 minutes to run, depending on your connection speed.
 To run tests individually, there is a bit of setup:
 
 ```bash
-#start vagrant
-vagrant up
 
 #shell into the VM
 vagrant ssh
 
-#create rootfs
-mkdir -p /tmp/warden/rootfs
-sudo tar -xvf /var/cf-release/.blobs/`basename $(readlink /var/cf-release/blobs/rootfs/*)` -C /tmp/warden/rootfs
-
+# pull the latest warden
+cd /warden
 #start warden
-cd /var/cf-release/src/warden/warden
+cd /warden/warden
 sudo bundle install
 sudo bundle exec rake warden:start[config/test_vm.yml] &> /tmp/warden.log &
-bundle exec rake setup:bin
 
 # start the DEA's dependencies
-cd /var/cf-release/src/dea_next
+cd /vagrant
 sudo bundle install
 sudo bundle exec foreman start &> /tmp/foreman.log &
 
