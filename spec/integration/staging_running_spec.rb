@@ -79,7 +79,7 @@ describe "Running an app immediately after staging", :type => :integration, :req
     end
 
     and_by "uploading the droplet" do
-      expect(File.exist?(uploaded_droplet)).to be_true
+      expect(File.exist?(uploaded_droplet)).to be true
     end
 
     and_by "exports user variables before .profile.d" do

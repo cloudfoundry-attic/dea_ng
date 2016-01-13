@@ -59,7 +59,7 @@ directory_server:
 
 stacks:
   - name: cflinuxfs2
-    package_path: /var/warden/rootfs_cflinuxfs2
+    package_path: /tmp/warden/rootfs
 # Hook scripts for droplet start/stop
 # hooks:
 #   before_start: path/to/script
