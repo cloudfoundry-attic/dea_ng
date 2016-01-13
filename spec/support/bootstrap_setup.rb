@@ -17,8 +17,6 @@ shared_context "bootstrap_setup" do
       "cc_url" => "cc.example.com",
       "directory_server" => {
         "v2_port" => 23456,
-        "protocol" => "http",
-        "file_api_port" => 23413412,
       },
       "domain" => "default",
       "logging" => {
@@ -28,6 +26,11 @@ shared_context "bootstrap_setup" do
       "pid_filename" => "/var/vcap/jobs/dea_next/pid",
       "warden_socket" => "/var/vcap/jobs/warden/socket",
       "index" => 0,
+      "directory_server" => {
+        "protocol" => "https",
+        "v2_port" => 20230303,
+        "file_api_port" => 23413412,
+      },
       "stacks" => [
         {
           "name" => "cflinuxfs2",
@@ -42,28 +45,28 @@ shared_context "bootstrap_setup" do
     bootstrap = Dea::Bootstrap.new(config)
     bootstrap.validate_config
 
-    allow(bootstrap).to receive(:validate_config)
+    bootstrap.stub(:validate_config)
 
-    allow(bootstrap).to receive(:snapshot) { double(:snapshot, :save => nil, :load => nil) }
+    bootstrap.stub(:snapshot) { double(:snapshot, :save => nil, :load => nil) }
 
     # No setup (explicitly unstub)
-    allow(bootstrap).to receive(:setup_logging)
-    allow(bootstrap).to receive(:setup_droplet_registry)
-    allow(bootstrap).to receive(:setup_signal_handlers)
-    allow(bootstrap).to receive(:setup_directories)
-    allow(bootstrap).to receive(:setup_pid_file)
-    allow(bootstrap).to receive(:setup_sweepers)
-    allow(bootstrap).to receive(:setup_directory_server)
-    allow(bootstrap).to receive(:setup_directory_server_v2)
-    allow(bootstrap).to receive(:setup_router_client)
+    bootstrap.stub(:setup_logging)
+    bootstrap.stub(:setup_droplet_registry)
+    bootstrap.stub(:setup_signal_handlers)
+    bootstrap.stub(:setup_directories)
+    bootstrap.stub(:setup_pid_file)
+    bootstrap.stub(:setup_sweepers)
+    bootstrap.stub(:setup_directory_server)
+    bootstrap.stub(:setup_directory_server_v2)
+    bootstrap.stub(:setup_router_client)
 
-    allow(bootstrap).to receive(:start_component)
-    allow(bootstrap).to receive(:start_directory_server)
-    allow(bootstrap).to receive(:register_directory_server_v2)
-    allow(bootstrap).to receive(:start_finish)
+    bootstrap.stub(:start_component)
+    bootstrap.stub(:start_directory_server)
+    bootstrap.stub(:register_directory_server_v2)
+    bootstrap.stub(:start_finish)
 
-    allow(bootstrap).to receive(:setup_directory_server_v2)
-    allow(bootstrap).to receive(:directory_server_v2) { double(:directory_server, :start => nil) }
+    bootstrap.stub(:setup_directory_server_v2)
+    bootstrap.stub(:directory_server_v2 => double(:directory_server, :start => nil))
     bootstrap
   end
 

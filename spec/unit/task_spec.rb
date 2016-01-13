@@ -11,21 +11,21 @@ describe Dea::Task do
   let(:connection_provider) { double("connection provider")}
 
   before do
-    allow(WardenClientProvider).to receive(:new).with(warden_socket).and_return(connection_provider)
+    WardenClientProvider.stub(:new).with(warden_socket).and_return(connection_provider)
   end
 
   subject(:task) { Dea::Task.new(config) }
 
   describe "#container -" do
     it "creates a container with connection provider" do
-      allow(Container).to receive(:new).with(connection_provider)
+      Container.should_receive(:new).with(connection_provider)
       task.container
     end
 
     describe "if it has been created" do
       it "should return the container" do
         container = task.container
-        expect(Container).to_not receive(:new)
+        Container.should_not_receive(:new)
         expect(task.container).to eq(container)
       end
     end
@@ -101,7 +101,7 @@ describe Dea::Task do
 
         expect {
           task.promise_stop(true).resolve
-        }.to raise_error 'boom'
+        }.to raise_error
       end
     end
 
@@ -148,13 +148,13 @@ describe Dea::Task do
 
   describe "#consuming_memory?" do
     it "returns true" do
-      expect(task.consuming_memory?).to be true
+      expect(task.consuming_memory?).to be_true
     end
   end
 
   describe "#consuming_disk?" do
     it "returns true" do
-      expect(task.consuming_disk?).to be true
+      expect(task.consuming_disk?).to be_true
     end
   end
 end

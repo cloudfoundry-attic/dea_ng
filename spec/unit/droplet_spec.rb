@@ -20,27 +20,25 @@ describe Dea::Droplet do
   end
 
   it "should export its sha1" do
-    expect(droplet.sha1).to eq(sha1)
+    droplet.sha1.should == sha1
   end
 
-  it 'should not exist' do
-    expect(droplet).to_not exist
-  end
+  it { should_not exist }
 
   it "should make sure its directory exists" do
-    expect(File.directory?(droplet.droplet_dirname)).to be true
+    File.directory?(droplet.droplet_dirname).should be_true
   end
 
   describe "destroy" do
     it "should remove the associated directory" do
-      expect(File.exist?(droplet.droplet_dirname)).to be true
+      File.exist?(droplet.droplet_dirname).should be_true
 
       with_event_machine do
         droplet.destroy { EM.stop }
         done
       end
 
-      expect(File.exist?(droplet.droplet_dirname)).to be false
+      File.exist?(droplet.droplet_dirname).should be_false
     end
   end
 
@@ -56,7 +54,7 @@ describe Dea::Droplet do
           end
         end
 
-        expect(error.message).to match(/status: unknown/)
+        error.message.should match(/status: unknown/)
       end
 
       context "when response has status other than 200" do
@@ -74,7 +72,7 @@ describe Dea::Droplet do
             end
           end
 
-          expect(error.message).to match(/status: 404/)
+          error.message.should match(/status: 404/)
         end
 
         it "should not create droplet file" do
@@ -84,7 +82,7 @@ describe Dea::Droplet do
             end
           end
 
-          expect(File.exist?(droplet.droplet_path)).to be false
+          expect(File.exist?(droplet.droplet_path)).to be_false
         end
       end
 
@@ -100,7 +98,7 @@ describe Dea::Droplet do
           end
         end
 
-        expect(error.message).to match(/SHA1 mismatch/)
+        error.message.should match(/SHA1 mismatch/)
       end
     end
 
@@ -123,8 +121,8 @@ describe Dea::Droplet do
           end
         end
 
-        expect(error).to be_nil
-        expect(droplet).to exist
+        error.should be_nil
+        droplet.should exist
       end
     end
 
@@ -203,18 +201,20 @@ describe Dea::Droplet do
 
       it "saves file in droplet path" do
         droplet.local_copy(source_file) {}
-        expect(File.exists?(droplet.droplet_path)).to be true
+        expect {
+          File.exists?(droplet.droplet_path)
+        }.to be_true
 
-        expect(File.read(source_file)).to eq("some data")
+        File.read(source_file).should eq("some data")
       end
 
       it "calls the callback without error" do
         called = false
         droplet.local_copy(source_file) do |err|
           called = true
-          expect(err).to be_nil
+          err.should be_nil
         end
-        expect(called).to be true
+        called.should be_true
       end
     end
 
@@ -226,9 +226,9 @@ describe Dea::Droplet do
         called = false
         droplet.local_copy(source_file) do |err|
           called = true
-          expect(err).to_not be_nil
+          err.should_not be_nil
         end
-        expect(called).to be true
+        called.should be_true
       end
     end
   end

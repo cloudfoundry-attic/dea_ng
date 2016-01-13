@@ -34,6 +34,7 @@ group :test do
   gem 'patron'
   gem 'rack-test'
   gem 'rspec'
+  gem 'rspec-fire', require: false
   gem 'rubyzip'
   gem 'sinatra'
   gem 'timecop'

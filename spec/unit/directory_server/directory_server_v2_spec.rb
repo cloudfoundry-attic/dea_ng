@@ -22,7 +22,7 @@ describe Dea::DirectoryServerV2 do
 
   describe "#initialize" do
     it "sets up hmac helper with correct key" do
-      expect(subject.hmac_helper.key).to be_a(String)
+      subject.hmac_helper.key.should be_a(String)
     end
   end
 
@@ -38,10 +38,10 @@ describe Dea::DirectoryServerV2 do
 
     it "sets up file api server" do
       subject.file_api_server.tap do |s|
-        expect(s).to be_an_instance_of Thin::Server
-        expect(s.host).to eq("127.0.0.1")
-        expect(s.port).to eq(3456)
-        expect(s.app).to_not be_nil
+        s.should be_an_instance_of Thin::Server
+        s.host.should == "127.0.0.1"
+        s.port.should == 3456
+        s.app.should_not be_nil
       end
     end
 
@@ -87,13 +87,13 @@ describe Dea::DirectoryServerV2 do
       it "can handle instance paths requests" do
         url = subject.instance_file_url_for("instance-id", "some-file-path")
         response = make_request(localize_url(url))
-        expect(response).to include("Unknown instance")
+        response.should include("Unknown instance")
       end
 
       it "can handle staging tasks requests" do
         url = subject.staging_task_file_url_for("task-id", "some-file-path")
         response = make_request(localize_url(url))
-        expect(response).to include("Unknown staging task")
+        response.should include("Unknown staging task")
       end
     end
 
@@ -109,18 +109,21 @@ describe Dea::DirectoryServerV2 do
   describe "url generation" do
     def self.it_generates_url(path)
       it "includes external host" do
-        expect(url).to start_with("#{config["directory_server"]["protocol"]}://#{subject.uuid}.domain")
+        url.should start_with("#{config["directory_server"]["protocol"]}://#{subject.uuid}.domain")
       end
 
       it "includes path" do
-        expect(url).to include(".domain#{path}")
+        url.should include(".domain#{path}")
       end
     end
 
     def self.it_hmacs_url(path_and_query)
       it "includes generated hmac param" do
-        expect(subject.hmac_helper).to receive(:create).with(path_and_query).and_return("hmac-value")
-        expect(url).to include("hmac=hmac-value")
+        subject.hmac_helper
+          .should_receive(:create)
+          .with(path_and_query)
+          .and_return("hmac-value")
+        url.should include("hmac=hmac-value")
       end
     end
 
@@ -136,7 +139,7 @@ describe Dea::DirectoryServerV2 do
       it_hmacs_url "/path?param=value"
 
       it "includes given params" do
-        expect(query_params(url)["param"]).to eq("value")
+        query_params(url)["param"].should == "value"
       end
 
       it "takes protocol from config" do
@@ -146,33 +149,33 @@ describe Dea::DirectoryServerV2 do
 
     describe "#instance_file_url_for" do
       let(:url) { subject.instance_file_url_for("instance-id", "/path-to-file") }
-      before { allow(Time).to receive(:now).and_return(Time.at(10)) }
+      before { Time.stub(:now => Time.at(10)) }
 
       it_generates_url "/instance_paths/instance-id"
       it_hmacs_url "/instance_paths/instance-id?path=%2Fpath-to-file&timestamp=10"
 
       it "includes timestamp with current time" do
-        expect(query_params(url)["timestamp"]).to eq("10")
+        query_params(url)["timestamp"].should == "10"
       end
 
       it "includes file path" do
-        expect(query_params(url)["path"]).to eq("/path-to-file")
+        query_params(url)["path"].should == "/path-to-file"
       end
     end
 
     describe "#staging_task_file_url_for" do
       let(:url) { subject.staging_task_file_url_for("task-id", "/path-to-file") }
-      before { allow(Time).to receive(:now).and_return(Time.at(10)) }
+      before { Time.stub(:now => Time.at(10)) }
 
       it_generates_url "/staging_tasks/task-id/file_path"
       it_hmacs_url "/staging_tasks/task-id/file_path?path=%2Fpath-to-file&timestamp=10"
 
       it "includes timestamp with current time" do
-        expect(query_params(url)["timestamp"]).to eq("10")
+        query_params(url)["timestamp"].should == "10"
       end
 
       it "includes file path" do
-        expect(query_params(url)["path"]).to eq("/path-to-file")
+        query_params(url)["path"].should == "/path-to-file"
       end
     end
   end
@@ -183,7 +186,7 @@ describe Dea::DirectoryServerV2 do
       let(:url) { subject.hmaced_url_for("/path", {:param => "value"}, verified_params) }
 
       it "returns true" do
-        expect(subject.verify_hmaced_url(url, verified_params)).to be true
+        subject.verify_hmaced_url(url, verified_params).should be_true
       end
     end
 
@@ -193,7 +196,7 @@ describe Dea::DirectoryServerV2 do
 
       it "returns false" do
         url.sub!("/path", "/malicious-path")
-        expect(subject.verify_hmaced_url(url, verified_params)).to be false
+        subject.verify_hmaced_url(url, verified_params).should be_false
       end
     end
 
@@ -204,7 +207,7 @@ describe Dea::DirectoryServerV2 do
         let(:verified_params) { [:param1, :param2] }
 
         it "returns true" do
-          expect(subject.verify_hmaced_url(url, verified_params)).to be true
+          subject.verify_hmaced_url(url, verified_params).should be_true
         end
       end
 
@@ -212,7 +215,7 @@ describe Dea::DirectoryServerV2 do
         let(:verified_params) { [:param1] }
 
         it "returns true" do
-          expect(subject.verify_hmaced_url(url, verified_params)).to be true
+          subject.verify_hmaced_url(url, verified_params).should be_true
         end
       end
     end
@@ -226,7 +229,7 @@ describe Dea::DirectoryServerV2 do
         url.sub!("param2", "param1")
         url.sub!("paramX", "param2")
 
-        expect(subject.verify_hmaced_url(url, verified_params)).to be true
+        subject.verify_hmaced_url(url, verified_params).should be_true
       end
     end
 
@@ -236,7 +239,7 @@ describe Dea::DirectoryServerV2 do
 
       it "returns false" do
         url.sub!("value", "malicious-value")
-        expect(subject.verify_hmaced_url(url, verified_params)).to be false
+        subject.verify_hmaced_url(url, verified_params).should be_false
       end
     end
 
@@ -246,19 +249,19 @@ describe Dea::DirectoryServerV2 do
 
       it "returns true" do
         url << "&new_param=new-value"
-        expect(subject.verify_hmaced_url(url, verified_params)).to be true
+        subject.verify_hmaced_url(url, verified_params).should be_true
       end
     end
 
     context "when url does not have hmac param" do
       it "returns false" do
-        expect(subject.verify_hmaced_url("http://google.com", [])).to be false
+        subject.verify_hmaced_url("http://google.com", []).should be_false
       end
     end
 
     context "when passed url is not a valid url" do
       it "returns false" do
-        expect(subject.verify_hmaced_url("invalid-url", [])).to be false
+        subject.verify_hmaced_url("invalid-url", []).should be_false
       end
     end
   end

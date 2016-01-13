@@ -24,7 +24,7 @@ module Helpers
 
     ::EM.next_tick {
       # Assert something to show a spec-pass
-      expect(:done).to eq :done
+      :done.should == :done
       ::EM.stop_event_loop
     }
   end

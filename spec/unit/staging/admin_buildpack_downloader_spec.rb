@@ -26,7 +26,7 @@ describe AdminBuildpackDownloader do
 
       it "creates it" do
         subject.download
-        expect(Dir.exists?(destination_directory)).to be true
+        expect(Dir.exists?(destination_directory)).to be_true
       end
     end
   end
@@ -52,21 +52,21 @@ describe AdminBuildpackDownloader do
 
       it "creates it" do
         do_download
-        expect(Dir.exists?(destination_directory)).to be true
+        expect(Dir.exists?(destination_directory)).to be_true
       end
     end
 
     it "downloads the buildpack and unzip it" do
       do_download
       expected_file_name = File.join(destination_directory, "abcdef")
-      expect(File.exist?(expected_file_name)).to be true
+      expect(File.exist?(expected_file_name)).to be_true
       expect(sprintf("%o", File.stat(expected_file_name).mode)).to eq("40755")
       expect(Dir.entries(expected_file_name)).to include("content")
     end
 
     it "doesn't download buildpacks it already has" do
-      allow(File).to receive(:exists?).with(File.join(destination_directory, "abcdef")).and_return(true)
-      expect(Download).to_not receive(:new)
+      File.stub(:exists?).with(File.join(destination_directory, "abcdef")).and_return(true)
+      Download.should_not_receive(:new)
       downloader.download
     end
   end
@@ -99,7 +99,7 @@ describe AdminBuildpackDownloader do
       do_download
       expect(Dir.entries(File.join(destination_directory))).to include("ijgh")
       expect(Dir.entries(File.join(destination_directory))).to include("abcdef")
-      expect(Pathname.new(destination_directory).children.size).to eq(2)
+      expect(Pathname.new(destination_directory).children).to have(2).items
     end
 
     context "when downloading a buildpack fails" do
@@ -115,7 +115,7 @@ describe AdminBuildpackDownloader do
 
         expect(Dir.entries(File.join(destination_directory))).to include("ijgh")
         expect(Dir.entries(File.join(destination_directory))).to include("abcdef")
-        expect(Pathname.new(destination_directory).children.size).to eq(2)
+        expect(Pathname.new(destination_directory).children).to have(2).items
       end
 
       context "and the download failure continues" do
@@ -128,9 +128,9 @@ describe AdminBuildpackDownloader do
           )
           expect {
             do_download
-          }.to raise_error Download::DownloadError
+          }.to raise_error
 
-          expect(Pathname.new(destination_directory).children.size).to eq(0)
+          expect(Pathname.new(destination_directory).children).to have(0).item
         end
       end
     end

@@ -7,11 +7,11 @@ describe Dea do
   include_context "bootstrap_setup"
 
   before do
-    allow(bootstrap).to receive(:setup_directory_server).and_call_original
+    bootstrap.unstub(:setup_directory_server)
   end
 
   it "should publish a message on 'vcap.component.announce' on startup" do
-    allow(bootstrap).to receive(:start_component).and_call_original
+    bootstrap.unstub(:start_component)
 
     announcement = nil
     nats_mock.subscribe("vcap.component.announce") do |msg|
@@ -24,11 +24,11 @@ describe Dea do
       bootstrap.start
     end
 
-    expect(announcement).to_not be_nil
+    announcement.should_not be_nil
   end
 
   it "should publish a message on 'dea.start' on startup" do
-    allow(bootstrap).to receive(:start_finish).and_call_original
+    bootstrap.unstub(:start_finish)
 
     start = nil
     nats_mock.subscribe("dea.start") do |msg|
@@ -72,17 +72,17 @@ describe Dea do
   end
 
   def verify_hello_message(bootstrap, hello)
-    expect(hello).to_not be_nil
-    expect(hello["id"]).to eq(bootstrap.uuid)
-    expect(hello["ip"]).to eq(bootstrap.local_ip)
-    expect(hello["version"]).to eq(Dea::VERSION)
+    hello.should_not be_nil
+    hello["id"].should == bootstrap.uuid
+    hello["ip"].should == bootstrap.local_ip
+    hello["version"].should == Dea::VERSION
   end
 
   def verify_status_message(bootstrap, status)
     verify_hello_message(bootstrap, status)
 
     %W[max_memory reserved_memory used_memory num_clients].each do |k|
-      expect(status.has_key?(k)).to be true
+      status.has_key?(k).should be_true
     end
   end
 end

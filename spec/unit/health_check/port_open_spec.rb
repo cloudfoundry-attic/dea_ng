@@ -17,7 +17,7 @@ describe Dea::HealthCheck::PortOpen do
       start_server
     end
 
-    expect(ok).to be true
+    ok.should be_true
   end
 
   it "should succed if someone starts listening on the port" do
@@ -25,7 +25,7 @@ describe Dea::HealthCheck::PortOpen do
       EM.add_timer(0.04) { start_server }
     end
 
-    expect(ok).to be true
+    ok.should be_true
   end
 
   it "should fail if no-one is listening on the port" do
@@ -33,8 +33,8 @@ describe Dea::HealthCheck::PortOpen do
     ok = run_health_check(host, port, 0.1)
     elapsed = Time.now - start
 
-    expect(ok).to be false
-    expect(elapsed).to be_within(0.2).of(0.1)
+    ok.should be_false
+    elapsed.should be_within(0.2).of(0.1)
   end
 
   def run_health_check(host, port, timeout, &blk)

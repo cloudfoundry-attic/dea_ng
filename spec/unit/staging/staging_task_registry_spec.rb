@@ -42,7 +42,7 @@ describe Dea::StagingTaskRegistry do
     before { subject.register(task_2) }
 
     it "returns all previously registered tasks" do
-      expect(subject.tasks).to_not eq([task_2, task_1])
+      subject.tasks.should =~ [task_2, task_1]
     end
   end
 end

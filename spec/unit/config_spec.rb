@@ -9,10 +9,10 @@ module Dea
 
     describe ".from_file" do
       let(:file_path) { File.expand_path("../../../config/dea.yml", __FILE__) }
-      subject { Dea::Config.from_file(file_path) }
+      subject { described_class.from_file(file_path) }
 
       it "can load" do
-        expect(subject).to be_a(Dea::Config)
+        should be_a(described_class)
       end
     end
 
@@ -20,7 +20,7 @@ module Dea
       let(:config_hash) { { } }
 
       it "can load" do
-        expect(subject).to be_a(Dea::Config)
+        should be_a(described_class)
       end
 
       describe "the available keys and values" do
@@ -32,11 +32,11 @@ module Dea
         end
 
         it "has the expected default keys" do
-          expect(config_as_hash.keys).to eq(Config::EMPTY_CONFIG.keys)
+          config_as_hash.keys.should eq(Config::EMPTY_CONFIG.keys)
         end
 
         it "has the expected default values" do
-          expect(config_as_hash.values).to eq(Config::EMPTY_CONFIG.values)
+          config_as_hash.values.should eq(Config::EMPTY_CONFIG.values)
         end
       end
     end
@@ -46,7 +46,7 @@ module Dea
         let(:config_hash) { { } }
 
         it "has a sane default" do
-          expect(config["placement_properties"]).to eq({ "zone" => "default" })
+          config["placement_properties"].should == { "zone" => "default" }
         end
       end
 
@@ -54,7 +54,7 @@ module Dea
         let(:config_hash) { { "placement_properties" => { "zone" => "CRAZY_TOWN" } } }
 
         it "uses the zone provided by the hash" do
-          expect(config["placement_properties"]).to eq({ "zone" => "CRAZY_TOWN" })
+          config["placement_properties"].should == { "zone" => "CRAZY_TOWN" }
         end
       end
     end
@@ -173,16 +173,16 @@ module Dea
         context "when the interval is zero" do
           let(:config_hash) { { "intervals" => { "router_register_in_seconds" => 0 } } }
 
-          it "is not valid" do
-            expect { config.validate_router_register_interval! }.to raise_error 'Invalid router register interval'
+          it "is valid" do
+            expect { config.validate_router_register_interval! }.to raise_error
           end
         end
 
         context "when the interval is negative" do
           let(:config_hash) { { "intervals" => { "router_register_in_seconds" => -5 } } }
 
-          it "is not valid" do
-            expect { config.validate_router_register_interval! }.to raise_error 'Invalid router register interval'
+          it "is valid" do
+            expect { config.validate_router_register_interval! }.to raise_error
           end
         end
       end

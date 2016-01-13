@@ -12,6 +12,7 @@ if ENV["CODECLIMATE_REPO_TOKEN"]
   CodeClimate::TestReporter.start
 end
 
+require 'rspec/fire'
 require 'socket'
 require 'tempfile'
 require 'timecop'
@@ -28,6 +29,7 @@ RSpec.configure do |config|
   config.include(ProcessHelpers, type: :integration)
   config.include(DeaHelpers, type: :integration)
   config.include(StagingHelpers, type: :integration)
+  config.include(RSpec::Fire)
 
   config.before do
     WebMock.allow_net_connect!

@@ -25,37 +25,37 @@ describe Dea::DirectoryServerV2::StagingTasks do
     context "when hmac is missing" do
       it "returns a 401" do
         get staging_task_file_path(staging_task.task_id, "file-path", :hmac => "") + "&path=application&timestamp=0"
-        expect(last_response.status).to eq(401)
-        expect(last_error).to eq("Invalid HMAC")
+        last_response.status.should == 401
+        last_error.should == "Invalid HMAC"
       end
     end
 
     context "when hmac is invalid" do
       it "returns a 401" do
         get staging_task_file_path(staging_task.task_id, "file-path", :hmac => "some-other-hmac") + "&path=application&timestamp=0"
-        expect(last_response.status).to eq(401)
-        expect(last_error).to eq("Invalid HMAC")
+        last_response.status.should == 401
+        last_error.should == "Invalid HMAC"
       end
     end
 
     context "when url has expired" do
       it "returns a 400" do
-        allow(Time).to receive(:now).and_return(Time.at(10))
+        Time.stub(:now => Time.at(10))
         url = staging_task_file_path(staging_task.task_id, "file-path")
 
-        allow(Time).to receive(:now).and_return(Time.at(12))
+        Time.stub(:now => Time.at(12))
         get url
 
-        expect(last_response.status).to eq(400)
-        expect(last_error).to eq("Url expired")
+        last_response.status.should == 400
+        last_error.should == "Url expired"
       end
     end
 
     context "when staging task does not exist" do
       it "returns a 404" do
         get staging_task_file_path("nonexistant-task-id", "file-path")
-        expect(last_response.status).to eq(404)
-        expect(last_error).to eq("Unknown staging task")
+        last_response.status.should == 404
+        last_error.should == "Unknown staging task"
       end
     end
 
@@ -63,12 +63,12 @@ describe Dea::DirectoryServerV2::StagingTasks do
       before { staging_task_registry.register(staging_task) }
 
       context "when container path is not available" do
-        before { allow(staging_task).to receive(:container_path).and_return(nil) }
+        before { staging_task.stub(:container_path => nil) }
 
         it "returns a 503" do
           get staging_task_file_path(staging_task.task_id, "file-path")
-          expect(last_response.status).to eq(503)
-          expect(last_error).to eq("Staging task unavailable")
+          last_response.status.should == 503
+          last_error.should == "Staging task unavailable"
         end
       end
 
@@ -77,22 +77,22 @@ describe Dea::DirectoryServerV2::StagingTasks do
 
         before do
           FileUtils.mkdir_p(container_rootfs_path)
-          allow(staging_task.container).to receive(:path).and_return(tmpdir)
+          staging_task.container.stub(:path).and_return(tmpdir)
         end
 
         context "when requested file does not exist" do
           it "returns 404" do
             get staging_task_file_path(staging_task.task_id, "file-path-that-does-not-exist")
-            expect(last_response.status).to eq(404)
-            expect(last_error).to eq("Entity not found")
+            last_response.status.should == 404
+            last_error.should == "Entity not found"
           end
         end
 
         context "when requested file path points outside the container's directory" do
           it "returns 403" do
             get staging_task_file_path(staging_task.task_id, "..")
-            expect(last_response.status).to eq(403)
-            expect(last_error).to eq("Not accessible")
+            last_response.status.should == 403
+            last_error.should == "Not accessible"
           end
         end
 
@@ -102,8 +102,8 @@ describe Dea::DirectoryServerV2::StagingTasks do
 
           it "returns expanded path" do
             get staging_task_file_path(staging_task.task_id, "some-file")
-            expect(last_response.status).to eq(200)
-            expect(json_body["instance_path"]).to eq(expanded_file_path)
+            last_response.status.should == 200
+            json_body["instance_path"].should == expanded_file_path
           end
         end
       end
@@ -123,7 +123,7 @@ describe Dea::DirectoryServerV2::StagingTasks do
   end
 
   def last_error
-    expect(json_body).to be_kind_of(Hash)
+    json_body.should be_kind_of(Hash)
     json_body["error"]
   end
 end

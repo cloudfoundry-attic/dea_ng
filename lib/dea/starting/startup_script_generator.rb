@@ -1,7 +1,7 @@
 module Dea
   class StartupScriptGenerator
     def self.strip_heredoc(string)
-      indent = string.scan(/^[ \t]*(?=\S)/).min.size
+      indent = string.scan(/^[ \t]*(?=\S)/).min.try(:size) || 0
       string.gsub(/^[ \t]{#{indent}}/, '')
     end
 

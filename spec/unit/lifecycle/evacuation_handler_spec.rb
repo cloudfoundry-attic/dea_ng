@@ -1,6 +1,5 @@
 require "spec_helper"
 require "dea/bootstrap"
-require "active_support/core_ext/numeric"
 
 describe EvacuationHandler do
   def instance_with_state(state)
@@ -55,9 +54,7 @@ describe EvacuationHandler do
   end
 
   context "before the evacuation handler is called" do
-    it 'should not evacuate' do
-      expect(handler).to_not be_evacuating
-    end
+    it { should_not be_evacuating }
   end
 
   context "when the evacuation handler is called for the first time" do
@@ -91,7 +88,7 @@ describe EvacuationHandler do
         expected_instance_ids = [instances[:born], instances[:starting], instances[:resuming], instances[:running]].map(&:instance_id)
         published_instance_ids = messages.map { |m| m["instance"] }
 
-        expect(messages.size).to eq 4
+        expect(messages).to have(4).items
         expect(published_instance_ids).to match_array expected_instance_ids
         expect(messages.map { |m| m["reason"] }.uniq).to eq ["DEA_EVACUATION"]
       end
@@ -163,7 +160,7 @@ describe EvacuationHandler do
         end
 
         it "returns false (the dea should not be stopped yet)" do
-          Timecop.travel now + 10*60 do
+          Timecop.travel now + 10.minutes do
             expect(handler.evacuate!(goodbye_message)).to eq false
           end
         end
@@ -180,7 +177,7 @@ describe EvacuationHandler do
 
         context "and the time elapsed since the first call is greater than the configured time" do
           it "returns true" do
-            Timecop.travel now + 15*60 do
+            Timecop.travel now + 15.minutes do
               expect(handler.evacuate!(goodbye_message)).to eq true
             end
           end
@@ -197,7 +194,7 @@ describe EvacuationHandler do
 
         it "should send exit messages" do
           handler.evacuate!(goodbye_message)
-          expect(@published_messages["droplet.exited"].size).to eq 4
+          expect(@published_messages["droplet.exited"]).to have(4).items
         end
 
         it "transitions any lagging instances to evacuating (we presume this should never happen)" do
@@ -215,7 +212,7 @@ describe EvacuationHandler do
         end
 
         it "returns false (the dea should not be stopped yet)" do
-          Timecop.travel now + 10*60 do
+          Timecop.travel now + 10.minutes do
             expect(handler.evacuate!(goodbye_message)).to eq false
           end
         end

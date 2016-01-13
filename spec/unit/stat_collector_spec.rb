@@ -44,32 +44,30 @@ describe Dea::StatCollector do
 
   before do
     called = false
-    allow(EM::Timer).to receive(:new) do |_, &blk|
+    EM::Timer.stub(:new) do |_, &blk|
       called = true
       blk.call unless called
     end
   end
 
-  it 'is initialized to 0' do
-    expect(collector.used_memory_in_bytes).to eq(0)
-    expect(collector.used_disk_in_bytes).to eq(0)
-    expect(collector.computed_pcpu).to eq(0)
-  end
+  its(:used_memory_in_bytes) { should eq 0 }
+  its(:used_disk_in_bytes) { should eq 0 }
+  its(:computed_pcpu) { should eq 0 }
 
   describe "#start" do
-    before { allow(container).to receive(:info) { info_response } }
+    before { container.stub(:info) { info_response } }
 
     context "first time started" do
       it "retrieves stats" do
-        expect(collector).to receive(:retrieve_stats)
+        collector.should_receive(:retrieve_stats)
         collector.start
       end
 
       it "runs #retrieve_stats every X seconds" do
-        expect(collector).to receive(:retrieve_stats).twice
+        collector.should_receive(:retrieve_stats).twice
 
         called = 0
-        allow(::EM::Timer).to receive(:new).with(Dea::StatCollector::INTERVAL) do |_, &blk|
+        ::EM::Timer.stub(:new).with(Dea::StatCollector::INTERVAL) do |_, &blk|
           called += 1
 
           blk.call unless called == 2
@@ -83,8 +81,8 @@ describe Dea::StatCollector do
 
     context "when already started" do
       it "return false" do
-        expect(collector.start).to be true
-        expect(collector.start).to be false
+        expect(collector.start).to be_true
+        expect(collector.start).to be_false
       end
     end
   end
@@ -97,7 +95,7 @@ describe Dea::StatCollector do
         #
         # sorry
         calls = 0
-        allow(EM::Timer).to receive(:new) do |_, &blk|
+        EM::Timer.stub(:new) do |_, &blk|
           calls += 1
           collector.stop if calls == 2
           blk.call unless calls == 5
@@ -118,19 +116,17 @@ describe Dea::StatCollector do
 
   describe "#retrieve_stats" do
     context "basic usage" do
-      before { allow(container).to receive(:info) { info_response } }
+      before { container.stub(:info) { info_response } }
 
       before { collector.retrieve_stats(Time.now) }
 
-      it 'retrieves the current state' do
-        expect(collector.used_memory_in_bytes).to eq(600)
-        expect(collector.used_disk_in_bytes).to eq(42)
-        expect(collector.computed_pcpu).to eq(0)
-      end
+      its(:used_memory_in_bytes) { should eq(600) }
+      its(:used_disk_in_bytes) { should eq(42) }
+      its(:computed_pcpu) { should eq(0) }
     end
 
     context "when retrieving info fails" do
-      before { allow(container).to receive(:info) { raise "foo" } }
+      before { container.stub(:info) { raise "foo" } }
 
       it "does not propagate the error" do
         expect { collector.retrieve_stats(Time.now) }.to_not raise_error
@@ -159,7 +155,7 @@ describe Dea::StatCollector do
       end
 
       it "uses it to compute CPU usage" do
-        allow(container).to receive(:info).and_return(info_response, second_info_response)
+        container.stub(:info).and_return(info_response, second_info_response)
 
         time = Time.now
         collector.retrieve_stats(time)
@@ -171,7 +167,7 @@ describe Dea::StatCollector do
 
       context "when disk stats are unavailable (quotas are disabled)" do
         let(:disk_stat_response) { nil }
-        before { allow(container).to receive(:info) { info_response } }
+        before { container.stub(:info) { info_response } }
 
         it "should report 0 bytes used" do
           collector.retrieve_stats(Time.now)
@@ -179,7 +175,7 @@ describe Dea::StatCollector do
         end
 
         it "should still report valid cpu statistics" do
-          allow(container).to receive(:info).and_return(info_response, second_info_response)
+          container.stub(:info).and_return(info_response, second_info_response)
 
           time = Time.now
           collector.retrieve_stats(time)

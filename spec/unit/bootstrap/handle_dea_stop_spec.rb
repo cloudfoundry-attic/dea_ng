@@ -23,36 +23,36 @@ describe "Dea::Bootstrap#handle_dea_stop" do
 
   let(:resource_manager) do
     manager = double(:resource_manager)
-    allow(manager).to receive(:could_reserve?).and_return(true)
-    allow(manager).to receive(:number_reservable).and_return(123)
+    manager.stub(:could_reserve?).and_return(true)
+    manager.stub(:number_reservable).and_return(123)
     manager
   end
 
   let(:instance_registry) { double(:instance_registry, :register => nil, :unregister => nil, :each => []) }
 
   before do
-    allow(bootstrap).to receive(:setup_router_client).and_call_original
+    bootstrap.unstub(:setup_router_client)
     with_event_machine do
       bootstrap.setup
       done
     end
 
-    allow_any_instance_of(Dea::Instance).to receive(:setup_link)
-    allow_any_instance_of(Dea::Responders::DeaLocator).to receive(:start) # to deal with test pollution
-    allow_any_instance_of(Dea::Responders::StagingLocator).to receive(:start) # to deal with test pollution
-    allow(bootstrap).to receive(:resource_manager).and_return(resource_manager)
-    allow(bootstrap).to receive(:instance_registry).and_return(instance_registry)
-    allow(bootstrap).to receive(:send_heartbeat)
+    Dea::Instance.any_instance.stub(:setup_link)
+    Dea::Responders::DeaLocator.any_instance.stub(:start) # to deal with test pollution
+    Dea::Responders::StagingLocator.any_instance.stub(:start) # to deal with test pollution
+    bootstrap.stub(:resource_manager).and_return(resource_manager)
+    bootstrap.stub(:instance_registry).and_return(instance_registry)
+    bootstrap.stub(:send_heartbeat)
 
-    allow(instance_registry).to receive(:instances_filtered_by_message).and_yield(instance_mock)
-    allow(instance_mock).to receive(:promise_stop).and_return(delivering_promise)
-    allow(instance_mock).to receive(:destroy)
-    allow(instance_mock.stat_collector).to receive(:start)
+    instance_registry.stub(:instances_filtered_by_message).and_yield(instance_mock)
+    instance_mock.stub(:promise_stop).and_return(delivering_promise)
+    instance_mock.stub(:destroy)
+    instance_mock.stat_collector.stub(:start)
   end
 
   describe "filtering" do
     before do
-      allow(instance_registry).to receive(:instances_filtered_by_message) do
+      instance_registry.stub(:instances_filtered_by_message) do
         EM.next_tick do
           done
         end
@@ -61,14 +61,14 @@ describe "Dea::Bootstrap#handle_dea_stop" do
 
     it "skips instances that are not running" do
       instance_mock.state = Dea::Instance::State::STOPPED
-      expect(instance_mock).to_not receive(:stop)
+      instance_mock.should_not_receive(:stop)
 
       publish
     end
 
     def self.it_stops_the_instance
       it "stops the instance" do
-        allow(instance_mock).to receive(:stop)
+        instance_mock.should_receive(:stop)
 
         publish
       end
@@ -84,7 +84,7 @@ describe "Dea::Bootstrap#handle_dea_stop" do
 
         publish
 
-        expect(sent_router_unregister).to be true
+        sent_router_unregister.should be_true
       end
     end
 
@@ -124,9 +124,9 @@ describe "Dea::Bootstrap#handle_dea_stop" do
 
   describe "when stop completes" do
     before do
-      allow(instance_mock).to receive(:running?).and_return(true)
+      instance_mock.stub(:running?).and_return(true)
 
-      allow(instance_registry).to receive(:instances_filtered_by_message) do
+      instance_registry.stub(:instances_filtered_by_message) do
         EM.next_tick do
           done
         end
@@ -135,7 +135,7 @@ describe "Dea::Bootstrap#handle_dea_stop" do
 
     describe "with failure" do
       before do
-        allow(instance_mock).to receive(:stop).and_yield(RuntimeError.new("Error"))
+        instance_mock.stub(:stop).and_yield(RuntimeError.new("Error"))
       end
 
       it "works" do
@@ -145,7 +145,7 @@ describe "Dea::Bootstrap#handle_dea_stop" do
 
     describe "with success" do
       before do
-        allow(instance_mock).to receive(:stop).and_yield(nil)
+        instance_mock.stub(:stop).and_yield(nil)
       end
 
       it "works" do

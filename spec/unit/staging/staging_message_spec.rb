@@ -123,17 +123,13 @@ describe StagingMessage do
     context "when buildpack is used" do
       let (:properties) { {"buildpack" => "https://example.com/repo.git"} }
 
-      it "should have a git url" do
-        expect(message.buildpack_git_url).to eq(URI("https://example.com/repo.git"))
-      end
+      its(:buildpack_git_url) { should eq(URI("https://example.com/repo.git")) }
     end
 
     context "when buildpack_git_url is used" do
       let (:properties) { {"buildpack_git_url" => "https://example.com/another_repo.git"} }
 
-      it "should have a git url" do
-        expect(message.buildpack_git_url).to eq(URI("https://example.com/another_repo.git"))
-      end
+      its(:buildpack_git_url) { should eq(URI("https://example.com/another_repo.git")) }
     end
 
     context "when buildpack and buildpack_git_url are used" do
@@ -164,8 +160,8 @@ describe StagingMessage do
       ]
     end
 
-    it "should have a list of admin buildpacks" do
-      expect(message.admin_buildpacks).to eq([
+    its(:admin_buildpacks) do
+      should eq([
         {
           url: URI("http://www.example.com/buildpacks/uri/first"),
           key: "first"
@@ -192,16 +188,11 @@ describe StagingMessage do
   context "when a buildpack key is specified" do
     let(:properties) { {"buildpack_key" => "admin_buildpack_key"} }
 
-    it "should have a key" do
-      expect(message.buildpack_key).to eq "admin_buildpack_key"
-    end
+    its(:buildpack_key) { should eq "admin_buildpack_key" }
   end
 
   context "when egress rules are not specified" do
     let(:egress_network_rules) { nil }
-
-    it "should have no egress rules" do
-      expect(message.egress_rules).to eq([])
-    end
+    its(:egress_rules) { should eq([]) }
   end
 end

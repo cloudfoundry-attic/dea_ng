@@ -12,8 +12,8 @@ describe Dea::InstanceManager do
     let(:attributes) { valid_instance_attributes.merge("state" => state, "limits" => resource_limits) }
     let(:instance) { Dea::Instance.new(bootstrap, attributes) }
     before do
-      allow(Dea::Instance).to receive(:new).and_return(instance)
-      allow(instance).to receive(:setup).and_return(nil)
+      Dea::Instance.stub(:new => instance)
+      instance.stub(:setup => nil)
     end
 
     let(:staging_task_registry) { Dea::StagingTaskRegistry.new }
@@ -54,7 +54,7 @@ describe Dea::InstanceManager do
         let(:requested_memory) { 1024 }
 
         it "logs error indicating not enough resource available" do
-          allow(instance_manager.logger).to receive(:error).with(
+          instance_manager.logger.should_receive(:error).with(
             "instance.start.insufficient-resource",
             hash_including(:app => "37", :instance => 42, :constrained_resource => "memory"))
           instance_manager.create_instance(attributes)
@@ -68,7 +68,7 @@ describe Dea::InstanceManager do
 
         it "sends exited message" do
           instance_manager.create_instance(attributes)
-          expect(@published_messages["droplet.exited"].size).to eq(1)
+          expect(@published_messages["droplet.exited"]).to have(1).item
           expect(@published_messages["droplet.exited"].first["reason"]).to eq "CRASHED"
           expect(@published_messages["droplet.exited"].first["instance"]).to eq instance.instance_id
         end
@@ -80,12 +80,12 @@ describe Dea::InstanceManager do
 
       context "when there is enough resources available" do
         it "sets up an instance" do
-          allow(instance).to receive(:setup)
+          instance.should_receive(:setup)
           instance_manager.create_instance(attributes)
         end
 
         it "registers instance in instance registry" do
-          allow(instance_registry).to receive(:register).with(instance)
+          instance_registry.should_receive(:register).with(instance)
           instance_manager.create_instance(attributes)
         end
 
@@ -104,13 +104,13 @@ describe Dea::InstanceManager do
 
               it "sends exited message with reason: crashed" do
                 subject
-                expect(@published_messages["droplet.exited"].size).to eq(1)
+                expect(@published_messages["droplet.exited"]).to have(1).item
                 expect(@published_messages["droplet.exited"].first["reason"]).to eq "CRASHED"
                 expect(@published_messages["droplet.exited"].first["instance"]).to eq instance.instance_id
               end
 
               it "saves the snapshot" do
-                allow(bootstrap.snapshot).to receive(:save)
+                bootstrap.snapshot.should_receive(:save)
                 subject
               end
             end
@@ -118,20 +118,20 @@ describe Dea::InstanceManager do
             context "and it transitions to stopped" do
               subject { instance.state = Dea::Instance::State::STOPPED }
 
-              before { allow(::EM).to receive(:next_tick).and_yield }
+              before { ::EM.stub(:next_tick).and_yield }
 
               it "unregisters from the instance registry" do
-                allow(instance_registry).to receive(:unregister).with(instance)
+                instance_registry.should_receive(:unregister).with(instance)
                 subject
               end
 
               it "saves the snapshot" do
-                allow(bootstrap.snapshot).to receive(:save)
+                bootstrap.snapshot.should_receive(:save)
                 subject
               end
 
               it "destroys the instance" do
-                allow(instance).to receive(:destroy)
+                instance.should_receive(:destroy)
                 subject
               end
             end
@@ -146,17 +146,17 @@ describe Dea::InstanceManager do
               subject { instance.state = Dea::Instance::State::RUNNING }
 
               it "sends heartbeat" do
-                allow(bootstrap).to receive(:send_heartbeat)
+                bootstrap.should_receive(:send_heartbeat)
                 subject
               end
 
               it "registers with the router" do
-                allow(bootstrap.router_client).to receive(:register_instance).with(instance)
+                bootstrap.router_client.should_receive(:register_instance).with(instance)
                 subject
               end
 
               it "saves the snapshot" do
-                allow(bootstrap.snapshot).to receive(:save)
+                bootstrap.snapshot.should_receive(:save)
                 subject
               end
             end
@@ -166,13 +166,13 @@ describe Dea::InstanceManager do
 
               it "sends exited message with reason: crashed" do
                 subject
-                expect(@published_messages["droplet.exited"].size).to eq(1)
+                expect(@published_messages["droplet.exited"]).to have(1).item
                 expect(@published_messages["droplet.exited"].first["reason"]).to eq "CRASHED"
                 expect(@published_messages["droplet.exited"].first["instance"]).to eq instance.instance_id
               end
 
               it "saves the snapshot" do
-                allow(bootstrap.snapshot).to receive(:save)
+                bootstrap.snapshot.should_receive(:save)
                 subject
               end
             end
@@ -187,19 +187,19 @@ describe Dea::InstanceManager do
               subject { instance.state = Dea::Instance::State::CRASHED }
 
               it "unregisters with the router" do
-                allow(bootstrap.router_client).to receive(:unregister_instance).with(instance)
+                bootstrap.router_client.should_receive(:unregister_instance).with(instance)
                 subject
               end
 
               it "sends exited message with reason: crashed" do
                 subject
-                expect(@published_messages["droplet.exited"].size).to eq(1)
+                expect(@published_messages["droplet.exited"]).to have(1).item
                 expect(@published_messages["droplet.exited"].first["reason"]).to eq "CRASHED"
                 expect(@published_messages["droplet.exited"].first["instance"]).to eq instance.instance_id
               end
 
               it "saves the snapshot" do
-                allow(bootstrap.snapshot).to receive(:save)
+                bootstrap.snapshot.should_receive(:save)
                 subject
               end
             end
@@ -208,12 +208,12 @@ describe Dea::InstanceManager do
               subject { instance.state = Dea::Instance::State::STOPPING }
 
               it "unregisters with the router" do
-                allow(bootstrap.router_client).to receive(:unregister_instance).with(instance)
+                bootstrap.router_client.should_receive(:unregister_instance).with(instance)
                 subject
               end
 
               it "saves the snapshot" do
-                allow(bootstrap.snapshot).to receive(:save)
+                bootstrap.snapshot.should_receive(:save)
                 subject
               end
             end
@@ -221,7 +221,7 @@ describe Dea::InstanceManager do
 
           context "when the app is stopping" do
             before do
-              allow(::EM).to receive(:next_tick).and_yield
+              ::EM.stub(:next_tick).and_yield
               instance.state = Dea::Instance::State::STOPPING
             end
 
@@ -229,17 +229,17 @@ describe Dea::InstanceManager do
               subject { instance.state = Dea::Instance::State::STOPPED }
 
               it "unregisters from the instance registry" do
-                allow(instance_registry).to receive(:unregister).with(instance)
+                instance_registry.should_receive(:unregister).with(instance)
                 subject
               end
 
               it "saves the snapshot" do
-                allow(bootstrap.snapshot).to receive(:save)
+                bootstrap.snapshot.should_receive(:save)
                 subject
               end
 
               it "destroys the instance" do
-                allow(instance).to receive(:destroy)
+                instance.should_receive(:destroy)
                 subject
               end
             end
@@ -254,12 +254,12 @@ describe Dea::InstanceManager do
               subject { instance.state = Dea::Instance::State::STOPPING }
 
               it "unregisters with the router" do
-                allow(bootstrap.router_client).to receive(:unregister_instance).with(instance)
+                bootstrap.router_client.should_receive(:unregister_instance).with(instance)
                 subject
               end
 
               it "saves the snapshot" do
-                allow(bootstrap.snapshot).to receive(:save)
+                bootstrap.snapshot.should_receive(:save)
                 subject
               end
             end
@@ -272,7 +272,7 @@ describe Dea::InstanceManager do
       let(:attributes) { {} }
 
       it "does not start the instance" do
-        expect(instance).to_not receive(:start)
+        instance.should_not_receive(:start)
         instance_manager.create_instance(attributes)
       end
 

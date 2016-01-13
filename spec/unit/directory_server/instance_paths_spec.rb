@@ -11,14 +11,13 @@ describe Dea::DirectoryServerV2::InstancePaths do
 
   let(:instance_registry) do
     double("instance_registry").tap do |r|
-      allow(r).to receive(:lookup_instance).with(instance.instance_id).and_return(instance)
+      r.stub(:lookup_instance).with(instance.instance_id).and_return(instance)
     end
   end
 
   let(:instance) do
     double("instance_mock").tap do |i|
-      allow(i).to receive(:instance_id).and_return("test_instance")
-      allow(i).to receive(:instance_path).and_return(tmpdir)
+      i.stub(:instance_id => "test_instance", :instance_path => tmpdir)
     end
   end
 
@@ -30,50 +29,53 @@ describe Dea::DirectoryServerV2::InstancePaths do
   describe "GET /instance_paths/<instance_id>" do
     it "returns a 401 if the hmac is missing" do
       get instance_path(instance.instance_id, "/path", :hmac => "") + "&path=application&timestamp=0"
-      expect(last_response.status).to eq(401)
-      expect(last_error).to eq("Invalid HMAC")
+      last_response.status.should == 401
+      last_error.should == "Invalid HMAC"
     end
 
     it "returns a 400 if the timestamp is too old" do
-      allow(Time).to receive(:now).and_return(Time.at(10))
+      Time.stub(:now => Time.at(10))
       url = instance_path(instance.instance_id, "/path")
 
-      allow(Time).to receive(:now).and_return(Time.at(12))
+      Time.stub(:now => Time.at(12))
       get url
 
-      expect(last_response.status).to eq(400)
-      expect(last_error).to eq("Url expired")
+      last_response.status.should == 400
+      last_error.should == "Url expired"
     end
 
     it "returns a 404 if no instance exists" do
-      allow(instance_registry).to receive(:lookup_instance).with("unknown-instance-id").and_return(nil)
+      instance_registry.
+        should_receive(:lookup_instance).
+        with("unknown-instance-id").
+        and_return(nil)
 
       get instance_path("unknown-instance-id", "/path")
-      expect(last_response.status).to eq(404)
-      expect(last_error).to eq("Unknown instance")
+      last_response.status.should == 404
+      last_error.should == "Unknown instance"
     end
 
     context "when instance path is not available" do
-      before { allow(instance).to receive(:instance_path_available?).and_return(false) }
+      before { instance.stub(:instance_path_available?).and_return(false) }
 
       it "returns a 503 if the instance path is unavailable" do
         get instance_path(instance.instance_id, "/path")
-        expect(last_response.status).to eq(503)
-        expect(last_error).to eq("Instance unavailable")
+        last_response.status.should == 503
+        last_error.should == "Instance unavailable"
       end
     end
 
     context "when instance path is available" do
-      before { allow(instance).to receive(:instance_path_available?).and_return(true) }
+      before { instance.stub(:instance_path_available?).and_return(true) }
 
       it "returns 404 if the requested file doesn't exist" do
         get instance_path(instance.instance_id, "/unknown-path")
-        expect(last_response.status).to eq(404)
+        last_response.status.should == 404
       end
 
       it "returns 403 if the file points outside the instance directory" do
         get instance_path(instance.instance_id, "/..")
-        expect(last_response.status).to eq(403)
+        last_response.status.should == 403
       end
 
       it "returns 200 with full path on success" do
@@ -81,13 +83,13 @@ describe Dea::DirectoryServerV2::InstancePaths do
         FileUtils.touch(path)
 
         get instance_path(instance.instance_id, "/test")
-        expect(json_body["instance_path"]).to eq(File.join(instance.instance_path, "test"))
+        json_body["instance_path"].should == File.join(instance.instance_path, "test")
       end
 
       it "return 200 with instance path when path is not explicitly specified (nil)" do
         get directory_server.instance_file_url_for(instance.instance_id, nil)
-        expect(last_response.status).to eq(200)
-        expect(json_body["instance_path"]).to eq(instance.instance_path)
+        last_response.status.should == 200
+        json_body["instance_path"].should == instance.instance_path
       end
     end
   end
@@ -105,7 +107,7 @@ describe Dea::DirectoryServerV2::InstancePaths do
   end
 
   def last_error
-    expect(json_body).to be_kind_of(Hash)
+    json_body.should be_kind_of(Hash)
     json_body["error"]
   end
 end

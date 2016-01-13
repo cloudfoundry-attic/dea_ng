@@ -7,10 +7,7 @@ describe BuildpacksMessage do
 
   context "when the message is empty" do
     let(:message) { [] }
-
-    it "should have an empty buildpack list" do
-      expect(subject.buildpacks).to eq([])
-    end
+    its(:buildpacks) { should eq([]) }
   end
 
   context "when admin build packs are specified" do
@@ -27,8 +24,8 @@ describe BuildpacksMessage do
       ]
     end
 
-    it "should contain a list of buildpacks" do
-      expect(subject.buildpacks).to eq([
+    its(:buildpacks) do
+      should eq([
         {
           url: URI("http://www.example.com/buildpacks/uri/first"),
           key: "first"
