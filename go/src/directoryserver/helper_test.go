@@ -2,15 +2,15 @@ package directoryserver
 
 import (
 	"io/ioutil"
-	. "launchpad.net/gocheck"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
 	"testing"
+	"github.com/go-check/check"
 )
 
-func Test(t *testing.T) { TestingT(t) }
+func Test(t *testing.T) { check.TestingT(t) }
 
 func getBody(response *http.Response) ([]byte, error) {
 	defer response.Body.Close()
@@ -32,7 +32,7 @@ func checkRequest(received *http.Request, expected *http.Request) bool {
 }
 
 type dummyDeaHandler struct {
-	t            *C
+	t            *check.C
 	expRequest   *http.Request
 	responseBody *[]byte
 }

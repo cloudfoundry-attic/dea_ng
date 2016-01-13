@@ -2,7 +2,7 @@ package common
 
 import (
 	"io/ioutil"
-	"launchpad.net/goyaml"
+	goyaml "github.com/go-yaml/yaml"
 )
 
 type Config struct {

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	. "launchpad.net/gocheck"
+	"github.com/go-check/check"
 	"net/http"
 	"os"
 	"regexp"
@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-func dump(file *os.File, t *C, numLines int) error {
+func dump(file *os.File, t *check.C, numLines int) error {
 	handle, err := os.OpenFile(file.Name(), syscall.O_WRONLY, 0666)
 	if err != nil {
 		t.Error(err)
@@ -34,7 +34,7 @@ func dump(file *os.File, t *C, numLines int) error {
 }
 
 type denyingDeaHandler struct {
-	t            *C
+	t            *check.C
 	expRequest   *http.Request
 	responseBody *[]byte
 }
@@ -53,9 +53,9 @@ func (handler denyingDeaHandler) ServeHTTP(w http.ResponseWriter,
 
 type DirectoryServerSuite struct{}
 
-var _ = Suite(&DirectoryServerSuite{})
+var _ = check.Suite(&DirectoryServerSuite{})
 
-func (s *DirectoryServerSuite) TestHandler_ServeHTTP_RequestToDeaFailed(t *C) {
+func (s *DirectoryServerSuite) TestHandler_ServeHTTP_RequestToDeaFailed(t *check.C) {
 	lc, hc, pc := startTestServer(http.NotFoundHandler())
 	lc.Close()
 
@@ -79,7 +79,7 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_RequestToDeaFailed(t *C) {
 	}
 }
 
-func (s *DirectoryServerSuite) TestHandler_ServeHTTP_RequestDeniedByDea(t *C) {
+func (s *DirectoryServerSuite) TestHandler_ServeHTTP_RequestDeniedByDea(t *check.C) {
 	responseBody := []byte("{\"instance_path\" : \"dummy\"}")
 	fc := func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
@@ -119,7 +119,7 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_RequestDeniedByDea(t *C) {
 	}
 }
 
-func (s *DirectoryServerSuite) TestHandler_ServeHTTP_EntityNotFound(t *C) {
+func (s *DirectoryServerSuite) TestHandler_ServeHTTP_EntityNotFound(t *check.C) {
 	responseBody := []byte("{\"instance_path\" : \"dummy\"}")
 	fc := func(w http.ResponseWriter, r *http.Request) {
 		w.Write(responseBody)
@@ -166,7 +166,7 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_EntityNotFound(t *C) {
 	}
 }
 
-func (s *DirectoryServerSuite) TestHandler_ServeHTTP_ReturnDirectoryListing(t *C) {
+func (s *DirectoryServerSuite) TestHandler_ServeHTTP_ReturnDirectoryListing(t *check.C) {
 	// Create temp directory listing for this unit test.
 	tmpDir, err := ioutil.TempDir("", "")
 	if err != nil {
@@ -244,7 +244,7 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_ReturnDirectoryListing(t *C
 	}
 }
 
-func fetchStreamingResponse(t *C, url string) (*http.Response, string) {
+func fetchStreamingResponse(t *check.C, url string) (*http.Response, string) {
 	// Create temp file for this unit test.
 	tmpFile, err := ioutil.TempFile("", "testfile_")
 	if err != nil {
@@ -287,7 +287,7 @@ func fetchStreamingResponse(t *C, url string) (*http.Response, string) {
 	_, err = response.Body.Read(body)
 	if err != nil {
 		// If no data comes through before timeout expires
-		// stream handler will just close the connection 
+		// stream handler will just close the connection
 		// causing EOF error which is ok.
 		if err != io.EOF && err != io.ErrUnexpectedEOF {
 			t.Error(err)
@@ -301,9 +301,9 @@ func fetchStreamingResponse(t *C, url string) (*http.Response, string) {
 	return response, string(body)
 }
 
-func (s *DirectoryServerSuite) TestHandler_ServeHTTP_StreamFile(t *C) {
+func (s *DirectoryServerSuite) TestHandler_ServeHTTP_StreamFile(t *check.C) {
 	response, body := fetchStreamingResponse(t, "/path?tail=&tail_offset=0")
-	t.Check(response.StatusCode, Equals, 200)
+	t.Check(response.StatusCode, check.Equals, 200)
 
 	// Check transfer encoding.
 	te := response.TransferEncoding
@@ -317,9 +317,9 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_StreamFile(t *C) {
 	}
 }
 
-func (s *DirectoryServerSuite) TestHandler_ServeHTTP_StreamFileFromValidOffset(t *C) {
+func (s *DirectoryServerSuite) TestHandler_ServeHTTP_StreamFileFromValidOffset(t *check.C) {
 	response, body := fetchStreamingResponse(t, "/path?tail=&tail_offset=0")
-	t.Check(response.StatusCode, Equals, 200)
+	t.Check(response.StatusCode, check.Equals, 200)
 
 	// Check transfer encoding.
 	te := response.TransferEncoding
@@ -333,33 +333,33 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_StreamFileFromValidOffset(t
 	}
 }
 
-func (s *DirectoryServerSuite) TestHandler_ServeHTTP_StreamFileFromOffsetLargerThanFile(t *C) {
+func (s *DirectoryServerSuite) TestHandler_ServeHTTP_StreamFileFromOffsetLargerThanFile(t *check.C) {
 	response, body := fetchStreamingResponse(t, "/path?tail=&tail_offset=1000000")
-	t.Check(response.StatusCode, Equals, 200)
+	t.Check(response.StatusCode, check.Equals, 200)
 
 	trimmed_body := strings.Trim(body, string(0))
-	t.Check(len(trimmed_body), Equals, 0)
+	t.Check(len(trimmed_body), check.Equals, 0)
 }
 
-func (s *DirectoryServerSuite) TestHandler_ServeHTTP_StreamFileFromOffsetThatOverflowsInt32(t *C) {
+func (s *DirectoryServerSuite) TestHandler_ServeHTTP_StreamFileFromOffsetThatOverflowsInt32(t *check.C) {
 	response, body := fetchStreamingResponse(t, "/path?tail=&tail_offset=1000000000000000000000000000000")
-	t.Check(response.StatusCode, Equals, 500)
-	t.Check(body, Matches, ".*Tail offset must be a positive integer.*")
+	t.Check(response.StatusCode, check.Equals, 500)
+	t.Check(body, check.Matches, ".*Tail offset must be a positive integer.*")
 }
 
-func (s *DirectoryServerSuite) TestHandler_ServeHTTP_StreamFileFromNonNumericOffset(t *C) {
+func (s *DirectoryServerSuite) TestHandler_ServeHTTP_StreamFileFromNonNumericOffset(t *check.C) {
 	response, body := fetchStreamingResponse(t, "/path?tail=&tail_offset=abc")
-	t.Check(response.StatusCode, Equals, 500)
-	t.Check(body, Matches, ".*Tail offset must be a positive integer.*")
+	t.Check(response.StatusCode, check.Equals, 500)
+	t.Check(body, check.Matches, ".*Tail offset must be a positive integer.*")
 }
 
-func (s *DirectoryServerSuite) TestHandler_ServeHTTP_StreamFileFromNegavtiveOffset(t *C) {
+func (s *DirectoryServerSuite) TestHandler_ServeHTTP_StreamFileFromNegavtiveOffset(t *check.C) {
 	response, body := fetchStreamingResponse(t, "/path?tail=&tail_offset=-1")
-	t.Check(response.StatusCode, Equals, 500)
-	t.Check(body, Matches, ".*Tail offset must be a positive integer.*")
+	t.Check(response.StatusCode, check.Equals, 500)
+	t.Check(body, check.Matches, ".*Tail offset must be a positive integer.*")
 }
 
-func (s *DirectoryServerSuite) TestHandler_ServeHTTP_DumpFile(t *C) {
+func (s *DirectoryServerSuite) TestHandler_ServeHTTP_DumpFile(t *check.C) {
 	// Create temp file for this unit test.
 	tmpFile, err := ioutil.TempFile("", "testfile_")
 	if err != nil {
@@ -421,7 +421,7 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_DumpFile(t *C) {
 	}
 }
 
-func (s *DirectoryServerSuite) TestHandler_ServeHTTP_DumpFile_RangeQuery(t *C) {
+func (s *DirectoryServerSuite) TestHandler_ServeHTTP_DumpFile_RangeQuery(t *check.C) {
 	// Create temp file for this unit test.
 	tmpFile, err := ioutil.TempFile("", "testfile_")
 	if err != nil {
@@ -496,7 +496,7 @@ func (s *DirectoryServerSuite) TestHandler_ServeHTTP_DumpFile_RangeQuery(t *C) {
 	}
 }
 
-func (s *DirectoryServerSuite) TestHandler_ServeHTTP_DumpFile_FailedRangeQuery(t *C) {
+func (s *DirectoryServerSuite) TestHandler_ServeHTTP_DumpFile_FailedRangeQuery(t *check.C) {
 	// Create temp file for this unit test.
 	tmpFile, err := ioutil.TempFile("", "testfile_")
 	if err != nil {

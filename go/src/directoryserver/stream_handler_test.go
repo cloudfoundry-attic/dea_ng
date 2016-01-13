@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"github.com/go-check/check"
 	"net"
 	"net/http"
 	"os"
 	"time"
-
-	. "launchpad.net/gocheck"
 )
 
 type StreamHandlerSuite struct {
@@ -18,13 +17,13 @@ type StreamHandlerSuite struct {
 	Handler  *StreamHandler
 }
 
-var _ = Suite(&StreamHandlerSuite{})
+var _ = check.Suite(&StreamHandlerSuite{})
 
-func (s *StreamHandlerSuite) SetUpTest(c *C) {
+func (s *StreamHandlerSuite) SetUpTest(c *check.C) {
 	s.FileName = s.TempFileName(c)
 }
 
-func (s *StreamHandlerSuite) TearDownTest(c *C) {
+func (s *StreamHandlerSuite) TearDownTest(c *check.C) {
 	os.Remove(s.FileName)
 
 	if s.Handler != nil {
@@ -32,9 +31,9 @@ func (s *StreamHandlerSuite) TearDownTest(c *C) {
 	}
 }
 
-func (s *StreamHandlerSuite) Printf(c *C, format string, a ...interface{}) {
+func (s *StreamHandlerSuite) Printf(c *check.C, format string, a ...interface{}) {
 	f, err := os.OpenFile(s.FileName, os.O_RDWR|os.O_APPEND, 0600)
-	c.Assert(err, IsNil)
+	c.Assert(err, check.IsNil)
 
 	fmt.Fprintf(f, format, a...)
 
@@ -42,33 +41,33 @@ func (s *StreamHandlerSuite) Printf(c *C, format string, a ...interface{}) {
 	f.Close()
 }
 
-func (s *StreamHandlerSuite) TempFileName(c *C) string {
+func (s *StreamHandlerSuite) TempFileName(c *check.C) string {
 	f, err := ioutil.TempFile("", "stream-handler-suite")
-	c.Assert(err, IsNil)
+	c.Assert(err, check.IsNil)
 	f.Close()
 	return f.Name()
 }
 
 type PanicReportingHandler struct {
-	Checker *C
+	Checker *check.C
 	Handler http.Handler
 }
 
 func (p *PanicReportingHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	defer func() {
 		err := recover()
-		p.Checker.Assert(err, IsNil)
+		p.Checker.Assert(err, check.IsNil)
 	}()
 
 	p.Handler.ServeHTTP(rw, req)
 }
 
-func (s *StreamHandlerSuite) BuildFile(c *C) *os.File {
+func (s *StreamHandlerSuite) BuildFile(c *check.C) *os.File {
 	f, err := os.Open(s.FileName)
-	c.Assert(err, IsNil)
+	c.Assert(err, check.IsNil)
 
 	_, err = f.Seek(0, os.SEEK_END)
-	c.Assert(err, IsNil)
+	c.Assert(err, check.IsNil)
 
 	return f
 }
@@ -83,7 +82,7 @@ func (s *StreamHandlerSuite) BuildHandler(f *os.File) *StreamHandler {
 	}
 }
 
-func (s *StreamHandlerSuite) GetFromHandler(c *C, h *StreamHandler) *http.Response {
+func (s *StreamHandlerSuite) GetFromHandler(c *check.C, h *StreamHandler) *http.Response {
 	s.Handler = h
 
 	panicReportingHandler := &PanicReportingHandler{
@@ -96,77 +95,77 @@ func (s *StreamHandlerSuite) GetFromHandler(c *C, h *StreamHandler) *http.Respon
 	}
 
 	l, err := net.Listen("tcp", "localhost:0")
-	c.Assert(err, IsNil)
+	c.Assert(err, check.IsNil)
 
 	go x.Serve(l)
 	defer l.Close()
 
 	res, err := http.Get(fmt.Sprintf("http://%s/", l.Addr()))
-	c.Assert(err, IsNil)
+	c.Assert(err, check.IsNil)
 
 	return res
 }
 
-func (s *StreamHandlerSuite) Get(c *C) *http.Response {
+func (s *StreamHandlerSuite) Get(c *check.C) *http.Response {
 	f := s.BuildFile(c)
 	h := s.BuildHandler(f)
 	return s.GetFromHandler(c, h)
 }
 
-func (s *StreamHandlerSuite) TestStream(c *C) {
+func (s *StreamHandlerSuite) TestStream(c *check.C) {
 	res := s.Get(c)
-	c.Check(res.StatusCode, Equals, 200)
+	c.Check(res.StatusCode, check.Equals, 200)
 
 	// The header was already sent, now write something to the file
 	s.Printf(c, "hello\n")
 
 	r := bufio.NewReader(res.Body)
 	l, err := r.ReadString('\n')
-	c.Check(err, IsNil)
-	c.Check(l, Equals, "hello\n")
+	c.Check(err, check.IsNil)
+	c.Check(l, check.Equals, "hello\n")
 }
 
-func (s *StreamHandlerSuite) TestStreamFromCurrentPosition(c *C) {
+func (s *StreamHandlerSuite) TestStreamFromCurrentPosition(c *check.C) {
 	s.Printf(c, "hello\n")
 
 	res := s.Get(c)
-	c.Check(res.StatusCode, Equals, 200)
+	c.Check(res.StatusCode, check.Equals, 200)
 
 	s.Printf(c, "world\n")
 
 	r := bufio.NewReader(res.Body)
 	l, err := r.ReadString('\n')
-	c.Check(err, IsNil)
-	c.Check(l, Equals, "world\n")
+	c.Check(err, check.IsNil)
+	c.Check(l, check.Equals, "world\n")
 }
 
-func (s *StreamHandlerSuite) TestStreamFlushesBeforeTailing(c *C) {
+func (s *StreamHandlerSuite) TestStreamFlushesBeforeTailing(c *check.C) {
 	s.Printf(c, "hello\n")
 
 	f, err := os.Open(s.FileName)
-	c.Assert(err, IsNil)
+	c.Assert(err, check.IsNil)
 
 	_, err = f.Seek(3, os.SEEK_SET)
-	c.Assert(err, IsNil)
+	c.Assert(err, check.IsNil)
 
 	h := s.BuildHandler(f)
 	res := s.GetFromHandler(c, h)
-	c.Check(res.StatusCode, Equals, 200)
+	c.Check(res.StatusCode, check.Equals, 200)
 
 	r := bufio.NewReader(res.Body)
 
 	l, err := r.ReadString('\n')
-	c.Check(err, IsNil)
-	c.Check(l, Equals, "lo\n")
+	c.Check(err, check.IsNil)
+	c.Check(l, check.Equals, "lo\n")
 
 	s.Printf(c, "world\n")
 
 	l, err = r.ReadString('\n')
-	c.Check(err, IsNil)
-	c.Check(l, Equals, "world\n")
+	c.Check(err, check.IsNil)
+	c.Check(l, check.Equals, "world\n")
 }
 
-func (s *StreamHandlerSuite) TestStreamWithIdleTimeout(c *C) {
+func (s *StreamHandlerSuite) TestStreamWithIdleTimeout(c *check.C) {
 	var l string
 	var err error
 
@@ -179,7 +178,7 @@ func (s *StreamHandlerSuite) TestStreamWithIdleTimeout(c *C) {
 	}
 
 	res := s.GetFromHandler(c, handler)
-	c.Check(res.StatusCode, Equals, 200)
+	c.Check(res.StatusCode, check.Equals, 200)
 
 	r := bufio.NewReader(res.Body)
 
@@ -189,7 +188,7 @@ func (s *StreamHandlerSuite) TestStreamWithIdleTimeout(c *C) {
 
 	// Read the write
 	l, _ = r.ReadString('\n')
-	c.Check(l, Equals, "hi there!\n")
+	c.Check(l, check.Equals, "hi there!\n")
 
 	// Write after timing out
 	time.Sleep(250 * time.Millisecond)
@@ -201,15 +200,15 @@ func (s *StreamHandlerSuite) TestStreamWithIdleTimeout(c *C) {
 
 	// Read an unexepected EOF
 	_, err = r.ReadString('\n')
-	c.Check(err, Equals, io.ErrUnexpectedEOF)
+	c.Check(err, check.Equals, io.ErrUnexpectedEOF)
 }
 
-func (s *StreamHandlerSuite) TestStreamUntilRenamed(c *C) {
+func (s *StreamHandlerSuite) TestStreamUntilRenamed(c *check.C) {
 	var l string
 	var err error
 
 	res := s.Get(c)
-	c.Check(res.StatusCode, Equals, 200)
+	c.Check(res.StatusCode, check.Equals, 200)
 
 	r := bufio.NewReader(res.Body)
 
@@ -218,26 +217,26 @@ func (s *StreamHandlerSuite) TestStreamUntilRenamed(c *C) {
 
 	// Read bytes written before rename
 	l, err = r.ReadString('\n')
-	c.Check(err, IsNil)
-	c.Check(l, Equals, "hello\n")
+	c.Check(err, check.IsNil)
+	c.Check(l, check.Equals, "hello\n")
 
 	// Rename
 	y := s.TempFileName(c)
 	err = os.Rename(s.FileName, y)
-	c.Assert(err, IsNil)
+	c.Assert(err, check.IsNil)
 
 	// Read EOF
 	l, err = r.ReadString('\n')
-	c.Check(err, Equals, io.EOF)
-	c.Check(l, Equals, "")
+	c.Check(err, check.Equals, io.EOF)
+	c.Check(l, check.Equals, "")
 }
 
-func (s *StreamHandlerSuite) TestStreamUntilRemoved(c *C) {
+func (s *StreamHandlerSuite) TestStreamUntilRemoved(c *check.C) {
 	var l string
 	var err error
 
 	res := s.Get(c)
-	c.Check(res.StatusCode, Equals, 200)
+	c.Check(res.StatusCode, check.Equals, 200)
 
 	r := bufio.NewReader(res.Body)
 
@@ -246,17 +245,17 @@ func (s *StreamHandlerSuite) TestStreamUntilRemoved(c *C) {
 
 	// Read bytes written before rename
 	l, err = r.ReadString('\n')
-	c.Check(err, IsNil)
-	c.Check(l, Equals, "hello\n")
+	c.Check(err, check.IsNil)
+	c.Check(l, check.Equals, "hello\n")
 
 	// Remove
 	err = os.Remove(s.FileName)
-	c.Assert(err, IsNil)
+	c.Assert(err, check.IsNil)
 
 	// Read EOF
 	l, err = r.ReadString('\n')
-	// c.Check(err, Equals, io.ErrUnexpectedEOF) LINUX
-	// c.Check(err, Equals, io.EOF) MAC
-	c.Check(err, Not(IsNil))
-	c.Check(l, Equals, "")
+	// c.Check(err, check.Equals, io.ErrUnexpectedEOF) LINUX
+	// c.Check(err, check.Equals, io.EOF) MAC
+	c.Check(err, check.Not(check.IsNil))
+	c.Check(l, check.Equals, "")
 }
