@@ -115,15 +115,15 @@ sudo tar -xvf /var/cf-release/.blobs/`basename $(readlink /var/cf-release/blobs/
 #start warden
 cd /var/cf-release/src/warden/warden
 sudo bundle install
-sudo bundle exec rake warden:start[config/test_vm.yml] &> /tmp/warden.log &
 bundle exec rake setup:bin
+sudo bundle exec rake warden:start[config/linux.yml] &> /tmp/warden.log &
 
 # start the DEA's dependencies
 cd /var/cf-release/src/dea_next
 sudo bundle install
 sudo bundle exec foreman start &> /tmp/foreman.log &
 
-#To run the tests (unit, integration or all):
+#To run the tests (unit or integration - these must be run separately if run as suites):
 bundle install
 bundle exec rspec spec/{spec_file_name}
 ```
