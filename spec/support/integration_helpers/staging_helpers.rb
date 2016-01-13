@@ -32,8 +32,8 @@ module StagingHelpers
       end
     end
 
-    expect(got_first_response).to be_true
-    expect(got_second_response).to be_true
+    expect(got_first_response).to be true
+    expect(got_second_response).to be true
 
     return completion_response, log
   end

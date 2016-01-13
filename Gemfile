@@ -28,7 +28,7 @@ gem 'sys-filesystem'
 
 group :test do
   gem 'codeclimate-test-reporter', require: false
-  gem 'ci_reporter'
+  gem 'ci_reporter_rspec'
   gem 'foreman'
   gem 'net-ssh'
   gem 'patron'
