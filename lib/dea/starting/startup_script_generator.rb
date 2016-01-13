@@ -24,10 +24,11 @@ module Dea
       exec bash -c %s
     BASH
 
-    def initialize(start_command, user_envs, system_envs)
+    def initialize(start_command, user_envs, system_envs, post_setup_hook)
       @start_command = start_command
       @user_envs = user_envs
       @system_envs = system_envs
+      @post_setup_hook = post_setup_hook
     end
 
     def generate
@@ -36,6 +37,7 @@ module Dea
       script << @system_envs
       script << @user_envs
       script << EXPORT_BUILDPACK_ENV_VARIABLES_SCRIPT
+      script << @post_setup_hook unless @post_setup_hook.nil? || @post_setup_hook == ''
       script << START_SCRIPT % Shellwords.shellescape(@start_command)
       script.join("\n")
     end

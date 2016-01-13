@@ -134,7 +134,9 @@ module Dea
               "rate" => Integer,
               "burst" => Integer,
             },
-          }
+          },
+
+          optional("post_setup_hook") => String
         }
       end
     end
@@ -210,6 +212,10 @@ module Dea
     def rootfs_path(stack_name)
       stack = @config['stacks'].find { |stack_hash| stack_hash['name'] == stack_name }
       stack['package_path'] unless stack.nil?
+    end
+
+    def post_setup_hook
+      @config['post_setup_hook']
     end
   end
 end

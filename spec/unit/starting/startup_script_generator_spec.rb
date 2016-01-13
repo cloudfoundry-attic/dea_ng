@@ -6,8 +6,9 @@ describe Dea::StartupScriptGenerator do
   let(:system_envs) { %Q{export usr1="sys_user_val1";\nexport sys1="sysval1";\n} }
   let(:used_buildpack) { '' }
   let(:start_command) { "go_nuts 'man' ; echo 'wooooohooo'" }
+  let(:post_setup_hook) { "command1; command2" }
 
-  let(:generator) { Dea::StartupScriptGenerator.new(start_command, user_envs, system_envs) }
+  let(:generator) { Dea::StartupScriptGenerator.new(start_command, user_envs, system_envs, post_setup_hook) }
 
   describe "#generate" do
     subject(:script) { generator.generate }
@@ -48,6 +49,28 @@ describe Dea::StartupScriptGenerator do
     describe "starting app" do
       it "includes the escaped start command in the starting script" do
         expect(script).to include(described_class::START_SCRIPT % Shellwords.shellescape(start_command))
+      end
+    end
+
+    describe "post setup hook" do
+      it "includes the escaped setup hook" do
+        expect(script).to include("command1; command2")
+      end
+
+      context "when nil" do
+        let(:post_setup_hook) { nil }
+
+        it "does not include garbage " do
+          expect(script).not_to include("''")
+        end
+      end
+
+      context "when empty string" do
+        let(:post_setup_hook) { '' }
+
+        it "does not include garbage " do
+          expect(script).not_to include("''")
+        end
       end
     end
   end
