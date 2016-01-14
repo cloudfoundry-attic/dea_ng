@@ -4,15 +4,12 @@
 [submodule "go/src/github.com/cloudfoundry/gosteno"]
 	path = go/src/github.com/cloudfoundry/gosteno
 	url = https://github.com/cloudfoundry/gosteno.git
-[submodule "go/src/github.com/howeyc/fsnotify"]
-	path = go/src/github.com/howeyc/fsnotify
-	url = https://github.com/howeyc/fsnotify.git
 [submodule "go/src/github.com/go-yaml/yaml"]
 	path = go/src/github.com/go-yaml/yaml
 	url = https://github.com/go-yaml/yaml
-[submodule "go/src/github.com/go-check/checkl"]
-	path = go/src/github.com/go-check/checkl
-	url = https://github.com/go-check/check
 [submodule "go/src/github.com/go-check/check"]
 	path = go/src/github.com/go-check/check
 	url = https://github.com/go-check/check
+[submodule "github.com/go-fsnotify/fsnotify"]
+	path = go/src/github.com/go-fsnotify/fsnotify
+	url = https://github.com/go-fsnotify/fsnotify
