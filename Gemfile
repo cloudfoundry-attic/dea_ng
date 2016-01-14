@@ -18,7 +18,6 @@ gem 'grape', git: 'https://github.com/intridea/grape.git'
 gem 'vcap_common'
 gem 'steno', '~> 1.1.0'
 
-gem 'uuidtools'
 gem 'vmstat'
 
 gem 'loggregator_emitter'
