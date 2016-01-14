@@ -140,6 +140,25 @@ module Dea
       end
     end
 
+    describe "#instance_nproc_limit" do
+      context "when the config hash has no key for nproc limit" do
+        let(:config_hash) { { "instance" => { } } }
+
+        it "is set to the default" do
+          expect(config.instance_nproc_limit).to eq(described_class::DEFAULT_INSTANCE_NPROC_LIMIT)
+        end
+      end
+
+      context "when the config hash has nproc_limit defined" do
+        let(:nproc_limit) { 1024 }
+        let(:config_hash) { { "instance" => { "nproc_limit" => nproc_limit } } }
+
+        it "returns the nproc limit" do
+          expect(config.instance_nproc_limit).to eq(nproc_limit)
+        end
+      end
+    end
+
     describe "#staging_bandwidth_limit" do
       context "when the config hash does not have a staging bandwidth limit" do
         let(:config_hash) { { "staging" => {} } }

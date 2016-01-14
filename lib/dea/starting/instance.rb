@@ -21,7 +21,6 @@ module Dea
     include EventEmitter
 
     STAT_COLLECTION_INTERVAL_SECS = 10
-    NPROC_LIMIT = 512
 
     class State
       BORN = 'BORN'
@@ -309,6 +308,10 @@ module Dea
       limits['fds'].to_i
     end
 
+    def nproc_limit
+      @bootstrap.config.instance_nproc_limit
+    end
+
     def instance_path_available?
       state == State::RUNNING || state == State::CRASHED
     end
@@ -453,8 +456,9 @@ module Dea
           start_script = env.exported_environment_variables + "./startup;\nexit"
         end
 
+        logger.info('DEA-RESOURCE-INFO', nproc_limit: self.nproc_limit)
         response = container.spawn(start_script,
-                                   container.resource_limits(self.file_descriptor_limit, NPROC_LIMIT))
+                                   container.resource_limits(self.file_descriptor_limit, self.nproc_limit))
 
         attributes['warden_job_id'] = response.job_id
 

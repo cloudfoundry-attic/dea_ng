@@ -224,6 +224,21 @@ describe Dea::Instance do
     it 'exports the file descriptor limit' do
       expect(instance.file_descriptor_limit).to eq(5000)
     end
+
+    context 'when the nproc limit is set in the config' do
+      let(:nproc_limit) {1024}
+      let(:config) do
+        Dea::Config.new(
+          { 'stacks' => stacks,
+            'instance' => {'nproc_limit' => nproc_limit }
+          }
+        )
+      end
+
+      it 'exports the correct nproc limit' do
+        expect(instance.nproc_limit).to eq(nproc_limit)
+      end
+    end
   end
 
   describe 'validation' do
@@ -922,7 +937,7 @@ describe Dea::Instance do
         it 'applies the correct resource limits to the instance' do
           expect(instance.container).to receive(:resource_limits).with(
                                             instance.file_descriptor_limit,
-                                            Dea::Instance::NPROC_LIMIT
+                                            instance.nproc_limit
                                         ).and_return('FAKE_RESOURCE_LIMIT_MESSAGE')
 
           instance.promise_start.resolve
@@ -949,7 +964,7 @@ describe Dea::Instance do
           before do
             allow(instance.container).to receive(:resource_limits).with(
                                              instance.file_descriptor_limit,
-                                             Dea::Instance::NPROC_LIMIT
+                                             instance.nproc_limit
                                          ).and_return('FAKE_RESOURCE_LIMIT_MESSAGE')
           end
 

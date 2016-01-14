@@ -52,6 +52,7 @@ The following is a partial list of the keys that are read from the YAML file:
 * `logging` - a [Steno configuration](http://github.com/cloudfoundry/steno#from-yaml-file)
 * `nats_servers` - an array of URIs of the form `nats://host:port` that the DEA will use to connect to NATS.
 * `warden_socket` - the path to a unix domain socket that the DEA will use to communicate to a warden server.
+* `instance.nproc_limit` - sets the system ulimit for the number of processes within an application container
 
 ### Running the DEA in the provided Vagrant VM
 
