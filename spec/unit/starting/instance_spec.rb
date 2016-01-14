@@ -22,7 +22,7 @@ describe Dea::Instance do
     ]
   end
   let(:config) do
-    Dea::Config.new({ 'stacks' => stacks, 'post_setup_hook' => 'post-setup-hook' })
+    Dea::Config.new({ 'stacks' => stacks })
   end
   before do
     allow(bootstrap.config).to receive(:crashes_path).and_return('crashes/path')
@@ -923,15 +923,19 @@ describe Dea::Instance do
           allow(instance.container).to receive(:spawn).and_return(response)
         end
 
-        it 'generates a script correctly' do
-          expect(Dea::StartupScriptGenerator).to receive(:new).with(
-                                                     'fake_start_command.sh',
-                                                     env.exported_user_environment_variables,
-                                                     env.exported_system_environment_variables,
-                                                     'post-setup-hook',
-                                                 ).and_return(generator)
+        context 'when a post-setup-hook is given in the config' do
+          let(:config){Dea::Config.new({ 'stacks' => stacks, 'post_setup_hook' => 'post-setup-hook' })}
 
-          instance.promise_start.resolve
+          it 'generates a script correctly' do
+            expect(Dea::StartupScriptGenerator).to receive(:new).with(
+            'fake_start_command.sh',
+            env.exported_user_environment_variables,
+            env.exported_system_environment_variables,
+            'post-setup-hook',
+            ).and_return(generator)
+
+            instance.promise_start.resolve
+          end
         end
 
         it 'applies the correct resource limits to the instance' do
