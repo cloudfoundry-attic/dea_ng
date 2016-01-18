@@ -46,7 +46,13 @@ module Dea
 
       start = Time.now
 
-      snapshot = ::Yajl::Parser.parse(File.read(path))
+      begin
+        snapshot = ::Yajl::Parser.parse(File.read(path))
+      rescue Yajl::ParseError => err
+        logger.error("Failed to parse", file: path, error: err)
+        raise
+      end
+
       snapshot ||= {}
 
       if snapshot["instances"]

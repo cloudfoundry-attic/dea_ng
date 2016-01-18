@@ -132,45 +132,69 @@ describe Dea::Snapshot do
   end
 
   describe "load" do
-    before do
-      File.open(snapshot.path, "w") do |file|
-        saved_snapshot = {
-          "instances" => [
-            {
-              "k1" => "v1",
-              "k2" => "v2",
-              "state" => "abc",
-            },
-            {
-              "k1" => "v1",
-              "k2" => "v2",
-              "state" => "abc",
-            },
-          ],
-        }
+    context 'with a valid snapshot' do
+      before do
+        File.open(snapshot.path, "w") do |file|
+          saved_snapshot = {
+            "instances" => [
+              {
+                "k1" => "v1",
+                "k2" => "v2",
+                "state" => "abc",
+              },
+              {
+                "k1" => "v1",
+                "k2" => "v2",
+                "state" => "abc",
+              },
+            ],
+          }
 
-        file.write(::Yajl::Encoder.encode(saved_snapshot))
-      end
-    end
-
-    it "should load a snapshot" do
-      2.times do
-        instance = Dea::Instance.new(bootstrap, valid_instance_attributes)
-        allow(instance).to receive(:validate)
-
-        allow(instance).to receive(:state=).ordered.with(Dea::Instance::State::RESUMING)
-
-        allow(instance).to receive(:state=).ordered.with("abc")
-
-        expect(instance_manager).to receive(:create_instance) do |attr|
-          expect(attr).to_not include("state")
-
-          # Return mock instance
-          instance
+          file.write(::Yajl::Encoder.encode(saved_snapshot))
         end
       end
 
-      snapshot.load
+      it "should load a snapshot" do
+        2.times do
+          instance = Dea::Instance.new(bootstrap, valid_instance_attributes)
+          allow(instance).to receive(:validate)
+
+          allow(instance).to receive(:state=).ordered.with(Dea::Instance::State::RESUMING)
+
+          allow(instance).to receive(:state=).ordered.with("abc")
+
+          expect(instance_manager).to receive(:create_instance) do |attr|
+            expect(attr).to_not include("state")
+
+            # Return mock instance
+            instance
+          end
+        end
+
+        snapshot.load
+      end
+    end
+
+    context 'when the snapshot does not exist' do
+      it 'does not error' do
+        expect { snapshot.load }.to_not raise_error
+      end
+    end
+
+    context 'when the snapshot is invalid' do
+      let(:logger) { double(:logger) }
+
+      before do
+        allow(snapshot).to receive(:logger) { logger }
+        File.open(snapshot.path, "w") do |file|
+          file.write('garbage')
+        end
+      end
+
+      it 'should log an error' do
+        expect(logger).to receive(:error).with('Failed to parse', hash_including(:file, :error))
+        expect { snapshot.load }.to raise_error Yajl::ParseError
+      end
     end
   end
 
