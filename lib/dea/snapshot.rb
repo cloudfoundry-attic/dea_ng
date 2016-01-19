@@ -86,8 +86,5 @@ module Dea
     private
     attr_reader :staging_task_registry, :instance_registry, :base_dir, :instance_manager
 
-    def logger
-      @logger ||= Steno::Logger.new("Snapshot", Steno.config.sinks, :level => Steno.config.default_log_level)
-    end
   end
 end
