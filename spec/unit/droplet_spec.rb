@@ -42,6 +42,17 @@ describe Dea::Droplet do
 
       expect(File.exist?(droplet.droplet_dirname)).to be false
     end
+
+    it 'should not raise when the directory is missing' do
+      Dir.rmdir(droplet.droplet_dirname)
+
+      with_event_machine do
+        expect {
+          droplet.destroy { EM.stop }
+        }.to_not raise_error
+        done
+      end
+    end
   end
 
   describe "download" do

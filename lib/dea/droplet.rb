@@ -88,7 +88,12 @@ module Dea
       # that is about to be deleted and to avoid doing a potentially expensive
       # operation on the reactor thread.
       logger.debug("Renaming #{droplet_dirname} to #{dir_to_remove}")
-      File.rename(droplet_dirname, dir_to_remove)
+      begin
+        File.rename(droplet_dirname, dir_to_remove)
+      rescue SystemCallError => e
+        logger.debug("Already renamed #{droplet_dirname}", error: e)
+        return
+      end
 
       operation = lambda do
         logger.debug("Removing #{dir_to_remove}")
