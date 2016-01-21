@@ -17,12 +17,10 @@ module Dea::Responders
     end
 
     def start
-      subscribe_to_staging_locate
       start_periodic_staging_advertise
     end
 
     def stop
-      unsubscribe_from_staging_locate
       stop_periodic_staging_advertise
     end
 
@@ -41,15 +39,6 @@ module Dea::Responders
     end
 
     private
-
-    def subscribe_to_staging_locate
-      options = {:do_not_track_subscription => true}
-      @staging_locate_sid = nats.subscribe("staging.locate", options) { |_| advertise }
-    end
-
-    def unsubscribe_from_staging_locate
-      nats.unsubscribe(@staging_locate_sid) if @staging_locate_sid
-    end
 
     # Cloud controller uses staging.advertise to
     # keep track of all deas that it can use to run apps

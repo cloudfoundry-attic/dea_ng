@@ -54,32 +54,6 @@ describe Dea do
     end
   end
 
-  it "should send a heartbeat upon receipt of a message on 'healthmanager.start'" do
-    heartbeat = nil
-    nats_mock.subscribe("dea.heartbeat") do |msg, _|
-      heartbeat = Yajl::Parser.parse(msg)
-      done
-    end
-
-    with_event_machine(:timeout => 1) do
-      bootstrap.setup
-      bootstrap.start
-
-      # Register instances
-      2.times do |ii|
-        instance = create_and_register_instance(bootstrap, "application_id" => ii)
-        instance.state = Dea::Instance::State::RUNNING
-      end
-
-      nats_mock.publish("healthmanager.start")
-    end
-
-    # Being a bit lazy here by not validating message returned, however,
-    # that codepath is exercised by the periodic heartbeat tests.
-    expect(heartbeat).to_not be_nil
-    expect(heartbeat["droplets"].size).to eq(2)
-  end
-
   describe "instance state filtering" do
     def run
       heartbeat = nil
@@ -88,17 +62,10 @@ describe Dea do
         done
       end
 
-      with_event_machine do
+      with_event_machine(:timeout => 1) do
         bootstrap.setup
-        bootstrap.start
-
         yield
-
-        # Trigger heartbeat
-        nats_mock.publish("healthmanager.start")
-
-        # Done in 0.01s (if the subscription doesn't receive a heartbeat)
-        ::EM.add_timer(0.01) { done }
+        bootstrap.start
       end
 
       heartbeat
@@ -116,6 +83,8 @@ describe Dea do
     end.each do |state|
       if matching_states.include?(state)
         it "should include #{state.inspect}" do
+          allow(bootstrap).to receive(:start_finish).and_call_original
+
           heartbeat = run do
             instance = create_and_register_instance(bootstrap)
             instance.state = state
@@ -125,6 +94,8 @@ describe Dea do
         end
       else
         it "should exclude #{state.inspect}" do
+          allow(bootstrap).to receive(:start_finish).and_call_original
+
           heartbeat = run do
             instance = create_and_register_instance(bootstrap)
             instance.state = state

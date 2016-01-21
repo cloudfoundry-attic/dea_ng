@@ -538,21 +538,6 @@ describe Dea::Bootstrap do
         expect(r.config).to be_a(Dea::Config)
       end
     end
-
-    it "sets up staging locator responder to respond to 'staging.locate' and send out 'staging.advertise'" do
-      bootstrap.setup_resource_manager
-      bootstrap.start_nats
-
-      responder = bootstrap.responders.detect { |r| r.is_a?(Dea::Responders::StagingLocator) }
-      expect(responder).to_not be_nil
-
-      responder.tap do |r|
-        expect(r.nats).to be_a(Dea::Nats)
-        expect(r.dea_id).to be_a(String)
-        expect(r.resource_manager).to be_a(Dea::ResourceManager)
-        expect(r.config).to be_a(Dea::Config)
-      end
-    end
   end
 
   describe "#start_finish" do

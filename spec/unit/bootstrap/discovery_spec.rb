@@ -27,40 +27,6 @@ describe Dea do
     expect(announcement).to_not be_nil
   end
 
-  it "should publish a message on 'dea.start' on startup" do
-    allow(bootstrap).to receive(:start_finish).and_call_original
-
-    start = nil
-    nats_mock.subscribe("dea.start") do |msg|
-      start = Yajl::Parser.parse(msg)
-      done
-    end
-
-    with_event_machine(:timeout => 1) do
-      bootstrap.setup
-      bootstrap.start
-    end
-
-    verify_hello_message(bootstrap, start)
-  end
-
-  it "should respond to messages on 'dea.status' with enhanced hello messages" do
-    status = nil
-    nats_mock.subscribe("result") do |msg|
-      status = Yajl::Parser.parse(msg)
-      done
-    end
-
-    with_event_machine(:timeout => 1) do
-      bootstrap.setup
-      bootstrap.start
-
-      nats_mock.publish("dea.status", {}, "result")
-    end
-
-    verify_status_message(bootstrap, status)
-  end
-
   def discover_message(opts = {})
     { "runtime" => "test1",
       "droplet" => 0,

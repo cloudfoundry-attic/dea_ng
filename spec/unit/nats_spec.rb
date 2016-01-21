@@ -15,8 +15,6 @@ describe Dea::Nats do
     before { nats.start }
 
     {
-      "healthmanager.start" => :handle_health_manager_start,
-      "dea.status"          => :handle_dea_status,
       "dea.UUID.start"      => :handle_dea_directed_start,
       "dea.stop"            => :handle_dea_stop,
       "dea.update"          => :handle_dea_update,
@@ -25,7 +23,7 @@ describe Dea::Nats do
       it "should subscribe to #{subject.inspect}" do
         data = { "subject" => subject }
 
-        allow(bootstrap).to receive(method).with(kind_of(Dea::Nats::Message)) do |message|
+        expect(bootstrap).to receive(method).with(kind_of(Dea::Nats::Message)) do |message|
           expect(message.subject).to eq(subject)
           expect(message.data).to eq(data)
         end

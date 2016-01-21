@@ -316,7 +316,6 @@ module Dea
     end
 
     def start_finish
-      nats.publish("dea.start", Dea::Protocol::V1::HelloMessage.generate(self))
       locator_responders.map(&:advertise)
 
       unless instance_registry.empty?
@@ -363,10 +362,6 @@ module Dea
 
 ### Handle_Nats_Messages
 
-    def handle_health_manager_start(message)
-      send_heartbeat()
-    end
-
     def setup_register_routes
       register_routes
       interval = config["intervals"]["router_register_in_seconds"]
@@ -387,10 +382,6 @@ module Dea
       end
 
       register_directory_server_v2
-    end
-
-    def handle_dea_status(message)
-      message.respond(Dea::Protocol::V1::DeaStatusResponse.generate(self))
     end
 
     def handle_dea_directed_start(message)
@@ -522,4 +513,3 @@ module Dea
     end
   end
 end
-
