@@ -44,7 +44,7 @@ describe Dea::Responders::DeaLocator do
 
         it "starts sending 'dea.advertise' every 2 secs" do
           allow(EM).to receive(:add_periodic_timer).with(2).and_yield
-          allow(nats).to receive(:publish).with("dea.advertise", kind_of(Hash))
+          expect(nats).to receive(:publish).with("dea.advertise", kind_of(Hash))
           subject.start
         end
       end
@@ -54,7 +54,7 @@ describe Dea::Responders::DeaLocator do
 
         it "starts sending 'dea.advertise' every 5 secs" do
           allow(EM).to receive(:add_periodic_timer).with(5).and_yield
-          allow(nats).to receive(:publish).with("dea.advertise", kind_of(Hash))
+          expect(nats).to receive(:publish).with("dea.advertise", kind_of(Hash))
           subject.start
         end
       end
@@ -79,7 +79,7 @@ describe Dea::Responders::DeaLocator do
         a_timer = 'dea advertise timer'
         allow(EM).to receive(:add_periodic_timer).and_return a_timer
         subject.start
-        allow(EM).to receive(:cancel_timer).with(a_timer)
+        expect(EM).to receive(:cancel_timer).with(a_timer)
         subject.stop
       end
     end

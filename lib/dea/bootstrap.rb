@@ -317,11 +317,8 @@ module Dea
 
     def start_finish
       locator_responders.map(&:advertise)
-
-      unless instance_registry.empty?
-        logger.info("Loaded #{instance_registry.size} instances from snapshot")
-        send_heartbeat()
-      end
+      logger.info("Loaded #{instance_registry.size} instances from snapshot")
+      send_heartbeat()
     end
 
     def register_directory_server_v2

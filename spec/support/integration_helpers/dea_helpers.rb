@@ -36,12 +36,6 @@ module DeaHelpers
     dea_server.host || raise("unknown dea host")
   end
 
-  def dea_id
-    nats.request("dea.status", {
-        "limits" => {"mem" => 1, "disk" => 1}
-    })["id"]
-  end
-
   def dea_memory
     # Use NATS to locate the only DEA running as part of this integration test.
     response = nats.with_subscription("dea.advertise") do
@@ -60,11 +54,13 @@ module DeaHelpers
 
     wait_until { is_port_open?("127.0.0.1", 10197) }
     local_ip = LocalIPFinder.new.find
-    `sudo iptables -I INPUT 2 -j ACCEPT -p tcp --dport 10197 -d #{local_ip.ip_address}`
+    `sudo /sbin/iptables -I INPUT 2 -j ACCEPT -p tcp --dport 10197 -d #{local_ip.ip_address}`
   end
 
   def stop_file_server
-    `sudo iptables -D INPUT 2`
+    iptable_rule = `sudo /sbin/iptables -S INPUT | grep 10197 | sed -e 's/^-A/-D/'`
+    iptable_rule.chomp
+    `sudo /sbin/iptables #{iptable_rule}` unless iptable_rule.empty?
     merciless_kill(@file_server_pid) if @file_server_pid
   end
 
@@ -78,13 +74,11 @@ module DeaHelpers
     dea_server.start(extra_config)
 
     Timeout.timeout(10) do
-      while true
-        begin
-          response = nats.request("dea.status", {}, :timeout => 1)
-          break if response
-        rescue NATS::ConnectError, Timeout::Error
-          # Ignore because either NATS is not running, or DEA is not running.
-        end
+      begin
+        heartbeat = nats.with_subscription("dea.heartbeat") {}
+        puts "dea server started, heartbeat received"
+      rescue NATS::ConnectError, Timeout::Error
+        # Ignore because either NATS is not running, or DEA is not running.
       end
     end
   end
@@ -178,6 +172,9 @@ module DeaHelpers
       @config ||= begin
         config = YAML.load(File.read("config/dea.yml"))
         config["domain"] = LocalIPFinder.new.find.ip_address+".xip.io"
+        config["intervals"] = {
+          "advertise" => 1
+        }
         config
       end
     end
