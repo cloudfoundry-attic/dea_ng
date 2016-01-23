@@ -51,7 +51,8 @@ describe "Running an app", :type => :integration, :requires_warden => true do
   end
 
   def stage
-    nats.make_blocking_request("staging", staging_message, 2)
+    stager_id = get_stager_id
+    nats.make_blocking_request("staging.#{stager_id}.start", staging_message, 2)
   end
 
   def stop
@@ -90,7 +91,7 @@ describe "Running an app", :type => :integration, :requires_warden => true do
       setup_fake_buildpack("start_command")
 
       expect do
-        nats.make_blocking_request("staging", staging_message, 2)
+        stage
 
         begin
           wait_until do

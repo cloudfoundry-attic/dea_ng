@@ -2,6 +2,16 @@ require "net/http"
 require "securerandom"
 
 module StagingHelpers
+  def get_stager_id
+    nats.with_nats do
+      NATS.subscribe("dea.advertise", :do_not_track_subscription => true) do |msg|
+        stager_id = Yajl::Parser.parse(msg)["id"] if msg
+        NATS.stop
+        return stager_id
+      end
+    end
+  end
+
   def perform_stage_request(message)
     message["task_id"] ||= SecureRandom.uuid
 
@@ -11,7 +21,8 @@ module StagingHelpers
     log = ""
     completion_response = nil
 
-    nats.make_blocking_request("staging", message, 2) do |response_index, response|
+    stager_id = get_stager_id
+    nats.make_blocking_request("staging.#{stager_id}.start", message, 2) do |response_index, response|
       case response_index
       when 0
         got_first_response = true

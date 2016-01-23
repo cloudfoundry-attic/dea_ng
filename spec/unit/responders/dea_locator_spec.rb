@@ -22,22 +22,6 @@ describe Dea::Responders::DeaLocator do
   subject { described_class.new(nats, dea_id, resource_manager, config) }
 
   describe "#start" do
-    describe "subscription for 'dea.locate'" do
-      before { allow(EM).to receive(:add_periodic_timer) }
-
-      it "subscribes to 'dea.locate' message" do
-        subject.start
-        allow(subject).to receive(:advertise)
-        nats_mock.publish("dea.locate")
-      end
-
-      it "subscribes to locate message but manually tracks the subscription" do
-        allow(nats).to receive(:subscribe)
-          .with("dea.locate", hash_including(do_not_track_subscription: true))
-        subject.start
-      end
-    end
-
     describe "periodic 'dea.advertise'" do
       context "when intervals.advertise config is set" do
         let(:config_overrides) { {"intervals" => { "advertise" => 2 } } }
@@ -63,18 +47,6 @@ describe Dea::Responders::DeaLocator do
 
   describe "#stop" do
     context "when subscription was made" do
-      it "unsubscribes from 'dea.locate' message" do
-        allow(EM).to receive(:add_periodic_timer)
-        subject.start
-
-        allow(subject).to receive(:advertise) # sanity check
-        nats_mock.publish("dea.locate")
-
-        subject.stop
-        expect(subject).to_not receive(:advertise)
-        nats_mock.publish("dea.locate")
-      end
-
       it "stops sending 'dea.advertise' periodically" do
         a_timer = 'dea advertise timer'
         allow(EM).to receive(:add_periodic_timer).and_return a_timer

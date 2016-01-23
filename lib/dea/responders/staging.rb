@@ -23,13 +23,11 @@ module Dea::Responders
 
     def start
       return unless configured_to_stage?
-      subscribe_to_staging
       subscribe_to_dea_specific_staging
       subscribe_to_staging_stop
     end
 
     def stop
-      unsubscribe_from_staging
       unsubscribe_from_dea_specific_staging
       unsubscribe_from_staging_stop
     end
@@ -81,15 +79,6 @@ module Dea::Responders
 
     def configured_to_stage?
       config['staging'] && config['staging']['enabled']
-    end
-
-    def subscribe_to_staging # Can we delete this??
-      @staging_sid =
-        nats.subscribe('staging', do_not_track_subscription: true, queue: 'staging') { |response| handle(response) }
-    end
-
-    def unsubscribe_from_staging
-      nats.unsubscribe(@staging_sid) if @staging_sid
     end
 
     def subscribe_to_dea_specific_staging

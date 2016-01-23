@@ -336,14 +336,15 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
       memory_while_staging = nil
       expected_responses = 2
 
-      nats.make_blocking_request("staging", staging_message, expected_responses, 20) do |index, _|
-        if index == 0
-          NATS.publish("dea.locate", Yajl::Encoder.encode({})) do
-            NATS.subscribe("dea.advertise") do |resp|
-              memory_while_staging = Yajl::Parser.parse(resp)["available_memory"]
+      # Get the stager (dea) id
+      stager_id = get_stager_id
 
-              NATS.publish("staging.stop", Yajl::Encoder.encode({"app_id" => app_id}))
-            end
+      nats.make_blocking_request("staging.#{stager_id}.start", staging_message, expected_responses, 20) do |index, _|
+        if index == 0
+          NATS.subscribe("dea.advertise") do |resp|
+            memory_while_staging = Yajl::Parser.parse(resp)["available_memory"]
+
+            NATS.publish("staging.stop", Yajl::Encoder.encode({"app_id" => app_id}))
           end
         end
       end
@@ -375,7 +376,8 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
 
       context "when staging is in process" do
         it "stops staging tasks" do
-          responses = nats.make_blocking_request("staging", staging_message, 2) do |response_index, _|
+          stager_id = get_stager_id
+          responses = nats.make_blocking_request("staging.#{stager_id}.start", staging_message, 2) do |response_index, _|
             dea_stop if response_index == 0
           end
 
@@ -390,7 +392,8 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
       let(:start_message) { nil }
 
       it "stops staging task" do
-        responses = nats.make_blocking_request("staging", staging_message, 2) do |response_index, _|
+        stager_id = get_stager_id
+        responses = nats.make_blocking_request("staging.#{stager_id}.start", staging_message, 2) do |response_index, _|
           if response_index == 0
             NATS.publish("staging.stop", Yajl::Encoder.encode("app_id" => app_id))
           end

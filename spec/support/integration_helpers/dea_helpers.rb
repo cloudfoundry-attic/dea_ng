@@ -38,11 +38,11 @@ module DeaHelpers
 
   def dea_memory
     # Use NATS to locate the only DEA running as part of this integration test.
-    response = nats.with_subscription("dea.advertise") do
-      nats.publish("dea.locate", {}, :async => true)
+    nats.with_nats do
+      NATS.subscribe("dea.advertise", :do_not_track_subscription => true) do |msg|
+        return Yajl::Parser.parse(msg)["available_memory"] if msg
+      end
     end
-
-    response["available_memory"]
   end
 
   def dea_pid

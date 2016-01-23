@@ -49,44 +49,35 @@ describe Dea::Responders::Staging do
     context "when config does not allow staging operations" do
       before { config.delete("staging") }
 
-      it "does not listen to staging" do
+      it "does not listen to staging.<dea-id>.start" do
         subject.start
         expect(subject).to_not receive(:handle)
-        nats_mock.publish("staging")
+        nats_mock.publish("staging#{dea_id}.start")
       end
     end
 
     context "when the config allows staging operation" do
       before { config["staging"] = {"enabled" => true} }
 
-      it "subscribes to 'staging' message" do
-        subject.start
-        allow(subject).to receive(:handle)
-        nats_mock.publish("staging")
-      end
-
       it "subscribes to 'staging.<dea-id>.start' message" do
         subject.start
-        allow(subject).to receive(:handle)
+        expect(subject).to receive(:handle)
         nats_mock.publish("staging.#{dea_id}.start")
       end
 
       it "subscribes to 'staging.stop' message" do
         subject.start
-        allow(subject).to receive(:handle_stop)
+        expect(subject).to receive(:handle_stop)
         nats_mock.publish("staging.stop")
       end
 
       it "subscribes to staging message as part of the queue group" do
-        allow(nats_mock).to receive(:subscribe).with("staging", :queue => "staging")
-        allow(nats_mock).to receive(:subscribe).with("staging.#{dea_id}.start", {})
-        allow(nats_mock).to receive(:subscribe).with("staging.stop", {})
+        expect(nats_mock).to receive(:subscribe).with("staging.#{dea_id}.start", {})
+        expect(nats_mock).to receive(:subscribe).with("staging.stop", {})
         subject.start
       end
 
       it "subscribes to staging message but manually tracks the subscription" do
-        allow(nats).to receive(:subscribe).with(
-          "staging", hash_including(:do_not_track_subscription => true))
         allow(nats).to receive(:subscribe).with(
           "staging.#{dea_id}.start", hash_including(:do_not_track_subscription => true))
         allow(nats).to receive(:subscribe).with(
@@ -101,15 +92,6 @@ describe Dea::Responders::Staging do
 
     context "when subscription was made" do
       before { subject.start }
-
-      it "unsubscribes from 'staging' message" do
-        allow(subject).to receive(:handle) # sanity check
-        nats_mock.publish("staging")
-
-        subject.stop
-        expect(subject).to_not receive(:handle)
-        nats_mock.publish("staging")
-      end
 
       it "unsubscribes from 'staging.stop' message" do
         allow(subject).to receive(:handle_stop) # sanity check

@@ -17,12 +17,10 @@ module Dea::Responders
     end
 
     def start
-      subscribe_to_dea_locate
       start_periodic_dea_advertise
     end
 
     def stop
-      unsubscribe_from_dea_locate
       stop_periodic_dea_advertise
     end
 
@@ -43,15 +41,6 @@ module Dea::Responders
     end
 
     private
-
-    def subscribe_to_dea_locate
-      options = { :do_not_track_subscription => true }
-      @dea_locate_sid = nats.subscribe("dea.locate", options) { |_| advertise }
-    end
-
-    def unsubscribe_from_dea_locate
-      nats.unsubscribe(@dea_locate_sid) if @dea_locate_sid
-    end
 
     # Cloud controller uses dea.advertise to
     # keep track of all deas that it can use to run apps
