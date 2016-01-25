@@ -151,28 +151,6 @@ describe Dea::ResourceManager do
     end
   end
 
-  describe "available_memory_ratio" do
-    before do
-      instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "mem" => 512 }).tap { |i| i.state = "RUNNING" })
-      staging_registry.register(Dea::StagingTask.new(bootstrap, nil, StagingMessage.new({}), []))
-    end
-
-    it "is the ratio of available memory to total memory" do
-      expect(manager.available_memory_ratio).to eq(1 - (512.0 + 1024.0) / nominal_memory_capacity)
-    end
-  end
-
-  describe "available_disk_ratio" do
-    before do
-      instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "disk" => 512 }).tap { |i| i.state = "RUNNING" })
-      staging_registry.register(Dea::StagingTask.new(bootstrap, nil, StagingMessage.new({}), []))
-    end
-
-    it "is the ratio of available disk to total disk" do
-      expect(manager.available_disk_ratio).to eq(1 - (512.0 + 2048.0) / nominal_disk_capacity)
-    end
-  end
-
   describe "check if there are available resources" do
     before do
       instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "mem" => 512, "disk" => 1024 }).tap { |i| i.state = "RUNNING" })

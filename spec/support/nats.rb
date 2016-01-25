@@ -18,6 +18,8 @@ MockClass.define(:NatsClientMock, NatsInstance) do
     @requests = 0
   end
 
+  attr_reader :subscriptions
+
   overrides :subscribe do |subject, opts={}, &callback|
     @subscriptions[subject] << callback
     callback # Consider block a subscription id

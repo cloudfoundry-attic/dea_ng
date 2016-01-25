@@ -1,5 +1,6 @@
 require 'spec_helper'
 require 'container/container'
+require 'loggregator_emitter'
 
 describe Container do
   let(:handle) { 'fakehandle' }
@@ -152,12 +153,12 @@ describe Container do
 
   describe '#call' do
     before do
-      VCAP::Component.varz.synchronize do
-        VCAP::Component.varz[:total_warden_response_time_in_ms] = 10
-        VCAP::Component.varz[:warden_request_count] = 10
-        VCAP::Component.varz[:warden_error_response_count] = 1
-      end
+      @emitter = FakeEmitter.new
+      @staging_emitter = FakeEmitter.new
+      Dea::Loggregator.emitter = @emitter
+      Dea::Loggregator.staging_emitter = @staging_emitter
     end
+
     it 'makes a request using connection#call' do
       allow(connection).to receive(:call).with(request).and_return(response)
       container.call(connection_name, request)
@@ -176,32 +177,18 @@ describe Container do
         end
       end
 
-      it 'logs the response time to varz' do
+      it 'logs the response time to loggregator_emitter' do
         the_call
 
-        expect(VCAP::Component.varz[:total_warden_response_time_in_ms]).to eq(10_010)
+        expect(@emitter.messages['total_warden_response_time_in_ms'].length).to eq(1)
+        expect(@emitter.messages['total_warden_response_time_in_ms'][0][:delta]).to eq(10000)
       end
 
-      it 'logs the response count to varz' do
+      it 'logs the response count to loggregator_emitter' do
         the_call
 
-        expect(VCAP::Component.varz[:warden_request_count]).to eq(11)
-      end
-
-      context "when there's no recorded total_warden_response_time_in_ms or total_warden_request_count" do
-        before do
-          VCAP::Component.varz.synchronize do
-            VCAP::Component.varz[:total_warden_response_time_in_ms] = nil
-            VCAP::Component.varz[:warden_request_count] = nil
-          end
-        end
-
-        it "logs the values correctly" do
-          the_call
-
-          expect(VCAP::Component.varz[:total_warden_response_time_in_ms]).to eq(10_000)
-          expect(VCAP::Component.varz[:warden_request_count]).to eq(1)
-        end
+        expect(@emitter.messages['warden_request_count'].length).to eq(1)
+        expect(@emitter.messages['warden_request_count'][0][:delta]).to eq(1)
       end
     end
 
@@ -219,17 +206,18 @@ describe Container do
         end
       end
 
-      it 'still logs the response time to varz' do
+      it 'still logs the response time to loggregator' do
         the_call
 
-        expect(VCAP::Component.varz[:total_warden_response_time_in_ms]).to eq(10010)
-        expect(VCAP::Component.varz[:warden_request_count]).to eq(11)
+        expect(@emitter.messages["total_warden_response_time_in_ms"].length).to eq(1)
+        expect(@emitter.messages["total_warden_response_time_in_ms"][0][:delta]).to eq(10000)
       end
 
-      it 'logs the failure to varz' do
+      it 'logs the failure to loggregator' do
         the_call
 
-        expect(VCAP::Component.varz[:warden_error_response_count]).to eq(2)
+        expect(@emitter.messages["warden_error_response_count"].length).to eq(1)
+        expect(@emitter.messages["warden_error_response_count"][0][:delta]).to eq(1)
       end
     end
   end

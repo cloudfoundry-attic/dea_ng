@@ -391,25 +391,18 @@ describe Dea::Instance do
 
   end
 
-  describe 'attributes_and_stats from stat collector' do
-    it 'returns the used_memory_in_bytes stat in the attributes_and_stats hash' do
-      allow(instance.stat_collector).to receive(:used_memory_in_bytes).and_return(999)
-      expect(instance.attributes_and_stats).to include('used_memory_in_bytes' => 999)
+  describe '#emit_stats' do
+    it 'triggers the stat collector to emit stats' do
+      expect(instance.stat_collector).to receive("emit_metrics").with(kind_of(Time))
+      instance.emit_stats
     end
+  end
 
-    it 'returns the used_disk_in_bytes stat in the attributes_and_stats hash' do
-      allow(instance.stat_collector).to receive(:used_disk_in_bytes).and_return(40)
-      expect(instance.attributes_and_stats).to include('used_disk_in_bytes' => 40)
-    end
-
-    it 'returns the computed_pcpu stat in the attributes_and_stats hash' do
-      allow(instance.stat_collector).to receive(:computed_pcpu).and_return(0.123)
-      expect(instance.attributes_and_stats).to include('computed_pcpu' => 0.123)
-    end
+  describe 'protected_attributes' do
 
     it 'does not include protected attributes' do
-      expect(instance.attributes_and_stats.keys).to_not include('environment')
-      expect(instance.attributes_and_stats.keys).to_not include('services')
+      expect(instance.protected_attributes.keys).to_not include('environment')
+      expect(instance.protected_attributes.keys).to_not include('services')
     end
   end
 

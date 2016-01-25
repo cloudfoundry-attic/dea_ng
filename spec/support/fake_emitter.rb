@@ -22,6 +22,37 @@ class FakeEmitter
     @error_messages[app_id].push(message)
   end
 
+  def emit_value_metric(name, value, unit)
+    return unless name && value && unit
+    unless @messages[name]
+      @messages[name] = []
+    end
+    @messages[name].push({:value => value, :unit => unit})
+  end
+
+  def emit_counter(name, delta)
+    return unless name && delta
+    unless @messages[name]
+      @messages[name] = []
+    end
+    @messages[name].push({:delta => delta})
+  end
+
+  def emit_container_metric(app_id, instanceIndex, cpuPercentage, memoryBytes, diskBytes)
+    return unless app_id && instanceIndex && cpuPercentage && memoryBytes && diskBytes
+    unless @messages[app_id]
+      @messages[app_id] = []
+    end
+    @messages[app_id].push(
+      {
+        :app_id => app_id,
+        :instanceIndex => instanceIndex,
+        :cpuPercentage => cpuPercentage,
+        :memoryBytes => memoryBytes,
+        :diskBytes => diskBytes
+      })
+  end
+
   def reset
     @messages = Hash.new
     @error_messages = Hash.new

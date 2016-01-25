@@ -529,6 +529,27 @@ describe Dea::InstanceRegistry do
     end
   end
 
+  describe "#emit_container_stats" do
+    let(:instance_1) { Dea::Instance.new(bootstrap, "application_id" => "app-1", "instance_id" => 'instance1') }
+    let(:instance_2) { Dea::Instance.new(bootstrap, "application_id" => "app-1", "instance_id" => 'instance2') }
+    let(:instance_3) { Dea::Instance.new(bootstrap, "application_id" => "app-2", "instance_id" => 'instance3') }
+
+    before do
+      instance_registry.register(instance_1)
+      instance_registry.register(instance_2)
+      instance_registry.register(instance_3)
+    end
+
+    it "should trigger all instances to emit container metrics" do
+      expect(instance_1).to receive(:emit_stats)
+      expect(instance_2).to receive(:emit_stats)
+      expect(instance_3).to receive(:emit_stats)
+
+      instance_registry.emit_container_stats
+    end
+
+  end
+
   describe "to_hash" do
     before do
       instance_registry.register(instance)
