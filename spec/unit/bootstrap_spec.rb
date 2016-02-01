@@ -65,10 +65,21 @@ describe Dea::Bootstrap do
     end
 
     it "should set the default log level when specified" do
-      @config = { "logging" => { "level" => "debug" } }
+      @config = { 'logging' => { 'level' => 'debug' } }
 
       allow(Steno).to receive(:init) do |config|
         expect(config.default_log_level).to eq(:debug)
+      end
+    end
+
+    it 'sets up a log counter sink' do
+      log_counter = Steno::Sink::Counter.new
+      allow(Steno::Sink::Counter).to receive(:new).once.and_return(log_counter)
+
+      allow(bootstrap).to receive(:nats).and_return(nats_client_mock)
+
+      allow(Steno).to receive(:init) do |steno_config|
+        expect(steno_config.sinks).to include log_counter
       end
     end
 
@@ -439,23 +450,6 @@ describe Dea::Bootstrap do
         allow(bootstrap).to receive(:send_heartbeat)
         bootstrap.start_finish
       end
-    end
-  end
-
-  #TODO - Swetha, remove this entire describe?
-  describe "counting logs" do
-    it "registers a log counter with the component" do
-      log_counter = Steno::Sink::Counter.new
-      allow(Steno::Sink::Counter).to receive(:new).once.and_return(log_counter)
-
-      allow(bootstrap).to receive(:nats).and_return(nats_client_mock)
-
-      allow(Steno).to receive(:init) do |steno_config|
-        expect(steno_config.sinks).to include log_counter
-      end
-
-      allow(VCAP::Component).to receive(:register).with(hash_including(:log_counter => log_counter))
-      subject.setup_logging
     end
   end
 
