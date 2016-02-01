@@ -1,5 +1,7 @@
 require "net/http"
 require "securerandom"
+require 'uri'
+require 'socket'
 
 module StagingHelpers
   def get_stager_id
@@ -10,6 +12,18 @@ module StagingHelpers
         return stager_id
       end
     end
+  end
+
+  def log_url(response)
+    log_url = response['task_streaming_log_url']
+    return nil unless log_url
+
+    @@resolved ||= {}
+
+    uri = URI.parse(log_url)
+    @@resolved[uri.host] ||= Addrinfo.ip(uri.host).ip_address
+    uri.host = @@resolved[uri.host]
+    uri.to_s
   end
 
   def perform_stage_request(message)
@@ -27,9 +41,7 @@ module StagingHelpers
       when 0
         got_first_response = true
 
-        log_url = response["task_streaming_log_url"]
-
-        stream_update_log(log_url) do |chunk|
+        stream_update_log(log_url(response)) do |chunk|
           print chunk
           log << chunk
         end
