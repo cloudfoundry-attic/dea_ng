@@ -1,11 +1,4 @@
 GIT
-  remote: https://github.com/cloudfoundry/loggregator_emitter.git
-  revision: 78635780b4afbc0e7b2e3c27148e78e1d5cdaf6c
-  specs:
-    loggregator_emitter (5.0.1)
-      beefcake (~> 1.0.0)
-
-GIT
   remote: https://github.com/cloudfoundry/warden.git
   revision: 634ebb21eb011fda64e53b96d50c4d2f01fc21d8
   specs:
@@ -91,6 +84,8 @@ GEM
     ice_nine (0.11.1)
     json (1.8.3)
     json_pure (1.8.3)
+    loggregator_emitter (5.0.1)
+      beefcake (~> 1.0.0)
     membrane (1.1.0)
     mime-types (3.0)
       mime-types-data (~> 3.2015)
@@ -202,7 +197,7 @@ DEPENDENCIES
   eventmachine (~> 1.0.3)
   foreman
   grape!
-  loggregator_emitter!
+  loggregator_emitter
   nats (>= 0.5.0, < 0.6)
   net-ssh
   patron

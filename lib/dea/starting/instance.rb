@@ -810,12 +810,24 @@ module Dea
       end
     end
 
-    def protected_attributes
-      ProtectedAttributesFilter.new(@attributes).to_hash
+    def attributes_and_stats
+      ProtectedAttributesFilter.new(@attributes).to_hash.merge({
+          'used_memory_in_bytes' => used_memory_in_bytes,
+          'used_disk_in_bytes' => used_disk_in_bytes,
+          'computed_pcpu' => computed_pcpu
+      })
     end
 
-    def emit_stats
-      stat_collector.emit_metrics(Time.now)
+    def used_memory_in_bytes
+      stat_collector.used_memory_in_bytes
+    end
+
+    def used_disk_in_bytes
+      stat_collector.used_disk_in_bytes
+    end
+
+    def computed_pcpu
+      stat_collector.computed_pcpu
     end
 
     def cpu_shares
@@ -829,7 +841,7 @@ module Dea
     end
 
     def stat_collector
-      @stat_collector ||= StatCollector.new(container, application_id, instance_index)
+      @stat_collector ||= StatCollector.new(container)
     end
 
     def staged_info

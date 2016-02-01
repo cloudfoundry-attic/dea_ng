@@ -312,60 +312,185 @@ describe Dea::Bootstrap do
     end
   end
 
-  describe '#start_metrics' do
-    before do
-      @emitter = FakeEmitter.new
-      @staging_emitter = FakeEmitter.new
-      Dea::Loggregator.emitter = @emitter
-      Dea::Loggregator.staging_emitter = @staging_emitter
-    end
+  describe "start_component" do
+    it "adds stacks to varz" do
+      @config["stacks"] = [{ "name" => "Linux" }]
 
-    it 'sets up a periodic timer' do
-      expect(EM).to receive(:add_periodic_timer).with(10).and_call_original
-      expect(bootstrap).to receive(:periodic_metrics_emit)
+      allow(bootstrap).to receive(:nats).and_return(nats_client_mock)
 
-      begin
-        with_event_machine({:timeout => 15 }) do
-          bootstrap.start_metrics
-          sleep 11
-        end
-      #with_event_machine will raise "timeout" error
-      rescue RuntimeError => e
-        raise e unless e.message == 'timeout'
-      end
+      # stubbing this to avoid a runtime exception
+      allow(EM).to receive(:add_periodic_timer)
+
+      bootstrap.setup_varz
+
+      expect(VCAP::Component.varz[:stacks]).to eq(["Linux"])
     end
   end
 
-  describe '#periodic_metrics_emit' do
+  describe "#periodic_varz_update" do
     before do
-      @emitter = FakeEmitter.new
-      @staging_emitter = FakeEmitter.new
-      Dea::Loggregator.emitter = @emitter
-      Dea::Loggregator.staging_emitter = @staging_emitter
-
-      bootstrap.setup_instance_registry
       bootstrap.setup_resource_manager
-
-      allow(bootstrap.instance_registry).to receive(:size).and_return(5)
-      allow(bootstrap.resource_manager).to receive(:remaining_memory).and_return(115)
-      allow(bootstrap.resource_manager).to receive(:remaining_disk).and_return(666)
+      bootstrap.setup_warden_container_lister
+      bootstrap.setup_instance_registry
+      allow(bootstrap.config).to receive(:minimum_staging_memory_mb).and_return(333)
+      allow(bootstrap.config).to receive(:minimum_staging_disk_mb).and_return(444)
+      allow(bootstrap.resource_manager).to receive(:number_reservable).and_return(0)
+      allow(bootstrap.resource_manager).to receive(:available_disk_ratio).and_return(0)
+      allow(bootstrap.resource_manager).to receive(:available_memory_ratio).and_return(0)
+      allow(bootstrap.warden_container_lister).to receive(:list).and_return list_response
     end
 
-    it 'emits the correct metrics' do
-      expect(bootstrap.instance_registry).to receive(:emit_container_stats)
-      bootstrap.periodic_metrics_emit
+    let(:list_response) do
+      Warden::Protocol::ListResponse.new(
+        :handles => []
+      )
+    end
 
-      expect(@emitter.messages['remaining_memory'].length).to eq(1)
-      expect(@emitter.messages['remaining_memory'][0][:value]).to eq(115)
-      expect(@emitter.messages['remaining_memory'][0][:unit]).to eq('mb')
+    describe "can_stage" do
+      it "is 0 when there is not enough free memory or disk space" do
+        allow(bootstrap.resource_manager).to receive(:number_reservable).and_return(0)
+        bootstrap.periodic_varz_update
 
-      expect(@emitter.messages['remaining_disk'].length).to eq(1)
-      expect(@emitter.messages['remaining_disk'][0][:value]).to eq(666)
-      expect(@emitter.messages['remaining_disk'][0][:unit]).to eq('mb')
+        expect(VCAP::Component.varz[:can_stage]).to eq(0)
+      end
 
-      expect(@emitter.messages['instances'].length).to eq(1)
-      expect(@emitter.messages['instances'][0][:value]).to eq(5)
-      expect(@emitter.messages['instances'][0][:unit]).to eq('instances')
+      it "is 1 when there is enough memory and disk space" do
+        allow(bootstrap.resource_manager).to receive(:number_reservable).and_return(3)
+        bootstrap.periodic_varz_update
+
+        expect(VCAP::Component.varz[:can_stage]).to eq(1)
+      end
+    end
+
+    describe "reservable_stagers" do
+      it "uses the value from resource_manager#number_reservable" do
+        allow(bootstrap.resource_manager).to receive(:number_reservable).with(333, 444).and_return(456)
+        bootstrap.periodic_varz_update
+
+        expect(VCAP::Component.varz[:reservable_stagers]).to eq(456)
+      end
+    end
+
+    describe "available_memory_ratio" do
+      it "uses the value from resource_manager#available_memory_ratio" do
+        allow(bootstrap.resource_manager).to receive(:available_memory_ratio).and_return(0.5)
+        bootstrap.periodic_varz_update
+
+        expect(VCAP::Component.varz[:available_memory_ratio]).to eq(0.5)
+      end
+    end
+
+    describe "available_disk_ratio" do
+      it "uses the value from resource_manager#available_memory_ratio" do
+        allow(bootstrap.resource_manager).to receive(:available_disk_ratio).and_return(0.75)
+        bootstrap.periodic_varz_update
+
+        expect(VCAP::Component.varz[:available_disk_ratio]).to eq(0.75)
+      end
+    end
+
+    describe "warden_containers" do
+      context "when there are no containers" do
+        it "is an empty array" do
+          bootstrap.periodic_varz_update
+          expect(VCAP::Component.varz[:warden_containers]).to eq([])
+        end
+      end
+
+      context "with an active container" do
+        let(:list_response) do
+          Warden::Protocol::ListResponse.new(
+            :handles => ["ahandle", "anotherhandle"])
+        end
+
+        it "is a hash with keys matching the container guid" do
+          bootstrap.periodic_varz_update
+          expect(VCAP::Component.varz[:warden_containers]).to eq(["ahandle", "anotherhandle"])
+        end
+      end
+
+      context 'when the warden client is disconnected' do
+        before do
+          allow(bootstrap.warden_container_lister).to receive(:list).and_raise(::EM::Warden::Client::ConnectionError.new)
+        end
+
+        it 'should not explode' do
+          expect {
+            bootstrap.periodic_varz_update
+          }.not_to raise_error
+        end
+      end
+    end
+
+    describe "instance_registry" do
+      let(:instance_1) do
+        Dea::Instance.new(bootstrap, "application_id" => "app-1")
+      end
+
+      let(:instance_2) do
+        Dea::Instance.new(bootstrap, "application_id" => "app-1")
+      end
+
+      context "when an empty registry" do
+        it "is an empty hash" do
+          bootstrap.periodic_varz_update
+
+          expect(VCAP::Component.varz[:instance_registry]).to eq({})
+        end
+      end
+
+      context "with a registry with an instance of an app" do
+        around { |example| Timecop.freeze(&example) }
+
+        before do
+          bootstrap.instance_registry.register(instance_1)
+        end
+
+        it "inlines the instance registry grouped by app ID" do
+          bootstrap.periodic_varz_update
+
+          varz = VCAP::Component.varz[:instance_registry]
+
+          expect(varz.keys).to eq(["app-1"])
+          expect(varz["app-1"][instance_1.instance_id]).to include(
+            "state" => "BORN",
+            "state_timestamp" => Time.now.to_f
+          )
+        end
+
+        it "uses the values from stat_collector" do
+          allow(instance_1.stat_collector).to receive(:used_memory_in_bytes).and_return(999)
+          allow(instance_1.stat_collector).to receive(:used_disk_in_bytes).and_return(40)
+          allow(instance_1.stat_collector).to receive(:computed_pcpu).and_return(0.123)
+
+          bootstrap.periodic_varz_update
+
+          varz = VCAP::Component.varz[:instance_registry]
+
+          expect(varz.keys).to eq(["app-1"])
+          expect(varz["app-1"][instance_1.instance_id]).to include(
+            "used_memory_in_bytes" => 999,
+            "used_disk_in_bytes" => 40,
+            "computed_pcpu" => 0.123
+          )
+        end
+      end
+
+      context "with a registry containing two instances of one app" do
+        before do
+          bootstrap.instance_registry.register(instance_1)
+          bootstrap.instance_registry.register(instance_2)
+        end
+
+        it "inlines the instance registry grouped by app ID" do
+          bootstrap.periodic_varz_update
+
+          varz = VCAP::Component.varz[:instance_registry]
+
+          expect(varz.keys).to eq(["app-1"])
+          expect(varz["app-1"].keys).to include(instance_1.instance_id, instance_2.instance_id)
+        end
+      end
     end
   end
 
@@ -442,12 +567,12 @@ describe Dea::Bootstrap do
     end
   end
 
-  #TODO - Swetha, remove this entire describe?
   describe "counting logs" do
     it "registers a log counter with the component" do
       log_counter = Steno::Sink::Counter.new
       allow(Steno::Sink::Counter).to receive(:new).once.and_return(log_counter)
 
+      allow(VCAP::Component).to receive(:uuid)
       allow(bootstrap).to receive(:nats).and_return(nats_client_mock)
 
       allow(Steno).to receive(:init) do |steno_config|
@@ -456,6 +581,7 @@ describe Dea::Bootstrap do
 
       allow(VCAP::Component).to receive(:register).with(hash_including(:log_counter => log_counter))
       subject.setup_logging
+      subject.start_component
     end
   end
 
@@ -563,37 +689,28 @@ describe Dea::Bootstrap do
     end
   end
 
-  describe '#start' do
-    it 'starts up the appropriate DEA subcomponents' do
-      expect(bootstrap).to receive(:snapshot) { double(:snapshot, :load => nil) }
-      expect(bootstrap).to receive(:download_buildpacks)
-      expect(bootstrap).to receive(:setup_sweepers)
-      expect(bootstrap).to receive(:start_nats)
-      expect(bootstrap).to receive(:directory_server_v2) { double(:directory_server_v2, :start => nil) }
-      expect(bootstrap).to receive(:setup_register_routes)
-      expect(bootstrap).to receive(:start_finish)
-      expect(bootstrap).to receive(:start_metrics)
-      expect(SecureRandom).to receive(:uuid)
-
-      bootstrap.start
+  describe "start" do
+    before do
+      allow(bootstrap).to receive(:download_buildpacks)
+      allow(bootstrap).to receive(:snapshot) { double(:snapshot, :load => nil) }
+      allow(bootstrap).to receive(:start_component)
+      allow(bootstrap).to receive(:setup_sweepers)
+      allow(bootstrap).to receive(:start_nats)
+      allow(bootstrap).to receive(:start_directory_server)
+      allow(bootstrap).to receive(:register_directory_server_v2)
+      allow(bootstrap).to receive(:directory_server_v2) { double(:directory_server_v2, :start => nil) }
+      allow(bootstrap).to receive(:setup_register_routes)
+      allow(bootstrap).to receive(:setup_varz)
+      allow(bootstrap).to receive(:start_finish)
     end
 
     describe "snapshot" do
       before do
-        allow(bootstrap).to receive(:snapshot) { double(:snapshot, :load => nil) }
-        allow(bootstrap).to receive(:download_buildpacks)
-        allow(bootstrap).to receive(:setup_sweepers)
-        allow(bootstrap).to receive(:start_nats)
-        allow(bootstrap).to receive(:directory_server_v2) { double(:directory_server_v2, :start => nil) }
-        allow(bootstrap).to receive(:setup_register_routes)
-        allow(bootstrap).to receive(:start_finish)
-        allow(bootstrap).to receive(:start_metrics)
         allow(bootstrap).to receive(:snapshot).and_call_original
       end
 
       it "loads the snapshot on startup" do
-        expect_any_instance_of(Dea::Snapshot).to receive(:load)
-
+        allow_any_instance_of(Dea::Snapshot).to receive(:load)
 
         bootstrap.setup_snapshot
         bootstrap.start

@@ -56,9 +56,9 @@ module Dea::Protocol::V1
           "fds_quota"  => instance.file_descriptor_limit,
           "usage"      => {
             "time" => Time.now.to_s,
-            # "cpu"  => instance.computed_pcpu,
-            # "mem"  => instance.used_memory_in_bytes,
-            # "disk" => instance.used_disk_in_bytes,
+            "cpu"  => instance.computed_pcpu,
+            "mem"  => instance.used_memory_in_bytes,
+            "disk" => instance.used_disk_in_bytes,
           },
           # Purposefully omitted, as I'm not sure what purpose it serves.
           # cores

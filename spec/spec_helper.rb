@@ -65,7 +65,6 @@ RSpec.configure do |config|
 
   config.after(:all, type: :integration) do
     stop_file_server
-    WebMock.enable!
   end
 end
 

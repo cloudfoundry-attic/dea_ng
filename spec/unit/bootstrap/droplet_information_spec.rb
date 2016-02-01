@@ -14,7 +14,7 @@ describe Dea do
 
   describe "responses to messages received on 'dea.find.droplet'" do
     def run
-      with_event_machine(:timeout => 120) do
+      with_event_machine(:timeout => 1) do
         bootstrap.setup
         bootstrap.start
 
@@ -127,9 +127,9 @@ describe Dea do
           "disk_quota" => 10,
           "fds_quota"  => 15,
           "usage"      => {
-            # "cpu"  => 0,
-            # "mem"  => 0,
-            # "disk" => 0,
+            "cpu"  => 0,
+            "mem"  => 0,
+            "disk" => 0,
             "time" => frozen_time.to_s,
           }
         }

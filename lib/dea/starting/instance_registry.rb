@@ -76,14 +76,8 @@ module Dea
       @instances_by_app_id.each.with_object({}) do |(app_id, instances), hash|
         hash[app_id] =
           instances.each.with_object({}) do |(id, instance), is|
-            is[id] = instance.protected_attributes
+            is[id] = instance.attributes_and_stats
           end
-      end
-    end
-
-    def emit_container_stats
-      @instances.each do |id, instance|
-        instance.emit_stats
       end
     end
 
