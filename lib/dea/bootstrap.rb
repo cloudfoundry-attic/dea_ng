@@ -11,7 +11,6 @@ require "loggregator_emitter"
 require "thin"
 
 require "vcap/common"
-require "vcap/component"
 
 require "dea/config"
 require "container/container"
@@ -93,14 +92,10 @@ module Dea
       setup_pid_file
     end
 
-    def setup_varz
-      VCAP::Component.varz.synchronize do
-        VCAP::Component.varz[:stacks] = config["stacks"].map { |stack| stack['name'] }
-      end
-
+    def start_metrics
       EM.add_periodic_timer(DEFAULT_HEARTBEAT_INTERVAL) do
         Fiber.new do
-          periodic_varz_update
+          periodic_metrics_emit
         end.resume
       end
     end
@@ -281,22 +276,6 @@ module Dea
       end
     end
 
-    def start_component
-      VCAP::Component.register(
-        :type => "DEA",
-        :host => local_ip,
-        :index => config["index"],
-        :nats => self.nats.client,
-        :port => config["status"]["port"],
-        :user => config["status"]["user"],
-        :password => config["status"]["password"],
-        :logger => logger,
-        :log_counter => @log_counter
-      )
-
-      @uuid = VCAP::Component.uuid
-    end
-
     def setup_sweepers
       # Heartbeats of instances we're managing
       hb_interval = config["intervals"]["heartbeat"] || DEFAULT_HEARTBEAT_INTERVAL
@@ -333,12 +312,12 @@ module Dea
 
       snapshot.load
 
-      start_component
+      @uuid = SecureRandom.uuid
       setup_sweepers
       start_nats
       setup_register_routes
       directory_server_v2.start
-      setup_varz
+      start_metrics
 
       setup_signal_handlers
       start_finish
@@ -456,24 +435,11 @@ module Dea
       nil
     end
 
-    def periodic_varz_update
-      mem_required = config.minimum_staging_memory_mb
-      disk_required = config.minimum_staging_disk_mb
-      reservable_stagers = resource_manager.number_reservable(mem_required, disk_required)
-      available_memory_ratio = resource_manager.available_memory_ratio
-      available_disk_ratio = resource_manager.available_disk_ratio
-      warden_containers = warden_container_lister.list.handles || []
-
-      VCAP::Component.varz.synchronize do
-        VCAP::Component.varz[:can_stage] = (reservable_stagers > 0) ? 1 : 0
-        VCAP::Component.varz[:reservable_stagers] = reservable_stagers
-        VCAP::Component.varz[:available_memory_ratio] = available_memory_ratio
-        VCAP::Component.varz[:available_disk_ratio] = available_disk_ratio
-        VCAP::Component.varz[:instance_registry] = instance_registry.to_hash
-        VCAP::Component.varz[:warden_containers] = warden_containers
-      end
-    rescue => e
-      logger.error('periodic.varz.failure', error: e, backtrace: e.backtrace)
+    def periodic_metrics_emit
+      Dea::Loggregator.emit_value('remaining_memory', resource_manager.remaining_memory, 'mb')
+      Dea::Loggregator.emit_value('remaining_disk', resource_manager.remaining_disk, 'mb')
+      Dea::Loggregator.emit_value('instances', instance_registry.size, 'instances')
+      instance_registry.emit_container_stats
     end
 
     def download_buildpacks

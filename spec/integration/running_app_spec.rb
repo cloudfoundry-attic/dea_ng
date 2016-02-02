@@ -126,6 +126,27 @@ describe "Running an app", :type => :integration, :requires_warden => true do
       end
     end
 
+    describe 'retrieving droplet stats with dea.find.droplet' do
+      it 'returns stats in the nats response' do
+        stage
+        wait_until_started
+
+        droplet_message = Yajl::Encoder.encode("droplet" => app_id, "states" => ["RUNNING"], 'include_stats' => true)
+        nats.with_nats do
+          NATS.subscribe("router.register") do |_|
+            NATS.request("dea.find.droplet", droplet_message, :timeout => 5) do |response|
+              droplet_info = Yajl::Parser.parse(response)
+              ustats = droplet_info['stats']['usage']
+              expect(ustats['cpu']).to eq(0)
+              expect(ustats['mem']).to be > 0
+              expect(ustats['disk']).to eq(65536)
+              NATS.stop
+            end
+          end
+        end
+      end
+    end
+
     describe "stopping the app" do
       it "restores the dea's available memory" do
         stage

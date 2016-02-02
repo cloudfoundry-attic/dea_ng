@@ -20,7 +20,7 @@ gem 'steno', '~> 1.1.0'
 
 gem 'vmstat'
 
-gem 'loggregator_emitter'
+gem 'loggregator_emitter', git: 'https://github.com/cloudfoundry/loggregator_emitter.git'
 
 gem 'sys-filesystem'
 

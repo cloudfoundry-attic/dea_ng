@@ -10,23 +10,6 @@ describe Dea do
     allow(bootstrap).to receive(:setup_directory_server).and_call_original
   end
 
-  it "should publish a message on 'vcap.component.announce' on startup" do
-    allow(bootstrap).to receive(:start_component).and_call_original
-
-    announcement = nil
-    nats_mock.subscribe("vcap.component.announce") do |msg|
-      announcement = Yajl::Parser.parse(msg)
-      done
-    end
-
-    with_event_machine(:timeout => 1) do
-      bootstrap.setup
-      bootstrap.start
-    end
-
-    expect(announcement).to_not be_nil
-  end
-
   def discover_message(opts = {})
     { "runtime" => "test1",
       "droplet" => 0,
