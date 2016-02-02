@@ -9,6 +9,7 @@ class LocalIPFinder
 
     # this conflicts with the bosh-lite networking
     ips.reject! { |ip| ip.ip_address.start_with?("192.168.50.") }
+    ips.reject! { |ip| ip.ip_address.start_with?("10.253.") }
 
     local_ip = ips.first
     raise "Cannot determine an IP reachable from the VM." unless local_ip
