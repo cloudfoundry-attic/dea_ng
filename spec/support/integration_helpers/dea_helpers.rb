@@ -50,11 +50,10 @@ module DeaHelpers
   end
 
   def start_file_server
-    @file_server_pid = run_cmd("bundle exec ruby spec/bin/file_server.rb", :debug => true)
-
-    wait_until { is_port_open?("127.0.0.1", 10197) }
     local_ip = LocalIPFinder.new.find
     `sudo /sbin/iptables -I INPUT 2 -j ACCEPT -p tcp --dport 10197 -d #{local_ip.ip_address}`
+    @file_server_pid = run_cmd("bundle exec ruby spec/bin/file_server.rb", :debug => true)
+    wait_until { is_port_open?(local_ip.ip_address, 10197) }
   end
 
   def stop_file_server
