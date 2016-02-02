@@ -59,7 +59,9 @@ module DeaHelpers
   def stop_file_server
     iptable_rule = `sudo /sbin/iptables -S INPUT | grep 10197 | sed -e 's/^-A/-D/'`
     iptable_rule.chomp
-    `sudo /sbin/iptables #{iptable_rule}` unless iptable_rule.empty?
+    iptable_rule.each_line do |rule|
+      `sudo /sbin/iptables #{rule}` unless rule.empty?
+    end
     merciless_kill(@file_server_pid) if @file_server_pid
   end
 
