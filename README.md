@@ -82,8 +82,16 @@ in a [Vagrant][vagrant] VM. The `bin` directory contains a helper script that ru
 
 ```bash
 
-# Checkout the repo
-git clone https://github.com/cloudfoundry/dea_ng
+# Checkout the required repos
+mkdir ~/workspace
+cd ~/workspace
+git clone https://github.com/cloudfoundry/cf-release
+scripts/update
+cd src/dea-hm-workspace
+git submodule update --init --recursive
+cd src/dea_next
+cd ../../../..
+bosh sync blobs # required to download rootfs blob
 
 # Verify that Vagrant version is at least 1.5
 vagrant --version
@@ -95,9 +103,10 @@ vagrant --version
 vagrant plugin install vagrant-vbguest
 
 # Run test suite in Vagrant vm
-bin/test_in_vm
+bin/run_specs_in_vm.sh
 ```
-Note that the integration tests stage and run real applications, which requires an internet connection.
+This will stand up the test virtual machine (if it is not already running) and run both the unit and integration
+suites.  Note that the integration tests stage and run real applications, which requires an internet connection.
 They take 5-10 minutes to run, depending on your connection speed.
 
 To run tests individually, there is a bit of setup:
@@ -148,9 +157,6 @@ See [staging.rb](lib/dea/responders/staging.rb) for staging flow.
   `staging.advertise` message (CC uses this to bootstrap)
 
 - `staging.<uuid>.start`: Stagers respond to requests on this subject to stage apps
-
-- `staging`: Stagers (in a queue group) respond to requests to stage an app
-  (old protocol)
 
 ## Warden rootfs
 
