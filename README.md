@@ -56,22 +56,46 @@ The following is a partial list of the keys that are read from the YAML file:
 
 ### Running the DEA in the provided Vagrant VM
 
-When contributing to DEA it's useful to run it as a standalone
+When contributing to DEA it is useful to run it as a standalone
 component.
+
+In the following examples, we assume that you have created a subdirectory in your home directory, and that this
+directory is called "workspace."  This is the directory into you which you should clone Github repositories
+before beginning test and development activities.  If you use a different path you will probably need to make some
+changes in order to run the tests successfully.  Specifically, you need to adjust the path in the DEA `Vagrantfile`
+to point to the correct location of `cf-release`.  After checking out `cf-release`, cd into the
+`src/dea-hm-workspace/src/dea_next` subdirectory and open the `Vagrantfile` there in an editor.
+
+Edit the following line:
+
+```config.vm.synced_folder '~/workspace/cf-release', '/var/cf-release'
+
+so that the first path listed (the source directory to be mounted inside the VM) reflects where you have cloned the
+`cf-release` repository.  If you forget to do this, test setup will fail.
 
 [vagrant]: http://docs.vagrantup.com/v2/installation/index.html
 
-Follow these steps to set up DEA to run locally on your computer:
+If you have checked out the repository into a different location, then you will most likely get this error when you try
+to create the [Vagrant][vagrant] VM:
 
-```shell
-# clone the repo
-cd ~/workspace
-git clone http://github.com/cloudfoundry/dea_ng
-cd dea_ng
-git submodule update --init
-bundle install
+```vm:
+* The host path of the shared folder is missing: ~/workspace/cf-release
 
 ```
+
+In this case, simply edit the `Vagrantfile` to insert the correct path and retry creating the VM.
+
+If you are able to bring up the VM, but the tests terminate quickly with this error message:
+
+```bash: /var/cf-release/src/dea-hm-workspace/src/dea_next/bin/start_warden_and_run_specs.sh: No such file or directory
+
+```
+then either the repository is incomplete/corrupted, or the directory mounted simply does not actually point to
+the cloned repository.  Check that the location into which you've cloned `cf-release` matches the source path
+for the mount in the `Vagrantfile`, remove the existing VM with `vagrant destroy` (be sure to run this from the
+`dea_next` directory so that you do not accidentally delete other VMs you may have running), and then retry
+VM creation and test execution.
+
 
 ## Testing
 
