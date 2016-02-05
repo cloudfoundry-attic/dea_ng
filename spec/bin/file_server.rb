@@ -23,7 +23,7 @@ class FileServer < Sinatra::Base
     end
 
     Dir.chdir(app_path) do
-      system "rm -rf #{zip_path} && zip -r #{zip_path} ."
+      system "rm -rf #{zip_path} && zip --quiet -r #{zip_path} ."
     end
     send_file(zip_path)
   end
@@ -67,7 +67,7 @@ class FileServer < Sinatra::Base
 
   def zip(zip_filename, dir)
     Dir.chdir(dir) do
-      system("zip -r #{zip_filename} .")
+      system("zip --quiet -r #{zip_filename} .")
     end
   end
 end
