@@ -68,7 +68,9 @@ to point to the correct location of `cf-release`.  After checking out `cf-releas
 
 Edit the following line:
 
-```config.vm.synced_folder '~/workspace/cf-release', '/var/cf-release'
+```
+config.vm.synced_folder '~/workspace/cf-release', '/var/cf-release'
+```
 
 so that the first path listed (the source directory to be mounted inside the VM) reflects where you have cloned the
 `cf-release` repository.  If you forget to do this, test setup will fail.
@@ -78,17 +80,17 @@ so that the first path listed (the source directory to be mounted inside the VM)
 If you have checked out the repository into a different location, then you will most likely get this error when you try
 to create the [Vagrant][vagrant] VM:
 
-```vm:
+```
+vm:
 * The host path of the shared folder is missing: ~/workspace/cf-release
-
 ```
 
 In this case, simply edit the `Vagrantfile` to insert the correct path and retry creating the VM.
 
 If you are able to bring up the VM, but the tests terminate quickly with this error message:
 
-```bash: /var/cf-release/src/dea-hm-workspace/src/dea_next/bin/start_warden_and_run_specs.sh: No such file or directory
-
+```
+bash: /var/cf-release/src/dea-hm-workspace/src/dea_next/bin/start_warden_and_run_specs.sh: No such file or directory
 ```
 then either the repository is incomplete/corrupted, or the directory mounted simply does not actually point to
 the cloned repository.  Check that the location into which you've cloned `cf-release` matches the source path
@@ -104,7 +106,8 @@ in a [Vagrant][vagrant] VM. The `bin` directory contains a helper script that ru
 
 [vagrant]: http://docs.vagrantup.com/v2/installation/index.html
 
-```bash
+```
+bash
 
 # Checkout the required repos
 mkdir ~/workspace
