@@ -59,25 +59,9 @@ The following is a partial list of the keys that are read from the YAML file:
 When contributing to DEA it is useful to run it as a standalone
 component.
 
-In the following examples, we assume that you have created a subdirectory in your home directory, and that this
-directory is called "workspace."  This is the directory into you which you should clone Github repositories
-before beginning test and development activities.  If you use a different path you will probably need to make some
-changes in order to run the tests successfully.  Specifically, you need to adjust the path in the DEA `Vagrantfile`
-to point to the correct location of `cf-release`.  After checking out `cf-release`, cd into the
-`src/dea-hm-workspace/src/dea_next` subdirectory and open the `Vagrantfile` there in an editor.
-
-Edit the following line:
-
-```
-config.vm.synced_folder '~/workspace/cf-release', '/var/cf-release'
-```
-
-so that the first path listed (the source directory to be mounted inside the VM) reflects where you have cloned the
-`cf-release` repository.  If you forget to do this, test setup will fail.
-
-[vagrant]: http://docs.vagrantup.com/v2/installation/index.html
-
-If you have checked out the repository into a different location, then you will most likely get this error when you try
+In the following examples, we assume that you have cloned the `cf-release` repository into `~/workspace/cf-release`.
+If you use a different path, you need to adjust the path in the DEA `Vagrantfile`
+to point to the correct location of `cf-release`, otherwise you will most likely get this error when you try
 to create the [Vagrant][vagrant] VM:
 
 ```
@@ -113,20 +97,18 @@ bash
 mkdir ~/workspace
 cd ~/workspace
 git clone https://github.com/cloudfoundry/cf-release
+cd cf-release
 scripts/update
-cd src/dea-hm-workspace
-git submodule update --init --recursive
-cd src/dea_next
-cd ../../../..
 bosh sync blobs # required to download rootfs blob
+cd src/dea-hm-workspace
+git checkout master
+git submodule update --init --recursive
+cd src/dea_next; git checkout master
 
 # Verify that Vagrant version is at least 1.5
 vagrant --version
 
 # Ensure the guest additions plugin is installed
-# NOTE: On mac, we had to
-# export NOKOGIRI_USE_SYSTEM_LIBRARIES=true
-
 vagrant plugin install vagrant-vbguest
 
 # Run test suite in Vagrant vm
