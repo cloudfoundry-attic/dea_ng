@@ -340,60 +340,9 @@ describe Dea::Instance do
     end
   end
 
-  describe 'stat collector' do
-    before do
-      instance.setup_stat_collector
-
-      allow(instance.stat_collector).to receive(:start)
-      allow(instance.stat_collector).to receive(:stop)
-
-      instance.state = Dea::Instance::State::STARTING
-    end
-
-    [
-        Dea::Instance::State::RESUMING,
-        Dea::Instance::State::STARTING,
-    ].each do |state|
-      it "starts when moving from #{state.inspect} to #{Dea::Instance::State::RUNNING.inspect}" do
-        expect(instance.stat_collector).to receive(:start)
-        instance.state = state
-
-        instance.state = Dea::Instance::State::RUNNING
-      end
-    end
-
-    describe 'when started' do
-      [
-          Dea::Instance::State::STOPPING,
-          Dea::Instance::State::CRASHED,
-      ].each do |state|
-        it "stops when the instance moves to the #{state.inspect} state" do
-          expect(instance.stat_collector).to receive(:stop)
-          instance.state = Dea::Instance::State::RUNNING
-
-          instance.state = state
-        end
-      end
-    end
-
-    describe 'when started' do
-      [
-          Dea::Instance::State::EVACUATING,
-      ].each do |state|
-        it "does not stop when the instance moves to the #{state.inspect} state" do
-          expect(instance.stat_collector).to_not receive(:stop)
-          instance.state = Dea::Instance::State::RUNNING
-
-          instance.state = state
-        end
-      end
-    end
-
-  end
-
   describe '#emit_stats' do
     it 'triggers the stat collector to emit stats' do
-      expect(instance.stat_collector).to receive("emit_metrics").with(kind_of(Time))
+      expect(instance.stat_collector).to receive(:emit_metrics).with(kind_of(Time))
       instance.emit_stats
     end
   end
@@ -614,7 +563,6 @@ describe Dea::Instance do
       allow(instance).to receive(:promise_exec_hook_script).with('after_start').and_return(delivering_promise)
       allow(instance).to receive(:promise_health_check).and_return(delivering_promise(true))
       allow(instance).to receive(:droplet).and_return(droplet)
-      allow(instance).to receive(:start_stat_collector)
       allow(instance).to receive(:link)
     end
 
@@ -1032,22 +980,31 @@ describe Dea::Instance do
         allow(instance).to receive(:promise_state).with(Dea::Instance::State::BORN, Dea::Instance::State::STARTING).and_return(delivering_promise)
       end
 
-      it 'transitions from starting to running if healthy' do
-        allow(instance).to receive(:promise_health_check).and_return(delivering_promise(true))
+      context 'when healthy' do
+        before do
+          allow(instance).to receive(:promise_health_check).and_return(delivering_promise(true))
+        end
 
-        allow(instance).to receive(:promise_state).with(Dea::Instance::State::STARTING, Dea::Instance::State::RUNNING).and_return(delivering_promise)
+        it 'transitions from starting to running and emits stats' do
+          expect(instance).to receive(:promise_state).with(Dea::Instance::State::STARTING, Dea::Instance::State::RUNNING).and_return(delivering_promise)
+          expect(instance).to receive(:emit_stats)
 
-        expect { expect_start }.to_not raise_error
-        expect(instance.exit_description).to be_empty
+          expect { expect_start }.to_not raise_error
+          expect(instance.exit_description).to be_empty
+        end
       end
 
-      it 'fails if the instance is unhealthy' do
-        allow(instance).to receive(:promise_health_check).and_return(delivering_promise(false))
+      context 'when unhealthy' do
+        before do
+          allow(instance).to receive(:promise_health_check).and_return(delivering_promise(false))
+        end
 
-        expect { expect_start }.to raise_error Dea::HealthCheckFailed
+        it 'fails' do
+          expect { expect_start }.to raise_error Dea::HealthCheckFailed
 
-        # Instance exit description should be set to the failure message
-        expect(instance.exit_description).to eq(Dea::HealthCheckFailed.new.to_s)
+          # Instance exit description should be set to the failure message
+          expect(instance.exit_description).to eq(Dea::HealthCheckFailed.new.to_s)
+        end
       end
     end
 

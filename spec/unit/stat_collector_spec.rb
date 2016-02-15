@@ -5,7 +5,11 @@ require "container/container"
 describe Dea::StatCollector do
   NANOSECONDS_PER_SECOND = 1e9
 
-  let(:container) { Container.new("some-socket") }
+  let(:container) do
+    c = Container.new("some-socket")
+    c.handle = 'handle'
+    c
+  end
 
   let(:memory_stat_response) do
     Warden::Protocol::InfoResponse::MemoryStat.new(
@@ -62,66 +66,6 @@ describe Dea::StatCollector do
     Dea::Loggregator.staging_emitter = @staging_emitter
   end
 
-  describe "#start" do
-    before { allow(container).to receive(:info) { info_response } }
-
-    context "first time started" do
-      it "retrieves stats" do
-        expect(collector).to receive(:emit_metrics)
-        collector.start
-      end
-
-      it "runs #retrieve_stats every X seconds" do
-        expect(collector).to receive(:emit_metrics).twice
-
-        called = 0
-        allow(::EM::Timer).to receive(:new).with(Dea::StatCollector::INTERVAL) do |_, &blk|
-          called += 1
-
-          blk.call unless called == 2
-        end
-
-        collector.start
-
-        expect(called).to eq(2)
-      end
-    end
-
-    context "when already started" do
-      it "return false" do
-        expect(collector.start).to be true
-        expect(collector.start).to be false
-      end
-    end
-  end
-
-  describe "#stop" do
-    context "when already running" do
-      it "stops the collector" do
-        # check that calling stop stops the callback from recursing
-        # by stopping it in the callback and ensuring it's not called again
-        #
-        # sorry
-        calls = 0
-        allow(EM::Timer).to receive(:new) do |_, &blk|
-          calls += 1
-          collector.stop if calls == 2
-          blk.call unless calls == 5
-        end
-
-        collector.start
-
-        expect(calls).to eq(2)
-      end
-    end
-
-    context "when not running" do
-      it "does nothing" do
-        expect { collector.stop }.to_not raise_error
-      end
-    end
-  end
-
   describe "#emit_metrics" do
     let(:expected_memory_usage) { 600 }
     let(:expected_disk_usage) { 42 }
@@ -150,6 +94,17 @@ describe Dea::StatCollector do
       expect(collector.computed_pcpu).to eq(0)
       expect(collector.used_memory_in_bytes).to eq(expected_memory_usage)
       expect(collector.used_disk_in_bytes).to eq(expected_disk_usage)
+    end
+
+    context 'when the handle is nil' do
+      before do
+        container.handle = nil
+      end
+
+      it 'does not retrieve container info' do
+        expect(container).not_to receive(:info)
+        collector.emit_metrics(Time.now())
+      end
     end
 
     context "when retrieving info fails" do

@@ -3,7 +3,7 @@ namespace :dir_server do
 
   desc "Run log_server/n directory server"
   task :run => [:install] do
-    system "GOPATH=$PWD PATH=$PATH:${GOPATH}/bin runner -conf config/dea.yml"
+    system "go/bin/runner -conf config/dea.yml"
   end
 
   desc "Install directory server"

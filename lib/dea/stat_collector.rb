@@ -8,25 +8,19 @@ module Dea
     attr_reader :used_disk_in_bytes
     attr_reader :computed_pcpu
 
-     def initialize(container, application_id, instance_index)
-       @container = container
-       @application_id = application_id
-       @instance_index = instance_index
-       @cpu_samples = []
-       @computed_pcpu = 0
-       @used_memory_in_bytes = 0
-       @used_disk_in_bytes = 0
-     end
-
-    def start
-      start_stat_collector
-    end
-
-    def stop
-      stop_stat_collector
+    def initialize(container, application_id, instance_index)
+     @container = container
+     @application_id = application_id
+     @instance_index = instance_index
+     @cpu_samples = []
+     @computed_pcpu = 0
+     @used_memory_in_bytes = 0
+     @used_disk_in_bytes = 0
     end
 
     def emit_metrics(now)
+      return unless @container.handle
+
       info = @container.info
     rescue => e
       logger.error("stat-collector.info-retrieval.failed", handle: @container.handle, error: e, backtrace: e.backtrace)
@@ -40,45 +34,6 @@ module Dea
     end
 
     private
-
-    def start_stat_collector
-      return false if @run_stat_collector
-
-      @run_stat_collector = true
-
-      run_stat_collector
-
-      true
-    end
-
-    def stop_stat_collector
-      @run_stat_collector = false
-
-      if @run_stat_collector_timer
-        @run_stat_collector_timer.cancel
-        @run_stat_collector_timer = nil
-      end
-    end
-
-     def run_stat_collector
-       Promise.resolve(promise_emit_stats(Time.now)) do
-         if @run_stat_collector
-           @run_stat_collector_timer =
-             ::EM::Timer.new(INTERVAL) do
-               run_stat_collector
-             end
-         end
-       end
-     end
-
-
-    def promise_emit_stats(now)
-      Promise.new do |p|
-        emit_metrics(now)
-        p.deliver
-      end
-    end
-
 
     def compute_cpu_usage(usage, now)
       @cpu_samples << {

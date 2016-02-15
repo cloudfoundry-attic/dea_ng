@@ -290,7 +290,6 @@ module Dea
     end
 
     def setup
-      setup_stat_collector
       setup_link
       setup_resume_stopping
       setup_crash_handler
@@ -517,6 +516,7 @@ module Dea
         if promise_health_check.resolve
           promise_state(State::STARTING, State::RUNNING).resolve
           logger.info('droplet.healthy')
+          emit_stats
           promise_exec_hook_script('after_start').resolve
         else
           logger.warn('droplet.unhealthy')
@@ -659,20 +659,6 @@ module Dea
         end
 
         callback.call(error) unless callback.nil?
-      end
-    end
-
-    def setup_stat_collector
-      on(Entering.new(:running)) do
-        stat_collector.start
-      end
-
-      on(Transition.new(:running, :stopping)) do
-        stat_collector.stop
-      end
-
-      on(Transition.new(:running, :crashed)) do
-        stat_collector.stop
       end
     end
 

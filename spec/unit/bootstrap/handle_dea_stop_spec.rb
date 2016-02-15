@@ -47,7 +47,6 @@ describe "Dea::Bootstrap#handle_dea_stop" do
     allow(instance_registry).to receive(:instances_filtered_by_message).and_yield(instance_mock)
     allow(instance_mock).to receive(:promise_stop).and_return(delivering_promise)
     allow(instance_mock).to receive(:destroy)
-    allow(instance_mock.stat_collector).to receive(:start)
   end
 
   describe "filtering" do
