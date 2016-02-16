@@ -19,28 +19,25 @@ class ShutdownHandler
     @message_bus.stop
     @directory_server.unregister
 
-    tasks_to_stop.dup.each do |task_to_stop|
-      task_to_stop.stop do |error|
-        tasks_to_stop.delete(task_to_stop)
-
+    tasks = Set.new(@instance_registry.instances + @staging_registry.tasks)
+    tasks.each do |task|
+      task.stop do |error|
         if error
-          @logger.warn("#{task_to_stop} failed to stop: #{error}")
+          @logger.warn("#{task} failed to stop: #{error}")
         else
-          @logger.debug("#{task_to_stop} exited")
+          @logger.debug("#{task} exited")
         end
-
-        flush_message_bus_and_terminate if tasks_to_stop.empty?
       end
     end
 
-    flush_message_bus_and_terminate if tasks_to_stop.empty?
+    flush_message_bus_and_terminate
+  end
+
+  def shutting_down?
+    @shutting_down
   end
 
   private
-
-  def tasks_to_stop
-    @pending_stops ||= Set.new(@instance_registry.instances + @staging_registry.tasks)
-  end
 
   def flush_message_bus_and_terminate
     @logger.info("All instances and staging tasks stopped, exiting.")
@@ -53,10 +50,6 @@ class ShutdownHandler
 
       @droplet_registry[sha].destroy
     end
-  end
-
-  def shutting_down?
-    @shutting_down
   end
 
   # So we can test shutdown()

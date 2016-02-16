@@ -33,24 +33,10 @@ describe ShutdownHandler do
   let(:logger) { double(:logger, error: nil, info: nil, warn: nil, debug: nil, user_data: {}) }
 
   let(:instance_registry) { Dea::InstanceRegistry.new({}) }
-  let(:instance) do
-    @instance_stop_callback = nil
-    instance = Dea::Instance.new(terrible_bootstrap, valid_instance_attributes)
-    allow(instance).to receive(:stop) do |&callback|
-      @instance_stop_callback = callback
-    end
-    instance
-  end
+  let(:instance) { Dea::Instance.new(terrible_bootstrap, valid_instance_attributes) }
 
   let(:staging_registry) { Dea::StagingTaskRegistry.new }
-  let(:stager) do
-    @stager_stop_callback = nil
-    stager = Dea::StagingTask.new(terrible_bootstrap, nil, StagingMessage.new(valid_staging_attributes), [], logger)
-    allow(stager).to receive(:stop) do |&callback|
-      @stager_stop_callback = callback
-    end
-    stager
-  end
+  let(:stager) { Dea::StagingTask.new(terrible_bootstrap, nil, StagingMessage.new(valid_staging_attributes), [], logger) }
 
   let(:sha) { "sha1" }
   let(:droplet_registry) { Dea::DropletRegistry.new(tmpdir) }
@@ -59,9 +45,7 @@ describe ShutdownHandler do
   let(:goodbye_message) { "sayonara dea" }
   let(:directory_server) { double(:directory_server, unregister: nil) }
 
-  subject(:handler) do
-    @terminate_count = 0
-    handler = ShutdownHandler.new(
+  subject(:handler) { ShutdownHandler.new(
       message_bus,
       locator_responders,
       instance_registry,
@@ -70,11 +54,7 @@ describe ShutdownHandler do
       directory_server,
       logger
     )
-    allow(handler).to receive(:terminate) do
-      @terminate_count += 1
-    end
-    handler
-  end
+  }
 
   before do
     allow(EM).to receive(:defer) do |operation, &_|
@@ -115,75 +95,53 @@ describe ShutdownHandler do
       }.from(true).to(false)
     end
 
+    it "flushes the message bus and terminates" do
+      expect(handler).to receive(:flush_message_bus_and_terminate)
+      handler.shutdown!(goodbye_message)
+    end
+
+    context "when the message bus finishes flushing" do
+      it "terminates the process" do
+        handler.shutdown!(goodbye_message)
+
+        expect(handler).to receive(:terminate)
+        expect(@flush_callback).not_to be_nil
+        @flush_callback.call
+      end
+    end
+
     context "with instances and/or stagers" do
       before do
         instance_registry.register(instance)
         staging_registry.register(stager)
+      end
 
+      it "stops them" do
         expect(instance).to receive(:stop)
         expect(stager).to receive(:stop)
 
         handler.shutdown!(goodbye_message)
       end
 
-      it "stops them" do
-        expect(@stager_stop_callback).not_to be_nil
-        expect(@instance_stop_callback).not_to be_nil
-      end
-
-      context "when all instances/stagers have stopped succesfully" do
-        before do
-          @stager_stop_callback.call
-
-          expect(@flush_callback).to be_nil
-          expect(@terminate_count).to eq 0
-
-          @instance_stop_callback.call
-        end
-
-        it "flushes the message bus" do
-          expect(@flush_callback).to be
-        end
-
-        context "when the message bus finishes flushing" do
-          it "terminates the process" do
-            @flush_callback.call
-            expect(@terminate_count).to eq 1
-          end
-        end
+      it "flushes the message bus and terminates" do
+        expect(handler).to receive(:flush_message_bus_and_terminate)
+        handler.shutdown!(goodbye_message)
       end
 
       context "when the stopping fails" do
         before do
-          @instance_stop_callback.call
+          allow(instance).to receive(:stop).and_yield('error')
+          allow(stager).to receive(:stop).and_yield('error')
         end
 
         it "logs" do
-          expect(logger).to receive(:warn).with(/failed to stop/i)
-          @stager_stop_callback.call("Failed to stop.")
+          expect(logger).to receive(:warn).with(/failed to stop/i).twice
+          handler.shutdown!(goodbye_message)
         end
 
-        it "still shuts down once all tasks have stopped or failed to stop" do
-          @stager_stop_callback.call("Failed to stop.")
-          @flush_callback.call
-          expect(@terminate_count).to eq 1
-        end
-      end
-    end
-
-    context "with no instances or stagers" do
-      before do
-        handler.shutdown!(goodbye_message)
-      end
-
-      it "flushes the message bus" do
-        expect(@flush_callback).to be
-      end
-
-      context "when the message bus finishes flushing" do
-        it "terminates the process" do
-          @flush_callback.call
-          expect(@terminate_count).to eq 1
+        it "flushes the message bus and terminates" do
+          expect(handler).to receive(:flush_message_bus_and_terminate)
+          handler.shutdown!(goodbye_message)
         end
       end
     end
