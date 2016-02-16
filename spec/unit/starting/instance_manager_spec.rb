@@ -110,7 +110,7 @@ describe Dea::InstanceManager do
               end
 
               it "saves the snapshot" do
-                allow(bootstrap.snapshot).to receive(:save)
+                expect(bootstrap.snapshot).to receive(:save)
                 subject
               end
             end
@@ -126,7 +126,7 @@ describe Dea::InstanceManager do
               end
 
               it "saves the snapshot" do
-                allow(bootstrap.snapshot).to receive(:save)
+                expect(bootstrap.snapshot).to receive(:save)
                 subject
               end
 
@@ -156,7 +156,7 @@ describe Dea::InstanceManager do
               end
 
               it "saves the snapshot" do
-                allow(bootstrap.snapshot).to receive(:save)
+                expect(bootstrap.snapshot).to receive(:save)
                 subject
               end
             end
@@ -172,7 +172,7 @@ describe Dea::InstanceManager do
               end
 
               it "saves the snapshot" do
-                allow(bootstrap.snapshot).to receive(:save)
+                expect(bootstrap.snapshot).to receive(:save)
                 subject
               end
             end
@@ -187,7 +187,7 @@ describe Dea::InstanceManager do
               subject { instance.state = Dea::Instance::State::CRASHED }
 
               it "unregisters with the router" do
-                allow(bootstrap.router_client).to receive(:unregister_instance).with(instance)
+                expect(bootstrap.router_client).to receive(:unregister_instance).with(instance)
                 subject
               end
 
@@ -199,7 +199,7 @@ describe Dea::InstanceManager do
               end
 
               it "saves the snapshot" do
-                allow(bootstrap.snapshot).to receive(:save)
+                expect(bootstrap.snapshot).to receive(:save)
                 subject
               end
             end
@@ -208,12 +208,12 @@ describe Dea::InstanceManager do
               subject { instance.state = Dea::Instance::State::STOPPING }
 
               it "unregisters with the router" do
-                allow(bootstrap.router_client).to receive(:unregister_instance).with(instance)
+                expect(bootstrap.router_client).to receive(:unregister_instance).with(instance)
                 subject
               end
 
               it "saves the snapshot" do
-                allow(bootstrap.snapshot).to receive(:save)
+                expect(bootstrap.snapshot).to receive(:save)
                 subject
               end
             end
@@ -229,12 +229,12 @@ describe Dea::InstanceManager do
               subject { instance.state = Dea::Instance::State::STOPPED }
 
               it "unregisters from the instance registry" do
-                allow(instance_registry).to receive(:unregister).with(instance)
+                expect(instance_registry).to receive(:unregister).with(instance)
                 subject
               end
 
               it "saves the snapshot" do
-                allow(bootstrap.snapshot).to receive(:save)
+                expect(bootstrap.snapshot).to receive(:save)
                 subject
               end
 
@@ -259,7 +259,7 @@ describe Dea::InstanceManager do
               end
 
               it "saves the snapshot" do
-                allow(bootstrap.snapshot).to receive(:save)
+                expect(bootstrap.snapshot).to receive(:save)
                 subject
               end
             end

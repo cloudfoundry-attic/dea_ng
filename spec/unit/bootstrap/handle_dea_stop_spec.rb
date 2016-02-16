@@ -67,23 +67,9 @@ describe "Dea::Bootstrap#handle_dea_stop" do
 
     def self.it_stops_the_instance
       it "stops the instance" do
-        allow(instance_mock).to receive(:stop)
+        expect(instance_mock).to receive(:stop)
 
         publish
-      end
-    end
-
-    def self.it_unregisters_with_the_router
-      it "unregisters with the router" do
-        sent_router_unregister = false
-        nats_mock.subscribe("router.unregister") do
-          sent_router_unregister = true
-          EM.stop
-        end
-
-        publish
-
-        expect(sent_router_unregister).to be true
       end
     end
 
@@ -103,26 +89,39 @@ describe "Dea::Bootstrap#handle_dea_stop" do
       before { instance_mock.state = Dea::Instance::State::RUNNING }
 
       it_stops_the_instance
-      it_unregisters_with_the_router
     end
 
     context "when the app is evacuating" do
       before { instance_mock.state = Dea::Instance::State::EVACUATING }
 
       it_stops_the_instance
-      it_unregisters_with_the_router
     end
 
     context "when the app is stopping" do
       before { instance_mock.state = Dea::Instance::State::STOPPING }
 
       it_stops_the_instance
-      it_unregisters_with_the_router
+    end
+
+    [Dea::Instance::State::STOPPED, Dea::Instance::State::CRASHED,
+     Dea::Instance::State::RESUMING].each do |state|
+      context "when the app is #{state}" do
+        before { instance_mock.state = state }
+
+        it 'does not stop' do
+          expect(instance_mock).not_to receive(:stop)
+
+          publish
+        end
+      end
     end
   end
 
   describe "when stop completes" do
+    let(:logger) { double("logger") }
+
     before do
+      allow(bootstrap).to receive(:logger).and_return(logger)
       allow(instance_mock).to receive(:running?).and_return(true)
 
       allow(instance_registry).to receive(:instances_filtered_by_message) do
@@ -138,6 +137,7 @@ describe "Dea::Bootstrap#handle_dea_stop" do
       end
 
       it "works" do
+        expect(logger).to receive(:warn)
         publish
       end
     end
@@ -148,6 +148,7 @@ describe "Dea::Bootstrap#handle_dea_stop" do
       end
 
       it "works" do
+        expect(logger).not_to receive(:warn)
         publish
       end
     end
