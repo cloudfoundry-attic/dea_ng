@@ -79,8 +79,6 @@ describe EvacuationHandler do
       handler.evacuate!(goodbye_message)
     end
 
-    it "sends a heartbeat (since there is no need to wait for the timer)"
-
     context "with a mixture of instances in various states" do
       before { instances.each { |_, instance| instance_registry.register instance } }
 
@@ -151,10 +149,6 @@ describe EvacuationHandler do
       it "does not send the shutdown message" do
         handler.evacuate!(goodbye_message)
         expect(@published_messages["dea.shutdown"]).to be_nil
-      end
-
-      it "does not send a heartbeat" do
-
       end
 
       context "and the registry still has evacuating instances" do
