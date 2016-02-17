@@ -112,7 +112,16 @@ describe SignalHandler do
         it "does not shutdown the system" do
           expect(evac_handler).to receive(:evacuate!).and_return(false)
           expect(shutdown_handler).not_to receive(:shutdown!)
+          timer_block = nil
+          expect(EM).to receive(:add_timer).with(5) do |&callback|
+            timer_block = callback
+          end
+
           @signal_handlers["USR2"].call
+
+          expect(timer_block).not_to be_nil
+          expect(handler).to receive(:evacuate)
+          timer_block.call
           done
         end
       end

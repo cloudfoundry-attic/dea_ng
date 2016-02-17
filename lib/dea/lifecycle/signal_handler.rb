@@ -55,9 +55,17 @@ class SignalHandler
   end
 
   def trap_usr2
+    evacuate unless @evac_handler.evacuating?
+  end
+
+  def evacuate
     can_shutdown = @evac_handler.evacuate!(goodbye_message)
 
-    shutdown if can_shutdown
+    if can_shutdown
+      shutdown
+    else
+      EM.add_timer(5) { evacuate }
+    end
   end
 
   def shutdown

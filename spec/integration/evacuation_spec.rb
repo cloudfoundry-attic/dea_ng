@@ -84,8 +84,6 @@ describe "Deterministic Evacuation", :type => :integration, :requires_warden => 
     nats.publish("dea.stop", {"droplet" => app_id})
     wait_until_instance_gone(app_id)
 
-    dea_server.evacuate
-
     wait_until(5) do
       dea_server.terminated?
     end
