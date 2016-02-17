@@ -232,7 +232,6 @@ describe Dea::Responders::Staging do
 
           before do
             allow(staging_task).to receive(:after_complete_callback).and_yield(nil)
-            allow(bootstrap).to receive(:start_app)
           end
 
           it "responds successful message" do
@@ -278,7 +277,7 @@ describe Dea::Responders::Staging do
             let(:message) { Dea::Nats::Message.new(nats, nil, {"app_id" => app_id, "start_message" => start_message}, "respond-to") }
 
             it "handles instance start with updated droplet sha" do
-              allow(bootstrap).to receive(:start_app).with(start_message)
+              expect(bootstrap).to receive(:start_app).with(start_message)
               subject.handle(message)
             end
           end

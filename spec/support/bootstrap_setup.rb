@@ -5,6 +5,9 @@ require "rspec"
 shared_context "bootstrap_setup" do
   stub_nats
 
+  let(:evac_handler) { double('evac_handler', evacuating?: false) }
+  let(:shutdown_handler) { double('shutdown_handler', shutting_down?: false) }
+
   let(:bootstrap) do
     config = {
       "base_dir" => Dir.mktmpdir,
@@ -45,6 +48,9 @@ shared_context "bootstrap_setup" do
     allow(bootstrap).to receive(:validate_config)
 
     allow(bootstrap).to receive(:snapshot) { double(:snapshot, :save => nil, :load => nil) }
+
+    allow(bootstrap).to receive(:evac_handler).and_return(evac_handler)
+    allow(bootstrap).to receive(:shutdown_handler).and_return(shutdown_handler)
 
     # No setup (explicitly unstub)
     allow(bootstrap).to receive(:setup_logging)

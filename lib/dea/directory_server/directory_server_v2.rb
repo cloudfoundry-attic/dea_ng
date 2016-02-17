@@ -34,7 +34,7 @@ module Dea
       Thin::Logging.silent = true
 
       @file_api_server =
-        Thin::Server.new("127.0.0.1", @config["directory_server"]["file_api_port"], helper_app)
+        Thin::Server.new("127.0.0.1", @config["directory_server"]["file_api_port"], helper_app, {signals: false})
     end
 
     def start

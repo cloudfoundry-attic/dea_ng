@@ -37,6 +37,29 @@ describe Dea::Bootstrap do
     nats_client_mock
   end
 
+  describe '#setup' do
+    it 'sets up the appropriate components' do
+      expect(bootstrap).to receive(:validate_config)
+      expect(SecureRandom).to receive(:uuid)
+      expect(bootstrap).to receive(:setup_nats)
+      expect(bootstrap).to receive(:setup_logging)
+      expect(bootstrap).to receive(:setup_loggregator)
+      expect(bootstrap).to receive(:setup_warden_container_lister)
+      expect(bootstrap).to receive(:setup_droplet_registry)
+      expect(bootstrap).to receive(:setup_instance_registry)
+      expect(bootstrap).to receive(:setup_staging_task_registry)
+      expect(bootstrap).to receive(:setup_instance_manager)
+      expect(bootstrap).to receive(:setup_snapshot)
+      expect(bootstrap).to receive(:setup_resource_manager)
+      expect(bootstrap).to receive(:setup_router_client)
+      expect(bootstrap).to receive(:setup_directory_server_v2)
+      expect(bootstrap).to receive(:setup_directories)
+      expect(bootstrap).to receive(:setup_pid_file)
+
+      bootstrap.setup
+    end
+  end
+
   describe "logging setup" do
     after { bootstrap.setup_logging }
 
@@ -446,6 +469,52 @@ describe Dea::Bootstrap do
     end
   end
 
+  describe '#start_app' do
+    let(:instance_data) { double('data') }
+    let(:instance) { double("instance", :start => nil) }
+    let(:evac_handler) { double('evac_handler', evacuating?: false) }
+    let(:shutdown_handler) { double('shutdown_handler', shutting_down?: false) }
+
+    before do
+      allow(bootstrap).to receive(:evac_handler).and_return(evac_handler)
+      allow(bootstrap).to receive(:shutdown_handler).and_return(shutdown_handler)
+      bootstrap.setup_signal_handlers
+      bootstrap.setup_instance_manager
+    end
+
+    it "creates and starts an instance" do
+      expect(bootstrap.instance_manager).to receive(:create_instance).with(instance_data).and_return(instance)
+      expect(instance).to receive(:start)
+      bootstrap.start_app(instance_data)
+    end
+
+    context 'when no instance is created' do
+      it 'does not start an instance' do
+        expect(bootstrap.instance_manager).to receive(:create_instance).with(instance_data).and_return(nil)
+        expect(instance).not_to receive(:start)
+        bootstrap.start_app(instance_data)
+      end
+    end
+
+    context 'when evacuating' do
+      let(:evac_handler) { double('evac_handler', evacuating?: true) }
+
+      it 'does not create an instance' do
+        expect(bootstrap.instance_manager).not_to receive(:create_instance)
+        bootstrap.start_app(instance_data)
+      end
+    end
+
+    context 'when shutting down' do
+      let(:shutdown_handler) { double('shutdown_handler', shutting_down?: true) }
+
+      it 'does not create an instance' do
+        expect(bootstrap.instance_manager).not_to receive(:create_instance)
+        bootstrap.start_app(instance_data)
+      end
+    end
+  end
+
   describe "handle_dea_directed_start" do
     let(:instance_data) do
       {
@@ -457,6 +526,7 @@ describe Dea::Bootstrap do
     let(:instance) { double("instance", :start => nil) }
 
     before do
+      bootstrap.setup_signal_handlers
       bootstrap.setup_instance_manager
     end
 
@@ -560,7 +630,6 @@ describe Dea::Bootstrap do
       expect(bootstrap).to receive(:setup_register_routes)
       expect(bootstrap).to receive(:start_finish)
       expect(bootstrap).to receive(:start_metrics)
-      expect(SecureRandom).to receive(:uuid)
 
       bootstrap.start
     end

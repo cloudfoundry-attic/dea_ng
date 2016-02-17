@@ -135,7 +135,8 @@ describe ShutdownHandler do
         end
 
         it "logs" do
-          expect(logger).to receive(:warn).with(/failed to stop/i).twice
+          expect(instance.logger).to receive(:warn).with(/failed to stop/i)
+          expect(stager.logger).to receive(:warn).with(/failed to stop/i)
           handler.shutdown!(goodbye_message)
         end
 

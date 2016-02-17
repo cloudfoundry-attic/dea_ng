@@ -76,6 +76,7 @@ module Dea
     def setup
       validate_config
 
+      @uuid = SecureRandom.uuid
       setup_nats
       setup_logging
       setup_loggregator
@@ -189,8 +190,12 @@ module Dea
 
 ### SIG_Handlers
 
+    attr_reader :evac_handler, :shutdown_handler
+
     def setup_signal_handlers
-      @sig_handler ||= SignalHandler.new(uuid, local_ip, nats, locator_responders, instance_registry, @staging_task_registry, droplet_registry, @directory_server_v2, logger, config)
+      @evac_handler ||= EvacuationHandler.new(nats, locator_responders, instance_registry, logger, config)
+      @shutdown_handler ||= ShutdownHandler.new(nats, locator_responders, instance_registry, @staging_task_registry, droplet_registry, @directory_server_v2, logger)
+      @sig_handler ||= SignalHandler.new(uuid, local_ip, nats, locator_responders, instance_registry, evac_handler, shutdown_handler, logger)
       @sig_handler.setup do |signal, &handler|
         ::Kernel.trap(signal, &handler)
       end
@@ -308,18 +313,18 @@ module Dea
     end
 
     def start
+      setup_signal_handlers
+
       download_buildpacks
 
       snapshot.load
 
-      @uuid = SecureRandom.uuid
       setup_sweepers
       start_nats
       setup_register_routes
       directory_server_v2.start
       start_metrics
 
-      setup_signal_handlers
       start_finish
     end
 
@@ -365,6 +370,8 @@ module Dea
     end
 
     def start_app(data)
+      return if evac_handler.evacuating? || shutdown_handler.shutting_down?
+
       instance = instance_manager.create_instance(data)
       return unless instance
 

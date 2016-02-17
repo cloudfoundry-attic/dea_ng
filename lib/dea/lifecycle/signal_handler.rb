@@ -4,18 +4,16 @@ require "dea/lifecycle/shutdown_handler"
 class SignalHandler
   SIGNALS_OF_INTEREST = %W[TERM INT QUIT USR1 USR2].freeze
 
-  def initialize(uuid, local_ip, message_bus, locator_responders, instance_registry, staging_registry, droplet_registry, directory_server, logger, config)
+  def initialize(uuid, local_ip, message_bus, locator_responders, instance_registry, evac_handler, shutdown_handler, logger)
     @uuid = uuid
     @local_ip = local_ip
 
     @message_bus = message_bus
     @locator_responders = locator_responders
     @instance_registry = instance_registry
-    @staging_registry = staging_registry
-    @droplet_registry = droplet_registry
-    @directory_server = directory_server
+    @evac_handler = evac_handler
+    @shutdown_handler = shutdown_handler
     @logger = logger
-    @config = config
   end
 
   def setup(&kernel_trap)
@@ -57,14 +55,12 @@ class SignalHandler
   end
 
   def trap_usr2
-    @evac_handler ||= EvacuationHandler.new(@message_bus, @locator_responders, @instance_registry, @logger, @config)
     can_shutdown = @evac_handler.evacuate!(goodbye_message)
 
     shutdown if can_shutdown
   end
 
   def shutdown
-    @shutdown_handler ||= ShutdownHandler.new(@message_bus, @locator_responders, @instance_registry, @staging_registry, @droplet_registry, @directory_server, @logger)
     @shutdown_handler.shutdown!(goodbye_message)
   end
 

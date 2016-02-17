@@ -925,17 +925,5 @@ module Dea
 
       { rate: limit['rate'], burst: limit['burst'] }
     end
-
-    def logger
-      tags = {
-        'instance_id' => instance_id,
-        'instance_index' => instance_index,
-        'application_id' => application_id,
-        'application_version' => application_version,
-        'application_name' => application_name,
-      }
-
-      @logger ||= self.class.logger.tag(tags)
-    end
   end
 end

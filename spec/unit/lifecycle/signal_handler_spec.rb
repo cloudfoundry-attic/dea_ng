@@ -39,8 +39,11 @@ describe SignalHandler do
     { "evacuation_bail_out_time_in_seconds" => 15 * 60 }
   end
 
+  let(:evac_handler) { EvacuationHandler.new(message_bus, locator_responders, instance_registry, logger, config) }
+  let(:shutdown_handler) { ShutdownHandler.new(message_bus, locator_responders, instance_registry, staging_registry, droplet_registry, directory_server, logger) }
+
   subject(:handler) do
-    SignalHandler.new(uuid, local_ip, message_bus, locator_responders, instance_registry, staging_registry, droplet_registry, directory_server, logger, config)
+    SignalHandler.new(uuid, local_ip, message_bus, locator_responders, instance_registry, evac_handler, shutdown_handler, logger)
   end
 
   before do
@@ -59,30 +62,27 @@ describe SignalHandler do
 
     describe "#trap_term" do
       it "shutsdown the system" do
-        expect(message_bus).to receive(:stop)
+        expect(shutdown_handler).to receive(:shutdown!)
 
         @signal_handlers["TERM"].call
-        expect(@published_messages["dea.shutdown"].size).to eq(1)
         done
       end
     end
 
     describe "#trap_int" do
       it "shutsdown the system" do
-        expect(message_bus).to receive(:stop)
+        expect(shutdown_handler).to receive(:shutdown!)
 
         @signal_handlers["INT"].call
-        expect(@published_messages["dea.shutdown"].size).to eq(1)
         done
       end
     end
 
     describe "#trap_quit" do
       it "shutsdown the system" do
-        expect(message_bus).to receive(:stop)
+        expect(shutdown_handler).to receive(:shutdown!)
 
         @signal_handlers["QUIT"].call
-        expect(@published_messages["dea.shutdown"].size).to eq(1)
         done
       end
     end
@@ -108,26 +108,20 @@ describe SignalHandler do
     end
 
     describe "#trap_usr2" do
-      before do
-        instance_registry.register(instance)
-        @signal_handlers["USR2"].call
-        done
-      end
-
-      it "evacuates the system, and does not shut it down" do
-        expect(@published_messages["droplet.exited"].size).to eq(1)
-        expect(@published_messages["dea.shutdown"].size).to eq(1)
-      end
-
-      context "when the evacuation is finished" do
-        before do
-          instance.state = Dea::Instance::State::STOPPED
-        end
-
-        it "shutsdown the system" do
-          expect(message_bus).to receive(:stop)
+      context 'when evacuation is not complete' do
+        it "does not shutdown the system" do
+          expect(evac_handler).to receive(:evacuate!).and_return(false)
+          expect(shutdown_handler).not_to receive(:shutdown!)
           @signal_handlers["USR2"].call
-          expect(@published_messages["dea.shutdown"].size).to eq(2)
+          done
+        end
+      end
+
+      context 'when evacuation is complete' do
+        it "does shutdown the system" do
+          expect(evac_handler).to receive(:evacuate!).and_return(true)
+          expect(shutdown_handler).to receive(:shutdown!)
+          @signal_handlers["USR2"].call
           done
         end
       end

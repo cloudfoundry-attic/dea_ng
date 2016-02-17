@@ -20,17 +20,21 @@ class ShutdownHandler
     @directory_server.unregister
 
     tasks = Set.new(@instance_registry.instances + @staging_registry.tasks)
-    tasks.each do |task|
+    flush_message_bus_and_terminate if tasks.empty?
+
+    tasks.dup.each do |task|
       task.stop do |error|
+        tasks.delete(task)
+
         if error
-          @logger.warn("#{task} failed to stop: #{error}")
+          task.logger.warn("task failed to stop: #{error}")
         else
-          @logger.debug("#{task} exited")
+          task.logger.debug("task exited")
         end
+
+        flush_message_bus_and_terminate if tasks.empty?
       end
     end
-
-    flush_message_bus_and_terminate
   end
 
   def shutting_down?
