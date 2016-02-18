@@ -128,7 +128,6 @@ module Dea
       options[:sinks] << @log_counter
 
       Steno.init(Steno::Config.new(options))
-      logger.info("Dea started")
     end
 
     attr_reader :warden_container_lister
@@ -326,6 +325,8 @@ module Dea
       start_metrics
 
       start_finish
+
+      logger.info("Dea started", uuid: uuid)
     end
 
     def reap_unreferenced_droplets
