@@ -35,7 +35,6 @@ with a HTTP redirect to a URL that hits the directory server directly.
 The URL is signed by the DEA, and the directory server checks the
 validity of the URL with the DEA before serving it.
 
-
 ## Usage
 
 You can run the dea executable at the command line by passing the path
@@ -83,7 +82,7 @@ for the mount in the `Vagrantfile`, remove the existing VM with `vagrant destroy
 VM creation and test execution.
 
 
-## Testing
+### Testing
 
 The DEA integration tests run against real Warden, directory, and NATS servers, so they must be run
 in a [Vagrant][vagrant] VM. The `bin` directory contains a helper script that runs the entire DEA test suite:
@@ -153,6 +152,18 @@ in another ssh session:
 ```
 nats-sub ">" -s nats://localhost:4222
 ```
+## Testing the directory server
+
+Running the dea unit and integration tests via the `bin/run_specs_in_vm.sh` script 
+will also run the directory server tests, but if you want to run tests against just the directory
+server, you can do the following once you have checked out the repository (replace
+`$DEA_REPO_ROOT` with the location of the `dea_ng` repo - in the above examples, it is
+`~/workspace/cf-release/src/dea-hm-workspace/src/dea_next`:
+
+cd $DEA_REPO_ROOT
+export GOPATH=$PWD/go
+go test -i -race directoryserver
+go test -v -race directoryserver
 
 ## Staging
 

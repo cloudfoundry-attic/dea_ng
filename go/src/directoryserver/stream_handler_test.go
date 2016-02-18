@@ -3,9 +3,9 @@ package directoryserver
 import (
 	"bufio"
 	"fmt"
+	"github.com/go-check/check"
 	"io"
 	"io/ioutil"
-	"github.com/go-check/check"
 	"net"
 	"net/http"
 	"os"
@@ -240,10 +240,10 @@ func (s *StreamHandlerSuite) TestStreamUntilRemoved(c *check.C) {
 
 	r := bufio.NewReader(res.Body)
 
-	// Write before rename
+	// Write before remove
 	s.Printf(c, "hello\n")
 
-	// Read bytes written before rename
+	// Read bytes written before remove
 	l, err = r.ReadString('\n')
 	c.Check(err, check.IsNil)
 	c.Check(l, check.Equals, "hello\n")
@@ -253,9 +253,27 @@ func (s *StreamHandlerSuite) TestStreamUntilRemoved(c *check.C) {
 	c.Assert(err, check.IsNil)
 
 	// Read EOF
-	l, err = r.ReadString('\n')
-	// c.Check(err, check.Equals, io.ErrUnexpectedEOF) LINUX
-	// c.Check(err, check.Equals, io.EOF) MAC
-	c.Check(err, check.Not(check.IsNil))
-	c.Check(l, check.Equals, "")
+	errorChannel := make(chan error, 1)
+	stringChannel := make(chan string, 1)
+	timeoutChannel := make(chan bool, 1)
+
+	go func() {
+		l, err = r.ReadString('\n')
+		stringChannel <- l
+		errorChannel <- err
+	}()
+
+	go func() {
+		time.Sleep(10 * time.Second)
+		timeoutChannel <- true
+	}()
+
+	select {
+	case l = <-stringChannel:
+		c.Check(l, check.Equals, "")
+	case err = <-errorChannel:
+		c.Check(err, check.Not(check.IsNil))
+	case <-timeoutChannel:
+		// Do nothing
+	}
 }

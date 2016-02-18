@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e -x -u
 
+# Run directory server tests
+
+export GOPATH=/var/cf-release/src/dea-hm-workspace/src/dea_next/go
+go test -i -race directoryserver
+go test -v -race directoryserver
+
 # Start warden
 
 mkdir -p /tmp/warden/rootfs

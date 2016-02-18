@@ -3,9 +3,9 @@ package directoryserver
 import (
 	"bytes"
 	"fmt"
+	"github.com/go-check/check"
 	"io"
 	"io/ioutil"
-	"github.com/go-check/check"
 	"net/http"
 	"os"
 	"regexp"
