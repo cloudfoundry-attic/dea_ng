@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/go-fsnotify/fsnotify"
@@ -22,7 +23,7 @@ func (handler *StreamHandler) ServeHTTP(writer http.ResponseWriter, r *http.Requ
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		writer.WriteHeader(500)
-		writer.Write([]byte(fmt.Sprintf("Failed to tail file: %s", err.Error())))
+		writer.Write([]byte(fmt.Sprintf("Failed to setup file tailer: %s", err.Error())))
 		return
 	}
 
@@ -42,6 +43,14 @@ func (handler *StreamHandler) ServeHTTP(writer http.ResponseWriter, r *http.Requ
 		writer.WriteHeader(500)
 		writer.Write([]byte(fmt.Sprintf("Failed to tail file: %s", err.Error())))
 		return
+	}
+
+	// Add a watcher for the parent dir
+	err = watcher.Add(filepath.Dir(handler.File.Name()))
+	if err != nil {
+		watcher.Remove(handler.File.Name())
+		writer.WriteHeader(500)
+		writer.Write([]byte(fmt.Sprintf("Failed to tail parent dir of file: %s", err.Error())))
 	}
 
 	// Setup max latency writer

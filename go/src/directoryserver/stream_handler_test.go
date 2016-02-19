@@ -3,13 +3,15 @@ package directoryserver
 import (
 	"bufio"
 	"fmt"
-	"github.com/go-check/check"
 	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
+
+	"github.com/go-check/check"
 )
 
 type StreamHandlerSuite struct {
@@ -235,6 +237,11 @@ func (s *StreamHandlerSuite) TestStreamUntilRemoved(c *check.C) {
 	var l string
 	var err error
 
+	// Create a second file in the same directory
+	tbd := filepath.Join(filepath.Dir(s.FileName), "to_be_deleted")
+	_, err = os.Create(tbd)
+	c.Check(err, check.IsNil)
+
 	res := s.Get(c)
 	c.Check(res.StatusCode, check.Equals, 200)
 
@@ -242,6 +249,10 @@ func (s *StreamHandlerSuite) TestStreamUntilRemoved(c *check.C) {
 
 	// Write before remove
 	s.Printf(c, "hello\n")
+
+	// Remove second file - this should not cause a fail
+	err = os.Remove(tbd)
+	c.Check(err, check.IsNil)
 
 	// Read bytes written before remove
 	l, err = r.ReadString('\n')
@@ -253,27 +264,7 @@ func (s *StreamHandlerSuite) TestStreamUntilRemoved(c *check.C) {
 	c.Assert(err, check.IsNil)
 
 	// Read EOF
-	errorChannel := make(chan error, 1)
-	stringChannel := make(chan string, 1)
-	timeoutChannel := make(chan bool, 1)
-
-	go func() {
-		l, err = r.ReadString('\n')
-		stringChannel <- l
-		errorChannel <- err
-	}()
-
-	go func() {
-		time.Sleep(10 * time.Second)
-		timeoutChannel <- true
-	}()
-
-	select {
-	case l = <-stringChannel:
-		c.Check(l, check.Equals, "")
-	case err = <-errorChannel:
-		c.Check(err, check.Not(check.IsNil))
-	case <-timeoutChannel:
-		// Do nothing
-	}
+	l, err = r.ReadString('\n')
+	c.Check(err, check.Not(check.IsNil))
+	c.Check(l, check.Equals, "")
 }
