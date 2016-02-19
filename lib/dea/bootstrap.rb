@@ -260,13 +260,17 @@ module Dea
       @nats = Dea::Nats.new(self, config)
     end
 
+    attr_reader :staging_responder
+
     def start_nats
       nats.start
+
+      @staging_responder = Dea::Responders::Staging.new(nats, uuid, self, staging_task_registry, directory_server_v2, resource_manager, config)
 
       @responders = [
         Dea::Responders::DeaLocator.new(nats, uuid, resource_manager, config),
         Dea::Responders::StagingLocator.new(nats, uuid, resource_manager, config),
-        Dea::Responders::Staging.new(nats, uuid, self, staging_task_registry, directory_server_v2, resource_manager, config),
+        @staging_responder,
       ].each(&:start)
     end
 
@@ -380,6 +384,16 @@ module Dea
     end
 
     def handle_dea_stop(message)
+      if message.data.size == 1 && message.data['droplet']
+        staging_stop_msg = Dea::Nats::Message.new(
+          message.nats,
+          'staging.stop',
+          {'app_id'  => message.data['droplet'].to_s},
+          nil,
+        )
+        staging_responder.handle_stop(staging_stop_msg)
+      end
+
       instance_registry.instances_filtered_by_message(message) do |instance|
         next if instance.resuming? || instance.stopped? || instance.crashed?
 

@@ -388,7 +388,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
       end
     end
 
-    context "when stop request is published" do
+    context "when staging stop request is published" do
       let(:start_message) { nil }
 
       it "stops staging task" do
@@ -396,6 +396,21 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
         responses = nats.make_blocking_request("staging.#{stager_id}.start", staging_message, 2) do |response_index, _|
           if response_index == 0
             NATS.publish("staging.stop", Yajl::Encoder.encode("app_id" => app_id))
+          end
+        end
+
+        expect(responses[1]["error"]).to eq("Error staging: task stopped")
+      end
+    end
+
+    context "when an app stop request is published" do
+      let(:start_message) { nil }
+
+      it "stops staging task" do
+        stager_id = get_stager_id
+        responses = nats.make_blocking_request("staging.#{stager_id}.start", staging_message, 2) do |response_index, _|
+          if response_index == 0
+            NATS.publish("dea.stop", Yajl::Encoder.encode("droplet" => app_id))
           end
         end
 
