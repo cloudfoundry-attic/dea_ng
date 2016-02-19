@@ -137,6 +137,7 @@ describe "Dea::Bootstrap#handle_dea_stop" do
       end
 
       it "works" do
+        expect(logger).to receive(:info).with("Dea started", hash_including(:uuid))
         expect(logger).to receive(:warn)
         publish
       end
@@ -148,6 +149,7 @@ describe "Dea::Bootstrap#handle_dea_stop" do
       end
 
       it "works" do
+        expect(logger).to receive(:info).with("Dea started", hash_including(:uuid))
         expect(logger).not_to receive(:warn)
         publish
       end
