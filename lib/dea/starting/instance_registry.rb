@@ -82,7 +82,7 @@ module Dea
     end
 
     def emit_container_stats
-      @instances.each do |id, instance|
+      @instances.values.each do |instance|
         instance.emit_stats
       end
     end
