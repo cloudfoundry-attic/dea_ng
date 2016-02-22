@@ -100,6 +100,22 @@ describe Upload do
         end
       end
 
+      context 'and it cannot reach the CC' do
+        let(:job_url) {'http://localhost:12346'} 
+        before do
+          start_http_server(12345) do |connection, data|
+            create_response(connection, job_string)
+          end
+        end
+
+        it 'should populate the error message correctly' do
+          subject.upload! do |error|
+            expect(error.message).to include "Polling failed - status 0; error: Errno::ECONNREFUSED"
+            done
+          end
+        end
+      end
+
       context "and the polling URL is valid and the polling returns a 2xx" do
         let(:finished_json_string) { JSON.dump(job_json.merge(entity: {guid: 123, status: "finished"})) }
 
@@ -287,6 +303,7 @@ describe Upload do
         subject.upload! do |error|
           expect(error).to be_a(UploadError)
           expect(error.message).to include "Error uploading: (Upload failed"
+          expect(error.message).to include "error: Errno::ECONNREFUSED"
           done
         end
       end

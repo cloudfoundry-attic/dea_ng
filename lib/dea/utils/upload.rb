@@ -47,7 +47,11 @@ class Upload
   end
 
   def handle_error(http, polling_destination, upload_callback)
-    error = UploadError.new("Polling failed - status #{http.response_header.status}")
+    if http.error
+      error = UploadError.new("Polling failed - status #{http.response_header.status}; error: #{http.error}")
+    else
+      error = UploadError.new("Polling failed - status #{http.response_header.status}")
+    end
 
     open_connection_count = EM.connection_count # https://github.com/igrigorik/em-http-request/issues/190 says to check connection_count
     logger.warn("em-upload.error",
