@@ -31,7 +31,22 @@ describe Dea::Droplet do
     expect(File.directory?(droplet.droplet_dirname)).to be true
   end
 
-  describe "destroy" do
+  describe "#destroy" do
+    context 'when the directory has already been renamed' do
+      let(:dropletdir) { 'dropletdir.deleted.12341234' }
+      before do
+        allow(droplet).to receive(:droplet_dirname).and_return(dropletdir)
+      end
+
+      it 'does not add another .deleted.<timestamp> stuffix' do
+        with_event_machine do
+          expect(File).not_to receive(:rename)
+          droplet.destroy { EM.stop }
+          done
+        end
+      end
+    end
+
     it "should remove the associated directory" do
       expect(File.exist?(droplet.droplet_dirname)).to be true
 
