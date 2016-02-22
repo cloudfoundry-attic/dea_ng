@@ -82,7 +82,7 @@ module Dea
     end
 
     def destroy(&callback)
-      if /\.deleted\.\d+\z/ !~ (droplet_dirname)
+      if !droplet_dirname.include?('.deleted.')
         # Rename first to both prevent a new instance from referencing a file
         # that is about to be deleted and to avoid doing a potentially expensive
         # operation on the reactor thread.
