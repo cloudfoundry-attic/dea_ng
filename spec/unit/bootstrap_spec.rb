@@ -445,11 +445,6 @@ describe Dea::Bootstrap do
       bootstrap.start_finish
     end
 
-    it "advertises staging" do
-      allow_any_instance_of(Dea::Responders::StagingLocator).to receive(:advertise)
-      bootstrap.start_finish
-    end
-
     context "when recovering from snapshots" do
       let(:instances) do
         [Dea::Instance.new(bootstrap, valid_instance_attributes),

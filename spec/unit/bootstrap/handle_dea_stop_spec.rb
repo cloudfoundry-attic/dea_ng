@@ -39,7 +39,6 @@ describe "Dea::Bootstrap#handle_dea_stop" do
 
     allow_any_instance_of(Dea::Instance).to receive(:setup_link)
     allow_any_instance_of(Dea::Responders::DeaLocator).to receive(:start) # to deal with test pollution
-    allow_any_instance_of(Dea::Responders::StagingLocator).to receive(:start) # to deal with test pollution
     allow(bootstrap).to receive(:resource_manager).and_return(resource_manager)
     allow(bootstrap).to receive(:instance_registry).and_return(instance_registry)
     allow(bootstrap).to receive(:send_heartbeat)

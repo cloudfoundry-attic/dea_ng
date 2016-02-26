@@ -278,7 +278,6 @@ module Dea
 
       @responders = [
         Dea::Responders::DeaLocator.new(nats, uuid, resource_manager, config, @local_dea_service),
-        Dea::Responders::StagingLocator.new(nats, uuid, resource_manager, config),
         @staging_responder,
       ].each(&:start)
     end
@@ -288,8 +287,7 @@ module Dea
     def locator_responders
       return [] unless @responders
       @responders.select do |r|
-        r.is_a?(Dea::Responders::DeaLocator) ||
-          r.is_a?(Dea::Responders::StagingLocator)
+        r.is_a?(Dea::Responders::DeaLocator)
       end
     end
 
