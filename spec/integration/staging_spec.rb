@@ -12,7 +12,7 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
   let(:app_id) { "some-app-id" }
   let(:properties) { {} }
   let(:task_id) { SecureRandom.uuid }
-  let(:env) { ["FOO=bar baz","BLAH=WHATEVER", "HTTP_PROXY=myproxy.com"] }
+  let(:env) { ["HTTP_PROXY=myproxy.com"] }
   let(:memory_limit) { 64 }
   let(:limits) do
     {
@@ -235,8 +235,6 @@ describe "Staging an app", :type => :integration, :requires_warden => true do
         end
 
         and_by "setting the correct user environment variables" do
-          expect(staging_log).to include("FOO=bar baz")
-          expect(staging_log).to include("BLAH=WHATEVER")
           expect(staging_log).to include("HTTP_PROXY=myproxy.com")
         end
 
