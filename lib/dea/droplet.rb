@@ -102,7 +102,7 @@ module Dea
         logger.debug("Removing #{dir_to_remove}")
 
         begin
-          FileUtils.rm_rf(dir_to_remove)
+          FileUtils.rm_r(dir_to_remove)
         rescue => e
           logger.log_exception(e)
         end
