@@ -138,6 +138,8 @@ sudo bundle exec rake warden:start[config/linux.yml] &> /tmp/warden.log &
 
 # start the DEA's dependencies
 cd /var/cf-release/src/dea_next
+export GOPATH=$PWD/go
+go get github.com/nats-io/gnatsd
 sudo bundle install
 sudo bundle exec foreman start &> /tmp/foreman.log &
 
@@ -154,7 +156,7 @@ nats-sub ">" -s nats://localhost:4222
 ```
 ## Testing the directory server
 
-Running the dea unit and integration tests via the `bin/run_specs_in_vm.sh` script 
+Running the dea unit and integration tests via the `bin/run_specs_in_vm.sh` script
 will also run the directory server tests, but if you want to run tests against just the directory
 server, you can do the following once you have checked out the repository (replace
 `$DEA_REPO_ROOT` with the location of the `dea_ng` repo - in the above examples, it is

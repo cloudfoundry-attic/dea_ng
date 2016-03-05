@@ -32,6 +32,7 @@ echo "warden is ready"
 # Start foreman (directory server & nats)
 
 cd /var/cf-release/src/dea-hm-workspace/src/dea_next
+go get github.com/nats-io/gnatsd
 sudo bundle install
 sudo bundle exec foreman start &> /tmp/foreman.log &
 

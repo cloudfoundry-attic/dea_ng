@@ -33,6 +33,16 @@ GIT
       rack-mount
       virtus (>= 1.0.0)
 
+GIT
+  remote: https://github.com/nats-io/ruby-nats.git
+  revision: 40b306dd3d3b77034f8adaefd57684a49314cf58
+  specs:
+    nats (0.5.1)
+      daemons (~> 1.1, >= 1.2.2)
+      eventmachine (~> 1.0, = 1.0.7)
+      json_pure (~> 1.8, >= 1.8.1)
+      thin (~> 1.6, >= 1.6.3)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -100,11 +110,6 @@ GEM
     multi_json (1.11.2)
     multi_xml (0.5.5)
     multipart-post (2.0.0)
-    nats (0.5.1)
-      daemons (~> 1.1, >= 1.2.2)
-      eventmachine (~> 1.0, = 1.0.7)
-      json_pure (~> 1.8, >= 1.8.1)
-      thin (~> 1.6, >= 1.6.3)
     net-ssh (3.0.2)
     patron (0.5.0)
     posix-spawn (0.3.11)
@@ -203,7 +208,7 @@ DEPENDENCIES
   foreman
   grape!
   loggregator_emitter!
-  nats (>= 0.5.0, < 0.6)
+  nats!
   net-ssh
   patron
   rack
