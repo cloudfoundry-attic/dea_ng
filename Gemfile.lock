@@ -35,7 +35,7 @@ GIT
 
 GIT
   remote: https://github.com/nats-io/ruby-nats.git
-  revision: 40b306dd3d3b77034f8adaefd57684a49314cf58
+  revision: 8571cf9d685b6063002486614b66a28bad254a64
   specs:
     nats (0.5.1)
       daemons (~> 1.1, >= 1.2.2)
