@@ -50,7 +50,7 @@ describe Dea::Nats do
     it "does not log nats credentials" do
       log_record = logfile.readlines[0]
       expect(log_record).to_not include "nats://user:password@something:4222"
-      expect(log_record).to include "nats://user@something:4222"
+      expect(log_record).to include "nats://something:4222"
     end
   end
 

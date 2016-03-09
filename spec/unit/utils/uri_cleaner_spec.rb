@@ -4,10 +4,20 @@ require 'dea/utils/uri_cleaner'
 describe URICleaner do
 
   describe "strings as uris" do
-    let (:uri) { "nats://user:password@server:4222" }
+    context "when both username and password are supplied" do
+      let (:uri) { "nats://user:password@server:4222" }
 
-    it "removes the password" do
-      expect(URICleaner.clean(uri)).to eq("nats://user@server:4222")
+      it "removes the user and password" do
+        expect(URICleaner.clean(uri)).to eq("nats://server:4222")
+      end
+    end
+
+    context "when only the username is supplied" do
+      let (:uri) { "https://frank@somehost.com:8080" }
+
+      it "removes the user" do
+        expect(URICleaner.clean(uri)).to eq("https://somehost.com:8080")
+      end
     end
 
     context "when the uri is opaque" do
@@ -23,7 +33,7 @@ describe URICleaner do
     let (:uri) { "nats://user:password@example.com:4222" }
     let (:uri_object) { URI(uri) }
 
-    it "does not modify the uri" do
+    it "does not modify the original uri object" do
       expect {
         URICleaner.clean(uri_object)
       }.to_not change {
@@ -35,8 +45,8 @@ describe URICleaner do
       expect(URICleaner.clean(uri_object)).to be_a(String)
     end
 
-    it "removes the password" do
-      expect(URICleaner.clean(uri_object)).to eq("nats://user@example.com:4222")
+    it "removes the username and password" do
+      expect(URICleaner.clean(uri_object)).to eq("nats://example.com:4222")
     end
 
     context "when the uri is opaque" do
@@ -63,11 +73,11 @@ describe URICleaner do
       ]
     end
 
-    it "returns a list of uri strings without passwords" do
+    it "removes usernames and passwords from non-opaque uris" do
       expect(URICleaner.clean(uris)).to eq([
-        "https://user@example.com/",
+        "https://example.com/",
         "mailto:user@example.com",
-        "nats://user@example.com:4222"
+        "nats://example.com:4222"
       ])
     end
   end

@@ -17,6 +17,7 @@ class URICleaner
   def self.clean_uri(u)
     uri = u.is_a?(URI) ? u.dup : URI.parse(u)
     uri.password = nil if uri.password
+    uri.user = nil if uri.user
     uri.to_s
   rescue => e
     "<<uri parse error>>"
