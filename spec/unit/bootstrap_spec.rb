@@ -56,6 +56,7 @@ describe Dea::Bootstrap do
       expect(bootstrap).to receive(:setup_directory_server_v2)
       expect(bootstrap).to receive(:setup_directories)
       expect(bootstrap).to receive(:setup_pid_file)
+      expect(bootstrap).to receive(:setup_hm9000)
 
       bootstrap.setup
     end
@@ -438,6 +439,8 @@ describe Dea::Bootstrap do
       bootstrap.setup_staging_task_registry
       bootstrap.setup_resource_manager
       bootstrap.start_nats
+      bootstrap.setup_hm9000
+      allow(bootstrap.hm9000).to receive(:send_heartbeat)
     end
 
     it "advertises dea" do
@@ -459,7 +462,7 @@ describe Dea::Bootstrap do
       end
 
       it "heartbeats its registry" do
-        allow(bootstrap).to receive(:send_heartbeat)
+        expect(bootstrap).to receive(:send_heartbeat)
         bootstrap.start_finish
       end
     end
@@ -655,22 +658,35 @@ describe Dea::Bootstrap do
     end
   end
 
-  describe "send_heartbeat" do
+  describe '#send_heartbeat' do
     before do
       allow(EM).to receive(:add_periodic_timer).and_return(nil)
       allow(EM).to receive(:add_timer).and_return(nil)
-      bootstrap.setup_nats
-      bootstrap.start_nats
+      bootstrap.setup_hm9000
+      # bootstrap.setup_nats
+      # bootstrap.start_nats
     end
 
     context "when there are no registered instances" do
+      let(:heartbeat) do
+        {
+          "droplets" => [],
+          "dea"      => bootstrap.uuid,
+        }
+      end
       it "publishes an empty dea.heartbeat" do
-        allow(nats_mock).to receive(:publish)
+        expect(bootstrap.hm9000).to receive(:send_heartbeat).with(heartbeat)
 
         bootstrap.send_heartbeat
-
-        expect(nats_mock).to have_received(:publish).with("dea.heartbeat", anything)
       end
+    end
+  end
+
+  describe '#setup_hm9000' do
+    it 'initializes hm9000' do
+      bootstrap.setup_hm9000
+      expect(bootstrap.hm9000).to_not be_nil
+      expect(bootstrap.hm9000).to be_a_kind_of(HM9000)
     end
   end
 

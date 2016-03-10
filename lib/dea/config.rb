@@ -34,6 +34,9 @@ module Dea
         "disk_inode_limit" => DEFAULT_STAGING_DISK_INODE_LIMIT,
       },
       "default_health_check_timeout" => 60,
+      "hm9000" => {
+        "uri" => "http://listener-hm9000.service.cf.internal:5335/dea/heartbeat"
+      },
     }
 
     def self.schema
@@ -70,6 +73,8 @@ module Dea
           },
 
           "cc_url" => String,
+
+          "hm9000" => Hash,
 
           optional("crash_lifetime_secs") => Integer,
           optional("crash_block_usage_ratio_threshold") => Float,

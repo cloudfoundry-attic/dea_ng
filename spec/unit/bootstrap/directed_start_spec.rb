@@ -7,15 +7,17 @@ describe Dea do
   include_context "bootstrap_setup"
 
   describe "directed start" do
-    def publish
+    def publish(next_tick=true)
       with_event_machine do
         bootstrap.setup
         bootstrap.start
 
         nats_mock.publish("dea.#{bootstrap.uuid}.start", valid_instance_attributes)
 
-        EM.next_tick do
-          done
+        if next_tick
+          EM.next_tick do
+            done
+          end
         end
       end
     end
@@ -64,11 +66,14 @@ describe Dea do
 
         it "does not publish a heartbeat" do
           received_heartbeat = false
-          nats_mock.subscribe("dea.heartbeat") do
-            received_heartbeat = true
-          end
 
-          publish
+          with_event_machine do
+            start_http_server(25432) do |connection, data|
+              received_heartbeat = true
+            end
+
+            publish
+          end
 
           expect(received_heartbeat).to be false
         end
@@ -101,11 +106,15 @@ describe Dea do
 
         it "publishes a heartbeat" do
           received_heartbeat = false
-          nats_mock.subscribe("dea.heartbeat") do
-            received_heartbeat = true
-          end
 
-          publish
+          with_event_machine do
+            start_http_server(25432) do |connection, data|
+              received_heartbeat = true
+              done
+            end
+
+            publish(false)
+          end
 
           expect(received_heartbeat).to be true
         end

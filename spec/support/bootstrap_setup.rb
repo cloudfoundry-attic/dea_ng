@@ -45,6 +45,9 @@ shared_context "bootstrap_setup" do
         "key_file" => "a_key_file",
         "cert_file" => "a_cert_file"
       },
+      "hm9000" => {
+        "uri" => 'http://127.0.0.1:25432'
+      }
     }
 
     bootstrap = Dea::Bootstrap.new(config)

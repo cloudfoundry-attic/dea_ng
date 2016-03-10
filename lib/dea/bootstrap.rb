@@ -27,6 +27,7 @@ require "dea/directory_server/directory_server_v2"
 require "dea/http/httpserver"
 
 require "dea/utils/download"
+require "dea/utils/hm9000"
 
 require "dea/staging/staging_task_registry"
 require "dea/staging/staging_task"
@@ -55,6 +56,7 @@ module Dea
     attr_reader :directory_server_v2, :http_server
     attr_reader :staging_task_registry
     attr_reader :uuid
+    attr_reader :hm9000
 
     def initialize(config = {})
       @config = Config.new(config)
@@ -78,8 +80,9 @@ module Dea
       validate_config
 
       @uuid = SecureRandom.uuid
-      setup_nats
       setup_logging
+      setup_nats
+      setup_hm9000
       setup_loggregator
       setup_warden_container_lister
       setup_droplet_registry
@@ -269,6 +272,10 @@ module Dea
       @nats = Dea::Nats.new(self, config)
     end
 
+    def setup_hm9000
+      @hm9000 = HM9000.new(config["hm9000"]["uri"], logger)
+    end
+
     attr_reader :staging_responder
 
     def start_nats
@@ -455,8 +462,8 @@ module Dea
         instance.starting? || instance.running? || instance.crashed? || instance.evacuating?
       end
 
-      hbs = Dea::Protocol::V1::HeartbeatResponse.generate(self, instances)
-      nats.publish("dea.heartbeat", hbs)
+      hbs = Dea::Protocol::V1::HeartbeatResponse.generate(uuid, instances)
+      hm9000.send_heartbeat(hbs)
 
       nil
     end

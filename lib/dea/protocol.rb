@@ -8,7 +8,7 @@ end
 
 module Dea::Protocol::V1
   class HeartbeatResponse
-    def self.generate(bootstrap, instances)
+    def self.generate(uuid, instances)
       hbs = instances.map do |instance|
         {
           "cc_partition"    => instance.cc_partition,
@@ -22,7 +22,7 @@ module Dea::Protocol::V1
       end
 
       { "droplets" => hbs,
-        "dea"      => bootstrap.uuid,
+        "dea"      => uuid,
       }
     end
   end

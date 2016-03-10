@@ -75,8 +75,8 @@ module DeaHelpers
 
     Timeout.timeout(10) do
       begin
-        heartbeat = nats.with_subscription("dea.heartbeat") {}
-        puts "dea server started, heartbeat received"
+        adverise = nats.with_subscription("dea.advertise") {}
+        puts "dea server started, dea.advertise received"
       rescue NATS::ConnectError, Timeout::Error
         # Ignore because either NATS is not running, or DEA is not running.
       end
@@ -115,8 +115,24 @@ module DeaHelpers
   end
 
   def wait_until_instance_evacuating(app_id)
-    heartbeat = nats.with_subscription("dea.heartbeat") {}
-    heartbeat["droplets"].detect  { |instance| instance.fetch("state") == "EVACUATING" && instance.fetch("droplet") == app_id }
+    uri = dea_config['hm9000']['uri']
+
+    without_http = uri[uri.index(':')+1..-1]
+    port = without_http[without_http.index(':')+1..-1].to_i
+
+    heartbeat = ""
+    with_event_machine(:timeout => 10) do
+      start_http_server(port) do |connection, data|
+        new_data = data[data.index('{')..-1]
+        heartbeat = Yajl::Parser.parse(new_data)
+
+        if heartbeat["droplets"].detect  { |instance| instance.fetch("state") == "EVACUATING" && instance.fetch("droplet") == app_id }
+          done
+        end
+      end
+    end
+
+    return heartbeat["droplets"].detect  { |instance| instance.fetch("state") == "EVACUATING" && instance.fetch("droplet") == app_id }
   end
 
   def wait_until(timeout = 5, &block)

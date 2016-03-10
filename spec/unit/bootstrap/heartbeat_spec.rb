@@ -12,17 +12,19 @@ describe Dea do
     instances = []
     heartbeats = []
 
-    # Unregister an instance with each heartbeat received
-    nats_mock.subscribe("dea.heartbeat") do |msg, _|
-      heartbeats << Yajl::Parser.parse(msg)
-      if heartbeats.size == 5
-        done
-      else
-        bootstrap.instance_registry.unregister(instances[heartbeats.size - 1])
-      end
-    end
-
     with_event_machine(:timeout => 1) do
+
+      # Unregister an instance with each heartbeat received
+      start_http_server(25432) do |connection, data|
+        #strip hearder off of data
+        new_data = data[data.index('{')..-1]
+        heartbeats << Yajl::Parser.parse(new_data)
+        if heartbeats.size == 5
+          done
+        else
+          bootstrap.instance_registry.unregister(instances[heartbeats.size - 1])
+        end
+      end
       # Hack to not have the test take too long because heartbeat interval is defined
       # as an Integer in the schema.
       bootstrap.config['intervals']['heartbeat'] = 0.01
@@ -57,12 +59,15 @@ describe Dea do
   describe "instance state filtering" do
     def run
       heartbeat = nil
-      nats_mock.subscribe("dea.heartbeat") do |msg, _|
-        heartbeat = Yajl::Parser.parse(msg)
-        done
-      end
 
       with_event_machine(:timeout => 1) do
+        start_http_server(25432) do |connection, data|
+          #strip header off of data
+          new_data = data[data.index('{')..-1]
+          heartbeat = Yajl::Parser.parse(new_data)
+          done
+        end
+
         bootstrap.setup
         yield
         bootstrap.start

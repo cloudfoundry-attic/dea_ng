@@ -77,3 +77,6 @@ placement_properties:
   zone: "CRAZY_TOWN"
 
 cc_url: https://user:password@cloud_controller_ng.service.cf.internal
+
+hm9000:
+  uri: http://localhost:3569
