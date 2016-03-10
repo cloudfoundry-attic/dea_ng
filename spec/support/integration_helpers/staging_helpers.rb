@@ -21,7 +21,7 @@ module StagingHelpers
     @@resolved ||= {}
 
     uri = URI.parse(log_url)
-    @@resolved[uri.host] ||= Addrinfo.ip(uri.host).ip_address
+    @@resolved[uri.host] ||= VCAP.local_ip
     uri.host = @@resolved[uri.host]
     uri.to_s
   end

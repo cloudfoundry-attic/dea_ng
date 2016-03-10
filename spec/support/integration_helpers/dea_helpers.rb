@@ -3,7 +3,6 @@ require "net/ssh"
 require "shellwords"
 
 require_relative "process_helpers"
-require_relative "local_ip_finder"
 
 require "dea/config"
 
@@ -50,10 +49,10 @@ module DeaHelpers
   end
 
   def start_file_server
-    local_ip = LocalIPFinder.new.find
-    `sudo /sbin/iptables -I INPUT 2 -j ACCEPT -p tcp --dport 10197 -d #{local_ip.ip_address}`
+    local_ip = VCAP.local_ip
+    `sudo /sbin/iptables -I INPUT 2 -j ACCEPT -p tcp --dport 10197 -d #{local_ip}`
     @file_server_pid = run_cmd("bundle exec ruby spec/bin/file_server.rb", :debug => true)
-    wait_until { is_port_open?(local_ip.ip_address, 10197) }
+    wait_until { is_port_open?(local_ip, 10197) }
   end
 
   def stop_file_server
@@ -66,9 +65,9 @@ module DeaHelpers
   end
 
   def file_server_address
-    local_ip = LocalIPFinder.new.find
+    local_ip = VCAP.local_ip
 
-    "#{local_ip.ip_address}:10197"
+    "#{local_ip}:10197"
   end
 
   def dea_start(extra_config={})
@@ -172,7 +171,7 @@ module DeaHelpers
     def config
       @config ||= begin
         config = YAML.load(File.read("config/dea.yml"))
-        config["domain"] = LocalIPFinder.new.find.ip_address+".xip.io"
+        config["domain"] = VCAP.local_ip
         config["intervals"] = {
           "advertise" => 1
         }
