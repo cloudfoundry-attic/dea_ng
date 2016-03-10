@@ -15,6 +15,7 @@ require 'dea/task'
 require 'dea/utils/event_emitter'
 require 'dea/starting/startup_script_generator'
 require 'dea/user_facing_errors'
+require 'dea/utils/uri_cleaner'
 
 module Dea
   class Instance < Task
@@ -586,7 +587,7 @@ module Dea
           else
             logger.debug('droplet.download.succeeded',
                          duration: p.elapsed_time,
-                         destination: droplet.droplet_path)
+                         destination: URICleaner.clean(droplet.droplet_path))
 
             p.deliver
           end

@@ -14,6 +14,7 @@ require 'dea/staging/admin_buildpack_downloader'
 require 'dea/staging/staging_task_workspace'
 require 'dea/staging/staging_message'
 require 'dea/loggregator'
+require 'dea/utils/uri_cleaner'
 
 module Dea
   class StagingTask < Task
@@ -258,7 +259,7 @@ module Dea
 
     def promise_task_log
       Promise.new do |p|
-        logger.info('staging.task-log.copying-out', source: workspace.warden_staging_log, destination: workspace.staging_log_path)
+        logger.info('staging.task-log.copying-out', source: workspace.warden_staging_log, destination: URICleaner.clean(workspace.staging_log_path))
 
         copy_out_request(workspace.warden_staging_log, File.dirname(workspace.staging_log_path))
         p.deliver
@@ -267,7 +268,7 @@ module Dea
 
     def promise_staging_info
       Promise.new do |p|
-        logger.info('staging.task-info.copying-out', source: workspace.warden_staging_info, destination: workspace.staging_info_path)
+        logger.info('staging.task-info.copying-out', source: workspace.warden_staging_info, destination: URICleaner.clean(workspace.staging_info_path))
 
         copy_out_request(workspace.warden_staging_info, File.dirname(workspace.staging_info_path))
         p.deliver
@@ -276,7 +277,7 @@ module Dea
 
     def promise_unpack_app
       Promise.new do |p|
-        logger.info('staging.task.unpacking-app', destination: workspace.warden_unstaged_dir)
+        logger.info('staging.task.unpacking-app', destination: URICleaner.clean(workspace.warden_unstaged_dir))
 
         loggregator_emit_result container.run_script(:app, <<-BASH)
           set -o pipefail
@@ -303,7 +304,7 @@ module Dea
 
     def promise_app_download
       Promise.new do |p|
-        logger.info('staging.app-download.starting', uri: staging_message.download_uri)
+        logger.info('staging.app-download.starting', uri: URICleaner.clean(staging_message.download_uri))
 
         download_destination = Tempfile.new('app-package-download.tgz')
 
@@ -317,7 +318,7 @@ module Dea
             File.chmod(0744, workspace.downloaded_app_package_path)
 
             logger.debug('staging.app-download.completed',
-                         duration: p.elapsed_time, destination: workspace.downloaded_app_package_path)
+                         duration: p.elapsed_time, destination: URICleaner.clean(workspace.downloaded_app_package_path))
 
             p.deliver
           end
@@ -339,16 +340,16 @@ module Dea
     def promise_app_upload
       Promise.new do |p|
         logger.info('staging.droplet-upload.starting',
-                    source: workspace.staged_droplet_path, destination: staging_message.upload_uri)
+                    source: workspace.staged_droplet_path, destination: URICleaner.clean(staging_message.upload_uri))
 
         Upload.new(workspace.staged_droplet_path, staging_message.upload_uri, logger).upload! do |error|
           if error
             logger.info('staging.task.droplet-upload-failed',
-                        duration: p.elapsed_time, destination: staging_message.upload_uri, error: error, backtrace: error.backtrace)
+                        duration: p.elapsed_time, destination: URICleaner.clean(staging_message.upload_uri), error: error, backtrace: error.backtrace)
 
             p.fail(error)
           else
-            logger.info('staging.task.droplet-upload-completed', duration: p.elapsed_time, destination: staging_message.upload_uri)
+            logger.info('staging.task.droplet-upload-completed', duration: p.elapsed_time, destination: URICleaner.clean(staging_message.upload_uri))
 
             p.deliver
           end
@@ -359,17 +360,17 @@ module Dea
     def promise_buildpack_cache_upload
       Promise.new do |p|
         logger.info('staging.buildpack-cache-upload.starting',
-                    source: workspace.staged_buildpack_cache_path, destination: staging_message.buildpack_cache_upload_uri)
+                    source: workspace.staged_buildpack_cache_path, destination: URICleaner.clean(staging_message.buildpack_cache_upload_uri))
 
         Upload.new(workspace.staged_buildpack_cache_path, staging_message.buildpack_cache_upload_uri, logger).upload! do |error|
           if error
             logger.info('staging.task.buildpack-cache-upload-failed',
-                        duration: p.elapsed_time, destination: staging_message.buildpack_cache_upload_uri, error: error, backtrace: error.backtrace)
+                        duration: p.elapsed_time, destination: URICleaner.clean(staging_message.buildpack_cache_upload_uri), error: error, backtrace: error.backtrace)
 
             p.fail(error)
           else
             logger.info('staging.task.buildpack-cache-upload-completed',
-                        duration: p.elapsed_time, destination: staging_message.buildpack_cache_upload_uri)
+                        duration: p.elapsed_time, destination: URICleaner.clean(staging_message.buildpack_cache_upload_uri))
 
             p.deliver
           end
@@ -379,21 +380,21 @@ module Dea
 
     def promise_buildpack_cache_download
       Promise.new do |p|
-        logger.info('staging.buildpack-cache-download.starting', uri: staging_message.buildpack_cache_download_uri)
+        logger.info('staging.buildpack-cache-download.starting', uri: URICleaner.clean(staging_message.buildpack_cache_download_uri))
 
         download_destination = Tempfile.new('buildpack-cache', workspace.tmpdir)
 
         Download.new(staging_message.buildpack_cache_download_uri, download_destination, nil, logger).download! do |error|
           if error
             logger.debug('staging.buildpack-cache-download.failed',
-                         duration: p.elapsed_time, uri: staging_message.buildpack_cache_download_uri, error: error, backtrace: error.backtrace)
+                         duration: p.elapsed_time, uri: URICleaner.clean(staging_message.buildpack_cache_download_uri), error: error, backtrace: error.backtrace)
 
           else
             File.rename(download_destination.path, workspace.downloaded_buildpack_cache_path)
             File.chmod(0744, workspace.downloaded_buildpack_cache_path)
 
             logger.debug('staging.buildpack-cache-download.completed',
-                         duration: p.elapsed_time, destination: workspace.downloaded_buildpack_cache_path)
+                         duration: p.elapsed_time, destination: URICleaner.clean(workspace.downloaded_buildpack_cache_path))
           end
 
           p.deliver
@@ -403,7 +404,7 @@ module Dea
 
     def promise_copy_out
       Promise.new do |p|
-        logger.info('staging.droplet.copying-out', source: workspace.warden_staged_droplet, destination: workspace.staged_droplet_dir)
+        logger.info('staging.droplet.copying-out', source: workspace.warden_staged_droplet, destination: URICleaner.clean(workspace.staged_droplet_dir))
 
         copy_out_request(workspace.warden_staged_droplet, workspace.staged_droplet_dir)
 
@@ -461,7 +462,7 @@ module Dea
     def promise_unpack_buildpack_cache
       Promise.new do |p|
         if File.exists?(workspace.downloaded_buildpack_cache_path)
-          logger.info('staging.buildpack-cache.unpack', destination: workspace.warden_cache)
+          logger.info('staging.buildpack-cache.unpack', destination: URICleaner.clean(workspace.warden_cache))
 
           loggregator_emit_result container.run_script(:app, <<-BASH)
           set -o pipefail
@@ -479,7 +480,7 @@ module Dea
     def promise_copy_out_buildpack_cache
       Promise.new do |p|
         logger.info('staging.buildpack-cache.copying-out',
-                    source: workspace.warden_staged_buildpack_cache, destination: workspace.staged_droplet_dir)
+                    source: workspace.warden_staged_buildpack_cache, destination: URICleaner.clean(workspace.staged_droplet_dir))
 
         copy_out_request(workspace.warden_staged_buildpack_cache, workspace.staged_droplet_dir)
 

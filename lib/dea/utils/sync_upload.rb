@@ -1,4 +1,5 @@
 require "dea/utils/eventmachine_multipart_hack"
+require "dea/utils/uri_cleaner"
 
 class UploadError < StandardError
   def initialize(msg)
@@ -18,7 +19,7 @@ class SyncUpload
   end
 
   def upload!(&upload_callback)
-    logger.info("em-upload.begin", destination: @destination)
+    logger.info("em-upload.begin", destination: URICleaner.clean(@destination))
     head = {EM::HttpClient::MULTIPART_HACK => {name: "upload[droplet]", filename: File.basename(@source)}}
 
     http = EM::HttpRequest.new(@destination, inactivity_timeout: INACTIVITY_TIMEOUT).post(
@@ -55,7 +56,7 @@ class SyncUpload
 
     open_connection_count = EM.connection_count # https://github.com/igrigorik/em-http-request/issues/190 says to check connection_count
     logger.warn("em-upload.error",
-                destination: @destination,
+                destination: URICleaner.clean(@destination),
                 connection_count: open_connection_count,
                 message: error.message,
                 http_error: http.error,

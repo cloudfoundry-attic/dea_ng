@@ -1,4 +1,5 @@
 require "dea/utils/sync_upload"
+require "dea/utils/uri_cleaner"
 
 class Upload
   POLLING_INTERVAL = 1.freeze
@@ -14,13 +15,13 @@ class Upload
   end
 
   def upload!(&upload_callback)
-    logger.info("em-upload.begin", destination: @destination)
+    logger.info("em-upload.begin", destination: URICleaner.clean(@destination))
 
     SyncUpload.new(@source, @destination, @logger).upload! do |http, error|
       if error
         upload_callback.call(error)
       else
-        logger.debug("em-upload.completion.success", destination: @destination,
+        logger.debug("em-upload.completion.success", destination: URICleaner.clean(@destination),
                     response: http.response,
                     class: http.response.class.name,
                     include: http.response.include?("url")
@@ -30,7 +31,7 @@ class Upload
             response = JSON.parse(http.response)
             polling_destination = URI.parse(response.fetch("metadata", {}).fetch("url", nil))
             @remaining_polling_time = @polling_timeout_in_second
-            logger.debug("em-upload.completion.polling", destination: polling_destination)
+            logger.debug("em-upload.completion.polling", destination: URICleaner.clean(polling_destination))
             poll(polling_destination, &upload_callback) if polling_destination
           rescue JSON::ParserError
             logger.warn("em-upload.completion.parsing-error")
@@ -55,7 +56,7 @@ class Upload
 
     open_connection_count = EM.connection_count # https://github.com/igrigorik/em-http-request/issues/190 says to check connection_count
     logger.warn("em-upload.error",
-      destination: @destination,
+      destination: URICleaner.clean(@destination),
       connection_count: open_connection_count,
       message: error.message,
       http_error: http.error,
@@ -83,7 +84,7 @@ class Upload
   end
 
   def poll(polling_destination, &upload_callback)
-    logger.debug("em-upload.polling", polling_destination: polling_destination)
+    logger.debug("em-upload.polling", polling_destination: URICleaner.clean(polling_destination))
     http = EM::HttpRequest.new(polling_destination).get
     http.errback do
       logger.warn("em-upload.polling.handle_error")
