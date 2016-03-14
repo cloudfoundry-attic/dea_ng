@@ -14,7 +14,7 @@ module DeaHelpers
           s = TCPSocket.new(ip, port)
           s.close
           return true
-        rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH
+        rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH, Errno::ECONNRESET
           return false
         end
       end

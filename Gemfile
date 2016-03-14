@@ -32,6 +32,7 @@ group :test do
   gem 'patron'
   gem 'rack-test'
   gem 'rspec'
+  gem 'rspec-eventually'
   gem 'rubyzip'
   gem 'sinatra'
   gem 'timecop'
