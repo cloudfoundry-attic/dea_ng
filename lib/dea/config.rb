@@ -139,7 +139,13 @@ module Dea
             },
           },
 
-          optional("post_setup_hook") => String
+          optional("post_setup_hook") => String,
+
+          optional("ssl") => {
+            "port" => Integer,
+            optional("key_file") => String,
+            optional("cert_file") => String,
+          },
         }
       end
     end

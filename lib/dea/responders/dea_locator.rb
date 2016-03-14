@@ -4,16 +4,18 @@ module Dea::Responders
   class DeaLocator
     DEFAULT_ADVERTISE_INTERVAL = 5
 
-    attr_reader :nats
-    attr_reader :dea_id
-    attr_reader :resource_manager
-    attr_reader :config
+    attr_reader :nats, :dea_id, :resource_manager
+    attr_reader :stacks, :zone, :url
 
-    def initialize(nats, dea_id, resource_manager, config)
+
+    def initialize(nats, dea_id, resource_manager, config, url)
       @nats = nats
       @dea_id = dea_id
       @resource_manager = resource_manager
-      @config = config
+      @stacks = config["stacks"].map { |stack| stack['name'] } || []
+      @zone = config["placement_properties"]["zone"]
+      @advertise_interval = config["intervals"]["advertise"] || DEFAULT_ADVERTISE_INTERVAL
+      @url = url
     end
 
     def start
@@ -29,11 +31,12 @@ module Dea::Responders
         "dea.advertise",
         Dea::Protocol::V1::AdvertiseMessage.generate(
           id: dea_id,
-          stacks: config["stacks"].map { |stack| stack['name'] } || [],
+          url: url,
+          stacks: stacks,
           available_memory: resource_manager.remaining_memory,
           available_disk: resource_manager.remaining_disk,
           app_id_to_count: resource_manager.app_id_to_count,
-          placement_zone: config["placement_properties"]["zone"]
+          placement_zone: zone,
         ),
       )
     rescue => e
@@ -45,8 +48,7 @@ module Dea::Responders
     # Cloud controller uses dea.advertise to
     # keep track of all deas that it can use to run apps
     def start_periodic_dea_advertise
-      advertise_interval = config["intervals"]["advertise"] || DEFAULT_ADVERTISE_INTERVAL
-      @advertise_timer = EM.add_periodic_timer(advertise_interval) { advertise }
+      @advertise_timer = EM.add_periodic_timer(@advertise_interval) { advertise }
     end
 
     def stop_periodic_dea_advertise

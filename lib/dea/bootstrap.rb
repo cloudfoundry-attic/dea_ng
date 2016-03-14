@@ -24,6 +24,7 @@ require "dea/loggregator"
 require "dea/lifecycle/signal_handler"
 
 require "dea/directory_server/directory_server_v2"
+require "dea/http/httpserver"
 
 require "dea/utils/download"
 
@@ -51,7 +52,7 @@ module Dea
 
     attr_reader :config
     attr_reader :nats, :responders
-    attr_reader :directory_server_v2
+    attr_reader :directory_server_v2, :http_server
     attr_reader :staging_task_registry
     attr_reader :uuid
 
@@ -88,6 +89,7 @@ module Dea
       setup_snapshot
       setup_resource_manager
       setup_router_client
+      setup_http_server
       setup_directory_server_v2
       setup_directories
       setup_pid_file
@@ -250,6 +252,13 @@ module Dea
       end
     end
 
+    def setup_http_server
+      @http_server = Dea::HttpServer.new(self, config)
+      if @http_server.enabled?
+        @local_dea_service = "https://#{config['service_name']}:#{http_server.port}"
+      end
+    end
+
     def setup_directory_server_v2
       v2_port = config["directory_server"]["v2_port"]
       @directory_server_v2 = Dea::DirectoryServerV2.new(config["domain"], v2_port, router_client, config)
@@ -268,7 +277,7 @@ module Dea
       @staging_responder = Dea::Responders::Staging.new(nats, uuid, self, staging_task_registry, directory_server_v2, resource_manager, config)
 
       @responders = [
-        Dea::Responders::DeaLocator.new(nats, uuid, resource_manager, config),
+        Dea::Responders::DeaLocator.new(nats, uuid, resource_manager, config, @local_dea_service),
         Dea::Responders::StagingLocator.new(nats, uuid, resource_manager, config),
         @staging_responder,
       ].each(&:start)
@@ -325,6 +334,7 @@ module Dea
       setup_sweepers
       start_nats
       setup_register_routes
+      http_server.start
       directory_server_v2.start
       start_metrics
 
@@ -368,10 +378,6 @@ module Dea
       end
 
       register_directory_server_v2
-    end
-
-    def handle_dea_directed_start(message)
-      start_app(message.data)
     end
 
     def start_app(data)

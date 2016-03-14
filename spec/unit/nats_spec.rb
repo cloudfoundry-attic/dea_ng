@@ -15,7 +15,6 @@ describe Dea::Nats do
     before { nats.start }
 
     {
-      "dea.UUID.start"      => :handle_dea_directed_start,
       "dea.stop"            => :handle_dea_stop,
       "dea.update"          => :handle_dea_update,
       "dea.find.droplet"    => :handle_dea_find_droplet
@@ -30,6 +29,13 @@ describe Dea::Nats do
 
         nats_mock.receive_message(subject, data)
       end
+    end
+
+    it 'subscribes to dea.UUID.start' do
+      data = { "subject" => 'dea.UUID.start' }
+      expect(bootstrap).to receive(:start_app).with(data)
+
+      nats_mock.receive_message('dea.UUID.start', data)
     end
 
     it "subscribes to router.start" do

@@ -24,7 +24,7 @@ module Dea
       end
 
       subscribe("dea.#{bootstrap.uuid}.start") do |message|
-        bootstrap.handle_dea_directed_start(message)
+        bootstrap.start_app(message.data)
       end
 
       subscribe("dea.stop") do |message|

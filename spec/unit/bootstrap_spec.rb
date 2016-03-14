@@ -52,6 +52,7 @@ describe Dea::Bootstrap do
       expect(bootstrap).to receive(:setup_snapshot)
       expect(bootstrap).to receive(:setup_resource_manager)
       expect(bootstrap).to receive(:setup_router_client)
+      expect(bootstrap).to receive(:setup_http_server)
       expect(bootstrap).to receive(:setup_directory_server_v2)
       expect(bootstrap).to receive(:setup_directories)
       expect(bootstrap).to receive(:setup_pid_file)
@@ -533,7 +534,7 @@ describe Dea::Bootstrap do
     it "creates an instance" do
       allow(bootstrap.instance_manager).to receive(:create_instance).with(instance_data).and_return(instance)
       allow(instance).to receive(:start)
-      bootstrap.handle_dea_directed_start(Dea::Nats::Message.new(nil, nil, instance_data, nil))
+      bootstrap.start_app(Dea::Nats::Message.new(nil, nil, instance_data, nil).data)
     end
   end
 
@@ -626,6 +627,7 @@ describe Dea::Bootstrap do
       expect(bootstrap).to receive(:download_buildpacks)
       expect(bootstrap).to receive(:setup_sweepers)
       expect(bootstrap).to receive(:start_nats)
+      expect(bootstrap).to receive(:http_server) { double(:http_server, :start => nil) }
       expect(bootstrap).to receive(:directory_server_v2) { double(:directory_server_v2, :start => nil) }
       expect(bootstrap).to receive(:setup_register_routes)
       expect(bootstrap).to receive(:start_finish)
@@ -640,6 +642,7 @@ describe Dea::Bootstrap do
         allow(bootstrap).to receive(:download_buildpacks)
         allow(bootstrap).to receive(:setup_sweepers)
         allow(bootstrap).to receive(:start_nats)
+        allow(bootstrap).to receive(:http_server) { double(:http_server, :start => nil) }
         allow(bootstrap).to receive(:directory_server_v2) { double(:directory_server_v2, :start => nil) }
         allow(bootstrap).to receive(:setup_register_routes)
         allow(bootstrap).to receive(:start_finish)
@@ -681,7 +684,7 @@ describe Dea::Bootstrap do
 
     before do
       @config['staging'] = { 'enabled' => true }
-      @config['cc_url'] = 'https://user:password@api.localhost.xip.io'
+      @config['cc_url'] = 'https://user:password@api.example.com'
     end
 
     context 'when staging is disabled' do

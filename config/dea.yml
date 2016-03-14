@@ -3,6 +3,11 @@
 # Base directory for dea, application directories, dea temp files, etc. are all relative to this.
 base_dir: /tmp/dea_ng
 
+ssl:
+  port: 8443
+  key_file: server.key
+  cert_file: server.crt
+
 logging:
   level: debug
 
@@ -27,7 +32,7 @@ evacuation_bail_out_time_in_seconds: 900
 default_health_check_timeout: 60 # 1 minute
 
 index: 0
-domain: "localhost.xip.io"
+domain: "domain.example.com"
 
 staging:
   enabled: true
@@ -71,4 +76,4 @@ stacks:
 placement_properties:
   zone: "CRAZY_TOWN"
 
-cc_url: https://user:password@api.localhost.xip.io
+cc_url: https://user:password@cloud_controller_ng.service.cf.internal

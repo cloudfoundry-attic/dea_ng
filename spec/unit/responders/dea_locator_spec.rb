@@ -13,13 +13,14 @@ describe Dea::Responders::DeaLocator do
   let(:nats) { Dea::Nats.new(bootstrap, config) }
   let(:bootstrap) { double(:bootstrap, :config => config) }
   let(:dea_id) { "unique-dea-id" }
+  let(:url) { 'https://host:port' }
   let(:instance_registry) { instance_registry = Dea::InstanceRegistry.new }
   let(:staging_task_registry) { Dea::StagingTaskRegistry.new }
   let(:resource_manager) { Dea::ResourceManager.new(instance_registry, staging_task_registry) }
   let(:config) { Dea::Config.new(config_overrides) }
   let(:config_overrides) { {} }
 
-  subject { described_class.new(nats, dea_id, resource_manager, config) }
+  subject { described_class.new(nats, dea_id, resource_manager, config, url) }
 
   describe "#start" do
     describe "periodic 'dea.advertise'" do
@@ -82,9 +83,10 @@ describe Dea::Responders::DeaLocator do
     end
 
     it "publishes 'dea.advertise' message" do
-      allow(nats).to receive(:publish).with(
+      expect(nats).to receive(:publish).with(
         "dea.advertise",
         { "id" => dea_id,
+          "url" => url,
           "stacks" => ["stack-1", "stack-2"],
           "available_memory" => available_memory,
           "available_disk" => available_disk,

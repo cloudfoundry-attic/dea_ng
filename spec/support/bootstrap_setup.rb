@@ -39,7 +39,12 @@ shared_context "bootstrap_setup" do
       ],
       "placement_properties" => {
         "zone" => "z1"
-      }
+      },
+      "ssl" => {
+        "port" => 8443,
+        "key_file" => "a_key_file",
+        "cert_file" => "a_cert_file"
+      },
     }
 
     bootstrap = Dea::Bootstrap.new(config)
@@ -59,16 +64,15 @@ shared_context "bootstrap_setup" do
     allow(bootstrap).to receive(:setup_directories)
     allow(bootstrap).to receive(:setup_pid_file)
     allow(bootstrap).to receive(:setup_sweepers)
-    allow(bootstrap).to receive(:setup_directory_server)
     allow(bootstrap).to receive(:setup_directory_server_v2)
     allow(bootstrap).to receive(:setup_router_client)
 
     allow(bootstrap).to receive(:start_component)
+    allow(bootstrap).to receive(:start_http_server)
     allow(bootstrap).to receive(:start_directory_server)
     allow(bootstrap).to receive(:register_directory_server_v2)
     allow(bootstrap).to receive(:start_finish)
 
-    allow(bootstrap).to receive(:setup_directory_server_v2)
     allow(bootstrap).to receive(:directory_server_v2) { double(:directory_server, :start => nil) }
     bootstrap
   end
