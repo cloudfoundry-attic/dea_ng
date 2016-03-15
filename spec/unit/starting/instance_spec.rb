@@ -823,10 +823,10 @@ describe Dea::Instance do
       let(:response) { double('spawn_response', job_id: 37) }
       let(:env) do
         double('environment 1',
-               exported_environment_variables: 'system="sytem_value";\nexport user="user_value";\n',
+               exported_environment_variables: 'system="system_value";\nexport user="user_value";\n',
                exported_user_environment_variables: 'user="user_value";\n',
                exported_buildpack_environment_variables: 'config_var="config_var_value";\n',
-               exported_system_environment_variables: 'system="sytem_value";\n'
+               exported_system_environment_variables: 'system="system_value";\n'
         )
       end
       let(:generator) { double('script generator', generate: 'dostuffscript') }
