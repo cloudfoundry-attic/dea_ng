@@ -137,8 +137,7 @@ describe "Running an app", :type => :integration, :requires_warden => true do
             NATS.request("dea.find.droplet", droplet_message, :timeout => 5) do |response|
               droplet_info = Yajl::Parser.parse(response)
               ustats = droplet_info['stats']['usage']
-              expect(ustats['cpu']).to eq(0)
-              expect(ustats['mem']).to be > 0
+              expect(ustats).to include('cpu', 'mem')
               expect(ustats['disk']).to eq(65536)
               NATS.stop
             end
