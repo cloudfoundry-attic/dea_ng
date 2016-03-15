@@ -825,6 +825,7 @@ describe Dea::Instance do
         double('environment 1',
                exported_environment_variables: 'system="sytem_value";\nexport user="user_value";\n',
                exported_user_environment_variables: 'user="user_value";\n',
+               exported_buildpack_environment_variables: 'config_var="config_var_value";\n',
                exported_system_environment_variables: 'system="sytem_value";\n'
         )
       end
@@ -834,6 +835,7 @@ describe Dea::Instance do
         allow(instance).to receive(:promise_start).and_call_original
         allow(instance).to receive(:staged_info)
         instance.attributes['warden_handle'] = 'handle'
+        allow(env).to receive(:buildpack_environment_variables=).with(nil)
         allow(Dea::Env).to receive(:new).and_return(env)
         allow(Dea::StartupScriptGenerator).to receive(:new).and_return(generator)
         allow(instance.container).to receive(:update_path_and_ip)
@@ -871,6 +873,7 @@ describe Dea::Instance do
             expect(Dea::StartupScriptGenerator).to receive(:new).with(
             'fake_start_command.sh',
             env.exported_user_environment_variables,
+            env.exported_buildpack_environment_variables,
             env.exported_system_environment_variables,
             'post-setup-hook',
             ).and_return(generator)

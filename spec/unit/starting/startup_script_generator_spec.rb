@@ -3,12 +3,13 @@ require "dea/starting/startup_script_generator"
 
 describe Dea::StartupScriptGenerator do
   let(:user_envs) { %Q{export usr1="usrval1";\nexport usr2="usrval2";\nunset unset_var;\n} }
+  let(:buildpack_envs) { %Q{export bp1="bpval1";\nexport bp2="bpval2";\n} }
   let(:system_envs) { %Q{export usr1="sys_user_val1";\nexport sys1="sysval1";\n} }
   let(:used_buildpack) { '' }
   let(:start_command) { "go_nuts 'man' ; echo 'wooooohooo'" }
   let(:post_setup_hook) { "command1; command2" }
 
-  let(:generator) { Dea::StartupScriptGenerator.new(start_command, user_envs, system_envs, post_setup_hook) }
+  let(:generator) { Dea::StartupScriptGenerator.new(start_command, user_envs, buildpack_envs, system_envs, post_setup_hook) }
 
   describe "#generate" do
     subject(:script) { generator.generate }
@@ -24,6 +25,10 @@ describe Dea::StartupScriptGenerator do
         expect(script).to include user_envs
       end
 
+      it "exports the buildpack env variables" do
+        expect(script).to include buildpack_envs
+      end
+
       it "exports the system env variables" do
         expect(script).to include system_envs
       end
@@ -33,15 +38,15 @@ describe Dea::StartupScriptGenerator do
         expect(script).to include ". $i"
       end
 
-      it "exports user variables after system variables" do
-        expect(script).to match /usr1="sys_user_val1".*usr1="usrval1"/m
+      it "exports user after buildpack after system variables" do
+        expect(script).to match /usr1="sys_user_val1".*bp1="bpval1".*usr1="usrval1"/m
       end
 
-      it "exports build pack variables after system variables" do
+      it "exports system variables after system variables" do
         expect(script).to match /"sysval1".*\.profile\.d/m
       end
 
-      it "exports build pack variables after user variables" do
+      it "exports system variables after user variables" do
         expect(script).to match /usrval1.*\.profile\.d/m
       end
     end

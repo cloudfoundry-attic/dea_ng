@@ -24,17 +24,20 @@ module Dea
       exec bash -c %s
     BASH
 
-    def initialize(start_command, user_envs, system_envs, post_setup_hook)
+    def initialize(start_command, user_envs, buildpack_envs, system_envs, post_setup_hook)
       @start_command = start_command
       @user_envs = user_envs
+      @buildpack_envs = buildpack_envs
       @system_envs = system_envs
       @post_setup_hook = post_setup_hook
     end
 
     def generate
+      puts @buildpack_envs
       script = []
       script << "umask 077"
       script << @system_envs
+      script << @buildpack_envs
       script << @user_envs
       script << EXPORT_BUILDPACK_ENV_VARIABLES_SCRIPT
       script << @post_setup_hook unless @post_setup_hook.nil? || @post_setup_hook == ''

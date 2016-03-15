@@ -18,6 +18,7 @@ module Dea
     WHITELIST_SERVICE_KEYS = %W[name label tags plan plan_option credentials syslog_drain_url].freeze
 
     attr_reader :strategy_env
+    attr_writer :buildpack_environment_variables
 
     def initialize(message, instance_or_staging_task, env_exporter = Exporter, env_strategy_chooser = StrategyChooser.new(message, instance_or_staging_task))
       @env_exporter = env_exporter
@@ -26,6 +27,10 @@ module Dea
 
     def message
       strategy_env.message
+    end
+
+    def exported_buildpack_environment_variables
+      to_export(@buildpack_environment_variables || {})
     end
 
     def exported_system_environment_variables
