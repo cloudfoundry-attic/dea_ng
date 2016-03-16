@@ -256,6 +256,45 @@ describe Dea::InstanceRegistry do
     end
   end
 
+  describe '#emit_metrics' do
+    before do
+      @emitter = FakeEmitter.new
+      @staging_emitter = FakeEmitter.new
+      Dea::Loggregator.emitter = @emitter
+      Dea::Loggregator.staging_emitter = @staging_emitter
+
+      Dea::Instance::STATES.each do |state|
+        i = Dea::Instance.new(bootstrap, {})
+        i.state = state
+        instance_registry.register(i)
+      end
+
+      instance_registry.register(Dea::Instance.new(bootstrap, {}).tap{ |i| i.state = Dea::Instance::State::RUNNING })
+      instance_registry.register(Dea::Instance.new(bootstrap, {}).tap{ |i| i.state = Dea::Instance::State::CRASHED })
+    end
+
+    let(:expected_metrics) do
+      {
+        'BORN' => 1,
+        'STARTING' => 1,
+        'EVACUATING' => 1,
+        'RUNNING' => 2,
+        'STOPPING' => 1,
+        'RESUMING' => 1,
+        'CRASHED' => 2,
+        'STOPPED' => 1,
+      }
+    end
+
+    it 'emits metrics per state' do
+      instance_registry.emit_metrics
+
+      expected_metrics.each do | state, count |
+        expect(@emitter.messages["dea_registry_#{state.downcase}"]).to eq([{value: count, unit: 'instances'}])
+      end
+    end
+  end
+
   describe "crash reaping of orphans" do
     include_context "tmpdir"
 

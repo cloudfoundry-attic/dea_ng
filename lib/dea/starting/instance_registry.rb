@@ -287,6 +287,19 @@ module Dea
       end
     end
 
+    def emit_metrics
+      metrics = Hash.new(0)
+
+      @instances.each_value do |instance|
+        metrics[instance.state] += 1
+      end
+
+      Dea::Instance::STATES.each do |state|
+        name = "dea_registry_#{state.downcase}"
+        Dea::Loggregator.emit_value(name, metrics[state], 'instances')
+      end
+    end
+
     private
 
     def add_instance(instance)

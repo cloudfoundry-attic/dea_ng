@@ -375,26 +375,26 @@ describe Dea::Bootstrap do
       bootstrap.setup_instance_registry
       bootstrap.setup_resource_manager
 
-      allow(bootstrap.instance_registry).to receive(:size).and_return(5)
-      allow(bootstrap.resource_manager).to receive(:remaining_memory).and_return(115)
-      allow(bootstrap.resource_manager).to receive(:remaining_disk).and_return(666)
+      bootstrap.instance_registry.register(Dea::Instance.new(bootstrap, {}))
+      allow(bootstrap.config).to receive(:minimum_staging_memory_mb).and_return(333)
+      allow(bootstrap.config).to receive(:minimum_staging_disk_mb).and_return(444)
     end
 
     it 'emits the correct metrics' do
+      expect(bootstrap.resource_manager).to receive(:remaining_memory).and_return(115)
+      expect(bootstrap.resource_manager).to receive(:remaining_disk).and_return(666)
+
+      expect(bootstrap.instance_registry).to receive(:emit_metrics)
       expect(bootstrap.instance_registry).to receive(:emit_container_stats)
+      expect(bootstrap.resource_manager).to receive(:number_reservable).with(333, 444).and_return(5)
+
       bootstrap.periodic_metrics_emit
 
-      expect(@emitter.messages['remaining_memory'].length).to eq(1)
-      expect(@emitter.messages['remaining_memory'][0][:value]).to eq(115)
-      expect(@emitter.messages['remaining_memory'][0][:unit]).to eq('mb')
-
-      expect(@emitter.messages['remaining_disk'].length).to eq(1)
-      expect(@emitter.messages['remaining_disk'][0][:value]).to eq(666)
-      expect(@emitter.messages['remaining_disk'][0][:unit]).to eq('mb')
-
-      expect(@emitter.messages['instances'].length).to eq(1)
-      expect(@emitter.messages['instances'][0][:value]).to eq(5)
-      expect(@emitter.messages['instances'][0][:unit]).to eq('instances')
+      expect(@emitter.messages['uptime']).to contain_exactly(include(value: a_kind_of(Integer), unit: 's'))
+      expect(@emitter.messages['remaining_memory']).to eq([{value: 115, unit: "mb"}])
+      expect(@emitter.messages['remaining_disk']).to eq([{value: 666, unit: "mb"}])
+      expect(@emitter.messages['instances']).to eq([{value: 1, unit: 'instances'}])
+      expect(@emitter.messages['reservable_stagers']).to eq([{value: 5, unit: 'stagers'}])
     end
   end
 

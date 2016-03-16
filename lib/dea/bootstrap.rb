@@ -68,6 +68,11 @@ module Dea
       @local_ip ||= VCAP.local_ip
     end
 
+    def uptime
+      @start_time ||= Time.now
+      Time.now - @start_time
+    end
+
     def validate_config
       config.validate
     rescue Exception => e
@@ -469,9 +474,16 @@ module Dea
     end
 
     def periodic_metrics_emit
+      mem_required = config.minimum_staging_memory_mb
+      disk_required = config.minimum_staging_disk_mb
+
+      Dea::Loggregator.emit_value('uptime', uptime.to_i, 's')
       Dea::Loggregator.emit_value('remaining_memory', resource_manager.remaining_memory, 'mb')
       Dea::Loggregator.emit_value('remaining_disk', resource_manager.remaining_disk, 'mb')
       Dea::Loggregator.emit_value('instances', instance_registry.size, 'instances')
+      Dea::Loggregator.emit_value('reservable_stagers', resource_manager.number_reservable(mem_required, disk_required), 'stagers')
+
+      instance_registry.emit_metrics
       instance_registry.emit_container_stats
     end
 

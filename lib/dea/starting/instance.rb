@@ -80,6 +80,9 @@ module Dea
       end
     end
 
+    STATES = [State::BORN, State::STARTING, State::RUNNING, State::STOPPING,
+      State::STOPPED, State::CRASHED, State::RESUMING, State::EVACUATING]
+
     class Transition < Struct.new(:from, :to)
       def initialize(*args)
         super(*args.map(&:to_s).map(&:downcase))
