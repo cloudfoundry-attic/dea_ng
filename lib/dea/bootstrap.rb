@@ -1,17 +1,17 @@
 # coding: UTF-8
 
 require "set"
-
+              
 require "steno"
 require "steno/config"
 require "steno/core_ext"
-
+             
 require "loggregator_emitter"
-
+             
 require "thin"
-
+             
 require "vcap/common"
-
+             
 require "dea/config"
 require "container/container"
 require "dea/droplet_registry"
@@ -20,23 +20,23 @@ require "dea/protocol"
 require "dea/resource_manager"
 require "dea/router_client"
 require "dea/loggregator"
-
+             
 require "dea/lifecycle/signal_handler"
-
+             
 require "dea/directory_server/directory_server_v2"
 require "dea/http/httpserver"
-
+             
 require "dea/utils/download"
 require "dea/utils/hm9000"
-
+             
 require "dea/staging/staging_task_registry"
 require "dea/staging/staging_task"
-
+             
 require "dea/starting/instance"
 require "dea/starting/instance_uri_updater"
 require "dea/starting/instance_manager"
 require "dea/starting/instance_registry"
-
+             
 require "dea/snapshot"
 
 Dir[File.join(File.dirname(__FILE__), "responders/*.rb")].each { |f| require(f) }
@@ -197,7 +197,7 @@ module Dea
       end
     end
 
-### SIG_Handlers
+    ### SIG_Handlers
 
     attr_reader :evac_handler, :shutdown_handler
 
@@ -366,7 +366,7 @@ module Dea
       end
     end
 
-### Handle_Nats_Messages
+    ### Handle_Nats_Messages
 
     def setup_register_routes
       register_routes
@@ -468,7 +468,12 @@ module Dea
       end
 
       hbs = Dea::Protocol::V1::HeartbeatResponse.generate(uuid, instances)
-      hm9000.send_heartbeat(hbs)
+
+      if config["use_http"]
+        hm9000.send_heartbeat(hbs)
+      else
+        nats.publish("dea.heartbeat", hbs)
+      end
 
       nil
     end

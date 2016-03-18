@@ -50,7 +50,8 @@ RSpec.configure do |config|
     dea_start({
       "intervals" => {
         "router_register_in_seconds" => 0.5
-      }
+      },
+      "use_http" => true
     })
   end
 

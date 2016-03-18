@@ -659,25 +659,51 @@ describe Dea::Bootstrap do
   end
 
   describe '#send_heartbeat' do
-    before do
-      allow(EM).to receive(:add_periodic_timer).and_return(nil)
-      allow(EM).to receive(:add_timer).and_return(nil)
-      bootstrap.setup_hm9000
-      # bootstrap.setup_nats
-      # bootstrap.start_nats
+    context 'http' do 
+      before do
+        allow(EM).to receive(:add_periodic_timer).and_return(nil)
+        allow(EM).to receive(:add_timer).and_return(nil)
+        bootstrap.config['use_http'] = true
+        bootstrap.setup_hm9000
+        # bootstrap.setup_nats
+        # bootstrap.start_nats
+      end
+
+      context "when there are no registered instances" do
+        let(:heartbeat) do
+          {
+            "droplets" => [],
+            "dea"      => bootstrap.uuid,
+          }
+        end
+        it "publishes an empty dea.heartbeat" do
+          expect(bootstrap.hm9000).to receive(:send_heartbeat).with(heartbeat)
+
+          bootstrap.send_heartbeat
+        end
+      end
     end
 
-    context "when there are no registered instances" do
-      let(:heartbeat) do
-        {
-          "droplets" => [],
-          "dea"      => bootstrap.uuid,
-        }
+    context 'nats' do 
+      before do
+        allow(EM).to receive(:add_periodic_timer).and_return(nil)
+        allow(EM).to receive(:add_timer).and_return(nil)
+        bootstrap.setup_nats
+        bootstrap.start_nats
       end
-      it "publishes an empty dea.heartbeat" do
-        expect(bootstrap.hm9000).to receive(:send_heartbeat).with(heartbeat)
 
-        bootstrap.send_heartbeat
+      context "when there are no registered instances" do
+        let(:heartbeat) do
+          {
+            "droplets" => [],
+            "dea"      => bootstrap.uuid,
+          }
+        end
+        it "publishes an empty dea.heartbeat" do
+          expect(bootstrap.nats).to receive(:publish).with('dea.heartbeat', heartbeat)
+
+          bootstrap.send_heartbeat
+        end
       end
     end
   end

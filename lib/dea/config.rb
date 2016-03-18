@@ -34,6 +34,7 @@ module Dea
         "disk_inode_limit" => DEFAULT_STAGING_DISK_INODE_LIMIT,
       },
       "default_health_check_timeout" => 60,
+      "use_http" => false,
       "hm9000" => {
         "uri" => "http://listener-hm9000.service.cf.internal:5335/dea/heartbeat"
       },
@@ -74,6 +75,7 @@ module Dea
 
           "cc_url" => String,
 
+          "use_http" => bool,
           "hm9000" => Hash,
 
           optional("crash_lifetime_secs") => Integer,
