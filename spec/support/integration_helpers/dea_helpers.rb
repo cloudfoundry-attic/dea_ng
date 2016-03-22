@@ -75,7 +75,7 @@ module DeaHelpers
 
     Timeout.timeout(10) do
       begin
-        adverise = nats.with_subscription("dea.advertise") {}
+        advertise = nats.with_subscription("dea.advertise") {}
         puts "dea server started, dea.advertise received"
       rescue NATS::ConnectError, Timeout::Error
         # Ignore because either NATS is not running, or DEA is not running.
@@ -115,21 +115,27 @@ module DeaHelpers
   end
 
   def wait_until_instance_evacuating(app_id)
-    uri = dea_config['hm9000']['uri']
-
-    without_http = uri[uri.index(':')+1..-1]
-    port = without_http[without_http.index(':')+1..-1].to_i
+    uri = URI.join(dea_config['hm9000']['listener_uri'], "/dea/heartbeat")
 
     heartbeat = ""
     with_event_machine(:timeout => 10) do
-      start_http_server(port) do |connection, data|
-        new_data = data[data.index('{')..-1]
-        heartbeat = Yajl::Parser.parse(new_data)
+      http_server =
+        Thin::Server.new('0.0.0.0', uri.port, lambda { |env|
+          heartbeat = Yajl::Parser.parse(env['rack.input'])
+          if heartbeat["droplets"].detect  { |instance| instance.fetch("state") == "EVACUATING" && instance.fetch("droplet") == app_id }
+            done
+          end
 
-        if heartbeat["droplets"].detect  { |instance| instance.fetch("state") == "EVACUATING" && instance.fetch("droplet") == app_id }
-          done
-        end
-      end
+          [202, {}, ''] }, { signals: false })
+
+      http_server.ssl = true
+      http_server.ssl_options = {
+        private_key_file: fixture('/certs/hm9000_server.key'),
+        cert_chain_file: fixture('/certs/hm9000_server.crt'),
+        verify_peer: true,
+      }
+
+      http_server.start
     end
 
     return heartbeat["droplets"].detect  { |instance| instance.fetch("state") == "EVACUATING" && instance.fetch("droplet") == app_id }
@@ -169,7 +175,7 @@ module DeaHelpers
       f.write(YAML.dump(config.merge(extra_config)))
       f.close
 
-      run_cmd "mkdir -p tmp/logs && bundle exec bin/dea #{f.path} 2>&1 >>tmp/logs/dea.log"
+      run_cmd "mkdir -p tmp/logs && bundle exec bin/dea #{f.path} 1>tmp/logs/dea.log 2>tmp/logs/dea.err.log"
     end
 
     def stop
@@ -190,6 +196,12 @@ module DeaHelpers
         config["domain"] = VCAP.local_ip
         config["intervals"] = {
           "advertise" => 1
+        }
+        config["hm9000"] = {
+          'listener_uri' => "https://127.0.0.1:3569",
+          'key_file' => fixture('/certs/hm9000_client.key'),
+          'cert_file' => fixture("/certs/hm9000_client.crt"),
+          'ca_file' => fixture("/certs/hm9000_ca.crt"),
         }
         config
       end

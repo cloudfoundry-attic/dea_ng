@@ -1,48 +1,67 @@
 require 'dea/utils/uri_cleaner'
+require 'httpclient'
 
 class HM9000
-  INACTIVITY_TIMEOUT = 300.freeze
-
   attr_reader :logger
 
-  def initialize(destination, custom_logger=nil)
-    @destination = destination
+  def initialize(destination, key_file, cert_file, ca_file, timeout, custom_logger=nil)
+    @destination = URI.join(destination, "/dea/heartbeat")
     @logger = custom_logger || self.class.logger
+
+    client = HTTPClient.new
+    client.connect_timeout = 5
+    client.receive_timeout = 5
+    client.send_timeout = 5
+    client.keep_alive_timeout = timeout
+
+    ssl = client.ssl_config
+    ssl.verify_mode = OpenSSL::SSL::VERIFY_PEER
+
+    ssl.set_client_cert_file(cert_file, key_file)
+
+    ssl.clear_cert_store
+    ssl.add_trust_ca(ca_file)
+
+    @http_client = client
   end
 
-  def send_heartbeat(heartbeat)
+  def send_heartbeat(heartbeat, &callback)
     logger.info("send_heartbeat", destination: URICleaner.clean(@destination))
 
-    http = EM::HttpRequest.new(@destination, inactivity_timeout: INACTIVITY_TIMEOUT).post( body: Yajl::Encoder.encode(heartbeat))
-
-    http.errback do
-      handle_error(http)
-    end
-
-    http.callback do
-      handle_http_response(http)
-    end
+    connection = @http_client.post_async(@destination, header: { 'Content-Type' => 'application/json' }, body: Yajl::Encoder.encode(heartbeat))
+    EM.defer(
+      lambda do
+        begin
+          response = connection.pop
+          handle_http_response(response, callback)
+        rescue => e
+          logger.error("heartbeat failed", error: e)
+        end
+      end
+    )
   end
-  
-  def handle_http_response(http)
-    http_status = http.response_header.status
 
+private
+
+  def handle_http_response(response, callback)
+    http_status = response.status
     if http_status == 202
       logger.debug("heartbeat accepted")
+      callback.call(response) if callback
     else
-      handle_error(http)
+      handle_error(response, callback)
     end
   end
 
 
-  def handle_error(http)
-    open_connection_count = EM.connection_count # https://github.com/igrigorik/em-http-request/issues/190 says to check connection_count
-    logger.warn("Sending heartbeat failed",
-                destination: URICleaner.clean(@destination),
-                connection_count: open_connection_count,
-                http_error: http.error,
-                http_status: http.response_header.status,
-                http_response: http.response)
+  def handle_error(response, callback)
+    logger.warn(
+      "Sending heartbeat failed",
+      destination: URICleaner.clean(@destination),
+      http_status: response.status,
+      http_response: response.content
+    )
+
+    callback.call(response) if callback
   end
 end
-

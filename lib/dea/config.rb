@@ -8,6 +8,7 @@ module Dea
     DEFAULT_INSTANCE_DISK_INODE_LIMIT = 200_000
     DEFAULT_INSTANCE_NPROC_LIMIT = 512
     DEFAULT_ROUTER_REGISTER_INTERVAL_IN_SECONDS = 20
+    DEFAULT_CA_CERT_FILE = '/etc/ssl/certs/ca-certificates.crt'
 
     EMPTY_CONFIG = {
       "intervals" => {
@@ -34,10 +35,6 @@ module Dea
         "disk_inode_limit" => DEFAULT_STAGING_DISK_INODE_LIMIT,
       },
       "default_health_check_timeout" => 60,
-      "use_http" => false,
-      "hm9000" => {
-        "uri" => "http://listener-hm9000.service.cf.internal:5335/dea/heartbeat"
-      },
     }
 
     def self.schema
@@ -75,8 +72,12 @@ module Dea
 
           "cc_url" => String,
 
-          "use_http" => bool,
-          "hm9000" => Hash,
+          "hm9000" => {
+            "listener_uri" => String,
+            "key_file" => String,
+            "cert_file" => String,
+            optional("ca_file") => String,
+          },
 
           optional("crash_lifetime_secs") => Integer,
           optional("crash_block_usage_ratio_threshold") => Float,
@@ -182,11 +183,22 @@ module Dea
     def validate
       self.class.schema.validate(@config)
       validate_router_register_interval!
+      verify_certs
     end
 
     def validate_router_register_interval!
       @config["intervals"]["router_register_in_seconds"] ||= DEFAULT_ROUTER_REGISTER_INTERVAL_IN_SECONDS
       raise "Invalid router register interval" if @config["intervals"]["router_register_in_seconds"] <= 0
+    end
+
+    def verify_certs
+      return if @config["hm9000"]["cert_file"] &&
+        @config["hm9000"]["key_file"] &&
+        File.exists?(@config["hm9000"]["cert_file"]) &&
+        File.exists?(@config["hm9000"]["key_file"])  &&
+        File.exists?(@config["hm9000"]["ca_file"])
+
+      raise "Invalid Certs: One or more files not found"
     end
 
     def crashes_path

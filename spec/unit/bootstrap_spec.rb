@@ -14,7 +14,13 @@ describe Dea::Bootstrap do
       "base_dir" => tmpdir,
       "directory_server" => {},
       "domain" => "default",
-      "logging" => {}
+      "logging" => {},
+      "hm9000" => {
+        "listener_uri" => "https://foobar.com:12345",
+        "key_file" => fixture("/certs/hm9000_client.key"),
+        "cert_file" => fixture("/certs/hm9000_client.crt"),
+        "ca_file" => fixture("/certs/hm9000_ca.crt"),
+      }
     }
   end
 
@@ -659,56 +665,28 @@ describe Dea::Bootstrap do
   end
 
   describe '#send_heartbeat' do
-    context 'http' do 
-      before do
-        allow(EM).to receive(:add_periodic_timer).and_return(nil)
-        allow(EM).to receive(:add_timer).and_return(nil)
-        bootstrap.config['use_http'] = true
-        bootstrap.setup_hm9000
-        # bootstrap.setup_nats
-        # bootstrap.start_nats
-      end
-
-      context "when there are no registered instances" do
-        let(:heartbeat) do
-          {
-            "droplets" => [],
-            "dea"      => bootstrap.uuid,
-          }
-        end
-        it "publishes an empty dea.heartbeat" do
-          expect(bootstrap.hm9000).to receive(:send_heartbeat).with(heartbeat)
-
-          bootstrap.send_heartbeat
-        end
-      end
+    before do
+      allow(EM).to receive(:add_periodic_timer).and_return(nil)
+      allow(EM).to receive(:add_timer).and_return(nil)
+      bootstrap.setup_hm9000
     end
 
-    context 'nats' do 
-      before do
-        allow(EM).to receive(:add_periodic_timer).and_return(nil)
-        allow(EM).to receive(:add_timer).and_return(nil)
-        bootstrap.setup_nats
-        bootstrap.start_nats
+    context "when there are no registered instances" do
+      let(:heartbeat) do
+        {
+          "droplets" => [],
+          "dea"      => bootstrap.uuid,
+        }
       end
+      it "publishes an empty dea.heartbeat" do
+        expect(bootstrap.hm9000).to receive(:send_heartbeat).with(heartbeat)
 
-      context "when there are no registered instances" do
-        let(:heartbeat) do
-          {
-            "droplets" => [],
-            "dea"      => bootstrap.uuid,
-          }
-        end
-        it "publishes an empty dea.heartbeat" do
-          expect(bootstrap.nats).to receive(:publish).with('dea.heartbeat', heartbeat)
-
-          bootstrap.send_heartbeat
-        end
+        bootstrap.send_heartbeat
       end
     end
   end
 
-  describe '#setup_hm9000' do
+  describe "#setup_hm9000" do
     it 'initializes hm9000' do
       bootstrap.setup_hm9000
       expect(bootstrap.hm9000).to_not be_nil

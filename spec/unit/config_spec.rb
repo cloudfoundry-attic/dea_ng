@@ -20,7 +20,10 @@ module Dea
           "v2_port" => 7,
           "file_api_port" => 8
         },
-        "cc_url" => "cc.example.com"
+        "cc_url" => "cc.example.com",
+        "hm9000" => {
+          "listener_uri" => "https://a.b.c.d:1234",
+        },
       }
     end
     let(:disk_inode_limit) { 123456 }
@@ -38,6 +41,8 @@ module Dea
       let(:config_hash) { { } }
 
       it "can load" do
+        allow(File).to receive(:exists?).with('spec/fixtures/spec/hm9000_client.crt').and_return(true)
+        allow(File).to receive(:exists?).with('spec/fixtures/spec/hm9000_client.key').and_return(true)
         expect(subject).to be_a(Dea::Config)
       end
 
@@ -230,6 +235,50 @@ module Dea
         it "is sets it to the default value" do
           expect { config.validate_router_register_interval! }.to_not raise_error
           expect(config["intervals"]["router_register_in_seconds"]).to eq(20)
+        end
+      end
+    end
+
+    describe '#verify_certs' do
+      context 'when all certs specified exist' do
+        before do
+          config_hash['hm9000'] = {
+            "key_file" => fixture("/certs/hm9000_client.key"),
+            "cert_file" => fixture("/certs/hm9000_client.crt"),
+            "ca_file" => fixture("/certs/hm9000_ca.crt")
+          }
+        end
+
+        it 'verify their existence' do
+          expect{ config.verify_certs }.to_not raise_error
+        end
+      end
+
+      context 'when none of the certs exist' do
+        before do
+          config_hash['hm9000'] = {
+            "key_file" => 'fake-client-key',
+            "cert_file" => 'fake-cert-file',
+            "ca_file" => 'fake-ca-file'
+          }
+        end
+
+        it 'raises an error' do
+          expect{ config.verify_certs }.to raise_error 'Invalid Certs: One or more files not found'
+        end
+      end
+
+      context 'when at least one  of the certs does not exist' do
+        before do
+          config_hash['hm9000'] = {
+            "key_file" => fixture("/certs/hm9000_client.key"),
+            "cert_file" => fixture("/certs/hm9000_client.crt"),
+            "ca_file" => 'fake-ca-file'
+          }
+        end
+
+        it 'raises an error' do
+          expect{ config.verify_certs }.to raise_error 'Invalid Certs: One or more files not found'
         end
       end
     end

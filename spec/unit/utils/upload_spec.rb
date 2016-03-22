@@ -101,7 +101,7 @@ describe Upload do
       end
 
       context 'and it cannot reach the CC' do
-        let(:job_url) {'http://localhost:12346'} 
+        let(:job_url) {'http://localhost:12346'}
         before do
           start_http_server(12345) do |connection, data|
             create_response(connection, job_string)

@@ -208,6 +208,7 @@ DEPENDENCIES
   eventmachine (~> 1.0.3)
   foreman
   grape!
+  httpclient
   loggregator_emitter!
   nats!
   net-ssh

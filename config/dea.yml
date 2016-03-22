@@ -21,7 +21,7 @@ resources:
   disk_overcommit_factor: 2
 
 nats_servers:
-  - nats://localhost:4222/
+  - nats://127.0.0.1:4222/
 
 pid_filename: /tmp/dea_ng.pid
 
@@ -79,4 +79,7 @@ placement_properties:
 cc_url: https://user:password@cloud_controller_ng.service.cf.internal
 
 hm9000:
-  uri: http://localhost:3569
+  listener_uri: https://hm9000.service.cf.internal:5335
+  key_file: spec/fixtures/certs/hm9000_client.key
+  cert_file: spec/fixtures/certs/hm9000_client.crt
+  ca_file: spec/fixtures/certs/hm9000_ca.crt

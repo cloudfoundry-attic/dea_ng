@@ -46,7 +46,11 @@ shared_context "bootstrap_setup" do
         "cert_file" => "a_cert_file"
       },
       "hm9000" => {
-        "uri" => 'http://127.0.0.1:25432'
+        "listener_uri" => "https://127.0.0.1:25432",
+        "key_file" => fixture("/certs/hm9000_client.key"),
+        "cert_file" => fixture("/certs/hm9000_client.crt"),
+        "ca_file" => fixture("/certs/hm9000_ca.crt"),
+
       }
     }
 
@@ -62,6 +66,7 @@ shared_context "bootstrap_setup" do
 
     # No setup (explicitly unstub)
     allow(bootstrap).to receive(:setup_logging)
+    #allow(bootstrap).to receive(:setup_hm9000)
     allow(bootstrap).to receive(:setup_droplet_registry)
     allow(bootstrap).to receive(:setup_signal_handlers)
     allow(bootstrap).to receive(:setup_directories)

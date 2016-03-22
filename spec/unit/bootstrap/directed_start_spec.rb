@@ -98,7 +98,6 @@ describe Dea do
 
       describe "with success" do
         before do
-          bootstrap.config['use_http'] = true
           allow(instance_mock).to receive(:start) do
             instance_mock.state = Dea::Instance::State::STARTING
             instance_mock.state = Dea::Instance::State::RUNNING
