@@ -149,15 +149,27 @@ describe Dea::Responders::Staging do
       end
     end
 
-    context "staging async" do
-      it "starts staging task with registered callbacks" do
+    def task_double(buildpack_keys)
+      Struct.new(:task_id, :staging_message).new(SecureRandom.uuid, StagingMessage.new("admin_buildpacks" => as_buildpacks(buildpack_keys)))
+    end
+
+    def as_buildpacks(buildpack_keys)
+      buildpack_keys.map do |key|
+        { "url" => "http://www.goolge.com", "key" => key }
+      end
+    end
+
+    context 'when accepts_http is true in the request' do
+      let(:message) { {'app_id' => app_id, 'accepts_http' => true } }
+      let(:staging_message) { StagingMessage.new(message) }
+      it 'starts the staging task with the correct callbacks' do
         allow(Dea::StagingTask).to receive(:new)
           .with(bootstrap, dir_server, instance_of(StagingMessage), [], an_instance_of(Steno::TaggedLogger))
           .and_return(staging_task)
 
-        allow(staging_task).to receive(:after_setup_callback).ordered
-        allow(staging_task).to receive(:after_complete_callback).ordered
-        allow(staging_task).to receive(:start).ordered
+        expect(staging_task).not_to receive(:after_setup_callback)
+        expect(staging_task).to receive(:after_complete_callback).ordered
+        expect(staging_task).to receive(:start).ordered
 
         subject.handle(message)
       end
@@ -172,21 +184,164 @@ describe Dea::Responders::Staging do
           { url: URI("http://www.goolge.com"), key: key }
         end
 
-        allow(Dea::StagingTask).to receive(:new)
+        expect(Dea::StagingTask).to receive(:new)
           .with(bootstrap, dir_server, instance_of(StagingMessage), buildpacks_in_use, an_instance_of(Steno::TaggedLogger))
           .and_return(staging_task)
 
         subject.handle(message)
       end
 
-      def task_double(buildpack_keys)
-        Struct.new(:task_id, :staging_message).new(SecureRandom.uuid, StagingMessage.new("admin_buildpacks" => as_buildpacks(buildpack_keys)))
+      it_registers_task
+
+      it 'saves snapshot' do
+        allow(bootstrap.snapshot).to receive(:save)
+        subject.handle(message)
       end
 
-      def as_buildpacks(buildpack_keys)
-        buildpack_keys.map do |key|
-          { "url" => "http://www.goolge.com", "key" => key }
+      context 'when staging completes'
+        context 'and succeeds' do
+          let(:buildpack_key) { "some_buildpack_key" }
+
+          before do
+            allow(staging_task).to receive(:after_complete_callback).and_yield(nil)
+          end
+
+          xit 'sends a success response' do
+            expect(nats_mock).not_to receive(:publish)
+            # expect(http-y stuff)
+            subject.handle(message)
+          end
+
+          it_unregisters_task
+
+          it 'saves snapshot' do
+            expect(bootstrap.snapshot).to receive(:save)
+            subject.handle(message)
+          end
+
+          it 'logs to the loggregator' do
+            emitter = FakeEmitter.new
+            Dea::Loggregator.emitter = emitter
+
+            subject.handle(message)
+            expect(emitter.messages[app_id][0]).to eql("Got staging request for app with id #{app_id}")
+          end
+
+          context 'when there is a start message in staging message' do
+            let(:start_message) { {'droplet' => "dff77854-3767-41d9-ab16-c8a824beb77a", "sha1" => "some-droplet-sha"} }
+            let(:message) { {'app_id' => app_id, 'accepts_http' => true, 'start_message' => start_message} }
+
+            it "handles instance start with updated droplet sha" do
+              expect(bootstrap).to receive(:start_app).with(start_message)
+              subject.handle(message)
+            end
+          end
         end
+        # context 'and fails' do
+        #   let(:staging_error_info) {{ "type" => "NoAppDetectedError", "message" => "oh noes" }}
+        #   before do
+        #     allow(staging_task).to receive(:after_complete_callback) do |&blk|
+        #       allow(staging_task).to receive(:droplet_sha1).and_return(nil)
+        #       blk.call(RuntimeError.new("error-description"))
+        #     end
+        #   end
+        #
+        #   it "responds with error message" do
+        #     allow(nats_mock).to receive(:publish).with("respond-to", JSON.dump(
+        #       "task_id" => "task-id",
+        #       "detected_buildpack" => nil,
+        #       "buildpack_key" => nil,
+        #       "droplet_sha1" => nil,
+        #       "detected_start_command" => "bacofoil",
+        #       "procfile" => {
+        #         "web" => "npm start"
+        #       },
+        #       "error" => "error-description",
+        #       "error_info" => staging_error_info,
+        #     ))
+        #     subject.handle(message)
+        #   end
+        #
+        #   it_unregisters_task
+        #
+        #   it "saves snapshot" do
+        #     called = false
+        #
+        #     allow(staging_task).to receive(:after_complete_callback) do |&blk|
+        #       allow(bootstrap.snapshot).to receive(:save)
+        #       blk.call(RuntimeError.new("error-description"))
+        #       called = true
+        #     end
+        #
+        #     subject.handle(message)
+        #
+        #     expect(called).to be true
+        #   end
+        #
+        #   it "does not start an instance" do
+        #     expect(bootstrap).to_not receive(:start_app)
+        #     subject.handle(message)
+        #   end
+        # end
+        #
+        # context 'due to a stop message' do
+        #   before { allow(staging_task).to receive(:after_stop_callback).and_yield(Dea::StagingTask::StagingTaskStoppedError.new) }
+        #
+        #   it "responds with error message" do
+        #     allow(nats_mock).to receive(:publish).with("respond-to", JSON.dump(
+        #       "task_id" => "task-id",
+        #       "error" => "Error staging: task stopped",
+        #     ))
+        #     subject.handle(message)
+        #   end
+        #
+        #   it_unregisters_task
+        #
+        #   it "saves snapshot" do
+        #     called = false
+        #
+        #     allow(staging_task).to receive(:after_stop_callback) do |&blk|
+        #       allow(bootstrap.snapshot).to receive(:save)
+        #       blk.call
+        #       called = true
+        #     end
+        #
+        #     subject.handle(message)
+        #
+        #     expect(called).to be true
+        #   end
+        # end
+      # end
+    end
+
+    context "staging async" do
+      it "starts staging task with registered callbacks" do
+        allow(Dea::StagingTask).to receive(:new)
+          .with(bootstrap, dir_server, instance_of(StagingMessage), [], an_instance_of(Steno::TaggedLogger))
+          .and_return(staging_task)
+
+        expect(staging_task).to receive(:after_setup_callback).ordered
+        expect(staging_task).to receive(:after_complete_callback).ordered
+        expect(staging_task).to receive(:start).ordered
+
+        subject.handle(message)
+      end
+
+      it "passes a list of all potentially in-use buildpacks to the staging task" do
+
+        staging_task_registry.register(task_double ["a", "b", "c"])
+        staging_task_registry.register(task_double ["b", "c"])
+        staging_task_registry.register(task_double ["b", "c", "d", "e"])
+
+        buildpacks_in_use = ["a", "b", "c", "d", "e"].map do |key|
+          { url: URI("http://www.goolge.com"), key: key }
+        end
+
+        expect(Dea::StagingTask).to receive(:new)
+          .with(bootstrap, dir_server, instance_of(StagingMessage), buildpacks_in_use, an_instance_of(Steno::TaggedLogger))
+          .and_return(staging_task)
+
+        subject.handle(message)
       end
 
       it_registers_task
@@ -203,7 +358,7 @@ describe Dea::Responders::Staging do
           before { allow(staging_task).to receive(:after_setup_callback).and_yield(nil) }
 
           it "responds with successful message" do
-            allow(nats_mock).to receive(:publish).with("respond-to", JSON.dump(
+            expect(nats_mock).to receive(:publish).with("respond-to", JSON.dump(
               "task_id" => "task-id",
               "task_streaming_log_url" => "streaming-log-url",
               "error" => nil,
@@ -216,7 +371,7 @@ describe Dea::Responders::Staging do
           before { allow(staging_task).to receive(:after_setup_callback).and_yield(RuntimeError.new("error-description")) }
 
           it "responds with error message" do
-            allow(nats_mock).to receive(:publish).with("respond-to", JSON.dump(
+            expect(nats_mock).to receive(:publish).with("respond-to", JSON.dump(
               "task_id" => "task-id",
               "task_streaming_log_url" => "streaming-log-url",
               "error" => "error-description",

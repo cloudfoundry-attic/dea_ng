@@ -40,6 +40,10 @@ class StagingMessage
     URI(@message["buildpack_cache_download_uri"]) if @message["buildpack_cache_download_uri"]
   end
 
+  def accepts_http?
+    @message['accepts_http'] || false
+  end
+
   def start_message
     @start_message ||= StartMessage.new(@message["start_message"])
   end
