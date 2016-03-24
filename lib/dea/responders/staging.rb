@@ -32,8 +32,8 @@ module Dea::Responders
       unsubscribe_from_staging_stop
     end
 
-    def handle(response)
-      message = StagingMessage.new(response.data)
+    def handle(request)
+      message = request.instance_of?(Dea::Nats::Message) ? StagingMessage.new(request.data) : StagingMessage.new(request)
       app_id = message.app_id
       logger = logger_for_app(app_id)
 
@@ -43,7 +43,7 @@ module Dea::Responders
       task = Dea::StagingTask.new(bootstrap, dir_server, message, buildpacks_in_use, logger)
       unless resource_manager.could_reserve?(task.memory_limit_mb, task.disk_limit_mb)
         constrained_resource = resource_manager.get_constrained_resource(task.memory_limit_mb, task.disk_limit_mb)
-        respond_to_response(response,
+        respond_to_request(request,
                             task_id: task.task_id,
                             error: "Not enough #{constrained_resource} resources available")
         logger.error('staging.start.insufficient-resource',
@@ -56,9 +56,9 @@ module Dea::Responders
 
       bootstrap.snapshot.save
 
-      notify_setup_completion(response, task)
-      notify_completion(response, task)
-      notify_stop(response, task)
+      notify_setup_completion(request, task) unless message.accepts_http?
+      notify_completion(request, task)
+      notify_stop(request, task)
 
       task.start
     rescue => e
@@ -83,7 +83,7 @@ module Dea::Responders
 
     def subscribe_to_dea_specific_staging
       @dea_specified_staging_sid =
-        nats.subscribe("staging.#{@dea_id}.start", {do_not_track_subscription: true}) { |response| handle(response) }
+        nats.subscribe("staging.#{@dea_id}.start", {do_not_track_subscription: true}) { |request| handle(request) }
     end
 
     def unsubscribe_from_dea_specific_staging
@@ -92,16 +92,16 @@ module Dea::Responders
 
     def subscribe_to_staging_stop
       @staging_stop_sid =
-        nats.subscribe('staging.stop', {do_not_track_subscription: true}) { |response| handle_stop(response) }
+        nats.subscribe('staging.stop', {do_not_track_subscription: true}) { |request| handle_stop(request) }
     end
 
     def unsubscribe_from_staging_stop
       nats.unsubscribe(@staging_stop_sid) if @staging_stop_sid
     end
 
-    def notify_setup_completion(response, task)
+    def notify_setup_completion(request, task)
       task.after_setup_callback do |error|
-        respond_to_response(response, {
+        respond_to_request(request, {
           task_id: task.task_id,
           task_streaming_log_url: task.streaming_log_url,
           error: (error.to_s if error)
@@ -109,7 +109,7 @@ module Dea::Responders
       end
     end
 
-    def notify_completion(response, task)
+    def notify_completion(request, task)
       task.after_complete_callback do |error|
         data = {
           task_id: task.task_id,
@@ -122,7 +122,7 @@ module Dea::Responders
         data[:error] = error.to_s if error
         data[:error_info] = task.error_info if task.error_info
 
-        respond_to_response(response, data)
+        respond_to_request(request, data)
 
         # Unregistering the staging task will release the reservation of excess memory reserved for the app,
         # if the app requires more memory than the staging process.
@@ -141,9 +141,9 @@ module Dea::Responders
       end
     end
 
-    def notify_stop(response, task)
+    def notify_stop(request, task)
       task.after_stop_callback do |error|
-        respond_to_response(response, {
+        respond_to_request(request, {
           task_id: task.task_id,
           error: (error.to_s if error),
         })
@@ -154,8 +154,8 @@ module Dea::Responders
       end
     end
 
-    def respond_to_response(response, params)
-      response.respond(params)
+    def respond_to_request(request, params)
+      request.respond(params)
     end
 
     def logger_for_app(app_id)
