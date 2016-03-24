@@ -3,17 +3,13 @@ require 'dea/loggregator'
 
 module Dea::Responders
   class Staging
-    attr_reader :nats
-    attr_reader :dea_id
     attr_reader :bootstrap
     attr_reader :staging_task_registry
     attr_reader :dir_server
     attr_reader :resource_manager
     attr_reader :config
 
-    def initialize(nats, dea_id, bootstrap, staging_task_registry, dir_server, resource_manager, config)
-      @nats = nats
-      @dea_id = dea_id
+    def initialize(bootstrap, staging_task_registry, dir_server, resource_manager, config)
       @bootstrap = bootstrap
       @staging_task_registry = staging_task_registry
       @resource_manager = resource_manager
@@ -21,29 +17,17 @@ module Dea::Responders
       @config = config
     end
 
-    def start
-      return unless configured_to_stage?
-      subscribe_to_dea_specific_staging
-      subscribe_to_staging_stop
-    end
-
-    def stop
-      unsubscribe_from_dea_specific_staging
-      unsubscribe_from_staging_stop
-    end
-
-    def handle(response)
-      message = StagingMessage.new(response.data)
-      app_id = message.app_id
+    def create_task(staging_message) 
+      app_id = staging_message.app_id
       logger = logger_for_app(app_id)
 
       Dea::Loggregator.emit(app_id, "Got staging request for app with id #{app_id}")
-      logger.debug('staging.handle.start', request: message.inspect)
+      logger.debug('staging.handle.start', request: staging_message.inspect)
 
-      task = Dea::StagingTask.new(bootstrap, dir_server, message, buildpacks_in_use, logger)
+      task = Dea::StagingTask.new(bootstrap, dir_server, staging_message, buildpacks_in_use, logger)
       unless resource_manager.could_reserve?(task.memory_limit_mb, task.disk_limit_mb)
         constrained_resource = resource_manager.get_constrained_resource(task.memory_limit_mb, task.disk_limit_mb)
-        respond_to_response(response,
+        respond_to_request(staging_message,
                             task_id: task.task_id,
                             error: "Not enough #{constrained_resource} resources available")
         logger.error('staging.start.insufficient-resource',
@@ -56,60 +40,25 @@ module Dea::Responders
 
       bootstrap.snapshot.save
 
-      notify_setup_completion(response, task)
-      notify_completion(response, task)
-      notify_stop(response, task)
+      notify_completion(staging_message, task)
+      notify_stop(staging_message, task)
 
-      task.start
-    rescue => e
-      logger.error('staging.handle.failed', error: e, backtrace: e.backtrace)
+      task
     end
 
-    def handle_stop(message)
-      staging_task_registry.each do |task|
-        if message.data['app_id'] == task.staging_message.app_id
+    def stop_task(app_id)
+      @staging_task_registry.each do |task|
+        if app_id == task.staging_message.app_id
           task.stop
         end
       end
     rescue => e
-      logger.error('staging.handle_stop.failed', error: e, backtrace: e.backtrace)
+      logger_for_app(app_id).error('staging.handle_stop.failed', error: e, backtrace: e.backtrace)
     end
-
+    
     private
 
-    def configured_to_stage?
-      config['staging'] && config['staging']['enabled']
-    end
-
-    def subscribe_to_dea_specific_staging
-      @dea_specified_staging_sid =
-        nats.subscribe("staging.#{@dea_id}.start", {do_not_track_subscription: true}) { |response| handle(response) }
-    end
-
-    def unsubscribe_from_dea_specific_staging
-      nats.unsubscribe(@dea_specified_staging_sid) if @dea_specified_staging_sid
-    end
-
-    def subscribe_to_staging_stop
-      @staging_stop_sid =
-        nats.subscribe('staging.stop', {do_not_track_subscription: true}) { |response| handle_stop(response) }
-    end
-
-    def unsubscribe_from_staging_stop
-      nats.unsubscribe(@staging_stop_sid) if @staging_stop_sid
-    end
-
-    def notify_setup_completion(response, task)
-      task.after_setup_callback do |error|
-        respond_to_response(response, {
-          task_id: task.task_id,
-          task_streaming_log_url: task.streaming_log_url,
-          error: (error.to_s if error)
-        })
-      end
-    end
-
-    def notify_completion(response, task)
+    def notify_completion(staging_message, task)
       task.after_complete_callback do |error|
         data = {
           task_id: task.task_id,
@@ -117,12 +66,13 @@ module Dea::Responders
           buildpack_key: task.buildpack_key,
           droplet_sha1: task.droplet_sha1,
           detected_start_command: task.detected_start_command,
-          procfile: task.procfile
+          procfile: task.procfile,
+          app_id: staging_message.app_id
         }
         data[:error] = error.to_s if error
         data[:error_info] = task.error_info if task.error_info
 
-        respond_to_response(response, data)
+        respond_to_request(staging_message, data)
 
         # Unregistering the staging task will release the reservation of excess memory reserved for the app,
         # if the app requires more memory than the staging process.
@@ -140,10 +90,13 @@ module Dea::Responders
         end
       end
     end
-
-    def notify_stop(response, task)
+ 
+    # This can currently only be handled via nats. So we pass the stop request on the
+    # actual response. We cannot extract this method to the handler because of the staging
+    # task's stop method.
+    def notify_stop(request, task)
       task.after_stop_callback do |error|
-        respond_to_response(response, {
+        respond_to_request(request, {
           task_id: task.task_id,
           error: (error.to_s if error),
         })
@@ -154,17 +107,17 @@ module Dea::Responders
       end
     end
 
-    def respond_to_response(response, params)
-      response.respond(params)
+    def respond_to_request(request, params)
+      request.respond(params)
+    end
+
+    def buildpacks_in_use
+      staging_task_registry.flat_map { |task| task.staging_message.admin_buildpacks }.uniq
     end
 
     def logger_for_app(app_id)
       logger = Steno::Logger.new('Staging', Steno.config.sinks, level: Steno.config.default_log_level)
       logger.tag(app_guid: app_id)
-    end
-
-    def buildpacks_in_use
-      staging_task_registry.flat_map { |task| task.staging_message.admin_buildpacks }.uniq
     end
   end
 end

@@ -41,4 +41,5 @@ group :test do
   gem 'sinatra'
   gem 'timecop'
   gem 'webmock'
+  gem 'pry'
 end

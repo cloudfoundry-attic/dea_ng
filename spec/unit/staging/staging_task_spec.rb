@@ -521,7 +521,7 @@ YAML
         end
 
         context 'when there is no callback registered' do
-          it "doesn't not try to call registered callback" do
+          it "does not try to call any callbacks" do
             staging_task.start
           end
         end

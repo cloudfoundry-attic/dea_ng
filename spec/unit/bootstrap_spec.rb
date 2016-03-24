@@ -47,7 +47,6 @@ describe Dea::Bootstrap do
     it 'sets up the appropriate components' do
       expect(bootstrap).to receive(:validate_config)
       expect(SecureRandom).to receive(:uuid)
-      expect(bootstrap).to receive(:setup_nats)
       expect(bootstrap).to receive(:setup_logging)
       expect(bootstrap).to receive(:setup_loggregator)
       expect(bootstrap).to receive(:setup_warden_container_lister)
@@ -63,6 +62,9 @@ describe Dea::Bootstrap do
       expect(bootstrap).to receive(:setup_directories)
       expect(bootstrap).to receive(:setup_pid_file)
       expect(bootstrap).to receive(:setup_hm9000)
+      expect(bootstrap).to receive(:setup_cloud_controller_client)
+      expect(bootstrap).to receive(:setup_nats).ordered
+      expect(bootstrap).to receive(:setup_staging_responders).ordered
 
       bootstrap.setup
     end
@@ -418,26 +420,32 @@ describe Dea::Bootstrap do
     end
 
     it "starts nats" do
-      allow(bootstrap.nats).to receive(:start)
+      expect(bootstrap.nats).to receive(:start)
       bootstrap.start_nats
     end
+  end
 
-    it "sets up staging responder to respond to staging requests" do
+  describe '#start_staging_request_handler' do
+    before do
+      allow(EM).to receive(:add_periodic_timer)
+      allow(bootstrap).to receive(:uuid).and_return("unique-dea-id")
+      bootstrap.setup_nats
+
       bootstrap.setup_staging_task_registry
       bootstrap.setup_directory_server_v2
-      bootstrap.start_nats
+      bootstrap.setup_staging_responders
+      allow(Dea::Responders::Staging).to receive(:new).and_call_original
+      allow(Dea::Responders::NatsStaging).to receive(:new).and_call_original
+    end
 
-      responder = bootstrap.responders.detect { |r| r.is_a?(Dea::Responders::Staging) }
+    it "sets up staging responder to respond to nats staging requests" do
+      expect(Dea::Responders::NatsStaging).to receive(:new).with(bootstrap.nats, bootstrap.uuid, bootstrap.staging_responder, bootstrap.config)
+      bootstrap.start_nats_staging_request_handler
+
+      expect(bootstrap.staging_responder).to_not be_nil
+
+      responder = bootstrap.responders.detect { |r| r.is_a?(Dea::Responders::NatsStaging) }
       expect(responder).to_not be_nil
-
-      responder.tap do |r|
-        expect(r.nats).to be_a(Dea::Nats)
-        expect(r.dea_id).to be_a(String)
-        expect(r.bootstrap).to eq(bootstrap)
-        expect(r.staging_task_registry).to be_a(Dea::StagingTaskRegistry)
-        expect(r.dir_server).to be_a(Dea::DirectoryServerV2)
-        expect(r.config).to be_a(Dea::Config)
-      end
     end
   end
 
@@ -453,6 +461,7 @@ describe Dea::Bootstrap do
       bootstrap.start_nats
       bootstrap.setup_hm9000
       allow(bootstrap.hm9000).to receive(:send_heartbeat)
+      bootstrap.setup_cloud_controller_client
     end
 
     it "advertises dea" do
@@ -636,12 +645,13 @@ describe Dea::Bootstrap do
       expect(bootstrap).to receive(:snapshot) { double(:snapshot, :load => nil) }
       expect(bootstrap).to receive(:download_buildpacks)
       expect(bootstrap).to receive(:setup_sweepers)
-      expect(bootstrap).to receive(:start_nats)
-      expect(bootstrap).to receive(:http_server) { double(:http_server, :start => nil) }
       expect(bootstrap).to receive(:directory_server_v2) { double(:directory_server_v2, :start => nil) }
       expect(bootstrap).to receive(:setup_register_routes)
       expect(bootstrap).to receive(:start_finish)
       expect(bootstrap).to receive(:start_metrics)
+      expect(bootstrap).to receive(:start_nats).ordered
+      expect(bootstrap).to receive(:start_nats_staging_request_handler).ordered
+      expect(bootstrap).to receive(:http_server).ordered { double(:http_server, :start => nil) }
 
       bootstrap.start
     end
@@ -657,6 +667,7 @@ describe Dea::Bootstrap do
         allow(bootstrap).to receive(:setup_register_routes)
         allow(bootstrap).to receive(:start_finish)
         allow(bootstrap).to receive(:start_metrics)
+        allow(bootstrap).to receive(:start_nats_staging_request_handler)
         allow(bootstrap).to receive(:snapshot).and_call_original
       end
 
@@ -700,6 +711,22 @@ describe Dea::Bootstrap do
     end
   end
 
+  describe '#setup_cloud_controller_client' do
+    it 'initializes the cloud_controller client' do
+      bootstrap.setup_cloud_controller_client
+      expect(bootstrap.cloud_controller_client).to_not be_nil
+      expect(bootstrap.cloud_controller_client).to be_a_kind_of(Dea::CloudControllerClient)
+    end
+  end
+
+  describe '#setup_staging_responders' do
+    it 'initializes the generic and http staging responders' do
+      bootstrap.setup_staging_responders
+      expect(bootstrap.http_staging_responder).to_not be_nil
+      expect(bootstrap.staging_responder).to_not be_nil
+    end
+  end
+
   describe 'download_buildpacks' do
     let(:buildpack_uri) { URI::join(@config['cc_url'], '/internal/buildpacks').to_s }
 
@@ -735,6 +762,44 @@ describe Dea::Bootstrap do
           File.join(@config['base_dir'], "admin_buildpacks"))
 
         with_event_machine { bootstrap.download_buildpacks }
+      end
+    end
+  end
+
+  describe '#stage_app_request' do
+    let(:data) { {'foo' => 'bar'} }
+    let(:evac_handler) { double('evac_handler', evacuating?: false) }
+    let(:shutdown_handler) { double('shutdown_handler', shutting_down?: false) }
+
+    before do
+      allow(bootstrap).to receive(:evac_handler).and_return(evac_handler)
+      allow(bootstrap).to receive(:shutdown_handler).and_return(shutdown_handler)
+
+      allow(EM).to receive(:add_periodic_timer)
+      bootstrap.setup_staging_responders
+    end
+
+
+    it "sends a staging request to the handler" do
+      expect(bootstrap.http_staging_responder).to receive(:handle).with(data)
+      bootstrap.stage_app_request(data)
+    end
+
+    context 'when the dea is evacuating' do
+      let(:evac_handler) { double('evac_handler', evacuating?: true) }
+
+      it 'does not handle the request' do
+        expect(bootstrap.http_staging_responder).not_to receive(:handle)
+        bootstrap.stage_app_request(data)
+      end
+    end
+
+    context 'when the dea is shutting down' do
+      let(:shutdown_handler) { double('shutdown_handler', shutting_down?: true) }
+
+      it 'does not handle the request' do
+        expect(bootstrap.http_staging_responder).not_to receive(:handle)
+        bootstrap.stage_app_request(data)
       end
     end
   end

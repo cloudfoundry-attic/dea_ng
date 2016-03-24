@@ -1,6 +1,6 @@
 require "spec_helper"
 
-describe "Running an app immediately after staging", :type => :integration, :requires_warden => true do
+describe "Running an app immediately after staging over nats", :type => :integration, :requires_warden => true do
   let(:unstaged_url) { "http://#{file_server_address}/unstaged/sinatra" }
   let(:staged_url) { "http://#{file_server_address}/staged/sinatra" }
   let(:buildpack_cache_download_uri) { "http://#{file_server_address}/buildpack_cache" }
@@ -109,4 +109,7 @@ describe "Running an app immediately after staging", :type => :integration, :req
       }).to be true
     end
   end
+end
+
+describe "Running an app immediately after staging over http", :type => :integration, :requires_warden => true do
 end

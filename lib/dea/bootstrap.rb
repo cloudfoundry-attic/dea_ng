@@ -25,6 +25,7 @@ require "dea/directory_server/directory_server_v2"
 require "dea/http/httpserver"
 require "dea/utils/download"
 require "dea/utils/hm9000"
+require 'dea/utils/cloud_controller_client'
 require "dea/staging/staging_task_registry"
 require "dea/staging/staging_task"
 require "dea/starting/instance"
@@ -51,7 +52,8 @@ module Dea
     attr_reader :directory_server_v2, :http_server
     attr_reader :staging_task_registry
     attr_reader :uuid
-    attr_reader :hm9000
+    attr_reader :hm9000, :cloud_controller_client
+    attr_reader :staging_responder, :http_staging_responder
 
     def initialize(config = {})
       @config = Config.new(config)
@@ -92,10 +94,12 @@ module Dea
       setup_snapshot
       setup_resource_manager
       setup_router_client
+      setup_cloud_controller_client
       setup_http_server
       setup_directory_server_v2
       setup_directories
       setup_pid_file
+      setup_staging_responders
     end
 
     def start_metrics
@@ -277,16 +281,25 @@ module Dea
       @hm9000 = HM9000.new(config["hm9000"]["listener_uri"], config["hm9000"]["key_file"], config["hm9000"]["cert_file"], config["hm9000"]["ca_file"], hb_interval, logger)
     end
 
-    attr_reader :staging_responder
+    def setup_cloud_controller_client
+      @cloud_controller_client = Dea::CloudControllerClient.new(config['cc_url'], logger)
+    end
+
+    def setup_staging_responders
+      @staging_responder = Dea::Responders::Staging.new(self, staging_task_registry, directory_server_v2, resource_manager, config)
+      @http_staging_responder = Dea::Responders::HttpStaging.new(@staging_responder, cloud_controller_client)
+    end
 
     def start_nats
       nats.start
+    end
 
-      @staging_responder = Dea::Responders::Staging.new(nats, uuid, self, staging_task_registry, directory_server_v2, resource_manager, config)
+    def start_nats_staging_request_handler
+      @nats_staging_responder = Dea::Responders::NatsStaging.new(nats, uuid, @staging_responder, config)
 
       @responders = [
         Dea::Responders::DeaLocator.new(nats, uuid, resource_manager, config, @local_dea_service),
-        @staging_responder,
+        @nats_staging_responder,
       ].each(&:start)
     end
 
@@ -337,8 +350,9 @@ module Dea
 
       snapshot.load
 
-      setup_sweepers
       start_nats
+      setup_sweepers
+      start_nats_staging_request_handler
       setup_register_routes
       http_server.start
       directory_server_v2.start
@@ -403,7 +417,7 @@ module Dea
           {'app_id'  => message.data['droplet'].to_s},
           nil,
         )
-        staging_responder.handle_stop(staging_stop_msg)
+        @nats_staging_responder.handle_stop(staging_stop_msg) if @nats_staging_responder
       end
 
       instance_registry.instances_filtered_by_message(message) do |instance|
@@ -511,6 +525,11 @@ module Dea
           logger.error("em-download.failed", error: e, backtrace: e.backtrace)
         end
       end
+    end
+
+    def stage_app_request(data)
+      return if !@http_staging_responder || evac_handler.evacuating? || shutdown_handler.shutting_down?
+      @http_staging_responder.handle(data)
     end
 
     private

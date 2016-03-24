@@ -8,7 +8,6 @@ describe "Dea::Bootstrap#handle_dea_stop" do
 
   def publish(message = {})
     with_event_machine do
-      bootstrap.setup
       bootstrap.start
 
       nats_mock.publish("dea.stop", message)
@@ -158,15 +157,15 @@ describe "Dea::Bootstrap#handle_dea_stop" do
   end
 
   describe 'stop staging' do
-    let(:staging_responder) { double(Dea::Responders::Staging) }
+    let(:nats_staging_responder) { Dea::Responders::NatsStaging.new(nats_mock, bootstrap.uuid, bootstrap.staging_responder, bootstrap.config) }
 
     before do
-      allow(bootstrap).to receive(:staging_responder).and_return(staging_responder)
+      allow(Dea::Responders::NatsStaging).to receive(:new).and_return(nats_staging_responder)
     end
 
     context 'when message is an app stop' do
       it 'sends a stop message to the staging responder' do
-        expect(staging_responder).to receive(:handle_stop) do |msg|
+        expect(nats_staging_responder).to receive(:handle_stop) do |msg|
           expect(msg.subject).to eq 'staging.stop'
           expect(msg.data).to eq({'app_id'  => 'app-id'})
         end
@@ -176,14 +175,14 @@ describe "Dea::Bootstrap#handle_dea_stop" do
 
     context 'when message is an instance/index stop' do
       it 'does not send a stop message to the staging responder' do
-        expect(staging_responder).to_not receive(:handle_stop)
+        expect(nats_staging_responder).to_not receive(:handle_stop)
         publish({data:{'droplet' => 'app-id', 'version' => '3'}})
       end
     end
 
     context 'when the message has no droplet' do
       it 'does not send a stop message to the staging responder' do
-        expect(staging_responder).to_not receive(:handle_stop)
+        expect(nats_staging_responder).to_not receive(:handle_stop)
         publish({data:{'version' => '3'}})
       end
     end

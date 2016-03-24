@@ -40,6 +40,10 @@ class StagingMessage
     URI(@message["buildpack_cache_download_uri"]) if @message["buildpack_cache_download_uri"]
   end
 
+  def accepts_http?
+    @message['accepts_http'] || false
+  end
+
   def start_message
     @start_message ||= StartMessage.new(@message["start_message"])
   end
@@ -83,6 +87,14 @@ class StagingMessage
 
   def stack
     @message['stack']
+  end
+
+  def set_responder(&blk)
+    @response_callback = blk
+  end
+
+  def respond(params)
+    @response_callback.call(params) if @response_callback
   end
 
   private

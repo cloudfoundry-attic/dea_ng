@@ -30,6 +30,7 @@ describe StagingMessage do
     }
   end
 
+  let (:cb_return) { 'RETVAL' }
   let(:admin_buildpacks) { [] }
   let(:properties) do
     {
@@ -112,6 +113,46 @@ describe StagingMessage do
     expect(message.services).to eq(['servicethingy'])
     expect(message.vcap_application).to eq(start_message['vcap_application'])
     expect(message.stack).to eq(staging_message['stack'])
+    expect(message.accepts_http?).to be false
+  end
+
+
+  it 'calls the response callback' do
+    message.set_responder do
+      cb_return
+    end
+    expect(message.respond(nil)).to eq(cb_return)
+
+    message.set_responder do |a_str|
+      a_str
+    end
+    expect(message.respond('go there')).to eq('go there')
+  end
+
+  context 'when staging_message has accepts_http' do
+    let(:staging_message) do
+      {
+        "app_id" => "some-node-app-id",
+        "task_id" => "task-id",
+        "properties" => properties,
+        "download_uri" => "http://localhost/unstaged/rails3_with_db",
+        "upload_uri" => "http://localhost/upload/rails3_with_db",
+        "buildpack_cache_download_uri" => "http://localhost/buildpack_cache/download",
+        "buildpack_cache_upload_uri" => "http://localhost/buildpack_cache/upload",
+        "admin_buildpacks" => admin_buildpacks,
+        "start_message" => start_message,
+        "stack" => 'my-stack',
+        "egress_network_rules" => egress_network_rules,
+        "memory_limit" => 1024,
+        "disk_limit" => 1024,
+        "accepts_http" => true
+      }
+    end
+
+    it 'sets accepts_http to true' do
+      expect(message.accepts_http?).to be true
+    end
+
   end
 
 
