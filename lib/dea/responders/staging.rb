@@ -41,7 +41,7 @@ module Dea::Responders
       else
         message = StagingMessage.new(request)
         message.set_responder do |params|
-          # NEED AN HTTP RESPONDER HERE
+          bootstrap.cloud_controller.send_staging_response(params)
         end
       end
 
@@ -128,7 +128,8 @@ module Dea::Responders
           buildpack_key: task.buildpack_key,
           droplet_sha1: task.droplet_sha1,
           detected_start_command: task.detected_start_command,
-          procfile: task.procfile
+          procfile: task.procfile,
+          app_id: request.app_id
         }
         data[:error] = error.to_s if error
         data[:error_info] = task.error_info if task.error_info

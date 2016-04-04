@@ -28,6 +28,7 @@ require "dea/http/httpserver"
              
 require "dea/utils/download"
 require "dea/utils/hm9000"
+require 'dea/utils/cloud_controller'
              
 require "dea/staging/staging_task_registry"
 require "dea/staging/staging_task"
@@ -56,7 +57,7 @@ module Dea
     attr_reader :directory_server_v2, :http_server
     attr_reader :staging_task_registry
     attr_reader :uuid
-    attr_reader :hm9000
+    attr_reader :hm9000, :cloud_controller
 
     def initialize(config = {})
       @config = Config.new(config)
@@ -97,6 +98,7 @@ module Dea
       setup_snapshot
       setup_resource_manager
       setup_router_client
+      setup_cloud_controller
       setup_http_server
       setup_directory_server_v2
       setup_directories
@@ -279,6 +281,10 @@ module Dea
 
     def setup_hm9000
       @hm9000 = HM9000.new(config["hm9000"]["uri"], logger)
+    end
+
+    def setup_cloud_controller
+      @cloud_controller = CloudController.new(config['cc_url'], logger)
     end
 
     attr_reader :staging_responder

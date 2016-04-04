@@ -201,14 +201,18 @@ describe Dea::Responders::Staging do
       context 'when staging completes'
         context 'and succeeds' do
           let(:buildpack_key) { "some_buildpack_key" }
+          let(:response) { double(:request, method: 'post').as_null_object }
+          let(:http) { double(:http, req: request).as_null_object }
+          let(:cc) { double(:cloud_controller).as_null_object }
 
           before do
             allow(staging_task).to receive(:after_complete_callback).and_yield(nil)
+            allow(bootstrap).to receive(:cloud_controller).and_return(cc)
           end
 
-          xit 'sends a success response' do
+          it 'sends a success response' do
             expect(nats_mock).not_to receive(:publish)
-            # expect(http-y stuff)
+            expect(bootstrap.cloud_controller).to receive(:send_staging_response)
             subject.handle(message)
           end
 
@@ -391,15 +395,16 @@ describe Dea::Responders::Staging do
           end
 
           it "responds successful message" do
-            allow(nats_mock).to receive(:publish).with("respond-to", JSON.dump(
-              "task_id" => "task-id",
-              "detected_buildpack" => nil,
-              "buildpack_key" => "some_buildpack_key",
-              "droplet_sha1" => "some-droplet-sha",
-              "detected_start_command" => "bacofoil",
-              "procfile" => {
-                "web" => "npm start"
-              }
+            expect(nats_mock).to receive(:publish).with("respond-to", JSON.dump(
+              'task_id' => 'task-id',
+              'detected_buildpack' => nil,
+              'buildpack_key' => 'some_buildpack_key',
+              'droplet_sha1' => 'some-droplet-sha',
+              'detected_start_command' => 'bacofoil',
+              'procfile' => {
+                'web' => 'npm start'
+              },
+              'app_id' => app_id
             ))
             subject.handle(message)
           end
@@ -450,16 +455,17 @@ describe Dea::Responders::Staging do
 
           it "responds with error message" do
             allow(nats_mock).to receive(:publish).with("respond-to", JSON.dump(
-              "task_id" => "task-id",
-              "detected_buildpack" => nil,
-              "buildpack_key" => nil,
-              "droplet_sha1" => nil,
-              "detected_start_command" => "bacofoil",
-              "procfile" => {
-                "web" => "npm start"
+              'task_id' => 'task-id',
+              'detected_buildpack' => nil,
+              'buildpack_key' => nil,
+              'droplet_sha1' => nil,
+              'detected_start_command' => 'bacofoil',
+              'procfile' => {
+                'web' => 'npm start'
               },
-              "error" => "error-description",
-              "error_info" => staging_error_info,
+              'app_id' => app_id,
+              'error' => 'error-description',
+              'error_info' => staging_error_info,
             ))
             subject.handle(message)
           end
