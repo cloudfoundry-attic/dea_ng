@@ -63,6 +63,7 @@ describe Dea::Bootstrap do
       expect(bootstrap).to receive(:setup_directories)
       expect(bootstrap).to receive(:setup_pid_file)
       expect(bootstrap).to receive(:setup_hm9000)
+      expect(bootstrap).to receive(:setup_cloud_controller)
 
       bootstrap.setup
     end
@@ -453,6 +454,7 @@ describe Dea::Bootstrap do
       bootstrap.start_nats
       bootstrap.setup_hm9000
       allow(bootstrap.hm9000).to receive(:send_heartbeat)
+      bootstrap.setup_cloud_controller
     end
 
     it "advertises dea" do
@@ -697,6 +699,14 @@ describe Dea::Bootstrap do
       bootstrap.setup_hm9000
       expect(bootstrap.hm9000).to_not be_nil
       expect(bootstrap.hm9000).to be_a_kind_of(HM9000)
+    end
+  end
+
+  describe '#setup_cloud_controller' do
+    it 'initializes the cloud_controller' do
+      bootstrap.setup_cloud_controller
+      expect(bootstrap.cloud_controller).to_not be_nil
+      expect(bootstrap.cloud_controller).to be_a_kind_of(CloudController)
     end
   end
 

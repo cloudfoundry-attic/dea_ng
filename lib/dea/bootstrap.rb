@@ -25,6 +25,8 @@ require "dea/directory_server/directory_server_v2"
 require "dea/http/httpserver"
 require "dea/utils/download"
 require "dea/utils/hm9000"
+require 'dea/utils/cloud_controller'
+             
 require "dea/staging/staging_task_registry"
 require "dea/staging/staging_task"
 require "dea/starting/instance"
@@ -51,7 +53,7 @@ module Dea
     attr_reader :directory_server_v2, :http_server
     attr_reader :staging_task_registry
     attr_reader :uuid
-    attr_reader :hm9000
+    attr_reader :hm9000, :cloud_controller
 
     def initialize(config = {})
       @config = Config.new(config)
@@ -92,6 +94,7 @@ module Dea
       setup_snapshot
       setup_resource_manager
       setup_router_client
+      setup_cloud_controller
       setup_http_server
       setup_directory_server_v2
       setup_directories
@@ -275,6 +278,10 @@ module Dea
     def setup_hm9000
       hb_interval = config["intervals"]["heartbeat"] || DEFAULT_HEARTBEAT_INTERVAL
       @hm9000 = HM9000.new(config["hm9000"]["listener_uri"], config["hm9000"]["key_file"], config["hm9000"]["cert_file"], config["hm9000"]["ca_file"], hb_interval, logger)
+    end
+
+    def setup_cloud_controller
+      @cloud_controller = CloudController.new(config['cc_url'], logger)
     end
 
     attr_reader :staging_responder
