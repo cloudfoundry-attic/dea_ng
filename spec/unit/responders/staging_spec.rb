@@ -228,10 +228,11 @@ describe Dea::Responders::Staging do
           end
 
           context 'when there is a start message in staging message' do
-            let(:start_message) { {'droplet' => "dff77854-3767-41d9-ab16-c8a824beb77a", "sha1" => "some-droplet-sha"} }
+            let(:start_message) { {'droplet' => 'dff77854-3767-41d9-ab16-c8a824beb77a', 'sha1' => 'some-droplet-sha'} }
             let(:message) { {'app_id' => app_id, 'accepts_http' => true, 'start_message' => start_message} }
 
             it "handles instance start with updated droplet sha" do
+
               expect(bootstrap).to receive(:start_app).with(start_message)
               subject.handle(message)
             end

@@ -89,6 +89,14 @@ class StagingMessage
     @message['stack']
   end
 
+  def set_responder(&blk)
+    @response_callback = blk
+  end
+
+  def respond(params)
+    @response_callback.call(params) if @response_callback
+  end
+
   private
 
   def logger

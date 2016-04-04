@@ -33,7 +33,18 @@ module Dea::Responders
     end
 
     def handle(request)
-      message = request.instance_of?(Dea::Nats::Message) ? StagingMessage.new(request.data) : StagingMessage.new(request)
+      if request.instance_of?(Dea::Nats::Message)
+        message = StagingMessage.new(request.data)
+        message.set_responder do |params|
+          request.respond(params)
+        end
+      else
+        message = StagingMessage.new(request)
+        message.set_responder do |params|
+          # NEED AN HTTP RESPONDER HERE
+        end
+      end
+
       app_id = message.app_id
       logger = logger_for_app(app_id)
 
@@ -57,7 +68,7 @@ module Dea::Responders
       bootstrap.snapshot.save
 
       notify_setup_completion(request, task) unless message.accepts_http?
-      notify_completion(request, task)
+      notify_completion(message, task)
       notify_stop(request, task)
 
       task.start

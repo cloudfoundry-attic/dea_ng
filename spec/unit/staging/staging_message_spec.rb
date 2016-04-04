@@ -30,6 +30,7 @@ describe StagingMessage do
     }
   end
 
+  let (:cb_return) { 'RETVAL' }
   let(:admin_buildpacks) { [] }
   let(:properties) do
     {
@@ -115,6 +116,19 @@ describe StagingMessage do
     expect(message.accepts_http?).to be false
   end
 
+
+  it 'calls the response callback' do
+    message.set_responder do
+      cb_return
+    end
+    expect(message.respond(nil)).to eq(cb_return)
+
+    message.set_responder do |a_str|
+      a_str
+    end
+    expect(message.respond('go there')).to eq('go there')
+  end
+
   context 'when staging_message has accepts_http' do
     let(:staging_message) do
       {
@@ -138,6 +152,7 @@ describe StagingMessage do
     it 'sets accepts_http to true' do
       expect(message.accepts_http?).to be true
     end
+
   end
 
 
