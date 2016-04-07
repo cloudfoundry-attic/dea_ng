@@ -291,7 +291,9 @@ module Dea
 
     def start_nats
       nats.start
+    end
 
+    def start_staging_request_handler
       @staging_responder = Dea::Responders::Staging.new(nats, uuid, self, staging_task_registry, directory_server_v2, resource_manager, config)
 
       @responders = [
@@ -347,8 +349,9 @@ module Dea
 
       snapshot.load
 
-      setup_sweepers
       start_nats
+      setup_sweepers
+      start_staging_request_handler
       setup_register_routes
       http_server.start
       directory_server_v2.start
@@ -523,6 +526,11 @@ module Dea
           logger.error("em-download.failed", error: e, backtrace: e.backtrace)
         end
       end
+    end
+
+    def stage_app_request(data)
+      return if !@staging_responder || evac_handler.evacuating? || shutdown_handler.shutting_down?
+      @staging_responder.handle(data)
     end
 
     private

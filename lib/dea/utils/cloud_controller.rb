@@ -11,7 +11,8 @@ class CloudController
   end
 
   def send_staging_response(response)
-    destination = "#{@destination}/internal/dea/staging/#{response['app_id']}/completed"
+    #TODO capture EM exception cause KABOOM restarts dea
+    destination = "#{@destination}/internal/dea/staging/#{response[:app_id]}/completed"
     logger.info('send_staging_response', destination: URICleaner.clean(destination))
 
     http = EM::HttpRequest.new(destination, inactivity_timeout: INACTIVITY_TIMEOUT).post( body: Yajl::Encoder.encode(response))

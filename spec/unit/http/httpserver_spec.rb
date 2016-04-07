@@ -57,7 +57,10 @@ describe Dea::Http do
   describe "#start" do
     let(:options) {{
       :ssl => {
-        :verify_peer => false
+        :verify_peer => false 
+        # this is false because the certs need a valid domain. Not sure we can verify this here because of a localhost domain
+        # :private_key_file => fixture("certs/client.key"),
+        # :cert_chain_file => fixture("certs/client.crt"),
       }
     }}
 
@@ -83,6 +86,13 @@ describe Dea::Http do
       allow(bootstrap).to receive(:start_app)
 
       response = make_request("https://127.0.0.1:#{port}/v1/apps")
+      expect(response).to include("202")
+    end
+
+    it "can handle stage path requests" do
+      allow(bootstrap).to receive(:stage_app_request)
+
+      response = make_request("https://127.0.0.1:#{port}/v1/stage")
       expect(response).to include("202")
     end
   end

@@ -407,14 +407,22 @@ describe Dea::Bootstrap do
     end
 
     it "starts nats" do
-      allow(bootstrap.nats).to receive(:start)
+      expect(bootstrap.nats).to receive(:start)
       bootstrap.start_nats
+    end
+  end
+
+  describe '#start_staging_request_handler' do
+    before do
+      allow(EM).to receive(:add_periodic_timer)
+      allow(bootstrap).to receive(:uuid).and_return("unique-dea-id")
+      bootstrap.setup_nats
     end
 
     it "sets up staging responder to respond to staging requests" do
       bootstrap.setup_staging_task_registry
       bootstrap.setup_directory_server_v2
-      bootstrap.start_nats
+      bootstrap.start_staging_request_handler
 
       responder = bootstrap.responders.detect { |r| r.is_a?(Dea::Responders::Staging) }
       expect(responder).to_not be_nil
@@ -626,12 +634,13 @@ describe Dea::Bootstrap do
       expect(bootstrap).to receive(:snapshot) { double(:snapshot, :load => nil) }
       expect(bootstrap).to receive(:download_buildpacks)
       expect(bootstrap).to receive(:setup_sweepers)
-      expect(bootstrap).to receive(:start_nats)
-      expect(bootstrap).to receive(:http_server) { double(:http_server, :start => nil) }
       expect(bootstrap).to receive(:directory_server_v2) { double(:directory_server_v2, :start => nil) }
       expect(bootstrap).to receive(:setup_register_routes)
       expect(bootstrap).to receive(:start_finish)
       expect(bootstrap).to receive(:start_metrics)
+      expect(bootstrap).to receive(:start_nats).ordered
+      expect(bootstrap).to receive(:start_staging_request_handler).ordered
+      expect(bootstrap).to receive(:http_server).ordered { double(:http_server, :start => nil) }
 
       bootstrap.start
     end
@@ -647,6 +656,7 @@ describe Dea::Bootstrap do
         allow(bootstrap).to receive(:setup_register_routes)
         allow(bootstrap).to receive(:start_finish)
         allow(bootstrap).to receive(:start_metrics)
+        allow(bootstrap).to receive(:start_staging_request_handler)
         allow(bootstrap).to receive(:snapshot).and_call_original
       end
 
@@ -761,6 +771,46 @@ describe Dea::Bootstrap do
           File.join(@config['base_dir'], "admin_buildpacks"))
 
         with_event_machine { bootstrap.download_buildpacks }
+      end
+    end
+  end
+
+  describe '#stage_app_request' do
+    let(:data) { {'foo' => 'bar'} }
+    let(:evac_handler) { double('evac_handler', evacuating?: false) }
+    let(:shutdown_handler) { double('shutdown_handler', shutting_down?: false) }
+
+    before do
+      allow(bootstrap).to receive(:evac_handler).and_return(evac_handler)
+      allow(bootstrap).to receive(:shutdown_handler).and_return(shutdown_handler)
+
+      allow(EM).to receive(:add_periodic_timer)
+      bootstrap.setup_nats
+
+      bootstrap.start_staging_request_handler
+    end
+
+
+    it "sends a staging request to the handler" do
+      expect(bootstrap.staging_responder).to receive(:handle).with(data)
+      bootstrap.stage_app_request(data)
+    end
+
+    context 'when the dea is evacuating' do
+      let(:evac_handler) { double('evac_handler', evacuating?: true) }
+
+      it 'does not handle the request' do
+        expect(bootstrap.staging_responder).not_to receive(:handle)
+        bootstrap.stage_app_request(data)
+      end
+    end
+
+    context 'when the dea is shutting down' do
+      let(:shutdown_handler) { double('shutdown_handler', shutting_down?: true) }
+
+      it 'does not handle the request' do
+        expect(bootstrap.staging_responder).not_to receive(:handle)
+        bootstrap.stage_app_request(data)
       end
     end
   end
