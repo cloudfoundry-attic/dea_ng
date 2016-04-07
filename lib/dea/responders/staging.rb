@@ -53,8 +53,9 @@ module Dea::Responders
 
       task = Dea::StagingTask.new(bootstrap, dir_server, message, buildpacks_in_use, logger)
       unless resource_manager.could_reserve?(task.memory_limit_mb, task.disk_limit_mb)
+        #TODO need to respond if we fail to request resources
         constrained_resource = resource_manager.get_constrained_resource(task.memory_limit_mb, task.disk_limit_mb)
-        respond_to_request(request,
+        respond_to_request(request, #message
                             task_id: task.task_id,
                             error: "Not enough #{constrained_resource} resources available")
         logger.error('staging.start.insufficient-resource',
