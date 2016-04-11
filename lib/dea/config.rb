@@ -76,7 +76,7 @@ module Dea
             "listener_uri" => String,
             "key_file" => String,
             "cert_file" => String,
-            optional("ca_file") => String,
+            "ca_file" => String,
           },
 
           optional("crash_lifetime_secs") => Integer,
@@ -194,6 +194,7 @@ module Dea
     def verify_certs
       return if @config["hm9000"]["cert_file"] &&
         @config["hm9000"]["key_file"] &&
+        @config["hm9000"]["ca_file"] &&
         File.exists?(@config["hm9000"]["cert_file"]) &&
         File.exists?(@config["hm9000"]["key_file"])  &&
         File.exists?(@config["hm9000"]["ca_file"])
