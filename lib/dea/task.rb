@@ -106,7 +106,7 @@ module Dea
 
           p.fail(error)
         else
-          logger.warn("#{name}.completed", duration: p.elapsed_time)
+          logger.info("#{name}.completed", duration: p.elapsed_time)
 
           p.deliver
         end
