@@ -1,5 +1,4 @@
 # coding: UTF-8
-require "vcap/common"
 
 module Helpers
   def valid_service_attributes(syslog_drain_url = nil)
@@ -29,7 +28,7 @@ module Helpers
     {
       "cc_partition"        => "partition",
 
-      "instance_id"         => VCAP.secure_uuid,
+      "instance_id"         => Dea.secure_uuid,
       "index"      => 42,
 
       "droplet"      => "37",
@@ -62,7 +61,7 @@ module Helpers
         }
       },
       "app_id" => "app-guid",
-      "task_id" => VCAP.secure_uuid,
+      "task_id" => Dea.secure_uuid,
       "download_uri" => "http://127.0.0.1:12346/download",
       "upload_uri" => "http://127.0.0.1:12346/upload",
       "staged_path" => "",

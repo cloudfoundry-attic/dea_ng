@@ -1,6 +1,6 @@
 # coding: UTF-8
 
-require "vcap/common"
+require "dea/utils"
 require "dea/directory_server/hmac_helper"
 
 module Dea
@@ -10,11 +10,11 @@ module Dea
     attr_reader :file_api_server
 
     def initialize(domain, port, router_client, config={})
-      @uuid   = VCAP.secure_uuid
+      @uuid   = Dea.secure_uuid
       @domain = domain
       @port   = port
       @config = config
-      @hmac_helper = HMACHelper.new(VCAP.secure_uuid)
+      @hmac_helper = HMACHelper.new(Dea.secure_uuid)
       @router_client = router_client
     end
 
