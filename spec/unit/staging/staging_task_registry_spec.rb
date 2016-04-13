@@ -1,5 +1,4 @@
 require "spec_helper"
-require "vcap/common"
 
 require "dea/staging/staging_task"
 require "dea/staging/staging_task_registry"

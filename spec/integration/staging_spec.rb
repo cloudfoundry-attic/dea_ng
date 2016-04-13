@@ -1,7 +1,6 @@
 require "spec_helper"
 require "net/http"
 require "uri"
-require "vcap/common"
 require "securerandom"
 
 describe "Staging an app", :type => :integration, :requires_warden => true do

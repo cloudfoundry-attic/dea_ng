@@ -2,6 +2,7 @@ require "net/http"
 require "securerandom"
 require 'uri'
 require 'socket'
+require 'httpclient'
 
 module StagingHelpers
   def get_stager_id
@@ -21,7 +22,7 @@ module StagingHelpers
     @@resolved ||= {}
 
     uri = URI.parse(log_url)
-    @@resolved[uri.host] ||= VCAP.local_ip
+    @@resolved[uri.host] ||= Dea.local_ip
     uri.host = @@resolved[uri.host]
     uri.to_s
   end

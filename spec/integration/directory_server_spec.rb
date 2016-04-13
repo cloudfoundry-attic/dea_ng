@@ -1,6 +1,5 @@
 require "spec_helper"
 require "net/http"
-require "vcap/common"
 
 describe "Directory server", :type => :integration, :requires_warden => true do
   let(:dir_server_port)  { dea_config['directory_server']['v2_port'] }

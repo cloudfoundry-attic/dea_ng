@@ -10,33 +10,27 @@ require "loggregator_emitter"
 
 require "thin"
 
-require "vcap/common"
-
 require "dea/config"
 require "container/container"
 require "dea/droplet_registry"
 require "dea/nats"
 require "dea/protocol"
+require "dea/pid_file"
+require "dea/utils"
 require "dea/resource_manager"
 require "dea/router_client"
 require "dea/loggregator"
-
 require "dea/lifecycle/signal_handler"
-
 require "dea/directory_server/directory_server_v2"
 require "dea/http/httpserver"
-
 require "dea/utils/download"
 require "dea/utils/hm9000"
-
 require "dea/staging/staging_task_registry"
 require "dea/staging/staging_task"
-
 require "dea/starting/instance"
 require "dea/starting/instance_uri_updater"
 require "dea/starting/instance_manager"
 require "dea/starting/instance_registry"
-
 require "dea/snapshot"
 
 Dir[File.join(File.dirname(__FILE__), "responders/*.rb")].each { |f| require(f) }
@@ -65,7 +59,7 @@ module Dea
     end
 
     def local_ip
-      @local_ip ||= VCAP.local_ip
+      @local_ip ||= Dea.local_ip
     end
 
     def uptime
@@ -225,7 +219,7 @@ module Dea
       path = config["pid_filename"]
 
       begin
-        pid_file = VCAP::PidFile.new(path, false)
+        pid_file = PidFile.new(path, false)
         pid_file.unlink_at_exit
       rescue => err
         logger.error("Cannot create pid file at #{path} (#{err})")

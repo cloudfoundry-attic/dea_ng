@@ -49,7 +49,7 @@ module DeaHelpers
   end
 
   def start_file_server
-    local_ip = VCAP.local_ip
+    local_ip = Dea.local_ip
     `sudo /sbin/iptables -I INPUT 2 -j ACCEPT -p tcp --dport 10197 -d #{local_ip}`
     @file_server_pid = run_cmd("bundle exec ruby spec/bin/file_server.rb", :debug => true)
     wait_until { is_port_open?(local_ip, 10197) }
@@ -65,7 +65,7 @@ module DeaHelpers
   end
 
   def file_server_address
-    local_ip = VCAP.local_ip
+    local_ip = Dea.local_ip
 
     "#{local_ip}:10197"
   end
@@ -193,7 +193,7 @@ module DeaHelpers
     def config
       @config ||= begin
         config = YAML.load(File.read("config/dea.yml"))
-        config["domain"] = VCAP.local_ip
+        config["domain"] = Dea.local_ip
         config["intervals"] = {
           "advertise" => 1
         }

@@ -1,7 +1,6 @@
 # coding: UTF-8
 
 require "spec_helper"
-require "vcap/common"
 require "dea/env"
 require "dea/starting/start_message"
 require "dea/staging/staging_message"
@@ -43,7 +42,7 @@ describe Dea::Env do
   let(:user_provided_environment) { ["fake_user_provided_key=fake_user_provided_value"] }
 
   let(:instance) do
-    attributes = {"instance_id" => VCAP.secure_uuid}
+    attributes = {"instance_id" => Dea.secure_uuid}
     instance_double(
       "Dea::Instance",
       attributes: attributes,

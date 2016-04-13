@@ -2,11 +2,10 @@
 
 require "spec_helper"
 require "dea/health_check/port_open"
-require "vcap/common"
 
 describe Dea::HealthCheck::PortOpen do
   let(:host) { "127.0.0.1" }
-  let(:port) { VCAP.grab_ephemeral_port }
+  let(:port) { Dea.grab_ephemeral_port }
 
   def start_server
     EM.start_server(host, port)

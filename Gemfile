@@ -16,8 +16,12 @@ gem 'yajl-ruby', require: %w[yajl yajl/json_gem]
 gem 'grape', git: 'https://github.com/intridea/grape.git'
 gem 'httpclient'
 
-gem 'vcap_common'
 gem 'steno', '~> 1.1.0'
+
+gem 'membrane'
+gem 'posix-spawn', '~> 0.3.6'
+gem 'uuidtools'
+gem 'httpclient'
 
 gem 'vmstat'
 

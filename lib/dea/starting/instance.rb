@@ -3,12 +3,12 @@
 require 'membrane'
 require 'steno'
 require 'steno/core_ext'
-require 'vcap/common'
 require 'yaml'
 
 require 'dea/env'
 require 'dea/health_check/port_open'
 require 'dea/health_check/state_file_ready'
+require "dea/utils"
 require 'dea/promise'
 require 'dea/stat_collector'
 require 'dea/task'
@@ -278,10 +278,10 @@ module Dea
       @attributes['application_uris'] ||= []
 
       # Generate unique ID
-      @attributes['instance_id'] ||= VCAP.secure_uuid
+      @attributes['instance_id'] ||= Dea.secure_uuid
 
       # Contatenate 2 UUIDs to genreate a 32 chars long private_instance_id
-      @attributes['private_instance_id'] ||= VCAP.secure_uuid + VCAP.secure_uuid
+      @attributes['private_instance_id'] ||= Dea.secure_uuid + Dea.secure_uuid
 
       self.state = State::BORN
 
@@ -392,7 +392,7 @@ module Dea
     end
 
     def change_instance_id!
-      attributes['instance_id'] = VCAP.secure_uuid
+      attributes['instance_id'] = Dea.secure_uuid
     end
 
     def to_s
