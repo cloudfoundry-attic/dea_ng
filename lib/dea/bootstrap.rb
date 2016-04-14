@@ -38,6 +38,7 @@ Dir[File.join(File.dirname(__FILE__), "responders/*.rb")].each { |f| require(f) 
 module Dea
   class Bootstrap
     DEFAULT_HEARTBEAT_INTERVAL = 10 # In secs
+    DEFAULT_METRICS_INTERVAL = 30
     DROPLET_REAPER_INTERVAL_SECS = 60
     CONTAINER_REAPER_INTERVAL_SECS = 30
 
@@ -98,7 +99,7 @@ module Dea
     end
 
     def start_metrics
-      EM.add_periodic_timer(DEFAULT_HEARTBEAT_INTERVAL) do
+      EM.add_periodic_timer(DEFAULT_METRICS_INTERVAL) do
         Fiber.new do
           periodic_metrics_emit
         end.resume
@@ -475,10 +476,13 @@ module Dea
       Dea::Loggregator.emit_value('uptime', uptime.to_i, 's')
       Dea::Loggregator.emit_value('remaining_memory', resource_manager.remaining_memory, 'mb')
       Dea::Loggregator.emit_value('remaining_disk', resource_manager.remaining_disk, 'mb')
+      Dea::Loggregator.emit_value('available_memory_ratio', resource_manager.available_memory_ratio, '1')
+      Dea::Loggregator.emit_value('available_disk_ratio', resource_manager.available_disk_ratio, '1')
       Dea::Loggregator.emit_value('instances', instance_registry.size, 'instances')
       Dea::Loggregator.emit_value('reservable_stagers', resource_manager.number_reservable(mem_required, disk_required), 'stagers')
+      Dea::Loggregator.emit_value('avg_cpu_load', resource_manager.cpu_load_average, '')
 
-      instance_registry.emit_metrics
+      instance_registry.emit_metrics_state
       instance_registry.emit_container_stats
     end
 

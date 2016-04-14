@@ -208,4 +208,39 @@ describe Dea::ResourceManager do
       end
     end
   end
+
+  describe '#available_disk_ratio' do
+    before do
+      instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "disk" => 512 }).tap { |i| i.state = "RUNNING" })
+      staging_registry.register(Dea::StagingTask.new(bootstrap, nil, StagingMessage.new({}), []))
+    end
+
+    it "is the ratio of available disk to total disk" do
+      expect(manager.available_disk_ratio).to eq(1 - (512.0 + 2048.0) / nominal_disk_capacity)
+    end
+  end
+
+  describe "#available_memory_ratio" do
+    before do
+      instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "mem" => 512 }).tap { |i| i.state = "RUNNING" })
+      staging_registry.register(Dea::StagingTask.new(bootstrap, nil, StagingMessage.new({}), []))
+    end
+
+    it "is the ratio of available memory to total memory" do
+      expect(manager.available_memory_ratio).to eq(1 - (512.0 + 1024.0) / nominal_memory_capacity)
+    end
+  end
+
+  describe '#cpu_load_average' do
+    let(:average) { double(Vmstat.load_average) }
+
+    before do
+      allow(Vmstat).to receive(:load_average).and_return(average)
+      allow(average).to receive(:one_minute).and_return(3)
+    end
+
+    it 'returns the cpu load average for the last minute' do
+      expect(manager.cpu_load_average).to eq(3)
+    end
+  end
 end

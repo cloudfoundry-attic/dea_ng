@@ -357,7 +357,7 @@ describe Dea::Bootstrap do
   describe '#start_metrics' do
     it 'sets up a periodic timer' do
       expect(bootstrap).to receive(:periodic_metrics_emit)
-      expect(EM).to receive(:add_periodic_timer).with(10) { |&block| block.call }
+      expect(EM).to receive(:add_periodic_timer).with(30) { |&block| block.call }
 
       begin
         with_event_machine do
@@ -389,8 +389,11 @@ describe Dea::Bootstrap do
     it 'emits the correct metrics' do
       expect(bootstrap.resource_manager).to receive(:remaining_memory).and_return(115)
       expect(bootstrap.resource_manager).to receive(:remaining_disk).and_return(666)
+      expect(bootstrap.resource_manager).to receive(:available_memory_ratio).and_return(0.22)
+      expect(bootstrap.resource_manager).to receive(:available_disk_ratio).and_return(0.86)
+      expect(bootstrap.resource_manager).to receive(:cpu_load_average).and_return(0.15)
 
-      expect(bootstrap.instance_registry).to receive(:emit_metrics)
+      expect(bootstrap.instance_registry).to receive(:emit_metrics_state)
       expect(bootstrap.instance_registry).to receive(:emit_container_stats)
       expect(bootstrap.resource_manager).to receive(:number_reservable).with(333, 444).and_return(5)
 
@@ -401,6 +404,9 @@ describe Dea::Bootstrap do
       expect(@emitter.messages['remaining_disk']).to eq([{value: 666, unit: "mb"}])
       expect(@emitter.messages['instances']).to eq([{value: 1, unit: 'instances'}])
       expect(@emitter.messages['reservable_stagers']).to eq([{value: 5, unit: 'stagers'}])
+      expect(@emitter.messages['available_memory_ratio']).to eq([{value: 0.22, unit: '1'}])
+      expect(@emitter.messages['available_disk_ratio']).to eq([{value: 0.86, unit: '1'}])
+      expect(@emitter.messages['avg_cpu_load']).to eq([{value: 0.15, unit: ''}])
     end
   end
 

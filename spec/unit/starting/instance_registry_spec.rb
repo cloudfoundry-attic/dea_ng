@@ -256,7 +256,7 @@ describe Dea::InstanceRegistry do
     end
   end
 
-  describe '#emit_metrics' do
+  describe '#emit_metrics_state' do
     before do
       @emitter = FakeEmitter.new
       @staging_emitter = FakeEmitter.new
@@ -287,7 +287,7 @@ describe Dea::InstanceRegistry do
     end
 
     it 'emits metrics per state' do
-      instance_registry.emit_metrics
+      instance_registry.emit_metrics_state
 
       expected_metrics.each do | state, count |
         expect(@emitter.messages["dea_registry_#{state.downcase}"]).to eq([{value: count, unit: 'instances'}])
