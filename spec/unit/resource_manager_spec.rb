@@ -208,4 +208,42 @@ describe Dea::ResourceManager do
       end
     end
   end
+
+  describe "#available_memory_ratio" do
+    before do
+      instance_registry.register(Dea::Instance.new(bootstrap, "limits" => { "mem" => 512 }).tap { |i| i.state = "RUNNING" })
+      staging_registry.register(Dea::StagingTask.new(bootstrap, nil, StagingMessage.new({}), []))
+    end
+
+    it "is the ratio of available memory to total memory" do
+      expect(manager.available_memory_ratio).to eq(1 - (512.0 + 1024.0) / nominal_memory_capacity)
+    end
+  end
+
+  describe '#process_memory_bytes_and_cpu' do
+    before do
+      allow(Process).to receive(:pid).and_return(9999)
+    end
+
+    it 'returns the total amount of memory used in bytes and cpu usage' do
+      allow(manager).to receive(:'`').with("ps -o rss=,pcpu= -p 9999").and_return("55792 12")
+
+      mem_bytes, cpu = manager.process_memory_bytes_and_cpu
+      expect(mem_bytes).to eq(55792 * 1024)
+      expect(cpu).to eq(12)
+    end
+  end
+
+  describe '#cpu_load_average' do
+    let(:average) { double(Vmstat.load_average) }
+
+    before do
+      allow(Vmstat).to receive(:load_average).and_return(average)
+      allow(average).to receive(:one_minute).and_return(3)
+    end
+
+    it 'returns the cpu load average for the last minute' do
+      expect(manager.cpu_load_average).to eq(3)
+    end
+  end
 end

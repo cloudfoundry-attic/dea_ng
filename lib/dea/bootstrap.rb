@@ -478,7 +478,7 @@ module Dea
       Dea::Loggregator.emit_value('instances', instance_registry.size, 'instances')
       Dea::Loggregator.emit_value('reservable_stagers', resource_manager.number_reservable(mem_required, disk_required), 'stagers')
 
-      instance_registry.emit_metrics
+      instance_registry.emit_metrics_state
       instance_registry.emit_container_stats
     end
 

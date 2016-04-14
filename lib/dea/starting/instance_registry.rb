@@ -287,7 +287,7 @@ module Dea
       end
     end
 
-    def emit_metrics
+    def emit_metrics_state
       metrics = Hash.new(0)
 
       @instances.each_value do |instance|

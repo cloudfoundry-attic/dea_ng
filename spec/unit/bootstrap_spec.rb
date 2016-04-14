@@ -390,7 +390,7 @@ describe Dea::Bootstrap do
       expect(bootstrap.resource_manager).to receive(:remaining_memory).and_return(115)
       expect(bootstrap.resource_manager).to receive(:remaining_disk).and_return(666)
 
-      expect(bootstrap.instance_registry).to receive(:emit_metrics)
+      expect(bootstrap.instance_registry).to receive(:emit_metrics_state)
       expect(bootstrap.instance_registry).to receive(:emit_container_stats)
       expect(bootstrap.resource_manager).to receive(:number_reservable).with(333, 444).and_return(5)
 

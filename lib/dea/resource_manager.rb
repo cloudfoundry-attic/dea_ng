@@ -1,5 +1,7 @@
 # coding: UTF-8
 
+require 'vmstat'
+
 module Dea
   class ResourceManager
     DEFAULT_CONFIG = {
@@ -66,6 +68,20 @@ module Dea
 
     def remaining_disk
       disk_capacity - reserved_disk
+    end
+
+    def available_memory_ratio
+      1.0 - (reserved_memory.to_f / memory_capacity)
+    end
+
+    def process_memory_bytes_and_cpu
+      rss, pcpu = `ps -o rss=,pcpu= -p #{Process.pid}`.split.map(&:to_i)
+      rss_bytes = rss * 1024
+      [rss_bytes, pcpu]
+    end
+
+    def cpu_load_average
+       Vmstat.load_average.one_minute
     end
 
     private
