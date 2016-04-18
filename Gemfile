@@ -21,7 +21,6 @@ gem 'steno', '~> 1.1.0'
 gem 'membrane'
 gem 'posix-spawn', '~> 0.3.6'
 gem 'uuidtools'
-gem 'httpclient'
 
 gem 'vmstat'
 
