@@ -133,7 +133,7 @@ module Buildpacks
     private
 
     def release_info
-      build_pack.release_info
+      @release_info ||= build_pack.release_info
     end
 
     def installers
