@@ -404,9 +404,9 @@ describe Dea::Bootstrap do
       expect(@emitter.messages['remaining_disk']).to eq([{value: 666, unit: "mb"}])
       expect(@emitter.messages['instances']).to eq([{value: 1, unit: 'instances'}])
       expect(@emitter.messages['reservable_stagers']).to eq([{value: 5, unit: 'stagers'}])
-      expect(@emitter.messages['available_memory_ratio']).to eq([{value: 0.22, unit: '1'}])
-      expect(@emitter.messages['available_disk_ratio']).to eq([{value: 0.86, unit: '1'}])
-      expect(@emitter.messages['avg_cpu_load']).to eq([{value: 0.15, unit: ''}])
+      expect(@emitter.messages['available_memory_ratio']).to eq([{value: 0.22, unit: 'P'}])
+      expect(@emitter.messages['available_disk_ratio']).to eq([{value: 0.86, unit: 'P'}])
+      expect(@emitter.messages['avg_cpu_load']).to eq([{value: 0.15, unit: 'loadavg'}])
     end
   end
 
