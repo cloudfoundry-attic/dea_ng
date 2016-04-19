@@ -42,15 +42,14 @@ shared_context "bootstrap_setup" do
       },
       "ssl" => {
         "port" => 8443,
-        "key_file" => "a_key_file",
-        "cert_file" => "a_cert_file"
+        "key_file" => fixture('/certs/server.key'),
+        "cert_file" => fixture('/certs/server.crt')
       },
       "hm9000" => {
         "listener_uri" => "https://127.0.0.1:25432",
         "key_file" => fixture("/certs/hm9000_client.key"),
         "cert_file" => fixture("/certs/hm9000_client.crt"),
         "ca_file" => fixture("/certs/hm9000_ca.crt"),
-
       }
     }
 

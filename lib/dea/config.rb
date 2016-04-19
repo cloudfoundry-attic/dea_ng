@@ -151,8 +151,8 @@ module Dea
 
           optional("ssl") => {
             "port" => Integer,
-            optional("key_file") => String,
-            optional("cert_file") => String,
+            "key_file" => String,
+            "cert_file" => String,
           },
         }
       end
@@ -183,7 +183,8 @@ module Dea
     def validate
       self.class.schema.validate(@config)
       validate_router_register_interval!
-      verify_certs
+      verify_hm9000_certs
+      verify_ssl_certs
     end
 
     def validate_router_register_interval!
@@ -191,15 +192,32 @@ module Dea
       raise "Invalid router register interval" if @config["intervals"]["router_register_in_seconds"] <= 0
     end
 
-    def verify_certs
-      return if @config["hm9000"]["cert_file"] &&
-        @config["hm9000"]["key_file"] &&
-        @config["hm9000"]["ca_file"] &&
-        File.exists?(@config["hm9000"]["cert_file"]) &&
-        File.exists?(@config["hm9000"]["key_file"])  &&
-        File.exists?(@config["hm9000"]["ca_file"])
+    def verify_hm9000_certs
+      hm9000 = @config['hm9000']
 
-      raise "Invalid Certs: One or more files not found"
+      missing_files = []
+      ['key_file', 'cert_file', 'ca_file'].each do |file|
+        missing_files << hm9000[file] if !File.exists?(hm9000[file])
+      end
+
+      return if missing_files.length == 0
+
+      raise "Invalid HM9000 Certs: One or more files not found: #{missing_files.join(', ')}"
+    end
+
+    def verify_ssl_certs
+      ssl = @config['ssl']
+
+      if ssl
+        missing_files = []
+        ['key_file', 'cert_file'].each do |file|
+          missing_files << ssl[file] if !File.exists?(ssl[file])
+        end
+
+        return if missing_files.length == 0
+
+        raise "Invalid SSL Certs: One or more files not found: #{missing_files.join(', ')}"
+      end
     end
 
     def crashes_path

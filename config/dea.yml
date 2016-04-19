@@ -5,8 +5,8 @@ base_dir: /tmp/dea_ng
 
 ssl:
   port: 8443
-  key_file: server.key
-  cert_file: server.crt
+  key_file: spec/fixtures/certs/server.key
+  cert_file: spec/fixtures/certs/server.crt
 
 logging:
   level: debug
