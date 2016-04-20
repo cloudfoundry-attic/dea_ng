@@ -148,6 +148,21 @@ describe Buildpacks::Buildpack, type: :buildpack do
 
       let(:buildpack_dirs) { ["#{fake_buildpacks_dir}/no_start_command"] }
 
+      context 'and it tries to install the buildpack' do
+        let(:bp) { instance_double(Buildpacks::Buildpack) }
+        let(:buildpacksInstaller) { Buildpacks::Installer.new(bp, 'somedir', 'anotherdir')}
+
+        before do
+          allow(Buildpacks::Installer).to receive(:new).and_return(buildpacksInstaller)
+          allow(buildpacksInstaller).to receive(:detect).and_return(true)
+        end
+
+        it 'calls the buildpack release method only once' do
+          expect(buildpacksInstaller).to receive(:release_info).at_most(:once)
+          buildpack_info
+        end
+      end
+
       it "has the detected buildpack" do
         expect(buildpack_info["detected_buildpack"]).to eq("Node.js")
       end
