@@ -148,21 +148,6 @@ describe Buildpacks::Buildpack, type: :buildpack do
 
       let(:buildpack_dirs) { ["#{fake_buildpacks_dir}/no_start_command"] }
 
-      context 'and it tries to install the buildpack' do
-        let(:bp) { instance_double(Buildpacks::Buildpack) }
-        let(:buildpacksInstaller) { Buildpacks::Installer.new(bp, 'somedir', 'anotherdir')}
-
-        before do
-          allow(Buildpacks::Installer).to receive(:new).and_return(buildpacksInstaller)
-          allow(buildpacksInstaller).to receive(:detect).and_return(true)
-        end
-
-        it 'calls the buildpack release method only once' do
-          expect(buildpacksInstaller).to receive(:release_info).at_most(:once)
-          buildpack_info
-        end
-      end
-
       it "has the detected buildpack" do
         expect(buildpack_info["detected_buildpack"]).to eq("Node.js")
       end
@@ -204,6 +189,18 @@ describe Buildpacks::Buildpack, type: :buildpack do
             "web" => 'while true; do (echo "hi from admin buildpack" | nc -l $PORT); done'
           }
           expect(buildpack_info['effective_procfile']).to eq(expected_procfile)
+        end
+
+        context 'and it tries to install the buildpack' do
+          let(:buildpacksInstaller) { double(Buildpacks::Installer, path: nil, name: nil, release_info: {}) }
+          before do
+            allow_any_instance_of(Buildpacks::Buildpack).to receive(:build_pack).and_return(buildpacksInstaller)
+          end
+
+          it 'calls the buildpack release method only once' do
+            expect(buildpacksInstaller).to receive(:release_info).once
+            expect{ buildpack_info }.to_not raise_error
+          end
         end
       end
     end
