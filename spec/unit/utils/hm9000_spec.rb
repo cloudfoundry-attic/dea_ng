@@ -63,7 +63,7 @@ describe HM9000 do
       before { WebMock.allow_net_connect! }
 
       it 'reports the error' do
-        expect(subject.logger).to receive(:error).with('heartbeat failed', hash_including(:error))
+        expect(subject.logger).to receive(:error).with('hm9000.heartbeat.failed', hash_including(:error))
         subject.send_heartbeat(heartbeat)
         done
       end

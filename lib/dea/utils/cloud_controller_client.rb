@@ -13,7 +13,7 @@ module Dea
 
     def send_staging_response(response)
       destination = "#{@destination}/internal/dea/staging/#{response[:app_id]}/completed"
-      logger.info('send_staging_response', destination: URICleaner.clean(destination))
+      logger.info('cloud_controller.staging_response.sending', destination: URICleaner.clean(destination))
 
       http = EM::HttpRequest.new(destination, inactivity_timeout: INACTIVITY_TIMEOUT).post( head: { 'content-type' => 'application/json' }, body: Yajl::Encoder.encode(response))
 
@@ -32,7 +32,7 @@ module Dea
       http_status = http.response_header.status
 
       if http_status == 200
-        logger.debug('response sent and received')
+        logger.info('cloud_controller.staging_response.accepted', http_status: http_status)
       else
         handle_error(http)
       end
@@ -41,7 +41,7 @@ module Dea
 
     def handle_error(http)
       open_connection_count = EM.connection_count # https://github.com/igrigorik/em-http-request/issues/190 says to check connection_count
-      logger.warn("Sending response failed",
+      logger.warn('cloud_controller.staging_response.failed',
                   destination: URICleaner.clean(http.conn.uri),
                   connection_count: open_connection_count,
                   http_error: http.error,

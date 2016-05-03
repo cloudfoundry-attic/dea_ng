@@ -5,7 +5,7 @@ class HM9000
   attr_reader :logger
 
   def initialize(destination, key_file, cert_file, ca_file, timeout, custom_logger=nil)
-    @destination = URI.join(destination, "/dea/heartbeat")
+    @destination = URI.join(destination, '/dea/heartbeat')
     @logger = custom_logger || self.class.logger
 
     client = HTTPClient.new
@@ -26,7 +26,7 @@ class HM9000
   end
 
   def send_heartbeat(heartbeat, &callback)
-    logger.info("send_heartbeat", destination: URICleaner.clean(@destination))
+    logger.debug('hm9000.heartbeat.sending', destination: URICleaner.clean(@destination))
 
     connection = @http_client.post_async(@destination, header: { 'Content-Type' => 'application/json' }, body: Yajl::Encoder.encode(heartbeat))
     EM.defer(
@@ -35,7 +35,7 @@ class HM9000
           response = connection.pop
           handle_http_response(response, callback)
         rescue => e
-          logger.error("heartbeat failed", error: e)
+          logger.error('hm9000.heartbeat.failed', error: e)
         end
       end
     )
@@ -46,7 +46,7 @@ private
   def handle_http_response(response, callback)
     http_status = response.status
     if http_status == 202
-      logger.debug("heartbeat accepted")
+      logger.debug('hm9000.heartbeat.accepted')
       callback.call(response) if callback
     else
       handle_error(response, callback)
@@ -56,7 +56,7 @@ private
 
   def handle_error(response, callback)
     logger.warn(
-      "Sending heartbeat failed",
+      'hm9000.heartbeat.failed',
       destination: URICleaner.clean(@destination),
       http_status: response.status,
       http_response: response.content

@@ -43,7 +43,7 @@ module Dea
                             head: { 'content-type' => 'application/json' },
                             body: Yajl::Encoder.encode(response)
                           )
-          expect(subject.logger).to receive(:info)
+          expect(subject.logger).to receive(:info).with('cloud_controller.staging_response.sending', hash_including(:destination))
           expect(http).to receive(:callback)
           expect(http).to receive(:errback)
 
