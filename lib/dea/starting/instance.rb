@@ -459,7 +459,6 @@ module Dea
           start_script = env.exported_environment_variables + "./startup;\nexit"
         end
 
-        logger.info('DEA-RESOURCE-INFO', nproc_limit: self.nproc_limit)
         response = container.spawn(start_script,
                                    container.resource_limits(self.file_descriptor_limit, self.nproc_limit))
 
