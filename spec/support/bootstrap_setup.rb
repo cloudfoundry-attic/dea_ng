@@ -65,7 +65,6 @@ shared_context "bootstrap_setup" do
 
     # No setup (explicitly unstub)
     allow(bootstrap).to receive(:setup_logging)
-    #allow(bootstrap).to receive(:setup_hm9000)
     allow(bootstrap).to receive(:setup_droplet_registry)
     allow(bootstrap).to receive(:setup_signal_handlers)
     allow(bootstrap).to receive(:setup_directories)

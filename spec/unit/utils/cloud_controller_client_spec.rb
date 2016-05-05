@@ -9,6 +9,7 @@ module Dea
     end
 
 
+    let(:uuid) { 'dea_id' }
     let(:polling_timeout_in_second) { 3 }
     let(:logger) { double(:logger, info: nil, warn: nil, debug: nil) }
 
@@ -20,14 +21,16 @@ module Dea
         droplet_sha1: 'qwer',
         detected_start_command: '/usr/bin/do_stuff',
         procfile: 'a_procfile',
-        app_id: 'asdf-qwer-zxcv'
+        app_id: 'asdf-qwer-zxcv',
       }
     }
+
+    let(:expected_response) { response.merge( {:dea_id => 'dea_id'} ) }
 
     let(:cc_uri) { 'http://127.0.0.1:12345' }
     let(:to_uri) { "#{cc_uri}/internal/dea/staging/#{response[:app_id]}/completed" }
 
-    subject { CloudControllerClient.new(cc_uri, logger) }
+    subject { CloudControllerClient.new(uuid, cc_uri, logger) }
 
     describe "#send_staging_response" do
       let(:request) { double(:request, method: 'post').as_null_object }
@@ -41,7 +44,7 @@ module Dea
           expect(EM::HttpRequest).to receive(:new).with(to_uri, inactivity_timeout: 300).and_return(http)
           expect(http).to receive(:post).with(
                             head: { 'content-type' => 'application/json' },
-                            body: Yajl::Encoder.encode(response)
+                            body: Yajl::Encoder.encode(expected_response)
                           )
           expect(subject.logger).to receive(:info).with('cloud_controller.staging_response.sending', hash_including(:destination))
           expect(http).to receive(:callback)

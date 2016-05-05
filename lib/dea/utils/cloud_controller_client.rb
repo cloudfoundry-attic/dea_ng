@@ -6,7 +6,8 @@ module Dea
 
     attr_reader :logger
 
-    def initialize(destination, custom_logger=nil)
+    def initialize(uuid, destination, custom_logger=nil)
+      @uuid = uuid
       @destination = destination
       @logger = custom_logger || self.class.logger
     end
@@ -14,6 +15,8 @@ module Dea
     def send_staging_response(response)
       destination = "#{@destination}/internal/dea/staging/#{response[:app_id]}/completed"
       logger.info('cloud_controller.staging_response.sending', destination: URICleaner.clean(destination))
+
+      response = response.merge( {:dea_id => @uuid} )
 
       http = EM::HttpRequest.new(destination, inactivity_timeout: INACTIVITY_TIMEOUT).post( head: { 'content-type' => 'application/json' }, body: Yajl::Encoder.encode(response))
 

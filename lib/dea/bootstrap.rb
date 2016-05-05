@@ -282,7 +282,7 @@ module Dea
     end
 
     def setup_cloud_controller_client
-      @cloud_controller_client = Dea::CloudControllerClient.new(config['cc_url'], logger)
+      @cloud_controller_client = Dea::CloudControllerClient.new(uuid, config['cc_url'], logger)
     end
 
     def setup_staging_responders
