@@ -394,6 +394,8 @@ describe Dea::Bootstrap do
       expect(bootstrap.resource_manager).to receive(:available_memory_ratio).and_return(0.22)
       expect(bootstrap.resource_manager).to receive(:available_disk_ratio).and_return(0.86)
       expect(bootstrap.resource_manager).to receive(:cpu_load_average).and_return(0.15)
+      expect(bootstrap.resource_manager).to receive(:memory_used_bytes).and_return(1000)
+      expect(bootstrap.resource_manager).to receive(:memory_free_bytes).and_return(100)
 
       expect(bootstrap.instance_registry).to receive(:emit_metrics_state)
       expect(bootstrap.instance_registry).to receive(:emit_container_stats)
@@ -409,6 +411,8 @@ describe Dea::Bootstrap do
       expect(@emitter.messages['available_memory_ratio']).to eq([{value: 0.22, unit: 'P'}])
       expect(@emitter.messages['available_disk_ratio']).to eq([{value: 0.86, unit: 'P'}])
       expect(@emitter.messages['avg_cpu_load']).to eq([{value: 0.15, unit: 'loadavg'}])
+      expect(@emitter.messages['mem_used_bytes']).to eq([{value: 1000, unit: 'B'}])
+      expect(@emitter.messages['mem_free_bytes']).to eq([{value: 100, unit: 'B'}])
     end
   end
 

@@ -243,4 +243,32 @@ describe Dea::ResourceManager do
       expect(manager.cpu_load_average).to eq(3)
     end
   end
+
+  describe '#memory_used_bytes' do
+    let(:mem) { double(Vmstat.memory) }
+
+    before do
+      allow(Vmstat).to receive(:memory).and_return(mem)
+      allow(mem).to receive(:active_bytes).and_return(40)
+      allow(mem).to receive(:wired_bytes).and_return(60)
+    end
+
+    it 'returns the sum of active and wired bytes' do
+      expect(manager.memory_used_bytes).to eq(100)
+    end
+  end
+
+  describe '#memory_free_bytes' do
+    let(:mem) { double(Vmstat.memory) }
+
+    before do
+      allow(Vmstat).to receive(:memory).and_return(mem)
+      allow(mem).to receive(:inactive_bytes).and_return(300)
+      allow(mem).to receive(:free_bytes).and_return(700)
+    end
+
+    it 'returns the sum of inactive and free bytes' do
+      expect(manager.memory_free_bytes).to eq(1000)
+    end
+  end
 end
