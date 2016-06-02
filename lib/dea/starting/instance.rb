@@ -803,6 +803,10 @@ module Dea
       ProtectedAttributesFilter.new(@attributes).to_hash
     end
 
+    def used_memory_in_bytes
+      stat_collector.used_memory_in_bytes
+    end
+
     def emit_stats
       stat_collector.emit_metrics(Time.now)
     end

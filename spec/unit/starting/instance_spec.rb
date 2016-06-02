@@ -376,6 +376,13 @@ describe Dea::Instance do
     end
   end
 
+  describe '#used_memory_in_bytes' do
+    it 'returns the value reported by stat_collector' do
+      allow(instance.stat_collector).to receive(:used_memory_in_bytes).and_return(999)
+      expect(instance.used_memory_in_bytes).to eq(999)
+    end
+  end
+
   describe '#promise_health_check' do
     let(:info_response) do
       info_response = double('InfoResponse')
