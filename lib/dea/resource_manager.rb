@@ -82,6 +82,16 @@ module Dea
        Vmstat.load_average.one_minute
     end
 
+    def memory_used_bytes
+      mem = Vmstat.memory
+      mem.active_bytes + mem.wired_bytes
+    end
+
+    def memory_free_bytes
+      mem = Vmstat.memory
+      mem.inactive_bytes + mem.free_bytes
+    end
+
     private
 
     def total_mb(registry, resource_name)

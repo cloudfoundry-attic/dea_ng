@@ -495,6 +495,8 @@ module Dea
       Dea::Loggregator.emit_value('instances', instance_registry.size, 'instances')
       Dea::Loggregator.emit_value('reservable_stagers', resource_manager.number_reservable(mem_required, disk_required), 'stagers')
       Dea::Loggregator.emit_value('avg_cpu_load', resource_manager.cpu_load_average, 'loadavg')
+      Dea::Loggregator.emit_value('mem_used_bytes', resource_manager.memory_used_bytes, 'B')
+      Dea::Loggregator.emit_value('mem_free_bytes', resource_manager.memory_free_bytes, 'B')
 
       instance_registry.emit_metrics_state
       instance_registry.emit_container_stats
