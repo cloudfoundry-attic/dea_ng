@@ -9,7 +9,7 @@ describe EvacuationHandler do
     end
   end
 
-  let(:terrible_bootstrap) { double(:bootstrap, config: {}) }
+  let(:terrible_bootstrap) { double(:bootstrap, config: {}, heartbeat_timer: "heartbeat_timer") }
 
   let(:message_bus) do
     bus = double(:message_bus)
@@ -51,13 +51,24 @@ describe EvacuationHandler do
   end
 
   subject(:handler) do
-    EvacuationHandler.new(message_bus, locator_responders, instance_registry, logger, config)
+    EvacuationHandler.new(terrible_bootstrap, message_bus, locator_responders, instance_registry, logger, config)
+  end
+
+  before do
+    allow(terrible_bootstrap).to receive(:send_heartbeat)
+    allow(EM).to receive(:cancel_timer)
   end
 
   context "before the evacuation handler is called" do
     it 'should not evacuate' do
       expect(handler).to_not be_evacuating
     end
+  end
+
+  it "sends a heartbeat of the evacuating instances" do
+    expect(terrible_bootstrap).to receive(:send_heartbeat)
+
+    handler.evacuate!(goodbye_message)
   end
 
   context "when the evacuation handler is called for the first time" do
@@ -79,20 +90,13 @@ describe EvacuationHandler do
       handler.evacuate!(goodbye_message)
     end
 
+    it "stops the heartbeat timer" do
+      expect(EM).to receive(:cancel_timer).with(terrible_bootstrap.heartbeat_timer)
+      handler.evacuate!(goodbye_message)
+    end
+
     context "with a mixture of instances in various states" do
       before { instances.each { |_, instance| instance_registry.register instance } }
-
-      it "sends the exit message for all born/starting/running/resuming instances (will be removed when deterministic evacuation is complete)" do
-        handler.evacuate!(goodbye_message)
-
-        messages = @published_messages["droplet.exited"]
-        expected_instance_ids = [instances[:born], instances[:starting], instances[:resuming], instances[:running]].map(&:instance_id)
-        published_instance_ids = messages.map { |m| m["instance"] }
-
-        expect(messages.size).to eq 4
-        expect(published_instance_ids).to match_array expected_instance_ids
-        expect(messages.map { |m| m["reason"] }.uniq).to eq ["DEA_EVACUATION"]
-      end
 
       it "transitions born/running/starting/resuming instances to evacuating" do
         handler.evacuate!(goodbye_message)
@@ -108,6 +112,7 @@ describe EvacuationHandler do
       it "returns false" do
         expect(handler.evacuate!(goodbye_message)).to eq false
       end
+
     end
 
     context "with all instances either stopping/stopped/crashed" do
@@ -151,6 +156,11 @@ describe EvacuationHandler do
         expect(@published_messages["dea.shutdown"]).to be_nil
       end
 
+      it "does not cancel the heartbeat_timer again" do
+        expect(EM).to_not receive(:cancel_timer)
+        handler.evacuate!(goodbye_message)
+      end
+
       context "and the registry still has evacuating instances" do
         before do
           instance_registry.register(instances[:evacuating])
@@ -187,11 +197,6 @@ describe EvacuationHandler do
           instance_registry.register(instances[:starting])
           instance_registry.register(instances[:resuming])
           instance_registry.register(instances[:running])
-        end
-
-        it "should send exit messages" do
-          handler.evacuate!(goodbye_message)
-          expect(@published_messages["droplet.exited"].size).to eq 4
         end
 
         it "transitions any lagging instances to evacuating (we presume this should never happen)" do

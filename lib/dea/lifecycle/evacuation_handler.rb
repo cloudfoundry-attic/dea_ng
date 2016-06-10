@@ -1,7 +1,8 @@
 class EvacuationHandler
   EXIT_REASON_EVACUATION = "DEA_EVACUATION"
 
-  def initialize(message_bus, locator_responders, instance_registry, logger, config)
+  def initialize(bootstrap, message_bus, locator_responders, instance_registry, logger, config)
+    @bootstrap = bootstrap
     @message_bus = message_bus
     @locator_responders = locator_responders
     @instance_registry = instance_registry
@@ -32,13 +33,12 @@ class EvacuationHandler
   def transition_instances_to_evacuating(first_time)
     @instance_registry.each do |instance|
       if instance.born? || instance.starting? || instance.resuming? || instance.running?
-        msg = Dea::Protocol::V1::ExitMessage.generate(instance, EXIT_REASON_EVACUATION)
-        @message_bus.publish("droplet.exited", msg)
-
         @logger.error("Found an unexpected #{instance.state} instance while evacuating") unless first_time
         instance.state = Dea::Instance::State::EVACUATING
       end
     end
+    @bootstrap.send_heartbeat
+    EM.cancel_timer(@bootstrap.heartbeat_timer) if first_time
   end
 
   def send_shutdown_and_stop_advertising(goodbye_message)

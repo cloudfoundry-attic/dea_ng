@@ -201,7 +201,7 @@ module Dea
     attr_reader :evac_handler, :shutdown_handler
 
     def setup_signal_handlers
-      @evac_handler ||= EvacuationHandler.new(nats, locator_responders, instance_registry, logger, config)
+      @evac_handler ||= EvacuationHandler.new(self, nats, locator_responders, instance_registry, logger, config)
       @shutdown_handler ||= ShutdownHandler.new(nats, locator_responders, instance_registry, @staging_task_registry, droplet_registry, @directory_server_v2, logger)
       @sig_handler ||= SignalHandler.new(uuid, local_ip, nats, locator_responders, instance_registry, evac_handler, shutdown_handler, logger)
       @sig_handler.setup do |signal, &handler|
@@ -312,6 +312,7 @@ module Dea
       end
     end
 
+    attr_reader :heartbeat_timer
     def setup_sweepers
       # Heartbeats of instances we're managing
       hb_interval = config["intervals"]["heartbeat"] || DEFAULT_HEARTBEAT_INTERVAL
