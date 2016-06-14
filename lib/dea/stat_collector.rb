@@ -48,7 +48,7 @@ module Dea
         elapsed = @cpu_samples[1][:timestamp_ns] - @cpu_samples[0][:timestamp_ns]
 
         if elapsed > 0
-          @computed_pcpu = (used * 100).to_f / elapsed
+          @computed_pcpu = (used * 100).to_f / (elapsed*100)
         end
       end
     end

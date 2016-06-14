@@ -152,7 +152,7 @@ describe Dea::StatCollector do
         time_between_stats = (Dea::StatCollector::INTERVAL * NANOSECONDS_PER_SECOND)
 
         expect(@emitter.messages['application-id'].length).to eq(2)
-        expect(@emitter.messages['application-id'][1][:cpuPercentage]).to eq((10_000_000_000 - 5_000_000) * 100 / time_between_stats)
+        expect(@emitter.messages['application-id'][1][:cpuPercentage]).to eq((10_000_000_000 - 5_000_000) / time_between_stats)
       end
 
       it 'updates the statistic variables' do
@@ -163,7 +163,7 @@ describe Dea::StatCollector do
         collector.emit_metrics(time + Dea::StatCollector::INTERVAL)
 
         time_between_stats = (Dea::StatCollector::INTERVAL * NANOSECONDS_PER_SECOND)
-        expected_pcpu = (10_000_000_000 - 5_000_000) * 100 / time_between_stats
+        expected_pcpu = (10_000_000_000 - 5_000_000) / time_between_stats
 
         expect(collector.computed_pcpu).to eq(expected_pcpu)
         expect(collector.used_memory_in_bytes).to eq(1000)
@@ -190,7 +190,7 @@ describe Dea::StatCollector do
           collector.emit_metrics(time + Dea::StatCollector::INTERVAL)
 
           time_between_stats = (Dea::StatCollector::INTERVAL * NANOSECONDS_PER_SECOND)
-          expected_pcpu = (10_000_000_000 - 5_000_000) * 100 / time_between_stats
+          expected_pcpu = (10_000_000_000 - 5_000_000) / time_between_stats
 
           expect(@emitter.messages['application-id'].length).to eq(2)
           expect(@emitter.messages['application-id'][1][:cpuPercentage]).to eq(expected_pcpu)
