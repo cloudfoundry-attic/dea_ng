@@ -7,7 +7,6 @@ module Dea
     attr_reader :used_memory_in_bytes
     attr_reader :used_disk_in_bytes
     attr_reader :computed_pcpu
-    attr_reader :computed_dcpu
 
     def initialize(container, application_id, instance_index)
      @container = container
@@ -15,7 +14,6 @@ module Dea
      @instance_index = instance_index
      @cpu_samples = []
      @computed_pcpu = 0
-     @computed_dcpu = 0
      @used_memory_in_bytes = 0
      @used_disk_in_bytes = 0
     end
@@ -50,7 +48,6 @@ module Dea
         elapsed = @cpu_samples[1][:timestamp_ns] - @cpu_samples[0][:timestamp_ns]
 
         if elapsed > 0
-          @computed_dcpu = used.to_f / elapsed
           @computed_pcpu = (used * 100).to_f / elapsed
         end
       end
