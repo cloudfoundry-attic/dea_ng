@@ -126,6 +126,10 @@ GEM
     rack-test (0.6.3)
       rack (>= 1.0)
     rake (11.1.2)
+    rbtrace (0.4.8)
+      ffi (>= 1.0.6)
+      msgpack (>= 0.4.3)
+      trollop (>= 1.16.2)
     rspec (3.4.0)
       rspec-core (~> 3.4.0)
       rspec-expectations (~> 3.4.0)
@@ -166,6 +170,7 @@ GEM
     thread_safe (0.3.5)
     tilt (2.0.2)
     timecop (0.8.1)
+    trollop (2.1.2)
     tzinfo (1.2.2)
       thread_safe (~> 0.1)
     uuidtools (2.1.5)
@@ -204,6 +209,7 @@ DEPENDENCIES
   rack
   rack-test
   rake
+  rbtrace
   rspec
   rspec-eventually
   rubyzip
@@ -220,4 +226,4 @@ DEPENDENCIES
   yajl-ruby
 
 BUNDLED WITH
-   1.11.2
+   1.12.5

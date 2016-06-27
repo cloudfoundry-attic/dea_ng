@@ -27,6 +27,7 @@ gem 'vmstat'
 gem 'loggregator_emitter', git: 'https://github.com/cloudfoundry/loggregator_emitter.git'
 
 gem 'sys-filesystem'
+gem 'rbtrace'
 
 group :test do
   gem 'codeclimate-test-reporter', require: false
