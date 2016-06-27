@@ -8,13 +8,17 @@ raise "Upgrade hack if necessary" if EM::HttpRequest::VERSION != "1.1.3"
 EventMachine::HttpClient::MULTIPART_HACK = "x-cf-multipart".freeze
 
 EventMachine::HttpClient.class_eval do
-  def send_request_with_multipart(head, body)
+  def send_request_with_multipart(head, body, &blk)
     if (multipart = head.delete(EventMachine::HttpClient::MULTIPART_HACK))
       file = @req.file
       multipart_header = make_multipart_header(multipart[:name], multipart[:filename])
 
       # We append as #stream_file_data closes the connection
-      system "echo '#{EventMachine::HttpClient::CRLF}#{multipart_footer}' >> #{file}"
+      exit_status = system "echo '#{EventMachine::HttpClient::CRLF}#{multipart_footer}' >> #{file}"
+      if !exit_status
+        $stderr.puts "MULTIPART HACK: Unable to create multipart request"
+        return
+      end
 
       @conn.send_data http_header(file, head, multipart_header)
       @conn.send_data multipart_header

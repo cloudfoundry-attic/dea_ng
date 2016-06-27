@@ -84,6 +84,16 @@ describe EventMachine::HttpClient do
         subject
         expect(File.read(tempfile.path)).to eq("#{body}\r\n--multipart-boundary-UUID--\n")
       end
+
+      context "when an occurs" do
+        before do
+          allow(http).to receive(:system).and_return(false)
+        end
+
+        it "does not send the request" do
+          expect(conn).to_not receive(:send_data)
+        end
+      end
     end
 
     context "without multipart hack" do
