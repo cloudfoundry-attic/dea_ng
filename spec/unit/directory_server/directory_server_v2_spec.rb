@@ -81,7 +81,7 @@ describe Dea::DirectoryServerV2 do
       end
 
       def localize_url(url)
-        url.sub(subject.external_hostname, "localhost:3456")
+        url.sub(subject.external_hostname, "127.0.0.1:3456")
       end
 
       it "can handle instance paths requests" do

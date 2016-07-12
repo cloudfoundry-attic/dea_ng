@@ -1,6 +1,6 @@
 source 'https://rubygems.org'
 
-gem 'eventmachine', '~> 1.0.3'
+gem 'eventmachine'
 gem 'em-http-request'
 gem 'em-synchrony'
 
