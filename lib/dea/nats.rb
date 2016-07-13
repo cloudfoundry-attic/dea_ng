@@ -98,6 +98,7 @@ module Dea
         :servers => config["nats_servers"],
         :max_reconnect_attempts => -1,
         :dont_randomize_servers => false,
+        :ping_interval => 30,
       )
     end
 

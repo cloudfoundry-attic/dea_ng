@@ -35,7 +35,7 @@ GIT
 
 GIT
   remote: https://github.com/nats-io/ruby-nats.git
-  revision: 25882255c603fbd24fcdbdf5143de79bb226c362
+  revision: 3a3999d40c0b06ed30601b4f5fa0cb4785ad6519
   specs:
     nats (0.7.1)
       eventmachine (~> 1.2, >= 1.2.0)
