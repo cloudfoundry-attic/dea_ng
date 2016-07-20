@@ -66,6 +66,14 @@ describe "Deterministic Evacuation", :type => :integration, :requires_warden => 
     end
   end
 
+  before do
+   dea_start if !dea_server.running? 
+  end
+
+  after do
+    dea_stop if dea_server.running?
+  end
+
   it "starts heartbeating in the EVACUATING state and, when all EVACUATING instances are stopped, it dies" do
     expect(dea_server).to_not be_terminated
 
@@ -86,6 +94,37 @@ describe "Deterministic Evacuation", :type => :integration, :requires_warden => 
 
     wait_until(5) do
       dea_server.terminated?
+    end
+  end
+
+  context 'when there are staging tasks running' do
+    before do
+      staging_message["properties"]["buildpack"] = fake_buildpack_url("5_second_compiling_buildpack")
+    end
+
+    it 'waits for all staging tasks to be completed' do
+      expect(dea_server).to_not be_terminated
+
+      setup_fake_buildpack("5_second_compiling_buildpack")
+
+      stager_id = get_stager_id
+      responses = nats.make_blocking_request("staging.#{stager_id}.start", staging_message, 2) do |response_index, response|
+        if response_index == 0
+          dea_server.evacuate
+        end
+
+        if response_index == 1
+          expect(response['error']).to be_nil
+          expect(response.has_key?('app_id')).to be true  # not from a stop
+        end
+      end
+
+      expect(responses.length).to eq 2
+      expect(instances_json['staging_tasks']).to be_empty
+
+      wait_until(5) do
+        dea_server.terminated?
+      end
     end
   end
 end

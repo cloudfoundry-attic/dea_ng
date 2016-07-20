@@ -80,7 +80,7 @@ module Dea::Responders
 
         bootstrap.snapshot.save
 
-        if !task.staging_message.start_message.message.empty? && !error
+        if !task.staging_message.start_message.message.empty? && !error && !@bootstrap.evac_handler.evacuating?
           start_message = task.staging_message.start_message.to_hash
           start_message['sha1'] = task.droplet_sha1
           # Now re-reserve the app's memory.  There may be a window between staging task unregistration and here

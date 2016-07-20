@@ -175,11 +175,17 @@ module DeaHelpers
       f.write(YAML.dump(config.merge(extra_config)))
       f.close
 
+      @running = true
       run_cmd "mkdir -p tmp/logs && bundle exec bin/dea #{f.path} 1>tmp/logs/dea.log 2>tmp/logs/dea.err.log"
     end
 
     def stop
+      @running = false
       graceful_kill(pid) if pid
+    end
+
+    def running?
+      @running
     end
 
     def pid

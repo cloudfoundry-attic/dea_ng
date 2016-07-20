@@ -39,7 +39,7 @@ describe SignalHandler do
     { "evacuation_bail_out_time_in_seconds" => 15 * 60 }
   end
 
-  let(:evac_handler) { EvacuationHandler.new(terrible_bootstrap, message_bus, locator_responders, instance_registry, logger, config) }
+  let(:evac_handler) { EvacuationHandler.new(terrible_bootstrap, message_bus, locator_responders, instance_registry, staging_registry, logger, config) }
   let(:shutdown_handler) { ShutdownHandler.new(message_bus, locator_responders, instance_registry, staging_registry, droplet_registry, directory_server, logger) }
 
   subject(:handler) do

@@ -8,7 +8,7 @@ require "dea/responders/staging"
 
 describe Dea::Responders::Staging do
   let(:snapshot) { double(:snapshot, :save => nil, :load => nil)}
-  let(:bootstrap) { double(:bootstrap, :config => config, :snapshot => snapshot) }
+  let(:bootstrap) { double(:bootstrap, :config => config, :snapshot => snapshot, :evac_handler => evac_handler) }
   let(:staging_task_registry) { Dea::StagingTaskRegistry.new }
   let(:staging_error_info) { nil }
   let(:staging_task) do
@@ -32,6 +32,8 @@ describe Dea::Responders::Staging do
   let(:staging_message) { StagingMessage.new(message) }
   let(:resource_manager) { double(:resource_manager, :could_reserve? => true) }
   let(:config) { {"directory_server" => {"file_api_port" => 2345}} }
+  let(:evac_handler) { double('evac_handler', :evacuating? => evacuating) }
+  let(:evacuating) { false }
 
   subject { described_class.new(bootstrap, staging_task_registry, dir_server, resource_manager, config) }
 
@@ -183,6 +185,22 @@ describe Dea::Responders::Staging do
             end
 
             subject.create_task(staging_message)
+            expect(called).to be true
+          end
+        end
+
+        context 'when the dea is evacuating' do
+          let(:evacuating) { true }
+
+          it 'does not start the app' do
+            called = false
+            allow(staging_task).to receive(:after_complete_callback) do |&blk|
+              expect(bootstrap).to_not receive(:start_app)
+              blk.call
+              called = true
+            end
+
+            subject.create_task(staging_message) 
             expect(called).to be true
           end
         end
