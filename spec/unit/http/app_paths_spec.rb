@@ -11,7 +11,12 @@ describe Dea::Http::AppPaths do
 
   alias_method :app, :described_class
 
-  let(:bootstrap) { double(Dea::Bootstrap) }
+  let(:bootstrap) { double(Dea::Bootstrap, :evac_handler => evac_handler, :shutdown_handler => shutdown_handler) }
+  let(:evac_handler) { double(EvacuationHandler, :evacuating? => evacuating) }
+  let(:evacuating) { false }
+  let(:shutdown_handler) { double(ShutdownHandler, :shutting_down? => shutting_down) }
+  let(:shutting_down) { false }
+
   ca_cert = fixture("/certs/ca.crt")
   before { Dea::Http::AppPaths.configure(bootstrap) }
 
@@ -22,6 +27,28 @@ describe Dea::Http::AppPaths do
 
       post 'https://127.0.0.1:1234/v1/stage', data.to_json, 'CONTENT_TYPE' => 'application/json'
       expect(last_response.status).to eq(202)
+    end
+
+    context "when the DEA is evacuating" do
+      let(:evacuating) { true }
+
+      it "returns a 503 Service Unavailable" do
+        data = {'foo' => 'bar'}
+
+        post 'https://127.0.0.1:1234/v1/stage', data.to_json, 'CONTENT_TYPE' => 'application/json'
+        expect(last_response.status).to eq(503)
+      end
+    end
+
+    context "when the DEA is shutting down" do
+      let(:shutting_down) { true }
+
+      it "returns a 503 Service Unavailable" do
+        data = {'foo' => 'bar'}
+
+        post 'https://127.0.0.1:1234/v1/stage', data.to_json, 'CONTENT_TYPE' => 'application/json'
+        expect(last_response.status).to eq(503)
+      end
     end
   end
 

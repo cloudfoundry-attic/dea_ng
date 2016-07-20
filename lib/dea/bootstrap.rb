@@ -531,7 +531,7 @@ module Dea
     end
 
     def stage_app_request(data)
-      return if !@http_staging_responder || evac_handler.evacuating? || shutdown_handler.shutting_down?
+      return if !@http_staging_responder
       @http_staging_responder.handle(data)
     end
 
