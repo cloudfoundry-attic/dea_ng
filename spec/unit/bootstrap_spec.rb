@@ -788,23 +788,5 @@ describe Dea::Bootstrap do
       expect(bootstrap.http_staging_responder).to receive(:handle).with(data)
       bootstrap.stage_app_request(data)
     end
-
-    context 'when the dea is evacuating' do
-      let(:evac_handler) { double('evac_handler', evacuating?: true) }
-
-      it 'does not handle the request' do
-        expect(bootstrap.http_staging_responder).not_to receive(:handle)
-        bootstrap.stage_app_request(data)
-      end
-    end
-
-    context 'when the dea is shutting down' do
-      let(:shutdown_handler) { double('shutdown_handler', shutting_down?: true) }
-
-      it 'does not handle the request' do
-        expect(bootstrap.http_staging_responder).not_to receive(:handle)
-        bootstrap.stage_app_request(data)
-      end
-    end
   end
 end

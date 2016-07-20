@@ -3,7 +3,9 @@ require "dea/http/httpserver"
 require "dea/bootstrap"
 
 describe Dea::Http do
-  let(:bootstrap) { double(Dea::Bootstrap) }
+  let(:bootstrap) { double(Dea::Bootstrap, :evac_handler => evac_handler, :shutdown_handler => shutdown_handler) }
+  let(:evac_handler) { double(EvacuationHandler, :evacuating? => false) }
+  let(:shutdown_handler) { double(ShutdownHandler, :shutting_down? => false) }
   let(:port) { 1234 }
 
   let(:config) {
