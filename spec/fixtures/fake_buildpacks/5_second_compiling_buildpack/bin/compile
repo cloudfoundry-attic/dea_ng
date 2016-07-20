@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+for i in `seq 1 5` ; do echo 'Compiling app...'; sleep 1; done
+
+exit 0

@@ -44,6 +44,8 @@ describe EvacuationHandler do
     }
   end
 
+  let(:staging_task_registry) { Dea::StagingTaskRegistry.new() }
+
   let(:goodbye_message) { "bye bye dea" }
 
   let(:config) do
@@ -51,7 +53,7 @@ describe EvacuationHandler do
   end
 
   subject(:handler) do
-    EvacuationHandler.new(terrible_bootstrap, message_bus, locator_responders, instance_registry, logger, config)
+    EvacuationHandler.new(terrible_bootstrap, message_bus, locator_responders, instance_registry, staging_task_registry, logger, config)
   end
 
   before do
@@ -113,6 +115,29 @@ describe EvacuationHandler do
         expect(handler.evacuate!(goodbye_message)).to eq false
       end
 
+    end
+
+    context 'when there are staging tasks present' do
+      let(:task) { double('Task', :task_id => 'task-id') }
+
+      before do
+        staging_task_registry.register(task)
+      end
+
+      it 'returns can_shutdown as false' do
+        expect(handler.evacuate!(goodbye_message)).to be false
+      end
+
+      context 'when the staging task unregisters and empties the registry' do
+        before do
+          expect(handler.evacuate!(goodbye_message)).to be false
+          staging_task_registry.unregister(task)
+        end
+
+        it 'finishes evacuation' do
+          expect(handler.evacuate!(goodbye_message)).to be true 
+        end
+      end
     end
 
     context "with all instances either stopping/stopped/crashed" do

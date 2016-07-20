@@ -1,11 +1,12 @@
 class EvacuationHandler
   EXIT_REASON_EVACUATION = "DEA_EVACUATION"
 
-  def initialize(bootstrap, message_bus, locator_responders, instance_registry, logger, config)
+  def initialize(bootstrap, message_bus, locator_responders, instance_registry, staging_task_registry, logger, config)
     @bootstrap = bootstrap
     @message_bus = message_bus
     @locator_responders = locator_responders
     @instance_registry = instance_registry
+    @staging_task_registry = staging_task_registry
     @logger = logger
     @evacuation_bail_out_time_in_seconds = config["evacuation_bail_out_time_in_seconds"]
   end
@@ -20,6 +21,7 @@ class EvacuationHandler
     transition_instances_to_evacuating(first_time)
 
     can_shutdown = dea_can_shutdown?
+    logger.info("Evacuating instances: #{@instance_registry}, tasks: #{@staging_task_registry.tasks}")
     logger.info("Evacuating (first time: #{first_time}; can shutdown: #{can_shutdown})")
     can_shutdown
   end
@@ -47,9 +49,10 @@ class EvacuationHandler
   end
 
   def dea_can_shutdown?
-    can_shutdown = @instance_registry.all? do |instance|
+    no_instances = @instance_registry.all? do |instance|
       instance.stopping? || instance.stopped? || instance.crashed?
     end
-    can_shutdown || (@start_time + @evacuation_bail_out_time_in_seconds <= Time.now)
+
+    (no_instances && @staging_task_registry.tasks.empty?) || (@start_time + @evacuation_bail_out_time_in_seconds <= Time.now)
   end
 end

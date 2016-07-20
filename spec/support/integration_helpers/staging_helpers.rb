@@ -47,6 +47,10 @@ module StagingHelpers
           log << chunk
         end
 
+        if block_given?
+          yield
+        end
+
       when 1
         got_second_response = true
         completion_response = response
