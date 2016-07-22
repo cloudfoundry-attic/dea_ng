@@ -52,6 +52,7 @@ module DeaHelpers
     local_ip = Dea.local_ip
     `sudo /sbin/iptables -I INPUT 2 -j ACCEPT -p tcp --dport 10197 -d #{local_ip}`
     @file_server_pid = run_cmd("bundle exec ruby spec/bin/file_server.rb", :debug => true)
+    sleep 1
     wait_until { is_port_open?(local_ip, 10197) }
   end
 
