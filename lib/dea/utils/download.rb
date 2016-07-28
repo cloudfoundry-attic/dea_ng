@@ -29,7 +29,18 @@ class Download
     destination_file.binmode
     sha1 = Digest::SHA1.new
 
-    http = EM::HttpRequest.new(source_uri, :inactivity_timeout => 30).get
+    src_uri = source_uri
+    caller.each do |stack|
+      if "#{stack}".include? "promise_droplet"
+        if [true, false].sample
+          src_uri = URI("http://tralala.corp")
+        end
+      end
+    end
+
+    uuid = Dea.secure_uuid
+    logger.info("FIND ME: sending http request", url: src_uri, uuid: uuid)
+    http = EM::HttpRequest.new(src_uri, :inactivity_timeout => 30).get
 
     http.stream do |chunk|
       destination_file << chunk
@@ -39,6 +50,7 @@ class Download
     context = {:droplet_uri => URICleaner.clean(source_uri)}
 
     http.errback do
+      logger.error("FIND ME: errored sending http request", uuid: uuid)
       begin
         msg = "Response status: unknown, Error: #{http.error}"
         error = DownloadError.new(msg, context)
@@ -50,6 +62,7 @@ class Download
     end
 
     http.callback do
+      logger.info("FIND ME: callback sending http request", uuid: uuid)
       begin
         destination_file.close
         http_status = http.response_header.status

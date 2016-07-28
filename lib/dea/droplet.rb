@@ -40,10 +40,10 @@ module Dea
     end
 
     def download(uri, &blk)
-      if exists?
-        blk.call(nil)
-        return
-      end
+      #if exists?
+      #  blk.call(nil)
+      #  return
+      #end
 
       # ensure only one download is happening for a single droplet.
       # this keeps 100 starts from causing a network storm.

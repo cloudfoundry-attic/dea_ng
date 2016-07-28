@@ -271,6 +271,7 @@ module Dea
     def initialize(bootstrap, attributes)
       super(bootstrap.config)
       @bootstrap = bootstrap
+      @caller = caller
 
       attributes = attributes.to_hash if attributes.is_a? StartMessage
       @raw_attributes = attributes.dup
@@ -297,6 +298,10 @@ module Dea
       setup_link
       setup_resume_stopping
       setup_crash_handler
+    end
+
+    def call_stack(stack_logger, iteration)
+      stack_logger.info("Dea::Instance.stack", iteration: iteration, instance_id: @attributes['instance_id'], stack: @caller) 
     end
 
     def memory_limit_in_bytes

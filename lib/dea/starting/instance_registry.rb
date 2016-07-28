@@ -72,6 +72,7 @@ module Dea
       @instances[instance_id]
     end
 
+    #This is only used in test. Safe
     def to_hash
       @instances_by_app_id.each.with_object({}) do |(app_id, instances), hash|
         hash[app_id] =
@@ -81,8 +82,9 @@ module Dea
       end
     end
 
+    #this is in a fiber so we need to dup.
     def emit_container_stats
-      @instances.values.each do |instance|
+      @instances.values.dup.each do |instance|
         instance.emit_stats
       end
     end
@@ -290,7 +292,7 @@ module Dea
     def emit_metrics_state
       metrics = Hash.new(0)
 
-      @instances.each_value do |instance|
+      @instances.values.dup.each do |instance|
         metrics[instance.state] += 1
       end
 
