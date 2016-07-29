@@ -100,6 +100,19 @@ describe Dea::Nats do
       logfile.rewind
       expect(logfile.readlines[1]).to include "nats.subscription.json_error"
     end
+
+    it 'can respond to a message and call a callback' do
+      called = false
+
+      nats.subscribe("echo") do |message|
+        message.respond(message.data) do
+          called = true
+        end
+      end
+
+      nats_mock.receive_message("echo", { "hello" => "world" }, "echo.reply")
+      expect(called).to be true
+    end
   end
 
   describe "#subscribe" do

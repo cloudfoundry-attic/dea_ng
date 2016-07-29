@@ -120,9 +120,11 @@ module Dea
         @respond_to = respond_to
       end
 
-      def respond(data)
+      def respond(data, &blk)
         message = response(data)
         message.publish
+
+        blk.call if blk
       end
 
       def response(data)

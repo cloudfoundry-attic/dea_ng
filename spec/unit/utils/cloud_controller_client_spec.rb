@@ -29,6 +29,7 @@ module Dea
     let(:port) { 25432 }
     def http_server(response_code)
       Thin::Server.new('0.0.0.0', 25432, lambda do |env|
+        @counter += 1
         [response_code,          # Status code
          {             # Response headers
           'Content-Type' => 'text/html',
@@ -60,31 +61,47 @@ module Dea
         end
       end
 
-      context 'when we receive an error code 500 back' do
+      context 'when we receive a 200' do
         before do
-          http_server(500).start
+          @counter = 0
+          http_server(200).start
         end
 
-        it 'retries up to 3 times' do
-          subject.send_staging_response(response) do |iteration|
-            # 4 because we star at index 1 and we want to run with 1, 2. 3
-            expect(iteration).to eq(4)
+        it 'calls the completion_callback' do
+          subject.send_staging_response(response) do
+            expect(@counter).to eq 1
             done
           end
         end
       end
 
-      context 'when the server is unreachable' do
+      context 'when we receive an error code 500 back' do
         before do
-          # if the server is not running eventmachine gives us a status code of
-          # 0, but only in test.
-          http_server(404).start
+          http_server(500).start
+          @counter = 0
         end
 
         it 'retries up to 3 times' do
           subject.send_staging_response(response) do |iteration|
             # 4 because we star at index 1 and we want to run with 1, 2. 3
-            expect(iteration).to eq(4)
+            expect(@counter).to eq(3)
+            done
+          end
+        end
+      end
+
+      context 'when the server returns a 404' do
+        before do
+          # if the server is not running eventmachine gives us a status code of
+          # 0, but only in test.
+          http_server(404).start
+          @counter = 0
+        end
+
+        it 'retries up to 3 times' do
+          subject.send_staging_response(response) do |iteration|
+            # 4 because we star at index 1 and we want to run with 1, 2. 3
+            expect(@counter).to eq(3)
             done
           end
         end

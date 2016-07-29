@@ -116,17 +116,31 @@ describe StagingMessage do
     expect(message.accepts_http?).to be false
   end
 
+  context '#respond' do
+    it 'calls the response callback' do
+      message.set_responder do
+        cb_return
+      end
+      expect(message.respond(nil)).to eq(cb_return)
 
-  it 'calls the response callback' do
-    message.set_responder do
-      cb_return
+      message.set_responder do |a_str|
+        a_str
+      end
+      expect(message.respond('go there')).to eq('go there')
     end
-    expect(message.respond(nil)).to eq(cb_return)
 
-    message.set_responder do |a_str|
-      a_str
+    context 'when a block is passed in' do
+      it 'passes it to the response_callback' do
+        called = false
+        message.set_responder do |a_str, &blk|
+          blk.call
+          a_str
+        end
+
+        expect(message.respond('go there') { called = true } ).to eq('go there')
+        expect(called).to be true
+      end
     end
-    expect(message.respond('go there')).to eq('go there')
   end
 
   context 'when staging_message has accepts_http' do

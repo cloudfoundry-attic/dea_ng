@@ -14,17 +14,15 @@ module Dea
     end
 
     def send_staging_response(response, &blk)
-      @cb = blk
-
       response = response.merge( {:dea_id => @uuid} )
-      send(response, 1)
+      blk ? send(response, 1) { blk.call } : send(response, 1)
     end
 
     private
 
-    def send(response, iteration)
+    def send(response, iteration, &blk)
       if iteration > MAX_RETRIES
-        @cb.call(iteration) if @cb
+        blk.call if blk
       else
         destination = URI.join(@destination, "/internal/dea/staging/#{response[:app_id]}/completed")
         logger.info('cloud_controller.staging_response.sending', destination: URICleaner.clean(destination), iteration: iteration)
@@ -33,13 +31,15 @@ module Dea
 
         http.errback do
           if handle_error(http)
-            send(response, iteration + 1)
+            blk ? send(response, iteration + 1) { blk.call } : send(response, iteration + 1)
           end
         end
 
         http.callback do
           if handle_http_response(http)
-            send(response, iteration + 1)
+            blk ? send(response, iteration + 1) { blk.call } : send(response, iteration + 1)
+          else
+            blk.call if blk
           end
         end
       end

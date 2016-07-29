@@ -72,21 +72,22 @@ module Dea::Responders
         data[:error] = error.to_s if error
         data[:error_info] = task.error_info if task.error_info
 
-        respond_to_request(staging_message, data)
+        respond_to_request(staging_message, data) do
 
-        # Unregistering the staging task will release the reservation of excess memory reserved for the app,
-        # if the app requires more memory than the staging process.
-        staging_task_registry.unregister(task)
+          # Unregistering the staging task will release the reservation of excess memory reserved for the app,
+          # if the app requires more memory than the staging process.
+          staging_task_registry.unregister(task)
 
-        bootstrap.snapshot.save
+          bootstrap.snapshot.save
 
-        if !task.staging_message.start_message.message.empty? && !error && !@bootstrap.evac_handler.evacuating?
-          start_message = task.staging_message.start_message.to_hash
-          start_message['sha1'] = task.droplet_sha1
-          # Now re-reserve the app's memory.  There may be a window between staging task unregistration and here
-          # where the DEA could no longer have enough memory to start the app.  In that case, the health manager
-          # should cause the app to be relocated on another DEA.
-          bootstrap.start_app(start_message)
+          if !task.staging_message.start_message.message.empty? && !error && !@bootstrap.evac_handler.evacuating?
+            start_message = task.staging_message.start_message.to_hash
+            start_message['sha1'] = task.droplet_sha1
+            # Now re-reserve the app's memory.  There may be a window between staging task unregistration and here
+            # where the DEA could no longer have enough memory to start the app.  In that case, the health manager
+            # should cause the app to be relocated on another DEA.
+            bootstrap.start_app(start_message)
+          end
         end
       end
     end
@@ -107,8 +108,8 @@ module Dea::Responders
       end
     end
 
-    def respond_to_request(request, params)
-      request.respond(params)
+    def respond_to_request(request, params, &blk)
+      blk.nil? ? request.respond(params) : request.respond(params) { blk.call }
     end
 
     def buildpacks_in_use

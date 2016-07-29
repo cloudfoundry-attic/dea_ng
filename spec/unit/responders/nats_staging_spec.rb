@@ -122,13 +122,18 @@ describe Dea::Responders::NatsStaging do
       allow(staging_task).to receive(:start)
     end
 
-    it 'sets the responder to the Nats Message' do
+    it 'sets the responder to the Nats Message to accept a block' do
+      called = false
+
       expect(staging_message).to receive(:set_responder) do |&blk|
-        expect(message).to receive(:respond)
-        blk.call
+        expect(message).to receive(:respond) do | params, &completion_blk|
+          completion_blk.call
+        end
+        blk.call { called = true }
       end
 
       subject.handle(message) 
+      expect(called).to be true
     end
 
     it 'sets up a after_setup_callback' do

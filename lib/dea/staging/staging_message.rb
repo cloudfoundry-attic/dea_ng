@@ -93,8 +93,9 @@ class StagingMessage
     @response_callback = blk
   end
 
-  def respond(params)
-    @response_callback.call(params) if @response_callback
+  def respond(params, &blk)
+    return if @response_callback.nil?
+    blk ? @response_callback.call(params) {blk.call} : @response_callback.call(params)
   end
 
   private

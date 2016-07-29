@@ -31,12 +31,17 @@ describe Dea::Responders::HttpStaging do
     end
 
     it 'sets the responder to the cloud controller client' do
+      called = false
+
       expect(staging_message).to receive(:set_responder) do |&blk|
-        expect(cc_client).to receive(:send_staging_response)
-        blk.call
+        expect(cc_client).to receive(:send_staging_response) do | params, &completion_blk |
+          completion_blk.call
+        end
+        blk.call { called = true }
       end
 
       subject.handle(request) 
+      expect(called).to eq true
     end
 
     it 'starts the staging task' do

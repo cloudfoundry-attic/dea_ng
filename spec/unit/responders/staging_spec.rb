@@ -134,10 +134,28 @@ describe Dea::Responders::Staging do
         } 
         end
 
+        it 'passes a block to clean up the task after completion_response has been sent' do
+          called = false
+          allow(staging_task).to receive(:after_complete_callback) do |&blk|
+            expect(staging_message).to receive(:respond) do |params, &completion_blk|
+              expect(params).to eq(data)
+              completion_blk.call
+              called = true
+            end
+            blk.call
+          end
+
+          subject.create_task(staging_message)
+          expect(called).to be true
+        end
+
         it 'responds to the request with the staging result data' do
           called = false
           allow(staging_task).to receive(:after_complete_callback) do |&blk|
-            expect(staging_message).to receive(:respond).with(data)
+            expect(staging_message).to receive(:respond) do |params, &completion_blk|
+              expect(params).to eq(data)
+              completion_blk.call
+            end
             blk.call
             called = true
           end
@@ -150,6 +168,9 @@ describe Dea::Responders::Staging do
           called = false
           allow(staging_task).to receive(:after_complete_callback) do |&blk|
             expect {
+              expect(staging_message).to receive(:respond) do |_, &completion_blk|
+                completion_blk.call
+              end
               blk.call
             }.to change {
               staging_task_registry.registered_task("task-id")
@@ -165,6 +186,9 @@ describe Dea::Responders::Staging do
           called = false
           allow(staging_task).to receive(:after_complete_callback) do |&blk|
             expect(bootstrap.snapshot).to receive(:save)
+            expect(staging_message).to receive(:respond) do |_, &completion_blk|
+              completion_blk.call
+            end
             blk.call
             called = true
           end
@@ -180,6 +204,9 @@ describe Dea::Responders::Staging do
             called = false
             allow(staging_task).to receive(:after_complete_callback) do |&blk|
               expect(bootstrap).to receive(:start_app).with(start_message)
+              expect(staging_message).to receive(:respond) do |_, &completion_blk|
+                completion_blk.call
+              end
               blk.call
               called = true
             end
@@ -196,6 +223,9 @@ describe Dea::Responders::Staging do
             called = false
             allow(staging_task).to receive(:after_complete_callback) do |&blk|
               expect(bootstrap).to_not receive(:start_app)
+              expect(staging_message).to receive(:respond) do | _, &completion_blk|
+                completion_blk.call
+              end
               blk.call
               called = true
             end
@@ -218,7 +248,10 @@ describe Dea::Responders::Staging do
             called = false
 
             allow(staging_task).to receive(:after_complete_callback) do |&blk|
-              expect(staging_message).to receive(:respond).with(data)
+              expect(staging_message).to receive(:respond) do | params, &completion_blk|
+                expect(params).to eq(data)
+                completion_blk.call
+              end
               blk.call(error)
               called = true
             end
@@ -231,6 +264,9 @@ describe Dea::Responders::Staging do
             called = false
             allow(staging_task).to receive(:after_complete_callback) do |&blk|
               expect(bootstrap).to_not receive(:start_app)
+              expect(staging_message).to receive(:respond) do | _, &completion_blk|
+                completion_blk.call
+              end
               blk.call(error)
               called = true
             end
