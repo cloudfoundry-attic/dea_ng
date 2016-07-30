@@ -28,6 +28,8 @@ gem 'loggregator_emitter', git: 'https://github.com/cloudfoundry/loggregator_emi
 
 gem 'sys-filesystem'
 
+gem 'rbtrace'
+
 group :test do
   gem 'codeclimate-test-reporter', require: false
   gem 'ci_reporter_rspec'

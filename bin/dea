@@ -11,6 +11,11 @@ require "yaml"
 
 require "dea/bootstrap"
 
+require 'objspace'
+require 'rbtrace'
+
+ObjectSpace.trace_object_allocations_start
+
 unless ARGV.size == 1
   abort "Usage: dea <config path>"
 end

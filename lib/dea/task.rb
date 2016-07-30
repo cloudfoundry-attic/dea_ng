@@ -26,10 +26,16 @@ module Dea
     def initialize(config, custom_logger=nil)
       @config = config
       @logger = custom_logger || self.class.logger.tag({})
+      @caller = caller
+      @uuid = Dea.secure_uuid
     end
 
     def start(&blk)
       raise NotImplemented
+    end
+
+    def call_stack(stack_logger, iteration)
+      stack_logger.info("Dea::Task.stack", iteration: iteration, instance_id: @uuid, stack: @caller) 
     end
 
     def container

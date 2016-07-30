@@ -41,8 +41,13 @@ module Dea
       @staging_message = staging_message
       @task_id = staging_message.task_id
       @buildpacks_in_use = buildpacks_in_use
+      @caller = caller
 
       logger.user_data[:task_id] = task_id
+    end
+
+    def call_stack(stack_logger, iteration)
+      stack_logger.info("Dea::StagingTask.stack", iteration: iteration, object_id: self.__id__, memory_address: (self.__id__<<1).to_s(16), task_id: @task_id, stack: @caller) 
     end
 
     def start
@@ -76,9 +81,13 @@ module Dea
             logger.warn('staging.task.after_complete-failed', error: e, backtrace: e.backtrace)
           end
         ensure
+            logger.info('staging.task.ensure, attempting destroy', task_id: @task_id )
           promise_destroy.resolve
+            logger.info('staging.task.ensure, finished destroy', task_id: @task_id )
           @container.close_all_connections if @container
+            logger.info('staging.task.ensure, closed all connections', task_id: @task_id )
           FileUtils.rm_rf(workspace.workspace_dir)
+            logger.info('staging.task.ensure, removed workspace dir', task_id: @task_id )
         end
       end
     end

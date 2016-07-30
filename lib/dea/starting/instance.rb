@@ -504,7 +504,7 @@ module Dea
         # Concurrently download droplet and setup container
         Promise.run_in_parallel_and_join(
           promise_droplet,
-          promise_container
+          # promise_container
         )
 
         Promise.run_serially(

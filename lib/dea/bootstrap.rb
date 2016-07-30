@@ -107,10 +107,10 @@ module Dea
     def start_metrics
       EM.add_periodic_timer(DEFAULT_METRICS_INTERVAL) do
         Fiber.new do
-          uuid = Dea.secure_uuid
-          logger.info("FIND ME 3: attempting metrics emit", uuid: uuid)
-          periodic_metrics_emit
-          logger.info("FIND ME 3: finished metrics emit", uuid: uuid)
+          #uuid = Dea.secure_uuid
+          #logger.info("FIND ME 3: attempting metrics emit", uuid: uuid)
+          #periodic_metrics_emit
+          #logger.info("FIND ME 3: finished metrics emit", uuid: uuid)
         end.resume
       end
     end
@@ -118,10 +118,10 @@ module Dea
     def start_instance_stack_printer
       iteration = 0
       EM.add_periodic_timer(30) do
-        logger.info("FIND ME 2: attempting to log instances")
         ObjectSpace.each_object(Dea::Instance) { |inst| inst.call_stack(logger, iteration) }
+        ObjectSpace.each_object(Dea::StagingTask) { |inst| inst.call_stack(logger, iteration) }
+        ObjectSpace.each_object(Dea::Task) { |inst| inst.call_stack(logger, iteration) }
         iteration += 1
-        logger.info("FIND ME 2: finished logging instances")
       end
     end
 
@@ -490,12 +490,16 @@ module Dea
     end
 
     def send_heartbeat
-      instances = instance_registry.to_a.select do |instance|
-        instance.starting? || instance.running? || instance.crashed? || instance.evacuating?
-      end
+      #instances = instance_registry.to_a.select do |instance|
+      #  instance.starting? || instance.running? || instance.crashed? || instance.evacuating?
+      #end
 
-      hbs = Dea::Protocol::V1::HeartbeatResponse.generate(uuid, instances)
-      hm9000.send_heartbeat(hbs)
+      #other_instances = instances.map do |inst|
+      #  inst.dup
+      #end
+
+      #hbs = Dea::Protocol::V1::HeartbeatResponse.generate(uuid, other_instances)
+      #hm9000.send_heartbeat(hbs)
 
       nil
     end
