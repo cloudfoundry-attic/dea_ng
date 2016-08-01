@@ -2,7 +2,7 @@ require 'dea/utils/uri_cleaner'
 
 module Dea
   class CloudControllerClient
-    INACTIVITY_TIMEOUT = 300.freeze
+    INACTIVITY_TIMEOUT = 1.freeze
     MAX_RETRIES = 3.freeze
 
     attr_reader :logger
