@@ -30,6 +30,8 @@ gem 'sys-filesystem'
 
 gem 'rbtrace'
 
+gem 'memory_profiler'
+
 group :test do
   gem 'codeclimate-test-reporter', require: false
   gem 'ci_reporter_rspec'

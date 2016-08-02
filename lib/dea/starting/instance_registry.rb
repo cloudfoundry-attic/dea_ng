@@ -84,9 +84,9 @@ module Dea
 
     #this is in a fiber so we need to dup.
     def emit_container_stats
-      @instances.values.dup.each do |instance|
-        instance.emit_stats
-      end
+      #@instances.values.dup.each do |instance|
+      #  instance.emit_stats
+      #end
     end
 
     def app_id_to_count
@@ -290,16 +290,16 @@ module Dea
     end
 
     def emit_metrics_state
-      metrics = Hash.new(0)
+     # metrics = Hash.new(0)
 
-      @instances.values.dup.each do |instance|
-        metrics[instance.state] += 1
-      end
+     # @instances.values.dup.each do |instance|
+     #   metrics[instance.state] += 1
+     # end
 
-      Dea::Instance::STATES.each do |state|
-        name = "dea_registry_#{state.downcase}"
-        Dea::Loggregator.emit_value(name, metrics[state], 'instances')
-      end
+     # Dea::Instance::STATES.each do |state|
+     #   name = "dea_registry_#{state.downcase}"
+     #   Dea::Loggregator.emit_value(name, metrics[state], 'instances')
+     # end
     end
 
     private

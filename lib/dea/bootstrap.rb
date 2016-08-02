@@ -11,6 +11,7 @@ require "logger"
 require "loggregator_emitter"
 
 require "thin"
+require "memory_profiler"
 
 require "dea/config"
 require "container/container"
@@ -118,6 +119,8 @@ module Dea
     def start_instance_stack_printer
       iteration = 0
       EM.add_periodic_timer(30) do
+        GC.start(full_mark: true, immediate_sweep: true)
+      
         ObjectSpace.each_object(Dea::Instance) { |inst| inst.call_stack(logger, iteration) }
         ObjectSpace.each_object(Dea::StagingTask) { |inst| inst.call_stack(logger, iteration) }
         ObjectSpace.each_object(Dea::Task) { |inst| inst.call_stack(logger, iteration) }
@@ -418,12 +421,16 @@ module Dea
     end
 
     def start_app(data)
-      return if evac_handler.evacuating? || shutdown_handler.shutting_down?
+      report = MemoryProfiler.report do
+        return if evac_handler.evacuating? || shutdown_handler.shutting_down?
 
-      instance = instance_manager.create_instance(data)
-      return unless instance
+        instance = instance_manager.create_instance(data)
+        return unless instance
 
-      instance.start
+        instance.start
+      end
+
+      report.pretty_print
     end
 
     def handle_dea_stop(message)

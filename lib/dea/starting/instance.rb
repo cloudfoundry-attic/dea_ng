@@ -301,7 +301,7 @@ module Dea
     end
 
     def call_stack(stack_logger, iteration)
-      stack_logger.info("Dea::Instance.stack", iteration: iteration, instance_id: @attributes['instance_id'], stack: @caller) 
+      stack_logger.info("Dea::Instance.stack", iteration: iteration, object_id: self.__id__, memory_address: (self.__id__<<1).to_s(16), instance_id: @attributes['instance_id'], stack: @caller) 
     end
 
     def memory_limit_in_bytes
@@ -501,10 +501,13 @@ module Dea
 
         promise_state(State::BORN, State::STARTING).resolve
 
+        # do we keep Dea::Instance objects around
+        raise 'FIND ME 3: raising error DANs error'
+
         # Concurrently download droplet and setup container
         Promise.run_in_parallel_and_join(
           promise_droplet,
-          # promise_container
+          promise_container
         )
 
         Promise.run_serially(
