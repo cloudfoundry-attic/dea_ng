@@ -46,6 +46,7 @@ module Dea
             "level" => String,
             optional("file") => String,
             optional("syslog") => String,
+            optional("instance") => String,
           },
 
           "nats_servers" => [String],

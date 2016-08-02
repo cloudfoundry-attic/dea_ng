@@ -18,12 +18,17 @@ module Dea
 
     attr_reader :config
     attr_reader :crash_lifetime_secs
+    attr_reader :bootstrap, :instance_logger
 
-    def initialize(config = {})
+    def initialize(bootstrap = nil, config = {})
+      @bootstrap = bootstrap
+      @instance_logger = bootstrap.instance_logger if bootstrap.instance_of?(Dea::Bootstrap)
       @config = config
       @instances = {}
       @instances_by_app_id = {}
       @crash_lifetime_secs = config["crash_lifetime_secs"] || DEFAULT_CRASH_LIFETIME_SECS
+      @registration_count = 0
+      @deregistration_count = 0
     end
 
     def start_reaper
@@ -40,6 +45,8 @@ module Dea
       Dea::Loggregator.emit(app_id,
         "Starting app instance (index #{instance.instance_index}) with guid #{instance.application_id}")
       logger.debug2("Registering instance #{instance.instance_id}")
+      @registration_count += 1
+      bootstrap.instance_logger.info("Registration #{@registration_count}: Instance #{instance.instance_id} Application #{instance.application_id}") if instance_logger
 
       add_instance(instance)
     end
@@ -50,6 +57,8 @@ module Dea
       Dea::Loggregator.emit(app_id,
         "Stopping app instance (index #{instance.instance_index}) with guid #{instance.application_id}")
       logger.debug2("Stopping instance #{instance.instance_id}")
+      @deregistration_count += 1
+      bootstrap.instance_logger.info("Deregistration #{@deregistration_count}: Instance #{instance.instance_id} Application #{instance.application_id}") if instance_logger
 
       remove_instance(instance)
 

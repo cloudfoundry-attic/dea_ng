@@ -6,11 +6,12 @@ require "dea/starting/instance"
 require "dea/starting/instance_registry"
 
 describe Dea::InstanceRegistry do
-  let(:bootstrap) { double("bootstrap", :config => {}) }
+  let(:logger) { instance_double(Steno::Logger, :info => nil) }
+  let(:bootstrap) { double("bootstrap", :config => {}, :instance_logger => logger) }
   let(:instance_registry) do
     instance_registry = nil
     with_event_machine do
-      instance_registry = Dea::InstanceRegistry.new
+      instance_registry = Dea::InstanceRegistry.new(bootstrap)
       done
     end
     instance_registry
@@ -307,7 +308,7 @@ describe Dea::InstanceRegistry do
     let(:instance_registry) do
       instance_registry = nil
       with_event_machine do
-        instance_registry = Dea::InstanceRegistry.new(config)
+        instance_registry = Dea::InstanceRegistry.new(bootstrap, config)
         done
       end
       instance_registry
@@ -354,7 +355,7 @@ describe Dea::InstanceRegistry do
     let(:instance_registry) do
       instance_registry = nil
       with_event_machine do
-        instance_registry = Dea::InstanceRegistry.new(config)
+        instance_registry = Dea::InstanceRegistry.new(bootstrap, config)
         done
       end
       instance_registry
@@ -419,7 +420,7 @@ describe Dea::InstanceRegistry do
     let(:instance_registry) do
       instance_registry = nil
       with_event_machine do
-        instance_registry = Dea::InstanceRegistry.new(config)
+        instance_registry = Dea::InstanceRegistry.new(bootstrap, config)
         done
       end
       instance_registry
@@ -499,7 +500,7 @@ describe Dea::InstanceRegistry do
   describe "#reap_crash" do
     include_context "tmpdir"
 
-    let(:instance_registry) { Dea::InstanceRegistry.new(Dea::Config.new({"base_dir" => tmpdir})) }
+    let(:instance_registry) { Dea::InstanceRegistry.new(bootstrap, Dea::Config.new({"base_dir" => tmpdir})) }
 
     it "logs to the loggregator" do
       emitter = FakeEmitter.new
@@ -534,7 +535,7 @@ describe Dea::InstanceRegistry do
     let(:instance_registry) do
       instance_registry = nil
       with_event_machine do
-        instance_registry = Dea::InstanceRegistry.new(config)
+        instance_registry = Dea::InstanceRegistry.new(bootstrap, config)
         done
       end
       instance_registry

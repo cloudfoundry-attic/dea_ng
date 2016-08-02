@@ -136,8 +136,21 @@ module Dea
 
       options[:sinks] << @log_counter
 
-      Steno.init(Steno::Config.new(options))
+      steno_config = Steno::Config.new(options)
+
+      # Steno.init(Steno::Config.new(options))
+      Steno.init(steno_config)
+
+      if logging["instance"]
+        @instance_logger = Steno::Logger.new(
+          "instance",
+          [Steno::Sink::IO.for_file(logging["instance"])],
+          :level => steno_config.default_log_level,
+          :context => steno_config.context)
+      end
     end
+
+    attr_reader :instance_logger
 
     attr_reader :warden_container_lister
 
@@ -154,7 +167,7 @@ module Dea
     attr_reader :instance_registry
 
     def setup_instance_registry
-      @instance_registry = Dea::InstanceRegistry.new(config)
+      @instance_registry = Dea::InstanceRegistry.new(self, config)
     end
 
     attr_reader :instance_manager

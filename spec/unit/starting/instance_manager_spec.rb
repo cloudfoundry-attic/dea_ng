@@ -34,6 +34,7 @@ describe Dea::InstanceManager do
              :instance_registry => instance_registry,
              :snapshot => snapshot,
              :router_client => router_client,
+             :instance_logger => nil
       )
     end
 
