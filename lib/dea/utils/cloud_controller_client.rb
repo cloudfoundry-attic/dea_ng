@@ -15,7 +15,8 @@ module Dea
 
     def send_staging_response(response, &blk)
       response = response.merge( {:dea_id => @uuid} )
-      blk ? send(response, 1) { blk.call } : send(response, 1)
+      # blk ? send(response, 1) { blk.call } : send(response, 1)
+      send(response, 1) { blk.call if blk }
     end
 
     private
@@ -31,13 +32,15 @@ module Dea
 
         http.errback do
           if handle_error(http)
-            blk ? send(response, iteration + 1) { blk.call } : send(response, iteration + 1)
+            # blk ? send(response, iteration + 1) { blk.call } : send(response, iteration + 1)
+            send(response, iteration + 1) { blk.call if blk }
           end
         end
 
         http.callback do
           if handle_http_response(http)
-            blk ? send(response, iteration + 1) { blk.call } : send(response, iteration + 1)
+            # blk ? send(response, iteration + 1) { blk.call } : send(response, iteration + 1)
+            send(response, iteration + 1) { blk.call if blk }
           else
             blk.call if blk
           end

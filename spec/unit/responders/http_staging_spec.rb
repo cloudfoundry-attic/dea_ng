@@ -24,29 +24,29 @@ describe Dea::Responders::HttpStaging do
   subject { described_class.new(stager, cc_client) }
 
   describe '#handle' do
+    let(:staging_message) { StagingMessage.new(nil) }
+
     before do
+      allow(staging_message).to receive(:set_responder).and_call_original
       allow(StagingMessage).to receive(:new).with(request).and_return(staging_message)
-      allow(staging_message).to receive(:set_responder)
-      allow(staging_task).to receive(:start)
     end
 
     it 'sets the responder to the cloud controller client' do
-      called = false
-
-      expect(staging_message).to receive(:set_responder) do |&blk|
-        expect(cc_client).to receive(:send_staging_response) do | params, &completion_blk |
-          completion_blk.call
+      allow(staging_task).to receive(:start) do
+        staging_message.respond({}) do
+          called = true
         end
-        blk.call { called = true }
       end
 
-      subject.handle(request) 
-      expect(called).to eq true
+      expect(cc_client).to receive(:send_staging_response)
+
+      subject.handle(request)
     end
 
     it 'starts the staging task' do
-        expect(staging_task).to receive(:start)
-        subject.handle(request)
+      allow(staging_message).to receive(:set_responder)
+      expect(staging_task).to receive(:start)
+      subject.handle(request)
     end
 
     context 'when creating a staging task fails' do

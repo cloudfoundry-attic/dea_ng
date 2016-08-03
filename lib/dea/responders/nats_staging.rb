@@ -24,7 +24,7 @@ module Dea::Responders
     def handle(request)
       message = StagingMessage.new(request.data)
       message.set_responder do |params, &blk|
-        blk.nil? ? request.respond(params) : request.respond(params) { blk.call }
+        request.respond(params) { blk.call if blk }
       end
 
       task = @stager.create_task(message)

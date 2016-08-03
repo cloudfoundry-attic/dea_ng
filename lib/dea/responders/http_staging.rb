@@ -12,7 +12,7 @@ module Dea::Responders
     def handle(request)
         message = StagingMessage.new(request)
         message.set_responder do |params, &blk|
-          blk ? @cc_client.send_staging_response(params) { blk.call } : @cc_client.send_staging_response(params)
+          @cc_client.send_staging_response(params) { blk.call if blk }
         end
         
         task = @stager.create_task(message)
