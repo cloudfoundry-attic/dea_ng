@@ -110,6 +110,14 @@ module Dea
       end
     end
 
+    def start_instance_stack_printer
+      iteration = 0
+      EM.add_periodic_timer(30) do
+        ObjectSpace.each_object(Dea::Instance) { |inst| inst.call_stack(logger, iteration) }
+        iteration += 1
+      end
+    end
+
     def setup_logging
       logging = config["logging"]
 
@@ -358,6 +366,7 @@ module Dea
       http_server.start
       directory_server_v2.start
       start_metrics
+      start_instance_stack_printer
 
       start_finish
 

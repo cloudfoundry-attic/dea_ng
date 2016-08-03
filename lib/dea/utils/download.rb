@@ -29,17 +29,27 @@ class Download
     destination_file.binmode
     sha1 = Digest::SHA1.new
 
-    http = EM::HttpRequest.new(source_uri, :inactivity_timeout => 30).get
+    src_uri = source_uri
+    caller.each do |stack|
+      if "#{stack}".include? "promise_droplet"
+        if [true, false].sample
+          src_uri = URI("http://tralala.corp")
+        end
+      end
+    end
+
+    http = EM::HttpRequest.new(src_uri, :inactivity_timeout => 30).get
 
     http.stream do |chunk|
       destination_file << chunk
       sha1 << chunk
     end
 
-    context = {:droplet_uri => URICleaner.clean(source_uri)}
+    context = {:droplet_uri => URICleaner.clean(src_uri)}
 
     http.errback do
       begin
+        destination_file.close
         msg = "Response status: unknown, Error: #{http.error}"
         error = DownloadError.new(msg, context)
         logger.error("em-http-request.errored", error: error.message, data: error.data)

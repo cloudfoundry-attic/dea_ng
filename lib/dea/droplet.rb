@@ -40,10 +40,10 @@ module Dea
     end
 
     def download(uri, &blk)
-      if exists?
-        blk.call(nil)
-        return
-      end
+     # if exists?
+     #   blk.call(nil)
+     #   return
+     # end
 
       # ensure only one download is happening for a single droplet.
       # this keeps 100 starts from causing a network storm.
@@ -56,7 +56,7 @@ module Dea
 
       download_destination = Tempfile.new("droplet-download.tgz")
 
-      Download.new(uri, download_destination, sha1).download! do |err|
+      uuid = Download.new(uri, download_destination, sha1).download! do |err|
         unless err
           FileUtils.mkdir_p(droplet_dirname)
           File.rename(download_destination.path, droplet_path)

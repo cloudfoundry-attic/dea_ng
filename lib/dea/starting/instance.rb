@@ -271,6 +271,7 @@ module Dea
     def initialize(bootstrap, attributes)
       super(bootstrap.config)
       @bootstrap = bootstrap
+      @caller = caller
 
       attributes = attributes.to_hash if attributes.is_a? StartMessage
       @raw_attributes = attributes.dup
@@ -291,6 +292,10 @@ module Dea
       logger.user_data[:attributes] = ProtectedAttributesFilter.new(@attributes)
 
       setup_container_from_snapshot
+    end
+
+     def call_stack(stack_logger, iteration)
+      stack_logger.info("Dea::Instance.stack", iteration: iteration, instance_id: @attributes['instance_id'], stack: @caller)
     end
 
     def setup
