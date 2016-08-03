@@ -98,6 +98,14 @@ describe Download do
   end
 
   context "when the http request errors" do
+    it 'closes the download file' do
+      Download.new(from_uri, to_file).download! do |err|
+        expect(to_file.closed?).to be true
+      end
+
+      done
+    end
+
     it "logs the error and calls the callback with a sensible error" do
       Download.new(from_uri, to_file).download! do |err|
         expect(err.message).to match(/ECONNREFUSED/)

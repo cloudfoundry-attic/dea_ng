@@ -40,6 +40,7 @@ class Download
 
     http.errback do
       begin
+        destination_file.close
         msg = "Response status: unknown, Error: #{http.error}"
         error = DownloadError.new(msg, context)
         logger.error("em-http-request.errored", error: error.message, data: error.data)
