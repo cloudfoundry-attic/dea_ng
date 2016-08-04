@@ -53,7 +53,7 @@ describe Upload do
     end
 
     it "creates the correct multipart request (with a high inactivity timeout which should be removed when everything is aysnc)" do
-      expect(EM::HttpRequest).to receive(:new).with(to_uri, inactivity_timeout: 1).and_return(http)
+      expect(EM::HttpRequest).to receive(:new).with(to_uri, inactivity_timeout: 30).and_return(http)
       expect(http).to receive(:post).with(
                           head: {'x-cf-multipart' => {name: "upload[droplet]", filename: anything}},
                           file: file_to_upload.path,

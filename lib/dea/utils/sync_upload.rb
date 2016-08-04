@@ -8,7 +8,7 @@ class UploadError < StandardError
 end
 
 class SyncUpload
-  INACTIVITY_TIMEOUT = 1.freeze
+  INACTIVITY_TIMEOUT = 30.freeze
 
   attr_reader :logger
 
