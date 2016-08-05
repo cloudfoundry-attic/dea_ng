@@ -46,7 +46,7 @@ module Dea
         let(:status) { 200 }
 
         it "logs the success" do
-          expect(EM::HttpRequest).to receive(:new).with(URI.parse(to_uri), inactivity_timeout: 1).and_return(http)
+          expect(EM::HttpRequest).to receive(:new).with(URI.parse(to_uri), inactivity_timeout: 30).and_return(http)
           expect(http).to receive(:post).with(
             head: { 'content-type' => 'application/json' },
             body: Yajl::Encoder.encode(expected_response)
