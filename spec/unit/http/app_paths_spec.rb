@@ -60,5 +60,27 @@ describe Dea::Http::AppPaths do
       post 'http://127.0.0.1:1234/v1/apps', data.to_json, 'CONTENT_TYPE' => 'application/json'
       expect(last_response.status).to eq(202)
     end
+
+    context "when the DEA is evacuating" do
+      let(:evacuating) { true }
+
+      it "returns a 503 Service Unavailable" do
+        data = {'foo' => 'bar'}
+
+        post 'https://127.0.0.1:1234/v1/apps', data.to_json, 'CONTENT_TYPE' => 'application/json'
+        expect(last_response.status).to eq(503)
+      end
+    end
+
+    context "when the DEA is shutting down" do
+      let(:shutting_down) { true }
+
+      it "returns a 503 Service Unavailable" do
+        data = {'foo' => 'bar'}
+
+        post 'https://127.0.0.1:1234/v1/apps', data.to_json, 'CONTENT_TYPE' => 'application/json'
+        expect(last_response.status).to eq(503)
+      end
+    end
   end
 end

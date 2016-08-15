@@ -42,6 +42,9 @@ class Dea::Http
       post do
         data = env[Grape::Env::API_REQUEST_BODY]
         logger.debug('http.request.received', route: route.to_s, body: data)
+
+        return status 503 if global_setting(:bootstrap).evac_handler.evacuating? || global_setting(:bootstrap).shutdown_handler.shutting_down?
+
         global_setting(:bootstrap).start_app(data)
 
         status 202
