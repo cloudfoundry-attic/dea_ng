@@ -5,7 +5,7 @@ require "dea/snapshot"
 
 describe Dea::Snapshot do
   let(:staging_task_registry) { double(:staging_task_registry) }
-  let(:instance_registry) { double(:instance_registry) }
+  let(:instance_registry) { double(:instance_registry, :size => 0) }
   let(:base_dir) { Dir.mktmpdir }
   let(:instance_manager) { double(:instance_manager, :create_instance => nil) }
   let(:bootstrap) { double(:bootstrap, :config => {}) }

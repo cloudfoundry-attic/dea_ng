@@ -11,6 +11,10 @@ describe Dea, :order => :defined do
     allow(bootstrap).to receive(:setup_sweepers).and_call_original
     allow(bootstrap).to receive(:setup_hm9000).and_call_original
 
+    # the bootstrap is never actually setup and so we need to mock out these calls
+    allow(bootstrap).to receive(:reap_unreferenced_droplets)
+    allow(bootstrap).to receive(:reap_orphaned_containers)
+
     instances = []
     heartbeats = []
 

@@ -356,6 +356,34 @@ describe Dea::Bootstrap do
     end
   end
 
+  describe '#setup_sweepers' do
+    let(:instance_registry) { double('instance_registry', :start_reaper => nil) }
+
+    before do
+      allow(bootstrap).to receive(:reap_unreferenced_droplets)
+      allow(bootstrap).to receive(:reap_orphaned_containers)
+      allow(bootstrap).to receive(:instance_registry).and_return(instance_registry)
+    end
+
+    it 'reaps unreferenced droplets once' do
+      with_event_machine do
+        expect(bootstrap).to receive(:reap_unreferenced_droplets).once
+        bootstrap.setup_sweepers
+
+        done
+      end
+    end
+
+    it 'reaps orphaned containers once' do
+      with_event_machine do
+        expect(bootstrap).to receive(:reap_orphaned_containers).once
+        bootstrap.setup_sweepers
+
+        done
+      end
+    end
+  end
+
   describe '#start_metrics' do
     it 'sets up a periodic timer' do
       expect(bootstrap).to receive(:periodic_metrics_emit)

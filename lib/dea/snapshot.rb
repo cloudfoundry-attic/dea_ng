@@ -81,6 +81,8 @@ module Dea
 
         logger.debug("Loading snapshot took: %.3fs" % [Time.now - start])
       end
+
+      logger.info("Loaded #{instance_registry.size} instances from snapshot")
     end
 
     private

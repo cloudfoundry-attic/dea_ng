@@ -314,6 +314,10 @@ module Dea
 
     attr_reader :heartbeat_timer
     def setup_sweepers
+      # reap orphaned dropletss and containers once on the startup
+      reap_unreferenced_droplets
+      reap_orphaned_containers
+
       # Heartbeats of instances we're managing
       hb_interval = config["intervals"]["heartbeat"] || DEFAULT_HEARTBEAT_INTERVAL
       @heartbeat_timer = EM.add_periodic_timer(hb_interval) { send_heartbeat }
@@ -333,7 +337,7 @@ module Dea
 
     def start_finish
       locator_responders.map(&:advertise)
-      logger.info("Loaded #{instance_registry.size} instances from snapshot")
+      logger.info("Starting with #{instance_registry.size} instances")
       send_heartbeat()
     end
 
