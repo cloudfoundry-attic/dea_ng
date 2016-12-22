@@ -8,6 +8,7 @@ describe "Dea::Bootstrap#handle_dea_stop" do
 
   def publish(message = {})
     with_event_machine do
+      bootstrap.setup_responders
       bootstrap.start
 
       nats_mock.publish("dea.stop", message)

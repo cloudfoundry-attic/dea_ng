@@ -99,7 +99,7 @@ module Dea
       setup_directory_server_v2
       setup_directories
       setup_pid_file
-      setup_staging_responders
+      setup_responders
     end
 
     def start_metrics
@@ -202,7 +202,7 @@ module Dea
 
     def setup_signal_handlers
       @evac_handler ||= EvacuationHandler.new(self, nats, locator_responders, instance_registry, @staging_task_registry, logger, config)
-      @shutdown_handler ||= ShutdownHandler.new(nats, locator_responders, instance_registry, @staging_task_registry, droplet_registry, @directory_server_v2, logger)
+      @shutdown_handler ||= ShutdownHandler.new(nats, locator_responders, instance_registry, @staging_task_registry, droplet_registry, directory_server_v2, logger)
       @sig_handler ||= SignalHandler.new(uuid, local_ip, nats, locator_responders, instance_registry, evac_handler, shutdown_handler, logger)
       @sig_handler.setup do |signal, &handler|
         ::Kernel.trap(signal, &handler)
@@ -285,29 +285,32 @@ module Dea
       @cloud_controller_client = Dea::CloudControllerClient.new(uuid, config['cc_url'], logger)
     end
 
-    def setup_staging_responders
+    def setup_responders
       @staging_responder = Dea::Responders::Staging.new(self, staging_task_registry, directory_server_v2, resource_manager, config)
       @http_staging_responder = Dea::Responders::HttpStaging.new(@staging_responder, cloud_controller_client)
+
+      @nats_staging_responder = Dea::Responders::NatsStaging.new(nats, uuid, @staging_responder, config)
+
+      @responders = [
+        Dea::Responders::DeaLocator.new(nats, uuid, resource_manager, config, @local_dea_service),
+        @nats_staging_responder,
+      ]
     end
 
     def start_nats
       nats.start
     end
 
-    def start_nats_staging_request_handler
-      @nats_staging_responder = Dea::Responders::NatsStaging.new(nats, uuid, @staging_responder, config)
-
-      @responders = [
-        Dea::Responders::DeaLocator.new(nats, uuid, resource_manager, config, @local_dea_service),
-        @nats_staging_responder,
-      ].each(&:start)
+    def start_responders
+      responders.each(&:start)
     end
 
 ### /Start_Stuff
 
     def locator_responders
-      return [] unless @responders
-      @responders.select do |r|
+      raise "not initialized" unless responders
+
+      responders.select do |r|
         r.is_a?(Dea::Responders::DeaLocator)
       end
     end
@@ -357,7 +360,7 @@ module Dea
 
       start_nats
       setup_sweepers
-      start_nats_staging_request_handler
+      start_responders
       setup_register_routes
       http_server.start
       directory_server_v2.start

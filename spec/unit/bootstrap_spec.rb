@@ -64,7 +64,7 @@ describe Dea::Bootstrap do
       expect(bootstrap).to receive(:setup_hm9000)
       expect(bootstrap).to receive(:setup_cloud_controller_client)
       expect(bootstrap).to receive(:setup_nats).ordered
-      expect(bootstrap).to receive(:setup_staging_responders).ordered
+      expect(bootstrap).to receive(:setup_responders).ordered
 
       bootstrap.setup
     end
@@ -457,27 +457,16 @@ describe Dea::Bootstrap do
     end
   end
 
-  describe '#start_staging_request_handler' do
-    before do
-      allow(EM).to receive(:add_periodic_timer)
-      allow(bootstrap).to receive(:uuid).and_return("unique-dea-id")
-      bootstrap.setup_nats
+  describe '#start_responders' do
+    let(:responder) { double("responder", :start => nil) }
 
-      bootstrap.setup_staging_task_registry
-      bootstrap.setup_directory_server_v2
-      bootstrap.setup_staging_responders
-      allow(Dea::Responders::Staging).to receive(:new).and_call_original
-      allow(Dea::Responders::NatsStaging).to receive(:new).and_call_original
+    before do
+      allow(bootstrap).to receive(:responders).and_return([responder])
     end
 
-    it "sets up staging responder to respond to nats staging requests" do
-      expect(Dea::Responders::NatsStaging).to receive(:new).with(bootstrap.nats, bootstrap.uuid, bootstrap.staging_responder, bootstrap.config)
-      bootstrap.start_nats_staging_request_handler
-
-      expect(bootstrap.staging_responder).to_not be_nil
-
-      responder = bootstrap.responders.detect { |r| r.is_a?(Dea::Responders::NatsStaging) }
-      expect(responder).to_not be_nil
+    it "starts all the responders" do
+      expect(responder).to receive(:start)
+      bootstrap.start_responders
     end
   end
 
@@ -490,6 +479,7 @@ describe Dea::Bootstrap do
       bootstrap.setup_instance_registry
       bootstrap.setup_staging_task_registry
       bootstrap.setup_resource_manager
+      bootstrap.setup_responders
       bootstrap.start_nats
       bootstrap.setup_hm9000
       allow(bootstrap.hm9000).to receive(:send_heartbeat)
@@ -530,6 +520,7 @@ describe Dea::Bootstrap do
     before do
       allow(bootstrap).to receive(:evac_handler).and_return(evac_handler)
       allow(bootstrap).to receive(:shutdown_handler).and_return(shutdown_handler)
+      bootstrap.setup_responders
       bootstrap.setup_signal_handlers
       bootstrap.setup_instance_manager
     end
@@ -578,6 +569,7 @@ describe Dea::Bootstrap do
     let(:instance) { double("instance", :start => nil) }
 
     before do
+      bootstrap.setup_responders
       bootstrap.setup_signal_handlers
       bootstrap.setup_instance_manager
     end
@@ -673,18 +665,23 @@ describe Dea::Bootstrap do
   end
 
   describe '#start' do
-    it 'starts up the appropriate DEA subcomponents' do
-      expect(bootstrap).to receive(:snapshot) { double(:snapshot, :load => nil) }
-      expect(bootstrap).to receive(:download_buildpacks)
-      expect(bootstrap).to receive(:setup_sweepers)
-      expect(bootstrap).to receive(:directory_server_v2) { double(:directory_server_v2, :start => nil) }
-      expect(bootstrap).to receive(:setup_register_routes)
-      expect(bootstrap).to receive(:start_finish)
-      expect(bootstrap).to receive(:start_metrics)
-      expect(bootstrap).to receive(:start_nats).ordered
-      expect(bootstrap).to receive(:start_nats_staging_request_handler).ordered
-      expect(bootstrap).to receive(:http_server).ordered { double(:http_server, :start => nil) }
+    let(:directory_server) { double(:directory_server_v2, :start => nil) }
 
+    it 'starts up the appropriate DEA subcomponents' do
+      allow(bootstrap).to receive(:directory_server_v2).and_return(directory_server)
+
+      expect(bootstrap).to receive(:download_buildpacks).ordered
+      expect(bootstrap).to receive(:snapshot) { double(:snapshot, :load => nil) }
+      expect(bootstrap).to receive(:start_nats).ordered
+      expect(bootstrap).to receive(:setup_sweepers).ordered
+      expect(bootstrap).to receive(:start_responders).ordered
+      expect(bootstrap).to receive(:setup_register_routes).ordered
+      expect(bootstrap).to receive(:http_server).ordered { double(:http_server, :start => nil) }
+      expect(directory_server).to receive(:start).ordered
+      expect(bootstrap).to receive(:start_metrics).ordered
+      expect(bootstrap).to receive(:start_finish).ordered
+
+      bootstrap.setup_responders
       bootstrap.start
     end
 
@@ -699,7 +696,7 @@ describe Dea::Bootstrap do
         allow(bootstrap).to receive(:setup_register_routes)
         allow(bootstrap).to receive(:start_finish)
         allow(bootstrap).to receive(:start_metrics)
-        allow(bootstrap).to receive(:start_nats_staging_request_handler)
+        allow(bootstrap).to receive(:start_responders)
         allow(bootstrap).to receive(:snapshot).and_call_original
       end
 
@@ -708,6 +705,7 @@ describe Dea::Bootstrap do
 
 
         bootstrap.setup_snapshot
+        bootstrap.setup_responders
         bootstrap.start
       end
     end
@@ -751,11 +749,12 @@ describe Dea::Bootstrap do
     end
   end
 
-  describe '#setup_staging_responders' do
-    it 'initializes the generic and http staging responders' do
-      bootstrap.setup_staging_responders
+  describe '#setup_responders' do
+    it 'initializes the responders' do
+      bootstrap.setup_responders
       expect(bootstrap.http_staging_responder).to_not be_nil
       expect(bootstrap.staging_responder).to_not be_nil
+      expect(bootstrap.responders).to contain_exactly(a_kind_of(Dea::Responders::DeaLocator), a_kind_of(Dea::Responders::NatsStaging))
     end
   end
 
@@ -808,7 +807,7 @@ describe Dea::Bootstrap do
       allow(bootstrap).to receive(:shutdown_handler).and_return(shutdown_handler)
 
       allow(EM).to receive(:add_periodic_timer)
-      bootstrap.setup_staging_responders
+      bootstrap.setup_responders
     end
 
 
