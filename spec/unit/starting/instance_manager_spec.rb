@@ -217,6 +217,15 @@ describe Dea::InstanceManager do
                 subject
               end
             end
+
+            context "and it transitions to evacuating" do
+              subject { instance.state = Dea::Instance::State::EVACUATING }
+
+              it "does not unregisters with the router" do
+                expect(bootstrap.router_client).to_not receive(:unregister_instance).with(instance)
+                subject
+              end
+            end
           end
 
           context "when the app is stopping" do

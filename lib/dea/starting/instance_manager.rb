@@ -23,6 +23,7 @@ module Dea
       instance.setup
 
       instance.on(Instance::Entering.new(:crashed)) do
+        bootstrap.router_client.unregister_instance(instance)
         send_crashed_message(instance)
         bootstrap.snapshot.save
       end
@@ -33,11 +34,8 @@ module Dea
         bootstrap.snapshot.save
       end
 
-      instance.on(Instance::Exiting.new(:running)) do
-        bootstrap.router_client.unregister_instance(instance)
-      end
-
       instance.on(Instance::Entering.new(:stopping)) do
+        bootstrap.router_client.unregister_instance(instance)
         bootstrap.snapshot.save
       end
 
