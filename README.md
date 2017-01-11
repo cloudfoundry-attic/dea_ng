@@ -1,3 +1,9 @@
+## Please read before you submit any issue or PR ##
+
+The DEAs will only be updated in response to vulnerability discoveries and major bugs. No new features will be introduced in the DEAs during this period.
+
+See [EOL Timeline for Legacy DEA Backend](https://lists.cloudfoundry.org/archives/list/cf-dev@lists.cloudfoundry.org/message/GMXXJTTM2Q6SIRGVXSQH4TPLHTVHKNNG/) for more details.
+
 # dea_ng
 
 This repository contains the code for the Droplet Execution Agent (DEA)
