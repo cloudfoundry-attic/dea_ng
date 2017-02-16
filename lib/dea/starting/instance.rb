@@ -448,10 +448,13 @@ module Dea
             next
           end
 
+          env.buildpack_environment_variables = staged_info['config_vars']
+
           start_script =
             Dea::StartupScriptGenerator.new(
               command,
               env.exported_user_environment_variables,
+              env.exported_buildpack_environment_variables,
               env.exported_system_environment_variables,
               bootstrap.config.post_setup_hook
             ).generate

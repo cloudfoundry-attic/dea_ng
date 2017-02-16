@@ -91,10 +91,11 @@ module Buildpacks
       buildpack_info = {
         "buildpack_path" => build_pack.path,
         "detected_buildpack" => build_pack.name,
+        "config_vars" => release_info["config_vars"],
         "start_command" => start_command,
         "effective_procfile" => effective_procfile
       }
-
+ 
       File.open(staging_info_path, 'w') do |f|
         YAML.dump(buildpack_info, f)
       end

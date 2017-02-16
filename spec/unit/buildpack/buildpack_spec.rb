@@ -150,10 +150,14 @@ describe Buildpacks::Buildpack, type: :buildpack do
 
       it "has the detected buildpack" do
         expect(buildpack_info["detected_buildpack"]).to eq("Node.js")
-      end
+      end      
 
       it "has the buildpack path" do
         expect(buildpack_info["buildpack_path"]).to eq("#{fake_buildpacks_dir}/no_start_command")
+      end
+
+      it "has the config vars" do
+        expect(buildpack_info["config_vars"]).to eq({"PATH"=>"bin:/usr/local/bin:/usr/bin:/bin", "FROM_BUILD_PACK"=>"yes"})
       end
 
       it "has a nil specified_buildpack_key" do
